@@ -36,9 +36,9 @@ SMART CAMPUS is a college-integrated digital platform that combines:
 
 The platform is web-based and built using:
 
-- Python Flask (Backend)
-- MySQL (Database)
-- HTML, CSS, Vanilla JavaScript (Frontend)
+- Python FastAPI (Backend)
+- Postgresql (Database)
+- HTML, CSS, JavaScript(Frontend)
 - WebRTC (Live sessions)
 - Flask-SocketIO (Real-time communication)
 
