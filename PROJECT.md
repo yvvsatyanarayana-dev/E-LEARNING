@@ -38,9 +38,9 @@ The platform is web-based and built using:
 
 - Python FastAPI (Backend)
 - Postgresql (Database)
-- HTML, CSS, JavaScript(Frontend)
+- React(Frontend)
 - WebRTC (Live sessions)
-- Flask-SocketIO (Real-time communication)
+- FastAPI-SocketIO (Real-time communication)
 
 The system is designed to be secure, scalable, and institution-focused.
 
@@ -245,21 +245,19 @@ Authentication includes:
 # 8. Technical Stack
 
 ## Backend
-- Python Flask
-- Flask-SQLAlchemy
-- Flask-Migrate
-- Flask-Login or JWT
-- Flask-SocketIO
+- Python FastAPI
+- FastAPI-SQLAlchemy
+- FastAPI-Migrate
+- FastAPI-Login or JWT
+- FastAPI-SocketIO
 
 ## Frontend
-- HTML (Jinja Templates)
-- CSS (Custom or Bootstrap)
-- Vanilla JavaScript
+- React
 - Fetch API
 - WebRTC
 
 ## Database
-- MySQL
+- postgresql
 - Redis (optional for caching)
 
 ## DevOps
@@ -315,6 +313,6 @@ It integrates:
 - Innovation management
 - Placement tracking
 
-into one unified institutional platform built using Flask and Vanilla JavaScript.
+into one unified institutional platform built using FastAPI and React.
 
 The system bridges the gap between academic learning and industry readiness.
