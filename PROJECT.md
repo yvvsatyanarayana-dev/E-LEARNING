@@ -134,24 +134,11 @@ Authentication includes:
 - Subject clarification
 - Assignment explanation
 - Lab guidance
-
-### AI Skill Analyzer
-- Initial assessment test
-- Skill radar report
-- Personalized roadmap
-
-### AI Project Reviewer
-- Code quality review
-- Optimization suggestions
-- Documentation feedback
-
 ### AI Interview Simulator
 - Mock interviews
 - Performance scoring
 - Communication feedback
-
 ---
-
 ## 4.6 Campus Community & Collaboration
 
 - Study groups
@@ -160,21 +147,15 @@ Authentication includes:
 - Project collaboration rooms
 - Innovation idea submission
 - Hackathon participation system
-
 ---
-
 ## 4.7 Placement Readiness Module
-
 - Interview simulator
 - Skill performance dashboard
 - Internship performance tracking
 - Placement Readiness Index (PRI)
 - Industry feedback system
-
 ---
-
 ## 4.8 Analytics & Reporting
-
 ### Student Dashboard
 - Course progress
 - Skill growth timeline
