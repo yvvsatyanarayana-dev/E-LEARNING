@@ -41,35 +41,61 @@ html { scroll-behavior: smooth; }
   cursor: none;
 }
 
-/* ─── CURSOR ─────────────────────────────────────── */
+/* ─── CURSOR (PEN MODE) ─────────────────────────── */
+
+/* Hide the default system cursor on the root */
+.sc-root { cursor: none; }
+
 .sc-cursor {
   position: fixed;
-  width: 9px;
-  height: 9px;
-  background: var(--indigo-l);
-  border-radius: 50%;
+  width: 28px;
+  height: 28px;
   pointer-events: none;
   z-index: 9999;
-  transform: translate(-50%, -50%);
-  mix-blend-mode: screen;
-  transition: width .18s, height .18s, background .18s;
+  /* Offset so the pen nib tip is at the actual pointer position */
+  transform: translate(-4px, -24px);
+  transition: transform .12s, opacity .18s;
+
+  /* Pen nib SVG as a background image */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none'%3E%3Cpath d='M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z' fill='%235b4ef8' stroke='%23a99dff' stroke-width='1.2' stroke-linejoin='round'/%3E%3Cpath d='M15 5l4 4' stroke='%23c4bcff' stroke-width='.8'/%3E%3C/svg%3E");
+  background-size: contain;
+  background-repeat: no-repeat;
 }
+
+/* Ink-drop ring instead of generic circle */
 .sc-cursor-ring {
   position: fixed;
-  width: 30px;
-  height: 30px;
-  border: 1.5px solid rgba(91,78,248,.4);
+  width: 10px;
+  height: 10px;
+  background: rgba(91, 78, 248, 0.35);
   border-radius: 50%;
   pointer-events: none;
   z-index: 9998;
+  /* Offset so the ink drop sits right at the nib tip */
   transform: translate(-50%, -50%);
-  transition: width .18s, height .18s;
+  transition: width .2s ease, height .2s ease, opacity .2s ease, background .18s;
 }
-.sc-root.cursor-hover .sc-cursor { width: 18px; height: 18px; background: var(--indigo-ll); }
-.sc-root.cursor-hover .sc-cursor-ring { width: 48px; height: 48px; }
-.sc-root.cursor-click .sc-cursor { width: 6px; height: 6px; background: #fff; }
-.sc-root.cursor-click .sc-cursor-ring { width: 20px; height: 20px; border-color: rgba(255,255,255,.6); }
 
+/* ── Hover state: pen slightly enlarges, ink blobs ── */
+.sc-root.cursor-hover .sc-cursor {
+  transform: translate(-4px, -24px) scale(1.2);
+}
+.sc-root.cursor-hover .sc-cursor-ring {
+  width: 18px;
+  height: 18px;
+  background: rgba(91, 78, 248, 0.2);
+}
+
+/* ── Click state: nib press + ink burst ─────────── */
+.sc-root.cursor-click .sc-cursor {
+  transform: translate(-4px, -24px) scale(0.85) rotate(-8deg);
+}
+.sc-root.cursor-click .sc-cursor-ring {
+  width: 28px;
+  height: 28px;
+  background: rgba(169, 157, 255, 0.15);
+  border: 1.5px solid rgba(255, 255, 255, 0.5);
+}
 /* ─── NOISE ──────────────────────────────────────── */
 .sc-noise {
   position: fixed;

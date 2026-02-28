@@ -1,5 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import "./App.css";
+import LoginModal from "./auth/login/login";
+import RegisterModal from "./auth/register/register";
+import ForgotModal from "./auth/forgot/Forgot";
 
 /* ─── RIPPLE HOOK ─────────────────────────────────── */
 function useRipple() {
@@ -18,124 +21,14 @@ function useRipple() {
   return addRipple;
 }
 
-/* ─── MODAL COMPONENT ─────────────────────────────── */
-function LoginModal({ open, onClose, onGoSignup }) {
-  const addRipple = useRipple();
-  const [selected, setSelected] = useState("student");
-
-  const roles = [
-    { key: "student", name: "Student", desc: "Track your progress" },
-    { key: "faculty", name: "Faculty", desc: "Manage courses" },
-    { key: "placement", name: "Placement", desc: "Readiness reports" },
-    { key: "admin", name: "Admin", desc: "Full control" },
-  ];
-
-  return (
-    <div className={`modal-overlay${open ? " open" : ""}`} onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal">
-        <button className="modal-close ripple-host" onClick={(e) => { addRipple(e); onClose(); }}>&#x2715;</button>
-        <div className="modal-logo">
-          <div className="modal-logo-mark">SC</div>
-          <div className="modal-logo-txt">Smart Campus</div>
-        </div>
-        <h3 className="modal-title">Welcome back.</h3>
-        <p className="modal-sub">Sign in to your institutional account to continue.</p>
-        <div className="role-picker">
-          {roles.map((r) => (
-            <div
-              key={r.key}
-              className={`role-opt ripple-host${selected === r.key ? " selected" : ""}`}
-              onClick={(e) => { addRipple(e); setSelected(r.key); }}
-            >
-              <div className="ro-name">{r.name}</div>
-              <div className="ro-desc">{r.desc}</div>
-            </div>
-          ))}
-        </div>
-        <div className="form-group">
-          <label className="form-label">Institutional Email</label>
-          <input className="form-input" type="email" placeholder="you@university.edu" />
-        </div>
-        <div className="form-group">
-          <label className="form-label">Password</label>
-          <input className="form-input" type="password" placeholder="Enter your password" />
-        </div>
-        <div className="form-forgot">Forgot password?</div>
-        <button className="btn btn-solid btn-full ripple-host" onClick={addRipple} style={{ fontSize: 14, padding: 13 }}>Sign In</button>
-        <div className="modal-footer-txt">
-          New to Smart Campus? <span onClick={onGoSignup}>Create an account</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SignupModal({ open, onClose, onGoLogin }) {
-  const addRipple = useRipple();
-  const [selected, setSelected] = useState("student");
-
-  const roles = [
-    { key: "student", name: "Student", desc: "Track my progress" },
-    { key: "faculty", name: "Faculty", desc: "Manage courses" },
-    { key: "placement", name: "Placement", desc: "Officer access" },
-    { key: "admin", name: "Admin", desc: "Institution setup" },
-  ];
-
-  return (
-    <div className={`modal-overlay${open ? " open" : ""}`} onClick={(e) => e.target === e.currentTarget && onClose()}>
-      <div className="modal">
-        <button className="modal-close ripple-host" onClick={(e) => { addRipple(e); onClose(); }}>&#x2715;</button>
-        <div className="modal-logo">
-          <div className="modal-logo-mark">SC</div>
-          <div className="modal-logo-txt">Smart Campus</div>
-        </div>
-        <h3 className="modal-title">Create your account.</h3>
-        <p className="modal-sub">Join your institution on Smart Campus.</p>
-        <div className="role-picker">
-          {roles.map((r) => (
-            <div
-              key={r.key}
-              className={`role-opt ripple-host${selected === r.key ? " selected" : ""}`}
-              onClick={(e) => { addRipple(e); setSelected(r.key); }}
-            >
-              <div className="ro-name">{r.name}</div>
-              <div className="ro-desc">{r.desc}</div>
-            </div>
-          ))}
-        </div>
-        <div className="form-row">
-          <div className="form-group">
-            <label className="form-label">First Name</label>
-            <input className="form-input" type="text" placeholder="Arjun" />
-          </div>
-          <div className="form-group">
-            <label className="form-label">Last Name</label>
-            <input className="form-input" type="text" placeholder="Ravi" />
-          </div>
-        </div>
-        <div className="form-group">
-          <label className="form-label">Institutional Email</label>
-          <input className="form-input" type="email" placeholder="you@university.edu" />
-        </div>
-        <div className="form-group">
-          <label className="form-label">Password</label>
-          <input className="form-input" type="password" placeholder="Create a strong password" />
-        </div>
-        <button className="btn btn-solid btn-full ripple-host" onClick={addRipple} style={{ fontSize: 14, padding: 13 }}>Create Account</button>
-        <div className="modal-footer-txt">
-          Already have an account? <span onClick={onGoLogin}>Sign in</span>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 /* ─── MAIN COMPONENT ──────────────────────────────── */
-export default function SmartCampus() {
+// defaultModal: "login" | "signup" | "forgot" | undefined
+export default function SmartCampus({ defaultModal }) {
   const rootRef = useRef(null);
   const addRipple = useRipple();
-  const [loginOpen, setLoginOpen] = useState(false);
-  const [signupOpen, setSignupOpen] = useState(false);
+  const [loginOpen, setLoginOpen] = useState(defaultModal === "login");
+  const [signupOpen, setSignupOpen] = useState(defaultModal === "signup");
+  const [forgotOpen, setForgotOpen] = useState(defaultModal === "forgot");
   const [cursorPos, setCursorPos] = useState({ x: -100, y: -100 });
   const [ringPos, setRingPos] = useState({ x: -100, y: -100 });
   const [cursorState, setCursorState] = useState("");
@@ -185,14 +78,15 @@ export default function SmartCampus() {
 
   /* modal body scroll lock */
   useEffect(() => {
-    document.body.style.overflow = loginOpen || signupOpen ? "hidden" : "";
-  }, [loginOpen, signupOpen]);
+    document.body.style.overflow = loginOpen || signupOpen || forgotOpen ? "hidden" : "";
+  }, [loginOpen, signupOpen, forgotOpen]);
 
   const hoverOn = () => setCursorState((s) => s.includes("click") ? s : "cursor-hover");
   const hoverOff = () => setCursorState((s) => s.includes("click") ? s : "");
 
-  const openLogin = () => { setSignupOpen(false); setLoginOpen(true); };
-  const openSignup = () => { setLoginOpen(false); setSignupOpen(true); };
+  const openLogin = () => { setSignupOpen(false); setForgotOpen(false); setLoginOpen(true); };
+  const openSignup = () => { setLoginOpen(false); setForgotOpen(false); setSignupOpen(true); };
+  const openForgot = () => { setLoginOpen(false); setSignupOpen(false); setForgotOpen(true); };
 
   return (
     <div className={`sc-root ${cursorState}`} ref={rootRef}>
@@ -206,10 +100,16 @@ export default function SmartCampus() {
         open={loginOpen}
         onClose={() => setLoginOpen(false)}
         onGoSignup={openSignup}
+        onGoForgot={openForgot}
       />
-      <SignupModal
+      <RegisterModal
         open={signupOpen}
         onClose={() => setSignupOpen(false)}
+        onGoLogin={openLogin}
+      />
+      <ForgotModal
+        open={forgotOpen}
+        onClose={() => setForgotOpen(false)}
         onGoLogin={openLogin}
       />
 
@@ -222,18 +122,33 @@ export default function SmartCampus() {
         <ul className="nav-links">
           {["Why Us", "Tracking", "Lucyna AI", "Features"].map((item, i) => (
             <li key={i}>
-              <a href={`#${["why","tracking","lucyna","features"][i]}`}
-                onMouseEnter={hoverOn} onMouseLeave={hoverOff}>{item}</a>
+              <a
+                href={`#${["why", "tracking", "lucyna", "features"][i]}`}
+                onMouseEnter={hoverOn}
+                onMouseLeave={hoverOff}
+              >
+                {item}
+              </a>
             </li>
           ))}
         </ul>
         <div className="nav-right">
-          <button className="btn btn-ghost ripple-host"
+          <button
+            className="btn btn-ghost ripple-host"
             onClick={(e) => { addRipple(e); openLogin(); }}
-            onMouseEnter={hoverOn} onMouseLeave={hoverOff}>Sign In</button>
-          <button className="btn btn-solid ripple-host"
+            onMouseEnter={hoverOn}
+            onMouseLeave={hoverOff}
+          >
+            Sign In
+          </button>
+          <button
+            className="btn btn-solid ripple-host"
             onClick={(e) => { addRipple(e); openSignup(); }}
-            onMouseEnter={hoverOn} onMouseLeave={hoverOff}>Create Account</button>
+            onMouseEnter={hoverOn}
+            onMouseLeave={hoverOff}
+          >
+            Create Account
+          </button>
         </div>
       </nav>
 
@@ -259,11 +174,22 @@ export default function SmartCampus() {
               Smart Campus unifies academic tracking, skill development, AI mentorship, and placement readiness into one institutional platform — giving colleges complete visibility into every student's journey.
             </p>
             <div className="hero-actions">
-              <button className="btn btn-solid btn-lg ripple-host"
+              <button
+                className="btn btn-solid btn-lg ripple-host"
                 onClick={(e) => { addRipple(e); openSignup(); }}
-                onMouseEnter={hoverOn} onMouseLeave={hoverOff}>Get Started</button>
-              <button className="btn btn-outline-lg ripple-host"
-                onClick={addRipple} onMouseEnter={hoverOn} onMouseLeave={hoverOff}>Schedule a Demo</button>
+                onMouseEnter={hoverOn}
+                onMouseLeave={hoverOff}
+              >
+                Get Started
+              </button>
+              <button
+                className="btn btn-outline-lg ripple-host"
+                onClick={addRipple}
+                onMouseEnter={hoverOn}
+                onMouseLeave={hoverOff}
+              >
+                Schedule a Demo
+              </button>
             </div>
             <div className="hero-stats">
               {[
@@ -638,11 +564,22 @@ export default function SmartCampus() {
           <h2>Ready to give your college<br />complete student visibility?</h2>
           <p>Smart Campus is designed for institutions that take student outcomes seriously. Get a guided walkthrough with your academic team and see the platform built around your college's needs.</p>
           <div className="cta-btns">
-            <button className="btn btn-solid btn-lg ripple-host"
+            <button
+              className="btn btn-solid btn-lg ripple-host"
               onClick={(e) => { addRipple(e); openSignup(); }}
-              onMouseEnter={hoverOn} onMouseLeave={hoverOff}>Create an Account</button>
-            <button className="btn btn-outline-lg ripple-host"
-              onClick={addRipple} onMouseEnter={hoverOn} onMouseLeave={hoverOff}>Contact Our Team</button>
+              onMouseEnter={hoverOn}
+              onMouseLeave={hoverOff}
+            >
+              Create an Account
+            </button>
+            <button
+              className="btn btn-outline-lg ripple-host"
+              onClick={addRipple}
+              onMouseEnter={hoverOn}
+              onMouseLeave={hoverOff}
+            >
+              Contact Our Team
+            </button>
           </div>
           <div className="cta-note">
             <span>Built for institutional use</span>
