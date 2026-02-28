@@ -1,5 +1,6 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import SmartCampus from "../App";
+import StudentDashboard from "../pages/studentDashboard/studentDashboard";
 
 // Auth modal state is managed inside SmartCampus (App.jsx).
 // These routes render the landing page and can be extended
@@ -22,6 +23,10 @@ const router = createBrowserRouter([
     path: "/forgot-password",
     element: <SmartCampus defaultModal="forgot" />,
   },
+  {
+    path : "/studentdashboard",
+    element : <StudentDashboard/>
+  }
 ]);
 
 export default function AppRouter() {
