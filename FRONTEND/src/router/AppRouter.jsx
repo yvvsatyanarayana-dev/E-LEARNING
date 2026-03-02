@@ -1,7 +1,8 @@
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import SmartCampus from "../App";
 import StudentDashboard from "../pages/studentDashboard/studentDashboard";
-
+import FacultyDashboard from "../pages/facultyDashboard/facultyDashboard";
+import FacultyAnalytics from "../pages/facultyAnalytics/facultyAnalytics";
 // Auth modal state is managed inside SmartCampus (App.jsx).
 // These routes render the landing page and can be extended
 // to render dedicated pages for each auth flow if needed.
@@ -26,6 +27,14 @@ const router = createBrowserRouter([
   {
     path : "/studentdashboard",
     element : <StudentDashboard/>
+  },
+  {
+    path : "/facultydashboard",
+    element : <FacultyDashboard/>
+  },
+  {
+    path : "/facultyanalytics",
+    element : <FacultyAnalytics/>
   }
 ]);
 
