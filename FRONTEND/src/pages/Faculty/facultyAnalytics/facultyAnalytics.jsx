@@ -1,8 +1,7 @@
 // facultyAnalytics.jsx
-// Drop this inside your FacultyDashboard layout replacing <div className="content">…</div>
-// Or render as a standalone page — it self-contains its own data and layout.
+// Can be rendered inside FacultyDashboard when the Analytics page is active
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import "./facultyAnalytics.css";
 
 // ─── ICONS (same set as FacultyDashboard) ────────────────────────
@@ -102,9 +101,9 @@ const PERIODS = ["This Week", "Last 30 Days", "Semester"];
 
 // ─── HELPERS ─────────────────────────────────────────────────────
 function AnimBar({ pct, color, height = 4, delay = 400, animate = true }) {
-  const [w, setW] = useState(0);
+  const [w, setW] = useState(animate ? 0 : pct);
   useEffect(() => {
-    if (!animate) { setW(pct); return; }
+    if (!animate) return;
     const t = setTimeout(() => setW(pct), delay);
     return () => clearTimeout(t);
   }, [pct, delay, animate]);
@@ -195,7 +194,6 @@ function HBarChart({ data }) {
 function Donut({ segments, size = 88, stroke = 14 }) {
   const r = (size - stroke) / 2;
   const circ = 2 * Math.PI * r;
-  let offset = 0;
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: "rotate(-90deg)" }}>
       <circle cx={size / 2} cy={size / 2} r={r} fill="none"
@@ -203,15 +201,14 @@ function Donut({ segments, size = 88, stroke = 14 }) {
       {segments.map((s, i) => {
         const dash = (s.pct / 100) * circ;
         const gap  = circ - dash;
-        const el = (
+        const offset = segments.slice(0, i).reduce((acc, seg) => acc + (seg.pct / 100) * circ, 0);
+        return (
           <circle key={i} cx={size / 2} cy={size / 2} r={r} fill="none"
             stroke={s.color} strokeWidth={stroke}
             strokeDasharray={`${dash} ${gap}`}
             strokeDashoffset={-offset}
             strokeLinecap="butt" />
         );
-        offset += dash;
-        return el;
       })}
     </svg>
   );
@@ -260,7 +257,7 @@ function GroupedBar({ data, keys, colors, height = 130 }) {
 }
 
 // ─── OVERVIEW TAB ─────────────────────────────────────────────────
-function TabOverview({ period }) {
+function TabOverview() {
   const scoreDatasets = [
     { label: "CS501", values: WEEKLY_SCORES["CS501"], color: "var(--indigo-l)" },
     { label: "CS502", values: WEEKLY_SCORES["CS502"], color: "var(--teal)" },
@@ -838,7 +835,7 @@ function HeatMap() {
 }
 
 // ─── MAIN ANALYTICS MODULE ────────────────────────────────────────
-export default function FacultyAnalytics() {
+export default function FacultyAnalytics({ onBack }) {
   const [tab, setTab]       = useState("overview");
   const [period, setPeriod] = useState("Last 30 Days");
   const [spinning, setSpinning] = useState(false);
@@ -850,9 +847,14 @@ export default function FacultyAnalytics() {
 
   return (
     <div className="an-root">
-      {/* Page header */}
+      {/* Page header with back button */}
       <div className="an-page-hd">
         <div>
+          {onBack && (
+            <button onClick={onBack} style={{ background: "none", border: "none", marginBottom: 12, color: "var(--text2)", cursor: "pointer", fontSize: 14, display: "flex", alignItems: "center", gap: 6 }}>
+              <IcoChevR style={{ transform: "rotate(180deg)" }} /> Back
+            </button>
+          )}
           <div className="greet-tag" style={{ marginBottom: 8 }}>
             <div className="greet-pip" />
             <span className="greet-pip-txt">Semester 5 · Week 11 · Live Data</span>
@@ -892,7 +894,7 @@ export default function FacultyAnalytics() {
       </div>
 
       {/* Tab content */}
-      {tab === "overview"   && <TabOverview   period={period} />}
+      {tab === "overview"   && <TabOverview />}
       {tab === "courses"    && <TabCourses />}
       {tab === "students"   && <TabStudents />}
       {tab === "engagement" && <TabEngagement />}

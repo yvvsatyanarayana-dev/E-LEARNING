@@ -1,11 +1,12 @@
-// StudentDashboard.jsx  —  with built-in state router
-// Clicking "Analytics" in the sidebar navigates to StudentAnalytics.
-// No React Router needed — pure useState navigation.
+// StudentDashboard.jsx  —  uses router hooks to keep the URL in sync
+// Clicking "Analytics" switches view *and* updates the path
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import "./StudentDashboard.css";
-import StudentAnalytics from "./StudentAnalytics";  // ← analytics page
-import "./StudentAnalytics.css";                    // ← analytics styles
+// analytics component lives in sibling directory
+import StudentAnalytics from "../studentAnalytics/studentAnalytics";
+import "../studentAnalytics/studentAnalytics.css";
 
 // ─── ICONS ───────────────────────────────────────────────────────
 const Icon = ({ d, size = 16, ...props }) => (
@@ -579,11 +580,24 @@ function DashboardContent({ onNavigateToAnalytics }) {
 
 // ─── MAIN COMPONENT ──────────────────────────────────────────────
 export default function StudentDashboard() {
-  const [activePage, setActivePage] = useState(ROUTES.DASHBOARD);
+  // sync with router path so the URL reflects current view
+  const navigateRouter = useNavigate();
+  const { page } = useParams();
+
+  // derive initial page from the router param to avoid an effect
+  const [activePage, setActivePage] = useState(() => {
+    return page && page.toLowerCase() === "analytics" ? ROUTES.ANALYTICS : ROUTES.DASHBOARD;
+  });
   const [aiOpen, setAiOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useCursor();
+
+  // The previous effect that wrote state from `page` is removed because the
+  // initial state already reflects the URL; React will re-render when `page`
+  // changes via routing and the `navigate` helper (below) always pushes the
+  // appropriate path, so explicit effects are unnecessary.
+
 
   // Keyboard shortcuts: Escape closes overlays
   useEffect(() => {
@@ -599,7 +613,15 @@ export default function StudentDashboard() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [activePage]);
 
-  const navigate = (page) => setActivePage(page);
+  const navigate = (page) => {
+    setActivePage(page);
+    // push matching URL so address bar updates
+    if (page === ROUTES.ANALYTICS) {
+      navigateRouter("/studentdashboard/studentAnalytics");
+    } else {
+      navigateRouter("/studentdashboard");
+    }
+  };
 
   return (
     <>

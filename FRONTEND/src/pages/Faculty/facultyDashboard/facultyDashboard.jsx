@@ -1,6 +1,8 @@
 // FacultyDashboard.jsx
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import "./FacultyDashboard.css";
+import FacultyAnalytics from "../facultyAnalytics/facultyAnalytics";
 
 // ─── ICONS ───────────────────────────────────────────────────────
 const IcoDashboard = (p) => <svg {...p} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>;
@@ -30,6 +32,12 @@ const IcoAlert   = (p) => <svg {...p} width="16" height="16" viewBox="0 0 24 24"
 const IcoCheck   = (p) => <svg {...p} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>;
 const IcoUpload  = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>;
 const IcoFlash   = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>;
+
+// ─── ROUTE KEYS ──────────────────────────────────────────────────
+const ROUTES = {
+  DASHBOARD: "Dashboard",
+  ANALYTICS: "Analytics",
+};
 
 // ─── DATA ────────────────────────────────────────────────────────
 const MY_COURSES = [
@@ -219,7 +227,7 @@ const IcoHamburger = (p) => (
 );
 
 // ─── SIDEBAR ─────────────────────────────────────────────────────
-function Sidebar({ open, onClose }) {
+function Sidebar({ open, onClose, activePage, onNavigate }) {
   return (
     <>
       {/* Mobile overlay backdrop */}
@@ -245,13 +253,23 @@ function Sidebar({ open, onClose }) {
         {NAV_ITEMS.map(({ section, links }) => (
           <div key={section}>
             <div className="sb-sec-label">{section}</div>
-            {links.map(({ label, icon, active, badge, badgeClass }) => (
-              <a key={label} href="#" className={`sb-link ${active ? "active" : ""}`}
-                onClick={e => e.preventDefault()}>
-                {icon}{label}
-                {badge && <span className={`sb-badge ${badgeClass || ""}`}>{badge}</span>}
-              </a>
-            ))}
+            {links.map(({ label, icon, badge, badgeClass }) => {
+              const isActive = activePage === label;
+              const isRoutable = label === ROUTES.DASHBOARD || label === ROUTES.ANALYTICS;
+              return (
+                <a key={label} href="#" className={`sb-link ${isActive ? "active" : ""}`}
+                  onClick={e => {
+                    e.preventDefault();
+                    if (isRoutable) {
+                      onNavigate(label);
+                      onClose();
+                    }
+                  }}>
+                  {icon}{label}
+                  {badge && <span className={`sb-badge ${badgeClass || ""}`}>{badge}</span>}
+                </a>
+              );
+            })}
           </div>
         ))}
       </nav>
@@ -411,11 +429,27 @@ function AiFab({ onClick }) {
 
 // ─── MAIN ────────────────────────────────────────────────────────
 export default function FacultyDashboard() {
+  const navigateRouter = useNavigate();
+  const { page } = useParams();
+
+  const [activePage, setActivePage] = useState(() =>
+    page && page.toLowerCase() === "analytics" ? ROUTES.ANALYTICS : ROUTES.DASHBOARD
+  );
+
   const [aiOpen, setAiOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [checkedTasks, setCheckedTasks] = useState([]);
 
   useCursor();
+
+  const navigate = (p) => {
+    setActivePage(p);
+    if (p === ROUTES.ANALYTICS) {
+      navigateRouter("/facultydashboard/facultyAnalytics");
+    } else {
+      navigateRouter("/facultydashboard");
+    }
+  };
 
   useEffect(() => {
     const handleEsc = (e) => {
@@ -439,10 +473,16 @@ export default function FacultyDashboard() {
       <AiPanel open={aiOpen} onClose={() => setAiOpen(false)} />
 
       <div className="app">
-        <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+        <Sidebar
+          open={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          activePage={activePage}
+          onNavigate={navigate}
+        />
         <main className="main">
           <Topbar onHamburger={() => setSidebarOpen(o => !o)} />
-          <div className="content">
+          {activePage === ROUTES.DASHBOARD && (
+            <div className="content">
 
             {/* ── GREETING ── */}
             <div className="greet-row">
@@ -525,7 +565,7 @@ export default function FacultyDashboard() {
                       <div className="cfc-actions">
                         <Btn className="btn-ghost" style={{ fontSize: 10, padding: "5px 10px", gap: 4 }}><IcoPen width={10} height={10} />Grade</Btn>
                         <Btn className="btn-ghost" style={{ fontSize: 10, padding: "5px 10px", gap: 4 }}><IcoUpload width={10} height={10} />Upload</Btn>
-                        <Btn className="btn-solid" style={{ fontSize: 10, padding: "5px 10px", gap: 4, marginLeft: "auto" }}><IcoBar width={10} height={10} />Analytics</Btn>
+                        <Btn className="btn-solid" onClick={() => navigate(ROUTES.ANALYTICS)} style={{ fontSize: 10, padding: "5px 10px", gap: 4, marginLeft: "auto" }}><IcoBar width={10} height={10} />Analytics</Btn>
                       </div>
                     </Hoverable>
                   ))}
@@ -702,6 +742,10 @@ export default function FacultyDashboard() {
 
             </div>
           </div>
+          )}
+          {activePage === ROUTES.ANALYTICS && (
+            <FacultyAnalytics onBack={() => navigate(ROUTES.DASHBOARD)} />
+          )}
         </main>
       </div>
     </>
