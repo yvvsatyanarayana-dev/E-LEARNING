@@ -59,7 +59,7 @@ class AuthService:
     def change_password(self,data: ChangePasswordRequest,current_user: User,
         db: Session,
     ) -> dict:
-        if not verify_password(data.old_password, current_user.password):
+        if not verify_pwd(data.old_password, current_user.password):
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Old password is incorrect",
@@ -70,7 +70,7 @@ class AuthService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="New password must be different from old password",
             )
-        current_user.password = hash_password(data.new_password)
+        current_user.password = hash_pwd(data.new_password)
         db.commit()
 
         return {"message": "Password changed successfully"}
