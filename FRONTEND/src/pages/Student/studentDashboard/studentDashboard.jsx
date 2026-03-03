@@ -7,6 +7,7 @@ import "./StudentDashboard.css";
 // analytics component lives in sibling directory
 import StudentAnalytics from "../studentAnalytics/studentAnalytics";
 import "../studentAnalytics/studentAnalytics.css";
+import lucynaJpg from "../../../assets/Cyberpunk 2077.jpg";
 
 // ─── ICONS ───────────────────────────────────────────────────────
 const Icon = ({ d, size = 16, ...props }) => (
@@ -325,6 +326,7 @@ function LucynaPanel({ open, onClose }) {
   const [showChips, setShowChips] = useState(true);
   const [aiIdx, setAiIdx] = useState(0);
   const msgRef = useRef();
+  
 
   useEffect(() => {
     if (msgRef.current) msgRef.current.scrollTop = msgRef.current.scrollHeight;
@@ -345,7 +347,7 @@ function LucynaPanel({ open, onClose }) {
   return (
     <div className={`lucyna-panel ${open ? "open" : ""}`}>
       <div className="lp-header">
-        <div className="lp-orb"><div className="lp-orb-ring" /><IcoBrain width={17} height={17} /></div>
+        <div className="lp-orb"><div className="lp-orb-ring" /><img src={lucynaJpg} alt="Lucyna" className="lp-orb-img"/></div>
         <div>
           <div className="lp-name">Lucyna AI Mentor</div>
           <div className="lp-status"><div className="lp-dot" />Online · Always available</div>
@@ -401,7 +403,7 @@ function LucynaFab({ onClick }) {
     <button className="lucyna-fab" onClick={onClick} aria-label="Open Lucyna AI">
       <div className="lucyna-fab-ring" />
       <div className="lucyna-fab-dot" />
-      <IcoBrain />
+      <img src={lucynaJpg} alt="Lucyna" className="lucyna-fab-img" />
       <span className="lucyna-fab-tip">Ask Lucyna AI</span>
     </button>
   );
