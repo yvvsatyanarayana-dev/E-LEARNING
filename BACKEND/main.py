@@ -2,8 +2,8 @@ from fastapi import FastAPI
 from Core.Config import settings
 from Core.Database import engine, Base
 from fastapi.middleware.cors import CORSMiddleware
-
-# Models
+from Core.Config import settings
+# MODELS
 from Models.User import User, UserRole
 from Models.Assignment import Assignment, AssignmentSubmission
 from Models.Placement import ApplicationStatus, SkillScore, PlacementReadiness, Internship, InternshipApplication
@@ -12,10 +12,8 @@ from Models.Lesson import Lesson, WatchHistory
 from Models.Quiz import Quiz, Question, QuizAttempt, QuestionType, DifficultyLevel
 from Models.Project import Project, ProjectReview, ProjectStatus
 from Models.Community import Forum, ForumPost, StudyGroup, StudyGroupMember
-
-# Routes ← ADD THIS
-from Routes.auth import router as auth_router
-
+#ROUTES
+from Routes.AuthRoute import router as auth_router
 app = FastAPI(
     title=settings.APP_NAME,
     description="A comprehensive smart-campus platform API built with FastAPI and SQLAlchemy.",
@@ -23,9 +21,8 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
-
+#database tables creation
 Base.metadata.create_all(bind=engine)
-
 # CORS ← fixed, no trailing slashes
 app.add_middleware(
     CORSMiddleware,
@@ -38,8 +35,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register routers ← THIS IS THE KEY LINE
-app.include_router(auth_router)
+PREFIX = "/api/v1"
+app.include_router(auth_router, prefix=PREFIX)
 
 @app.get("/")
 async def root():

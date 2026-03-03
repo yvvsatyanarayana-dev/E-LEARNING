@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { setAuth } from "../../utils/auth";
 
 function useRipple() {
   const addRipple = useCallback((e) => {
@@ -57,10 +58,14 @@ function LoginModal({ open, onClose, onGoForgot, onGoSignup }) {
         return;
       }
 
-      // ✅ access_token — matches your TokenResponse schema
-      localStorage.setItem("token", data.access_token);
-      localStorage.setItem("user", JSON.stringify(data.user));
+      // Ensure the user account role matches the role the user picked in the UI
+      if (data.user?.role !== selected) {
+        setError("Selected role does not match this account's role.");
+        return;
+      }
 
+      // Persist auth and redirect to role-specific dashboard
+      setAuth(data.access_token, data.user);
       window.location.href = ROLE_REDIRECTS[data.user.role];
 
     } catch {

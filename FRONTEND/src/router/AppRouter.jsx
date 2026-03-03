@@ -2,6 +2,7 @@ import { createBrowserRouter, RouterProvider } from "react-router-dom";
 import SmartCampus from "../App";
 import StudentDashboard from "../pages/Student/studentDashboard/studentDashboard";
 import FacultyDashboard from "../pages/Faculty/facultyDashboard/facultyDashboard";
+import RoleRoute from "./RoleRoute";
 
 
 const router = createBrowserRouter([
@@ -10,9 +11,19 @@ const router = createBrowserRouter([
   { path: "/register", element: <SmartCampus defaultModal="signup" /> },
   { path: "/forgot-password", element: <SmartCampus defaultModal="forgot" /> },
 
-  { path: "/studentdashboard", element: <StudentDashboard /> },
+  { path: "/studentdashboard", element: (
+      <RoleRoute allowedRoles={["student", "admin"]}>
+        <StudentDashboard />
+      </RoleRoute>
+    )
+  },
 
-  { path: "/facultydashboard", element: <FacultyDashboard /> },
+  { path: "/facultydashboard", element: (
+      <RoleRoute allowedRoles={["faculty", "admin"]}>
+        <FacultyDashboard />
+      </RoleRoute>
+    )
+  },
 
   { path: "/studentdashboard/studentAnalytics", element: <StudentDashboard /> },
 
