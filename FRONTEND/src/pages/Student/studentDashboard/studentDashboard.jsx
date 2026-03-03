@@ -1,22 +1,12 @@
-// StudentDashboard.jsx  —  uses router hooks to keep the URL in sync
-// Clicking "Analytics" switches view *and* updates the path
-
+// StudentDashboard.jsx
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import "./StudentDashboard.css";
-// analytics component lives in sibling directory
 import StudentAnalytics from "../studentAnalytics/studentAnalytics";
 import "../studentAnalytics/studentAnalytics.css";
 import lucynaJpg from "../../../assets/Cyberpunk 2077.jpg";
 
 // ─── ICONS ───────────────────────────────────────────────────────
-const Icon = ({ d, size = 16, ...props }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
-    strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    {Array.isArray(d) ? d.map((p, i) => <path key={i} d={p} />) : <path d={d} />}
-  </svg>
-);
-
 const IcoDashboard = (p) => <svg {...p} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>;
 const IcoBar = (p) => <svg {...p} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>;
 const IcoBook = (p) => <svg {...p} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>;
@@ -43,13 +33,13 @@ const IcoSend = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fi
 const IcoClose = (p) => <svg {...p} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
 const IcoBrain = (p) => <svg {...p} width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-1.66Z" /><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-1.66Z" /></svg>;
 const IcoHamburger = (p) => <svg {...p} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>;
+// ── NEW: Logout icon ──
+const IcoLogout = (p) => <svg {...p} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>;
 
 // ─── ROUTE KEYS ──────────────────────────────────────────────────
-// These match NAV_ITEMS labels exactly — used to compare active page
 const ROUTES = {
   DASHBOARD: "Dashboard",
   ANALYTICS: "Analytics",
-  // Add more here as needed, e.g. COURSES: "My Courses"
 };
 
 // ─── DATA ────────────────────────────────────────────────────────
@@ -114,7 +104,6 @@ const AI_RESPONSES = [
   "Your CGPA of 8.4 puts you in the <strong style='color:var(--teal)'>top 15%</strong>. Improving Crypto would push you to the top 10%.",
 ];
 
-// ─── NAV ITEMS — with route keys ─────────────────────────────────
 const NAV_ITEMS = [
   {
     section: "Overview", links: [
@@ -219,11 +208,19 @@ function AnimatedProgressBar({ pct, color, height = 3, delay = 500 }) {
 
 // ─── SIDEBAR ─────────────────────────────────────────────────────
 function Sidebar({ activePage, onNavigate, mobileOpen, onMobileClose }) {
+  const logoutNavigate = useNavigate();
   const [priW, setPriW] = useState(0);
+
   useEffect(() => {
     const t = setTimeout(() => setPriW(72), 600);
     return () => clearTimeout(t);
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    logoutNavigate("/login", { replace: true });
+  };
 
   return (
     <>
@@ -255,10 +252,7 @@ function Sidebar({ activePage, onNavigate, mobileOpen, onMobileClose }) {
                     className={`sb-link ${isActive ? "active" : ""}`}
                     onClick={e => {
                       e.preventDefault();
-                      if (isRoutable) {
-                        onNavigate(label);
-                        onMobileClose(); // close mobile drawer on navigate
-                      }
+                      if (isRoutable) { onNavigate(label); onMobileClose(); }
                     }}>
                     {icon}
                     {label}
@@ -281,6 +275,10 @@ function Sidebar({ activePage, onNavigate, mobileOpen, onMobileClose }) {
           <a href="#" className="sb-link" onClick={e => e.preventDefault()}>
             <IcoSettings /> Settings
           </a>
+          {/* ── LOGOUT ── */}
+          <button className="sb-logout" onClick={handleLogout}>
+            <IcoLogout /> Sign Out
+          </button>
         </div>
       </aside>
     </>
@@ -326,7 +324,6 @@ function LucynaPanel({ open, onClose }) {
   const [showChips, setShowChips] = useState(true);
   const [aiIdx, setAiIdx] = useState(0);
   const msgRef = useRef();
-  
 
   useEffect(() => {
     if (msgRef.current) msgRef.current.scrollTop = msgRef.current.scrollHeight;
@@ -347,7 +344,7 @@ function LucynaPanel({ open, onClose }) {
   return (
     <div className={`lucyna-panel ${open ? "open" : ""}`}>
       <div className="lp-header">
-        <div className="lp-orb"><div className="lp-orb-ring" /><img src={lucynaJpg} alt="Lucyna" className="lp-orb-img"/></div>
+        <div className="lp-orb"><div className="lp-orb-ring" /><img src={lucynaJpg} alt="Lucyna" className="lp-orb-img" /></div>
         <div>
           <div className="lp-name">Lucyna AI Mentor</div>
           <div className="lp-status"><div className="lp-dot" />Online · Always available</div>
@@ -423,7 +420,6 @@ function DashboardContent({ onNavigateToAnalytics }) {
         <div className="greet-actions">
           <Btn className="btn-solid"><IcoPlay /> Continue Learning</Btn>
           <Btn className="btn-ghost"><IcoCal /> View Schedule</Btn>
-          {/* ── Analytics shortcut button ── */}
           <Btn className="btn-ghost" onClick={onNavigateToAnalytics}>
             <IcoBar width={12} height={12} /> My Analytics
           </Btn>
@@ -446,7 +442,6 @@ function DashboardContent({ onNavigateToAnalytics }) {
         ))}
       </div>
 
-      {/* ── COURSES PANEL ── */}
       <div className="panel" style={{ animationDelay: "0.07s" }}>
         <div className="panel-hd">
           <div className="panel-ttl">
@@ -481,9 +476,7 @@ function DashboardContent({ onNavigateToAnalytics }) {
         </div>
       </div>
 
-      {/* ── BOTTOM GRID ── */}
       <div className="bottom-grid">
-        {/* Schedule */}
         <div className="panel" style={{ animationDelay: "0.07s" }}>
           <div className="panel-hd">
             <div className="panel-ttl">
@@ -512,14 +505,12 @@ function DashboardContent({ onNavigateToAnalytics }) {
           </div>
         </div>
 
-        {/* Quizzes */}
         <div className="panel" style={{ animationDelay: "0.12s" }}>
           <div className="panel-hd">
             <div className="panel-ttl">
               <IcoClock width={14} height={14} style={{ color: "var(--indigo-ll)" }} />
               Quiz Performance <span>Last 30 days</span>
             </div>
-            {/* Analytics shortcut */}
             <a href="#" className="panel-act" onClick={e => { e.preventDefault(); onNavigateToAnalytics(); }}>
               Full Analytics <IcoChevR />
             </a>
@@ -540,7 +531,6 @@ function DashboardContent({ onNavigateToAnalytics }) {
           </div>
         </div>
 
-        {/* Skills */}
         <div className="panel" style={{ animationDelay: "0.18s" }}>
           <div className="panel-hd">
             <div className="panel-ttl">
@@ -582,26 +572,17 @@ function DashboardContent({ onNavigateToAnalytics }) {
 
 // ─── MAIN COMPONENT ──────────────────────────────────────────────
 export default function StudentDashboard() {
-  // sync with router path so the URL reflects current view
   const navigateRouter = useNavigate();
   const { page } = useParams();
 
-  // derive initial page from the router param to avoid an effect
-  const [activePage, setActivePage] = useState(() => {
-    return page && page.toLowerCase() === "analytics" ? ROUTES.ANALYTICS : ROUTES.DASHBOARD;
-  });
+  const [activePage, setActivePage] = useState(() =>
+    page && page.toLowerCase() === "analytics" ? ROUTES.ANALYTICS : ROUTES.DASHBOARD
+  );
   const [aiOpen, setAiOpen] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   useCursor();
 
-  // The previous effect that wrote state from `page` is removed because the
-  // initial state already reflects the URL; React will re-render when `page`
-  // changes via routing and the `navigate` helper (below) always pushes the
-  // appropriate path, so explicit effects are unnecessary.
-
-
-  // Keyboard shortcuts: Escape closes overlays
   useEffect(() => {
     const handleKey = (e) => {
       if (e.key === "Escape") { setAiOpen(false); setMobileOpen(false); }
@@ -610,14 +591,12 @@ export default function StudentDashboard() {
     return () => document.removeEventListener("keydown", handleKey);
   }, []);
 
-  // Scroll to top on page change
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }, [activePage]);
 
   const navigate = (page) => {
     setActivePage(page);
-    // push matching URL so address bar updates
     if (page === ROUTES.ANALYTICS) {
       navigateRouter("/studentdashboard/studentAnalytics");
     } else {
@@ -642,32 +621,19 @@ export default function StudentDashboard() {
           onMobileClose={() => setMobileOpen(false)}
         />
         <main className="main">
-          <Topbar
-            activePage={activePage}
-            onHamburger={() => setMobileOpen(o => !o)}
-          />
+          <Topbar activePage={activePage} onHamburger={() => setMobileOpen(o => !o)} />
 
-          {/* ── PAGE ROUTER ── */}
           {activePage === ROUTES.DASHBOARD && (
-            <DashboardContent
-              onNavigateToAnalytics={() => navigate(ROUTES.ANALYTICS)}
-            />
+            <DashboardContent onNavigateToAnalytics={() => navigate(ROUTES.ANALYTICS)} />
           )}
-
           {activePage === ROUTES.ANALYTICS && (
-            <StudentAnalytics
-              onBack={() => navigate(ROUTES.DASHBOARD)}
-            />
+            <StudentAnalytics onBack={() => navigate(ROUTES.DASHBOARD)} />
           )}
-
-          {/* Placeholder for other future pages */}
           {activePage !== ROUTES.DASHBOARD && activePage !== ROUTES.ANALYTICS && (
             <div className="content">
               <div style={{ padding: "60px 20px", textAlign: "center", color: "var(--text3)" }}>
                 <div style={{ fontSize: 32, marginBottom: 10 }}>🚧</div>
-                <div style={{ fontFamily: "'Fraunces',serif", fontSize: 22, color: "var(--text2)", marginBottom: 8 }}>
-                  {activePage}
-                </div>
+                <div style={{ fontFamily: "'Fraunces',serif", fontSize: 22, color: "var(--text2)", marginBottom: 8 }}>{activePage}</div>
                 <div style={{ fontSize: 12 }}>This page is coming soon.</div>
               </div>
             </div>

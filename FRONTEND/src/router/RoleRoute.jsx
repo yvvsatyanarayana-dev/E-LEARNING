@@ -6,7 +6,7 @@ export default function RoleRoute({ allowedRoles = [], children }) {
   const user = getUser();
 
   if (!user) {
-    return <Navigate to="/" replace />;
+    return <Navigate to="/login" replace />;
   }
 
   if (!allowedRoles.includes(user.role)) {

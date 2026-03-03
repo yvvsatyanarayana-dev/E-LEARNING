@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { setAuth } from "../../utils/auth";
+import { useNavigate } from "react-router-dom";
 
 function useRipple() {
   const addRipple = useCallback((e) => {
@@ -20,23 +20,24 @@ function useRipple() {
 const ROLE_REDIRECTS = {
   student:           "/studentdashboard",
   faculty:           "/facultydashboard",
-  placement_officer: "/placement/dashboard",
-  admin:             "/admin/dashboard",
+  placement_officer: "/placementdashboard",
+  admin:             "/admindashboard",
 };
 
-function LoginModal({ open, onClose, onGoForgot, onGoSignup }) {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [selected, setSelected] = useState("student");
+export default function LoginModal({ open, onClose, onGoSignup, onGoForgot }) {
   const addRipple = useRipple();
+  const navigate  = useNavigate();
+
+  const [email,    setEmail]    = useState("");
+  const [password, setPassword] = useState("");
+  const [error,    setError]    = useState("");
+  const [loading,  setLoading]  = useState(false);
 
   const roles = [
-    { key: "student", name: "Student", desc: "Access student portal" },
-    { key: "faculty", name: "Faculty", desc: "Access faculty portal" },
-    { key: "placement_officer", name: "Placement Officer", desc: "Access placement portal" },
-    { key: "admin", name: "Admin", desc: "Access admin portal" },
+    { key: "student",           name: "Student",   desc: "Track your progress" },
+    { key: "faculty",           name: "Faculty",   desc: "Manage courses" },
+    { key: "placement_officer", name: "Placement", desc: "Readiness reports" },
+    { key: "admin",             name: "Admin",     desc: "Full control" },
   ];
 
   const handleLogin = async () => {
@@ -47,26 +48,16 @@ function LoginModal({ open, onClose, onGoForgot, onGoSignup }) {
       const res = await fetch("http://localhost:8000/api/v1/auth/login", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // ✅ No role here — matches your LoginRequest schema
         body: JSON.stringify({ email, password }),
       });
-
       const data = await res.json();
+      if (!res.ok) { setError(data.detail || "Login failed."); return; }
 
-      if (!res.ok) {
-        setError(data.detail || "Login failed.");
-        return;
-      }
+      localStorage.setItem("token", data.access_token);
+      localStorage.setItem("user",  JSON.stringify(data.user));
 
-      // Ensure the user account role matches the role the user picked in the UI
-      if (data.user?.role !== selected) {
-        setError("Selected role does not match this account's role.");
-        return;
-      }
-
-      // Persist auth and redirect to role-specific dashboard
-      setAuth(data.access_token, data.user);
-      window.location.href = ROLE_REDIRECTS[data.user.role];
+      onClose();
+      navigate(ROLE_REDIRECTS[data.user.role] || "/");
 
     } catch {
       setError("Network error. Is the server running?");
@@ -95,8 +86,8 @@ function LoginModal({ open, onClose, onGoForgot, onGoSignup }) {
         <div className="role-picker">
           {roles.map((r) => (
             <div key={r.key}
-              className={`role-opt ripple-host${selected === r.key ? " selected" : ""}`}
-              onClick={(e) => { addRipple(e); setSelected(r.key); }}>
+              className="role-opt ripple-host"
+              onClick={(e) => addRipple(e)}>
               <div className="ro-name">{r.name}</div>
               <div className="ro-desc">{r.desc}</div>
             </div>
@@ -120,9 +111,7 @@ function LoginModal({ open, onClose, onGoForgot, onGoSignup }) {
             onKeyDown={(e) => e.key === "Enter" && handleLogin()} />
         </div>
 
-        {error && (
-          <p style={{ color: "#ef4444", fontSize: 12, marginBottom: 8 }}>{error}</p>
-        )}
+        {error && <p style={{ color: "#ef4444", fontSize: 12, marginBottom: 8 }}>{error}</p>}
 
         <div className="form-forgot" onClick={onGoForgot}>Forgot password?</div>
 
@@ -140,5 +129,3 @@ function LoginModal({ open, onClose, onGoForgot, onGoSignup }) {
     </div>
   );
 }
-
-export default LoginModal;
