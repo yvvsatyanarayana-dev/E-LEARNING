@@ -1,7 +1,6 @@
 // StudentAnalytics.jsx
 // Student-specific analytics module — import into StudentDashboard.jsx
 // Uses the same CSS variables from StudentDashboard.css
-
 import { useState, useEffect } from "react";
 
 // ─── ICONS ───────────────────────────────────────────────────────
@@ -116,6 +115,7 @@ function LineChart({ datasets, labels, height = 150, showGrid = true }) {
   const pathD = (vals) => vals.map((v,i) => `${i===0?"M":"L"}${cx(i).toFixed(1)},${cy(v).toFixed(1)}`).join(" ");
   const areaD = (vals) => `${pathD(vals)} L${cx(vals.length-1)},${(PAD.t+inner.h).toFixed(1)} L${PAD.l},${(PAD.t+inner.h).toFixed(1)} Z`;
   const gridVals = [minV, minV+(maxV-minV)*0.33, minV+(maxV-minV)*0.66, maxV].map(Math.round);
+
   return (
     <svg viewBox={`0 0 ${W} ${H}`} width="100%" style={{ overflow:"visible", display:"block" }}>
       {showGrid && gridVals.map((v,i) => (
@@ -142,79 +142,121 @@ function LineChart({ datasets, labels, height = 150, showGrid = true }) {
   );
 }
 
-function Donut({ segments, size=88, stroke=12 }) {
-  const r = (size-stroke)/2;
-  const circ = 2*Math.PI*r;
-  let offset = 0;
+function Donut({ segments, size = 88, stroke = 12 }) {
+  const r = (size - stroke) / 2;
+  const circumference = 2 * Math.PI * r;
+
+  // Precompute offset and dash length for each segment
+  const segmentData = segments.reduce((acc, seg) => {
+    const dashLength = (seg.pct / 100) * circumference;
+    const offset = acc.length > 0 ? acc[acc.length - 1].nextOffset : 0;
+
+    acc.push({
+      dashLength,
+      offset,
+      nextOffset: offset + dashLength,
+      color: seg.color,
+    });
+
+    return acc;
+  }, []);
+
   return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform:"rotate(-90deg)" }}>
-      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--surface3)" strokeWidth={stroke}/>
-      {segments.map((s,i) => {
-        const dash = (s.pct/100)*circ;
-        const el = (
-          <circle key={i} cx={size/2} cy={size/2} r={r} fill="none"
-            stroke={s.color} strokeWidth={stroke}
-            strokeDasharray={`${dash} ${circ-dash}`}
-            strokeDashoffset={-offset} strokeLinecap="butt"/>
-        );
-        offset += dash;
-        return el;
-      })}
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: "rotate(-90deg)" }}>
+      {/* Background circle */}
+      <circle
+        cx={size / 2}
+        cy={size / 2}
+        r={r}
+        fill="none"
+        stroke="var(--surface3)"
+        strokeWidth={stroke}
+      />
+
+      {/* Colored segments */}
+      {segmentData.map((item, i) => (
+        <circle
+          key={i}
+          cx={size / 2}
+          cy={size / 2}
+          r={r}
+          fill="none"
+          stroke={item.color}
+          strokeWidth={stroke}
+          strokeDasharray={`${item.dashLength} ${circumference - item.dashLength}`}
+          strokeDashoffset={-item.offset}
+          strokeLinecap="butt"
+        />
+      ))}
     </svg>
   );
 }
 
-function RadarChart({ data, size=200 }) {
-  const cx = size/2, cy = size/2, r = size*0.38;
+function RadarChart({ data, size = 200 }) {
+  const cx = size / 2, cy = size / 2, r = size * 0.38;
   const n = data.length;
-  const angle = (i) => (i/n)*2*Math.PI - Math.PI/2;
-  const px = (i, rad) => cx + Math.cos(angle(i))*rad;
-  const py = (i, rad) => cy + Math.sin(angle(i))*rad;
+  const angle = (i) => (i / n) * 2 * Math.PI - Math.PI / 2;
+  const px = (i, rad) => cx + Math.cos(angle(i)) * rad;
+  const py = (i, rad) => cy + Math.sin(angle(i)) * rad;
   const gridLevels = [0.25, 0.5, 0.75, 1.0];
 
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      {/* Grid polygons */}
       {gridLevels.map((lvl, li) => (
-        <polygon key={li}
-          points={data.map((_,i) => `${px(i,r*lvl).toFixed(1)},${py(i,r*lvl).toFixed(1)}`).join(" ")}
-          fill="none" stroke="rgba(255,255,255,.07)" strokeWidth="1"/>
+        <polygon
+          key={li}
+          points={data.map((_, i) => `${px(i, r * lvl).toFixed(1)},${py(i, r * lvl).toFixed(1)}`).join(" ")}
+          fill="none" stroke="rgba(255,255,255,.07)" strokeWidth="1"
+        />
       ))}
-      {/* Spokes */}
-      {data.map((_,i) => (
-        <line key={i} x1={cx} y1={cy} x2={px(i,r)} y2={py(i,r)} stroke="rgba(255,255,255,.07)" strokeWidth="1"/>
+      {data.map((_, i) => (
+        <line key={i} x1={cx} y1={cy} x2={px(i, r)} y2={py(i, r)} stroke="rgba(255,255,255,.07)" strokeWidth="1" />
       ))}
-      {/* Data polygon */}
       <polygon
-        points={data.map((d,i) => `${px(i,r*(d.pct/100)).toFixed(1)},${py(i,r*(d.pct/100)).toFixed(1)}`).join(" ")}
-        fill="rgba(91,78,248,.18)" stroke="var(--indigo-l)" strokeWidth="1.8"/>
-      {/* Dots */}
-      {data.map((d,i) => (
-        <circle key={i} cx={px(i,r*(d.pct/100))} cy={py(i,r*(d.pct/100))} r="3.5"
-          fill="var(--indigo-l)" stroke="var(--surface)" strokeWidth="1.5"/>
+        points={data.map((d, i) => `${px(i, r * (d.pct / 100)).toFixed(1)},${py(i, r * (d.pct / 100)).toFixed(1)}`).join(" ")}
+        fill="rgba(91,78,248,.18)" stroke="var(--indigo-l)" strokeWidth="1.8"
+      />
+      {data.map((d, i) => (
+        <circle
+          key={i}
+          cx={px(i, r * (d.pct / 100))}
+          cy={py(i, r * (d.pct / 100))}
+          r="3.5"
+          fill="var(--indigo-l)" stroke="var(--surface)" strokeWidth="1.5"
+        />
       ))}
-      {/* Labels */}
-      {data.map((d,i) => {
-        const lx = px(i, r*1.18);
-        const ly = py(i, r*1.18);
+      {data.map((d, i) => {
+        const lx = px(i, r * 1.18);
+        const ly = py(i, r * 1.18);
         return (
-          <text key={i} x={lx} y={ly} textAnchor="middle" dominantBaseline="middle"
-            fill="rgba(255,255,255,.5)" fontSize="9.5" fontWeight="500">{d.label}</text>
+          <text
+            key={i}
+            x={lx}
+            y={ly}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fill="rgba(255,255,255,.5)"
+            fontSize="9.5"
+            fontWeight="500"
+          >
+            {d.label}
+          </text>
         );
       })}
     </svg>
   );
 }
 
-function SparkLine({ values, color, width=60, height=24 }) {
+function SparkLine({ values, color, width = 60, height = 24 }) {
   const min = Math.min(...values), max = Math.max(...values);
-  const cx = (i) => (i/(values.length-1))*(width-6)+3;
-  const cy = (v) => height-4-((v-min)/(max-min||1))*(height-8);
-  const d = values.map((v,i) => `${i===0?"M":"L"}${cx(i).toFixed(1)},${cy(v).toFixed(1)}`).join(" ");
+  const cx = (i) => (i / (values.length - 1)) * (width - 6) + 3;
+  const cy = (v) => height - 4 - ((v - min) / (max - min || 1)) * (height - 8);
+  const d = values.map((v, i) => `${i === 0 ? "M" : "L"}${cx(i).toFixed(1)},${cy(v).toFixed(1)}`).join(" ");
+
   return (
     <svg width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
-      <path d={d} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
-      <circle cx={cx(values.length-1)} cy={cy(values[values.length-1])} r="2.5" fill={color}/>
+      <path d={d} fill="none" stroke={color} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx={cx(values.length - 1)} cy={cy(values[values.length - 1])} r="2.5" fill={color} />
     </svg>
   );
 }
@@ -226,7 +268,6 @@ function TabPerformance({ activeCourse, setActiveCourse }) {
 
   return (
     <div className="san-tab-content">
-      {/* Summary KPI row */}
       <div className="san-kpi-grid">
         {[
           { cls:"sc-teal",   val:"8.4",  lbl:"Current CGPA",      delta:<><IcoChevUp/>+0.2 vs last sem</>,  dc:"delta-up" },
@@ -242,7 +283,6 @@ function TabPerformance({ activeCourse, setActiveCourse }) {
         ))}
       </div>
 
-      {/* Course score comparison chart */}
       <div className="panel" style={{ marginBottom:16 }}>
         <div className="panel-hd">
           <div className="panel-ttl">
@@ -256,13 +296,14 @@ function TabPerformance({ activeCourse, setActiveCourse }) {
           </div>
         </div>
         <div className="panel-body">
-          {/* Course pills */}
           <div className="san-course-pills">
             {courses.map(c => (
-              <button key={c}
+              <button
+                key={c}
                 className={`san-course-pill ${activeCourse===c?"active":""}`}
                 style={activeCourse===c ? { borderColor: colorMap[c], color: colorMap[c], background:`${colorMap[c].replace("var(","").replace(")","")}-bg` } : {}}
-                onClick={() => setActiveCourse(c)}>
+                onClick={() => setActiveCourse(c)}
+              >
                 <span className="san-cp-dot" style={{ background:colorMap[c] }}/>
                 {c}
               </button>
@@ -270,7 +311,7 @@ function TabPerformance({ activeCourse, setActiveCourse }) {
           </div>
           <LineChart
             datasets={[
-              { label:"Me",        values:MY_SCORE_TREND[activeCourse],    color:colorMap[activeCourse], bold:true },
+              { label:"Me", values:MY_SCORE_TREND[activeCourse], color:colorMap[activeCourse], bold:true },
               { label:"Class Avg", values:CLASS_SCORE_TREND[activeCourse], color:"rgba(255,255,255,.25)", dashed:true },
             ]}
             labels={WEEKS} height={155}
@@ -278,7 +319,6 @@ function TabPerformance({ activeCourse, setActiveCourse }) {
         </div>
       </div>
 
-      {/* Quiz history + All-course trend */}
       <div className="san-two-col">
         <div className="panel">
           <div className="panel-hd">
@@ -324,7 +364,7 @@ function TabPerformance({ activeCourse, setActiveCourse }) {
             <div className="all-course-trends">
               {Object.entries(MY_SCORE_TREND).map(([course, vals]) => {
                 const latest = vals[vals.length-1];
-                const prev   = vals[vals.length-2];
+                const prev   = vals[vals.length-2] ?? latest;
                 const delta  = latest - prev;
                 return (
                   <div key={course} className="act-row">
@@ -349,19 +389,22 @@ function TabPerformance({ activeCourse, setActiveCourse }) {
 
 // ─── ATTENDANCE TAB ───────────────────────────────────────────────
 function TabAttendance() {
-  const total = ATTENDANCE_BY_COURSE.reduce((a,c) => a+c.classes, 0);
-  const attended = ATTENDANCE_BY_COURSE.reduce((a,c) => a+c.attended, 0);
-  const overallPct = Math.round((attended/total)*100);
+  const total = ATTENDANCE_BY_COURSE.reduce((a,c) => a + c.classes, 0);
+  const attended = ATTENDANCE_BY_COURSE.reduce((a,c) => a + c.attended, 0);
+  const overallPct = Math.round((attended / total) * 100);
 
   return (
     <div className="san-tab-content">
-      {/* Overall donut */}
       <div className="san-attend-hero">
         <div className="sah-donut">
-          <Donut segments={[
-            { pct:overallPct, color:"var(--teal)" },
-            { pct:100-overallPct, color:"var(--surface3)" }
-          ]} size={110} stroke={14}/>
+          <Donut
+            segments={[
+              { pct: overallPct, color: "var(--teal)" },
+              { pct: 100 - overallPct, color: "var(--surface3)" }
+            ]}
+            size={110}
+            stroke={14}
+          />
           <div className="sah-donut-label">
             <div className="sah-val">{overallPct}%</div>
             <div className="sah-sub">Overall</div>
@@ -372,19 +415,18 @@ function TabAttendance() {
           <div className="sah-meta">Semester 5 · {total} classes total</div>
           <div className="sah-stats">
             <div className="sah-stat"><span className="sah-stat-val teal">{attended}</span><span className="sah-stat-lbl">Attended</span></div>
-            <div className="sah-stat"><span className="sah-stat-val rose">{total-attended}</span><span className="sah-stat-lbl">Missed</span></div>
-            <div className="sah-stat"><span className={`sah-stat-val ${overallPct>=75?"teal":"rose"}`}>{overallPct>=75?"Safe":"At Risk"}</span><span className="sah-stat-lbl">Status</span></div>
+            <div className="sah-stat"><span className="sah-stat-val rose">{total - attended}</span><span className="sah-stat-lbl">Missed</span></div>
+            <div className="sah-stat"><span className={`sah-stat-val ${overallPct >= 75 ? "teal" : "rose"}`}>{overallPct >= 75 ? "Safe" : "At Risk"}</span><span className="sah-stat-lbl">Status</span></div>
           </div>
           <div className="sah-warn">
             {overallPct < 75
-              ? <span className="sah-warn-bad">⚠️ Below 75% minimum — attend {Math.ceil((75*total-attended*100)/25)} more classes</span>
-              : <span className="sah-warn-ok">✅ You can miss {Math.floor((attended*100/75)-total)} more classes safely</span>
+              ? <span className="sah-warn-bad">⚠️ Below 75% minimum — attend {Math.ceil((75 * total - attended * 100) / 25)} more classes</span>
+              : <span className="sah-warn-ok">✅ You can miss {Math.floor((attended * 100 / 75) - total)} more classes safely</span>
             }
           </div>
         </div>
       </div>
 
-      {/* Per-course breakdown */}
       <div className="panel" style={{ marginBottom:16 }}>
         <div className="panel-hd">
           <div className="panel-ttl">
@@ -398,14 +440,14 @@ function TabAttendance() {
               <div key={i} className="attend-item">
                 <span className="att-course" style={{ color:a.color }}>{a.course}</span>
                 <div className="att-bar-wrap">
-                  <AnimBar pct={a.pct} color={a.color} height={6} delay={400+i*100}/>
+                  <AnimBar pct={a.pct} color={a.color} height={6} delay={400 + i * 100}/>
                 </div>
-                <span className="att-pct" style={{ color:a.pct>=85?"var(--teal)":a.pct>=75?"var(--amber)":"var(--rose)" }}>
+                <span className="att-pct" style={{ color: a.pct >= 85 ? "var(--teal)" : a.pct >= 75 ? "var(--amber)" : "var(--rose)" }}>
                   {a.pct}%
                 </span>
                 <span className="att-count">{a.attended}/{a.classes}</span>
-                <span className={`att-status ${a.pct>=85?"safe":a.pct>=75?"ok":"risk"}`}>
-                  {a.pct>=85?"Safe":a.pct>=75?"OK":"Risk"}
+                <span className={`att-status ${a.pct >= 85 ? "safe" : a.pct >= 75 ? "ok" : "risk"}`}>
+                  {a.pct >= 85 ? "Safe" : a.pct >= 75 ? "OK" : "Risk"}
                 </span>
               </div>
             ))}
@@ -413,7 +455,6 @@ function TabAttendance() {
         </div>
       </div>
 
-      {/* Attendance heatmap */}
       <div className="panel">
         <div className="panel-hd">
           <div className="panel-ttl">
@@ -423,14 +464,13 @@ function TabAttendance() {
           </div>
         </div>
         <div className="panel-body">
-          <AttendHeatmap/>
+          <AttendHeatmap />
         </div>
       </div>
     </div>
   );
 }
 
-// Simple attendance heatmap: 5 courses × 8 weeks
 const ATT_HEAT = [
   [1,1,1,0,1,1,1,1],
   [1,0,1,1,1,1,0,1],
@@ -438,24 +478,29 @@ const ATT_HEAT = [
   [1,1,1,1,1,0,1,1],
   [0,1,1,0,1,1,1,0],
 ];
+
 const ATT_COURSES = ["OS","DBMS","ML","CN","Crypto"];
 const ATT_WEEKS   = ["W4","W5","W6","W7","W8","W9","W10","W11"];
 
 function AttendHeatmap() {
   const colorMap = { OS:"var(--indigo-l)", DBMS:"var(--teal)", ML:"var(--amber)", CN:"var(--violet)", Crypto:"var(--rose)" };
+
   return (
     <div className="att-heatmap">
       <div className="att-hm-header">
         <span className="att-hm-corner"/>
         {ATT_WEEKS.map(w => <span key={w} className="att-hm-wlbl">{w}</span>)}
       </div>
-      {ATT_HEAT.map((row,ri) => (
+      {ATT_HEAT.map((row, ri) => (
         <div key={ri} className="att-hm-row">
-          <span className="att-hm-clbl" style={{ color:colorMap[ATT_COURSES[ri]] }}>{ATT_COURSES[ri]}</span>
-          {row.map((v,ci) => (
-            <div key={ci} className={`att-hm-cell ${v?"present":"absent"}`}
-              style={v ? { background:colorMap[ATT_COURSES[ri]], opacity:0.7 } : {}}
-              title={`${ATT_COURSES[ri]} ${ATT_WEEKS[ci]}: ${v?"Present":"Absent"}`}/>
+          <span className="att-hm-clbl" style={{ color: colorMap[ATT_COURSES[ri]] }}>{ATT_COURSES[ri]}</span>
+          {row.map((v, ci) => (
+            <div
+              key={ci}
+              className={`att-hm-cell ${v ? "present" : "absent"}`}
+              style={v ? { background: colorMap[ATT_COURSES[ri]], opacity: 0.7 } : {}}
+              title={`${ATT_COURSES[ri]} ${ATT_WEEKS[ci]}: ${v ? "Present" : "Absent"}`}
+            />
           ))}
         </div>
       ))}
@@ -481,7 +526,6 @@ function TabSkills() {
   return (
     <div className="san-tab-content">
       <div className="san-two-col">
-        {/* Radar chart */}
         <div className="panel">
           <div className="panel-hd">
             <div className="panel-ttl">
@@ -494,7 +538,6 @@ function TabSkills() {
           </div>
         </div>
 
-        {/* Skill bars with trend */}
         <div className="panel">
           <div className="panel-hd">
             <div className="panel-ttl">
@@ -526,7 +569,6 @@ function TabSkills() {
         </div>
       </div>
 
-      {/* Skill line chart */}
       <div className="panel">
         <div className="panel-hd">
           <div className="panel-ttl">
@@ -545,11 +587,11 @@ function TabSkills() {
         <div className="panel-body">
           <LineChart
             datasets={SKILL_TREND.map(s => ({ label:s.label, values:s.scores, color:s.color }))}
-            labels={WEEKS} height={155}/>
+            labels={WEEKS} height={155}
+          />
         </div>
       </div>
 
-      {/* Achievements */}
       <div className="panel">
         <div className="panel-hd">
           <div className="panel-ttl">
@@ -582,18 +624,21 @@ function TabSkills() {
 function TabPlacement() {
   const pri = 72;
   const target = 85;
-  const weighted = PLACEMENT_BREAKDOWN.reduce((a,c) => a + c.score*(c.weight/100), 0).toFixed(1);
+  const weighted = PLACEMENT_BREAKDOWN.reduce((a,c) => a + c.score * (c.weight / 100), 0).toFixed(1);
 
   return (
     <div className="san-tab-content">
-      {/* PRI hero */}
       <div className="pri-hero">
         <div className="pri-donut-wrap">
-          <Donut segments={[
-            { pct:pri, color:"var(--indigo-l)" },
-            { pct:target-pri, color:"rgba(91,78,248,.15)" },
-            { pct:100-target, color:"var(--surface3)" },
-          ]} size={120} stroke={14}/>
+          <Donut
+            segments={[
+              { pct: pri, color: "var(--indigo-l)" },
+              { pct: target - pri, color: "rgba(91,78,248,.15)" },
+              { pct: 100 - target, color: "var(--surface3)" },
+            ]}
+            size={120}
+            stroke={14}
+          />
           <div className="pri-donut-label">
             <div className="pri-val">{pri}</div>
             <div className="pri-sub">/ 100</div>
@@ -605,23 +650,33 @@ function TabPlacement() {
           <div className="pri-target-row">
             <span>Current</span>
             <div className="pri-target-bar">
-              <div className="pri-bar-fill" style={{ width:`${pri}%` }}/>
-              <div className="pri-target-marker" style={{ left:`${target}%` }}/>
+              <div className="pri-bar-fill" style={{ width: `${pri}%` }}/>
+              <div className="pri-target-marker" style={{ left: `${target}%` }}/>
             </div>
             <span>Target {target}</span>
           </div>
           <div className="pri-tiers">
-            {[["Beginner","0–40","rose"],["Developing","40–60","amber"],["Good","60–80","indigo-ll"],["Excellent","80–100","teal"]].map(([t,r,c]) => (
-              <span key={t} className={`pri-tier ${pri >= parseInt(r) ? "active" : ""}`}
-                style={pri >= parseInt(r) ? { color:`var(--${c})`, background:`rgba(var(--${c}-rgb),.1)` } : {}}>
-                {t}
-              </span>
-            ))}
+            {[
+              ["Beginner", "0–40", "rose"],
+              ["Developing", "40–60", "amber"],
+              ["Good", "60–80", "indigo-ll"],
+              ["Excellent", "80–100", "teal"]
+            ].map(([t, r, c]) => {
+              const min = parseInt(r.split("–")[0]);
+              return (
+                <span
+                  key={t}
+                  className={`pri-tier ${pri >= min ? "active" : ""}`}
+                  style={pri >= min ? { color: `var(--${c})`, background: `rgba(var(--${c}-rgb),.1)` } : {}}
+                >
+                  {t}
+                </span>
+              );
+            })}
           </div>
         </div>
       </div>
 
-      {/* Breakdown */}
       <div className="san-two-col">
         <div className="panel">
           <div className="panel-hd">
@@ -638,7 +693,7 @@ function TabPlacement() {
                   <span className="plc-weight">{b.weight}% weight</span>
                   <span className="plc-score" style={{ color:b.color }}>{b.score}%</span>
                 </div>
-                <AnimBar pct={b.score} color={b.color} height={5} delay={400+i*100}/>
+                <AnimBar pct={b.score} color={b.color} height={5} delay={400 + i * 100}/>
               </div>
             ))}
             <div className="plc-total">
@@ -681,7 +736,6 @@ function TabPlacement() {
         </div>
       </div>
 
-      {/* Companies heatmap */}
       <div className="panel">
         <div className="panel-hd">
           <div className="panel-ttl">
@@ -708,7 +762,7 @@ function TabPlacement() {
                   {t.eligible ? "✅ Eligible" : "🔒 Not yet"}
                 </div>
                 {!t.eligible && (
-                  <div className="tc-gap">Need +{Math.max(t.minPRI-pri,0)} PRI</div>
+                  <div className="tc-gap">Need +{Math.max(t.minPRI - pri, 0)} PRI</div>
                 )}
               </div>
             ))}
@@ -727,7 +781,6 @@ export default function StudentAnalytics({ onBack }) {
 
   return (
     <div className="san-root">
-      {/* Back button + header */}
       <div className="san-page-hd">
         <div className="san-back-row">
           <button className="san-back-btn" onClick={onBack}>
@@ -746,7 +799,7 @@ export default function StudentAnalytics({ onBack }) {
               <span className="greet-pip-txt">Semester 5 · Week 11 · Personal Analytics</span>
             </div>
             <h1 className="greet-title">My <em>Analytics</em></h1>
-            <p className="greet-sub">Your personal performance breakdown across courses, skills &amp; placement readiness.</p>
+            <p className="greet-sub">Your personal performance breakdown across courses, skills & placement readiness.</p>
           </div>
           <div className="san-hd-actions">
             <div className="san-period-pills">
@@ -760,7 +813,6 @@ export default function StudentAnalytics({ onBack }) {
         </div>
       </div>
 
-      {/* Tab bar */}
       <div className="san-tabs">
         {TABS.map(t => (
           <button key={t.id} className={`san-tab ${tab===t.id?"active":""}`} onClick={() => setTab(t.id)}>
@@ -769,11 +821,10 @@ export default function StudentAnalytics({ onBack }) {
         ))}
       </div>
 
-      {/* Content */}
-      {tab==="performance" && <TabPerformance activeCourse={activeCourse} setActiveCourse={setActiveCourse}/>}
-      {tab==="attendance"  && <TabAttendance/>}
-      {tab==="skills"      && <TabSkills/>}
-      {tab==="placement"   && <TabPlacement/>}
+      {tab === "performance" && <TabPerformance activeCourse={activeCourse} setActiveCourse={setActiveCourse}/>}
+      {tab === "attendance"  && <TabAttendance/>}
+      {tab === "skills"      && <TabSkills/>}
+      {tab === "placement"   && <TabPlacement/>}
     </div>
   );
 }
