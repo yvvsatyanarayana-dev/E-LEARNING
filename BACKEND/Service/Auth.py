@@ -1,18 +1,8 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from Models.User import User
-from Schemas.UserSchema import (
-    RegisterRequest,
-    LoginRequest,
-    TokenResponse,
-    UserResponse,
-    ChangePasswordRequest,
-)
-from Core.Security import (
-    hash_pwd,
-    verify_pwd,
-    create_access_token,
-)
+from Schemas.UserSchema import RegisterRequest, LoginRequest, UserResponse, TokenResponse, ChangePasswordRequest
+from Core.Security import hash_pwd, verify_pwd, create_access_token
 
 
 class AuthService:

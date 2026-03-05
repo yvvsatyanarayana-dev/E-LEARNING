@@ -1,1014 +1,953 @@
-// StudentInnovationHub.jsx
-// Innovation Hub module — import into StudentDashboard.jsx
-// Uses CSS variables from StudentDashboard.css + StudentInnovationHub.css
+// studentinnovationhub.jsx
+// Innovation Hub module — imported into StudentDashboard.jsx
+// Matches SmartCampus design system: Plus Jakarta Sans + Fraunces, CSS vars, same panel/card patterns
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
-  ChevronLeft, ChevronRight, Lightbulb, Rocket, Trophy, Users,
-  Star, Heart, MessageSquare, Share2, Plus, Search, Filter,
-  Grid, List, Clock, Calendar, Tag, Award, Flame, TrendingUp,
-  Code2, BookOpen, Zap, Globe, GitBranch, Microscope, Cpu,
-  X, Upload, Send, Eye, ThumbsUp, Bookmark, ExternalLink,
-  CheckCircle, AlertCircle, Lock, BarChart2, Target, Sparkles,
-  ChevronDown, ArrowRight, Play, FileText, Link, Download
+  ChevronLeft, ChevronRight, Lightbulb, Rocket, Users, Trophy,
+  Flame, Plus, Search, Filter, ExternalLink, Heart, MessageCircle,
+  Bookmark, Share2, Clock, Tag, Star, CheckCircle, Circle,
+  Zap, Globe, Code, FlaskConical, Cpu, Palette, TrendingUp,
+  ArrowUpRight, Send, X, UploadCloud, Award
 } from "lucide-react";
 
-// ─── PALETTE ────────────────────────────────────────────────────
-const CAT_COLOR = {
-  Hackathon:    { bg: "var(--c-teal)",   light: "#0d3d3a" },
-  Patent:       { bg: "var(--c-purple)", light: "#2d1f4e" },
-  Research:     { bg: "var(--c-blue)",   light: "#0d2040" },
-  Startup:      { bg: "var(--c-amber)",  light: "#3d2800" },
-  OpenSource:   { bg: "var(--c-green)",  light: "#0d3020" },
-  Competition:  { bg: "#e05c8a",         light: "#3d0d24" },
+// ─── DATA ────────────────────────────────────────────────────────
+
+const TABS = [
+  { id: "feed",       label: "Idea Feed",      Icon: Lightbulb  },
+  { id: "projects",   label: "My Projects",    Icon: Rocket     },
+  { id: "hackathons", label: "Hackathons",      Icon: Trophy     },
+  { id: "collaborate",label: "Collaborate",    Icon: Users      },
+];
+
+const CATEGORIES = ["All", "AI/ML", "Web Dev", "IoT", "Sustainability", "HealthTech", "EdTech", "FinTech"];
+
+const DOMAIN_ICONS = {
+  "AI/ML":           <Cpu size={13}/>,
+  "Web Dev":         <Code size={13}/>,
+  "IoT":             <Globe size={13}/>,
+  "Sustainability":  <FlaskConical size={13}/>,
+  "HealthTech":      <Zap size={13}/>,
+  "EdTech":          <Star size={13}/>,
+  "FinTech":         <TrendingUp size={13}/>,
 };
 
-const STATUS_META = {
-  Active:     { color: "var(--c-teal)",   icon: <Flame size={11} /> },
-  Completed:  { color: "var(--c-green)",  icon: <CheckCircle size={11} /> },
-  Ideation:   { color: "var(--c-amber)",  icon: <Lightbulb size={11} /> },
-  Review:     { color: "var(--c-blue)",   icon: <Eye size={11} /> },
-  Won:        { color: "#f5c842",         icon: <Trophy size={11} /> },
-  Missed:     { color: "#666",            icon: <AlertCircle size={11} /> },
+const DOMAIN_COLORS = {
+  "AI/ML":           "var(--teal)",
+  "Web Dev":         "var(--indigo-ll)",
+  "IoT":             "var(--violet)",
+  "Sustainability":  "var(--teal)",
+  "HealthTech":      "var(--rose)",
+  "EdTech":          "var(--amber)",
+  "FinTech":         "var(--indigo-ll)",
 };
 
-// ─── MOCK DATA ───────────────────────────────────────────────────
-const INNOVATIONS = [
+const IDEAS = [
   {
     id: 1,
-    title: "AgriBot: AI-Powered Crop Disease Detection",
-    category: "Hackathon",
-    status: "Won",
-    event: "Smart India Hackathon 2024",
-    team: ["Arjun Reddy", "Priya Nair", "Ravi Kumar"],
-    teamSize: 4,
-    tags: ["AI/ML", "IoT", "Agriculture", "Computer Vision"],
-    desc: "Real-time crop disease detection using CNN models deployed on edge devices. Achieved 94.2% accuracy on the PlantVillage dataset with a custom MobileNetV3 backbone.",
-    likes: 142,
-    comments: 28,
-    views: 1240,
-    bookmarked: true,
-    myEntry: true,
-    prize: "₹1,00,000",
-    deadline: "2024-12-15",
-    completedOn: "2024-12-15",
-    progress: 100,
-    techStack: ["Python", "TensorFlow", "Raspberry Pi", "Flutter", "Firebase"],
-    links: [
-      { label: "GitHub", url: "#", icon: <GitBranch size={13} /> },
-      { label: "Demo", url: "#", icon: <Play size={13} /> },
-      { label: "Report", url: "#", icon: <FileText size={13} /> },
-    ],
-    timeline: [
-      { phase: "Ideation", done: true, date: "Oct 10" },
-      { phase: "Prototype", done: true, date: "Nov 5" },
-      { phase: "Submission", done: true, date: "Dec 1" },
-      { phase: "Finals", done: true, date: "Dec 15" },
-    ],
-    mentors: ["Dr. K. Raghavan"],
-    achievements: ["National Winner", "Best Innovation Award", "Patent Filed"],
-    feedback: "Outstanding integration of edge AI with agricultural use cases. The team demonstrated exceptional depth in model optimization.",
+    title: "AI-Powered Crop Disease Detector",
+    author: "Priya Menon",
+    avatar: "PM",
+    domain: "AI/ML",
+    tags: ["Deep Learning", "Agriculture", "Mobile"],
+    desc: "A mobile app that uses CNN models to detect crop diseases from leaf photos, providing farmers with instant diagnosis and treatment recommendations in regional languages.",
+    likes: 84,
+    comments: 21,
+    bookmarks: 15,
+    timeAgo: "2h ago",
+    stage: "Prototype",
+    stageColor: "var(--teal)",
+    looking: ["ML Engineer", "Mobile Dev"],
+    liked: false,
+    bookmarked: false,
+    featured: true,
   },
   {
     id: 2,
-    title: "CampusNav: Indoor Navigation for Differently-Abled",
-    category: "Research",
-    status: "Active",
-    event: "IEEE Student Research Grant 2025",
-    team: ["Arjun Reddy", "Sneha Patel"],
-    teamSize: 3,
-    tags: ["Accessibility", "BLE", "Navigation", "Assistive Tech"],
-    desc: "BLE beacon-based indoor navigation system with haptic feedback for visually impaired students. Currently conducting pilot trials across 3 campus buildings.",
-    likes: 87,
-    comments: 15,
-    views: 634,
+    title: "Campus Resource Sharing Platform",
+    author: "Ravi Shankar",
+    avatar: "RS",
+    domain: "Web Dev",
+    tags: ["React", "FastAPI", "Community"],
+    desc: "A peer-to-peer platform where students can lend/borrow textbooks, lab equipment, and study materials, reducing waste and saving costs across campus.",
+    likes: 62,
+    comments: 14,
+    bookmarks: 9,
+    timeAgo: "5h ago",
+    stage: "Idea",
+    stageColor: "var(--amber)",
+    looking: ["Backend Dev", "UI Designer"],
+    liked: true,
     bookmarked: false,
-    myEntry: true,
-    prize: null,
-    deadline: "2025-03-30",
-    completedOn: null,
-    progress: 65,
-    techStack: ["BLE 5.0", "Android", "Kotlin", "Raspberry Pi", "Flask"],
-    links: [
-      { label: "GitHub", url: "#", icon: <GitBranch size={13} /> },
-      { label: "Paper Draft", url: "#", icon: <FileText size={13} /> },
-    ],
-    timeline: [
-      { phase: "Literature Review", done: true, date: "Jan 5" },
-      { phase: "System Design", done: true, date: "Jan 20" },
-      { phase: "Pilot Trial", done: false, date: "Mar 1" },
-      { phase: "Submission", done: false, date: "Mar 30" },
-    ],
-    mentors: ["Dr. S. Lakshmanan", "Prof. M. Divya"],
-    achievements: [],
-    feedback: null,
+    featured: false,
   },
   {
     id: 3,
-    title: "SecureVault: Decentralized Academic Certificate Verification",
-    category: "Startup",
-    status: "Ideation",
-    event: "NASSCOM Startup Challenge",
-    team: ["Arjun Reddy", "Karthik M.", "Divya S.", "Ankit R."],
-    teamSize: 4,
-    tags: ["Blockchain", "Web3", "EdTech", "Solidity"],
-    desc: "Tamper-proof academic credentials on Ethereum L2. Enables instant verification for employers without relying on central institutions. Targeting B2B SaaS model.",
-    likes: 56,
-    comments: 9,
-    views: 412,
+    title: "Smart Campus Energy Monitor",
+    author: "Ananya Iyer",
+    avatar: "AI",
+    domain: "IoT",
+    tags: ["Raspberry Pi", "Energy", "Dashboard"],
+    desc: "IoT sensors deployed across campus to monitor real-time energy consumption, with an analytics dashboard that helps administration cut power bills by 30%.",
+    likes: 97,
+    comments: 33,
+    bookmarks: 28,
+    timeAgo: "1d ago",
+    stage: "MVP",
+    stageColor: "var(--indigo-ll)",
+    looking: ["Hardware Engineer"],
+    liked: false,
     bookmarked: true,
-    myEntry: true,
-    prize: null,
-    deadline: "2025-04-15",
-    completedOn: null,
-    progress: 30,
-    techStack: ["Solidity", "React", "Hardhat", "IPFS", "Node.js"],
-    links: [
-      { label: "Pitch Deck", url: "#", icon: <FileText size={13} /> },
-    ],
-    timeline: [
-      { phase: "Market Research", done: true, date: "Feb 1" },
-      { phase: "MVP Build", done: false, date: "Mar 10" },
-      { phase: "Pitch Round", done: false, date: "Apr 1" },
-      { phase: "Finals", done: false, date: "Apr 15" },
-    ],
-    mentors: ["Prof. R. Venkat"],
-    achievements: [],
-    feedback: null,
+    featured: true,
   },
   {
     id: 4,
-    title: "EduAssist: Adaptive Learning Platform using RL",
-    category: "OpenSource",
-    status: "Active",
-    event: "Google Summer of Code 2025",
-    team: ["Arjun Reddy"],
-    teamSize: 1,
-    tags: ["Reinforcement Learning", "EdTech", "Python", "React"],
-    desc: "Open-source adaptive quiz engine that uses multi-armed bandit algorithms to personalize question difficulty in real-time. Accepted into GSoC 2025 cohort.",
-    likes: 203,
-    comments: 41,
-    views: 1890,
+    title: "Mental Wellness Chatbot for Students",
+    author: "Karan Bose",
+    avatar: "KB",
+    domain: "HealthTech",
+    tags: ["NLP", "Counseling", "Anonymity"],
+    desc: "An anonymous AI chatbot offering 24/7 emotional support, mood tracking, and escalation to college counselors, reducing stigma around mental health support.",
+    likes: 113,
+    comments: 47,
+    bookmarks: 41,
+    timeAgo: "2d ago",
+    stage: "Prototype",
+    stageColor: "var(--teal)",
+    looking: ["Psychologist Advisor", "Backend Dev"],
+    liked: false,
     bookmarked: false,
-    myEntry: true,
-    prize: "$3,000 stipend",
-    deadline: "2025-08-20",
-    completedOn: null,
-    progress: 45,
-    techStack: ["Python", "FastAPI", "React", "PostgreSQL", "Docker"],
-    links: [
-      { label: "GitHub", url: "#", icon: <GitBranch size={13} /> },
-      { label: "Live Demo", url: "#", icon: <Globe size={13} /> },
-      { label: "Proposal", url: "#", icon: <FileText size={13} /> },
-    ],
-    timeline: [
-      { phase: "Community Bonding", done: true, date: "May 1" },
-      { phase: "Phase 1 Coding", done: true, date: "Jun 30" },
-      { phase: "Phase 2 Coding", done: false, date: "Jul 31" },
-      { phase: "Final Eval", done: false, date: "Aug 20" },
-    ],
-    mentors: ["GSoC Mentor: Alex T."],
-    achievements: ["GSoC 2025 Accepted", "150+ Stars on GitHub"],
-    feedback: null,
+    featured: false,
   },
   {
     id: 5,
-    title: "SmartGrid Monitor: Real-Time Power Analytics",
-    category: "Competition",
-    status: "Missed",
-    event: "IIT Bombay Techfest 2024",
-    team: ["Priya Nair", "Rahul S.", "Arjun Reddy"],
-    teamSize: 3,
-    tags: ["IoT", "Power Systems", "MQTT", "Dashboard"],
-    desc: "Real-time electrical grid monitoring with anomaly detection using streaming ML. Dashboard for campus energy management. Could not submit final version due to hardware failure.",
-    likes: 34,
-    comments: 5,
-    views: 198,
+    title: "Blockchain-Based Academic Credentials",
+    author: "Sneha Rao",
+    avatar: "SR",
+    domain: "FinTech",
+    tags: ["Blockchain", "Verifiability", "Web3"],
+    desc: "Tamper-proof digital transcripts and certificates stored on a permissioned blockchain, enabling instant verification by employers without contacting the college.",
+    likes: 76,
+    comments: 19,
+    bookmarks: 22,
+    timeAgo: "3d ago",
+    stage: "Research",
+    stageColor: "var(--violet)",
+    looking: ["Smart Contract Dev", "UX Designer"],
+    liked: false,
     bookmarked: false,
-    myEntry: true,
-    prize: null,
-    deadline: "2024-10-20",
-    completedOn: "2024-10-20",
-    progress: 70,
-    techStack: ["ESP32", "MQTT", "InfluxDB", "Grafana", "Python"],
-    links: [
-      { label: "GitHub", url: "#", icon: <GitBranch size={13} /> },
+    featured: false,
+  },
+];
+
+const MY_PROJECTS = [
+  {
+    id: "p1",
+    title: "SmartAttend — Face Recognition Attendance",
+    domain: "AI/ML",
+    stage: "MVP",
+    stageColor: "var(--indigo-ll)",
+    progress: 68,
+    color: "var(--indigo-l)",
+    colorRgb: "91,78,248",
+    team: ["AR", "PM", "KR"],
+    nextMilestone: "Deploy on college server",
+    dueIn: "5 days",
+    stars: 42,
+    desc: "Automated attendance using real-time face recognition, replacing manual roll calls and reducing proxy attendance.",
+    tasks: [
+      { label: "Train face recognition model",     done: true  },
+      { label: "Build Flask API endpoints",        done: true  },
+      { label: "Integrate React frontend",         done: true  },
+      { label: "Test with live webcam feed",       done: false },
+      { label: "Deploy & college integration",     done: false },
     ],
-    timeline: [
-      { phase: "Design", done: true, date: "Sep 10" },
-      { phase: "Build", done: true, date: "Oct 5" },
-      { phase: "Testing", done: false, date: "Oct 15" },
-      { phase: "Submit", done: false, date: "Oct 20" },
+    updates: [
+      { text: "Achieved 96.4% accuracy on test set", when: "Yesterday" },
+      { text: "PR merged: attendance export as CSV",  when: "3 days ago" },
     ],
-    mentors: [],
-    achievements: [],
-    feedback: "Promising concept — hardware reliability needs improvement for future submissions.",
   },
   {
-    id: 6,
-    title: "PathoScan: Pathology Slide Analysis with Vision Transformers",
-    category: "Patent",
-    status: "Review",
-    event: "Patent Application IN202441023456",
-    team: ["Dr. K. Raghavan", "Arjun Reddy", "Meena R."],
-    teamSize: 3,
-    tags: ["Computer Vision", "Healthcare", "ViT", "Medical AI"],
-    desc: "Vision Transformer model for automated pathology slide annotation. Patent filed for novel attention-based multi-scale feature extraction method achieving 97.1% specificity.",
-    likes: 118,
-    comments: 22,
-    views: 876,
-    bookmarked: true,
-    myEntry: true,
-    prize: null,
-    deadline: "2025-06-01",
-    completedOn: null,
-    progress: 80,
-    techStack: ["PyTorch", "ViT", "OpenSlide", "FastAPI", "CUDA"],
-    links: [
-      { label: "Pre-print", url: "#", icon: <FileText size={13} /> },
-      { label: "Patent Doc", url: "#", icon: <Lock size={13} /> },
+    id: "p2",
+    title: "StudySync — Collaborative Notes Platform",
+    domain: "EdTech",
+    stage: "Idea",
+    stageColor: "var(--amber)",
+    progress: 22,
+    color: "var(--amber)",
+    colorRgb: "244,165,53",
+    team: ["AR", "SN"],
+    nextMilestone: "Complete wireframes",
+    dueIn: "2 days",
+    stars: 18,
+    desc: "Real-time collaborative note-taking with AI-generated summaries and spaced repetition flashcards.",
+    tasks: [
+      { label: "Finalize feature scope",           done: true  },
+      { label: "Create Figma wireframes",          done: false },
+      { label: "Set up monorepo",                  done: false },
+      { label: "Build core editor",                done: false },
     ],
-    timeline: [
-      { phase: "Research", done: true, date: "Aug 1" },
-      { phase: "Experiments", done: true, date: "Oct 30" },
-      { phase: "Patent Draft", done: true, date: "Jan 10" },
-      { phase: "Grant Review", done: false, date: "Jun 1" },
+    updates: [
+      { text: "Feature scope doc approved by mentor", when: "Today" },
     ],
-    mentors: ["Dr. K. Raghavan"],
-    achievements: ["Patent Filed", "Paper Under Review at Nature MI"],
-    feedback: null,
+  },
+];
+
+const HACKATHONS = [
+  {
+    id: "h1",
+    name: "Smart India Hackathon 2025",
+    org: "Government of India",
+    prize: "₹1,00,000",
+    deadline: "Aug 15, 2025",
+    daysLeft: 42,
+    mode: "Online + Offline",
+    domain: "All Domains",
+    registered: true,
+    teamSize: "2–6",
+    color: "var(--teal)",
+    colorRgb: "39,201,176",
+    desc: "India's biggest hackathon. Build solutions for real government problem statements across 9 domains.",
+    status: "Registered",
+    statusColor: "var(--teal)",
   },
   {
-    id: 7,
-    title: "CodePeer: Real-Time Collaborative Code Review Platform",
-    category: "OpenSource",
-    status: "Active",
-    event: "MLH Open Source Fellowship",
-    team: ["Karthik M.", "Sneha Patel", "Ravi Kumar"],
-    teamSize: 3,
-    tags: ["WebSockets", "React", "Monaco Editor", "Node.js"],
-    desc: "Collaborative code editor with AI-powered review suggestions, inline comments, and real-time cursor sharing. Currently in beta with 200+ active users from 12 colleges.",
-    likes: 176,
-    comments: 33,
-    views: 2100,
-    bookmarked: false,
-    myEntry: false,
-    prize: null,
-    deadline: "2025-05-01",
-    completedOn: null,
-    progress: 70,
-    techStack: ["React", "Node.js", "Socket.io", "Monaco", "Redis"],
-    links: [
-      { label: "GitHub", url: "#", icon: <GitBranch size={13} /> },
-      { label: "Beta", url: "#", icon: <Globe size={13} /> },
-    ],
-    timeline: [
-      { phase: "MVP", done: true, date: "Jan 1" },
-      { phase: "Beta Launch", done: true, date: "Feb 15" },
-      { phase: "v1.0", done: false, date: "May 1" },
-    ],
-    mentors: [],
-    achievements: ["200+ Beta Users", "Featured in MLH Blog"],
-    feedback: null,
+    id: "h2",
+    name: "HackVision — AI for Good",
+    org: "IIT Madras",
+    prize: "₹50,000",
+    deadline: "Jul 28, 2025",
+    daysLeft: 24,
+    mode: "Hybrid",
+    domain: "AI/ML",
+    registered: false,
+    teamSize: "3–4",
+    color: "var(--indigo-l)",
+    colorRgb: "91,78,248",
+    desc: "Build AI-powered solutions that tackle social problems. Mentors from Google and Microsoft.",
+    status: "Open",
+    statusColor: "var(--indigo-ll)",
   },
   {
-    id: 8,
-    title: "UrbanAir: Low-Cost PM2.5 Monitoring Network",
-    category: "Research",
-    status: "Completed",
-    event: "DST Student Research Award",
-    team: ["Divya S.", "Ankit R.", "Priya Nair"],
-    teamSize: 3,
-    tags: ["Environmental", "IoT", "Data Science", "Cloud"],
-    desc: "Dense network of low-cost PM2.5 sensors with ML calibration using reference-grade co-location. Published findings on pollution hotspots across 5 city zones.",
-    likes: 92,
-    comments: 17,
-    views: 745,
-    bookmarked: false,
-    myEntry: false,
+    id: "h3",
+    name: "GreenHack — Sustainability Sprint",
+    org: "TechFest BITS Pilani",
+    prize: "₹30,000",
+    deadline: "Sep 1, 2025",
+    daysLeft: 59,
+    mode: "Online",
+    domain: "Sustainability",
+    registered: false,
+    teamSize: "2–5",
+    color: "var(--amber)",
+    colorRgb: "244,165,53",
+    desc: "72-hour sprint to build solutions for climate change, waste management, and renewable energy.",
+    status: "Open",
+    statusColor: "var(--amber)",
+  },
+  {
+    id: "h4",
+    name: "HealthHack 2025",
+    org: "AIIMS Delhi × Microsoft",
     prize: "₹75,000",
-    deadline: "2024-11-30",
-    completedOn: "2024-11-30",
-    progress: 100,
-    techStack: ["Arduino", "AWS IoT", "Python", "Tableau", "PostgreSQL"],
-    links: [
-      { label: "Paper", url: "#", icon: <FileText size={13} /> },
-      { label: "Dataset", url: "#", icon: <Download size={13} /> },
-    ],
-    timeline: [
-      { phase: "Setup", done: true, date: "Jul 1" },
-      { phase: "Data Collection", done: true, date: "Sep 30" },
-      { phase: "Analysis", done: true, date: "Oct 30" },
-      { phase: "Publication", done: true, date: "Nov 30" },
-    ],
-    mentors: ["Prof. E. Ramesh"],
-    achievements: ["Published in Nature Sci. Reports", "DST Award Winner"],
-    feedback: "Exceptional rigor in sensor calibration methodology. Strong real-world impact.",
+    deadline: "Aug 5, 2025",
+    daysLeft: 31,
+    mode: "In-Person",
+    domain: "HealthTech",
+    registered: false,
+    teamSize: "3–5",
+    color: "var(--rose)",
+    colorRgb: "242,68,92",
+    desc: "Create the next breakthrough in digital health. Prizes for best mobile app, AI model, and hardware hack.",
+    status: "Open",
+    statusColor: "var(--rose)",
   },
 ];
 
-const CATEGORIES = [
-  { key: "All",        label: "All",         icon: <Sparkles size={14} />, count: INNOVATIONS.length },
-  { key: "Hackathon",  label: "Hackathon",   icon: <Zap size={14} />,         count: INNOVATIONS.filter(i => i.category === "Hackathon").length },
-  { key: "Research",   label: "Research",    icon: <Microscope size={14} />,  count: INNOVATIONS.filter(i => i.category === "Research").length },
-  { key: "Startup",    label: "Startup",     icon: <Rocket size={14} />,      count: INNOVATIONS.filter(i => i.category === "Startup").length },
-  { key: "OpenSource", label: "Open Source", icon: <GitBranch size={14} />,   count: INNOVATIONS.filter(i => i.category === "OpenSource").length },
-  { key: "Patent",     label: "Patent",      icon: <BookOpen size={14} />,    count: INNOVATIONS.filter(i => i.category === "Patent").length },
-  { key: "Competition",label: "Competition", icon: <Trophy size={14} />,      count: INNOVATIONS.filter(i => i.category === "Competition").length },
+const COLLABORATORS = [
+  { name: "Priya Menon",   roll: "21CS031", skills: ["Python", "ML", "TensorFlow"], available: true,  avatar: "PM", match: 94, color: "var(--teal)"    },
+  { name: "Karan Bose",    roll: "21CS018", skills: ["React", "Node.js", "UI/UX"],  available: true,  avatar: "KB", match: 88, color: "var(--indigo-l)"},
+  { name: "Sneha Rao",     roll: "21CS052", skills: ["Java", "Spring", "Docker"],   available: false, avatar: "SR", match: 81, color: "var(--violet)"  },
+  { name: "Rohan Das",     roll: "21CS061", skills: ["Embedded", "Arduino", "C++"], available: true,  avatar: "RD", match: 76, color: "var(--amber)"   },
+  { name: "Divya Nair",    roll: "21CS009", skills: ["Data Analysis", "SQL", "R"],  available: false, avatar: "DN", match: 72, color: "var(--rose)"    },
+  { name: "Arjun Pillai",  roll: "21CS044", skills: ["Blockchain", "Solidity"],     available: true,  avatar: "AP", match: 69, color: "var(--teal)"    },
 ];
 
-const LEADERBOARD = [
-  { rank: 1, name: "Priya Nair",   roll: "21CS041", points: 980, badge: "🏆", wins: 3 },
-  { rank: 2, name: "Arjun Reddy",  roll: "21CS047", points: 870, badge: "🥈", wins: 2 },
-  { rank: 3, name: "Karthik M.",   roll: "21CS029", points: 760, badge: "🥉", wins: 2 },
-  { rank: 4, name: "Sneha Patel",  roll: "21CS055", points: 640, badge: "",   wins: 1 },
-  { rank: 5, name: "Ravi Kumar",   roll: "21CS038", points: 510, badge: "",   wins: 1 },
-];
+const TRENDING_TAGS = ["#MachineLearning", "#OpenSource", "#ClimateAction", "#Web3", "#HealthTech", "#MobileFirst"];
 
-const UPCOMING_EVENTS = [
-  { name: "Smart India Hackathon 2025", date: "Mar 15", category: "Hackathon", slots: 120, registered: true },
-  { name: "Google Summer of Code Phase 2", date: "Mar 28", category: "OpenSource", slots: null, registered: true },
-  { name: "NASSCOM Startup Pitch Day", date: "Apr 5",  category: "Startup",   slots: 50, registered: false },
-  { name: "IEEE Innovation Challenge",   date: "Apr 20", category: "Competition", slots: 80, registered: false },
-  { name: "DRDO Technology Contest",     date: "May 3",  category: "Competition", slots: 60, registered: false },
-];
+// ─── HELPERS ─────────────────────────────────────────────────────
 
-// ─── SUBMIT IDEA MODAL ──────────────────────────────────────────
-function SubmitModal({ onClose }) {
-  const [form, setForm] = useState({
-    title: "", category: "Hackathon", event: "", desc: "",
-    tags: "", techStack: "", teamMembers: "", links: "",
-  });
-  const [step, setStep] = useState(1);
-  const [submitted, setSubmitted] = useState(false);
-  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+function AnimBar({ pct, color, height = 4, delay = 400 }) {
+  const [w, setW] = useState(0);
+  useEffect(() => {
+    const t = setTimeout(() => setW(pct), delay);
+    return () => clearTimeout(t);
+  }, [pct, delay]);
+  return (
+    <div style={{ height, background: "var(--surface3)", borderRadius: 3, overflow: "hidden" }}>
+      <div style={{
+        height: "100%", width: `${w}%`, background: color, borderRadius: 3,
+        transition: "width 1.1s cubic-bezier(.16,1,.3,1)"
+      }} />
+    </div>
+  );
+}
 
-  function handleSubmit() {
-    setSubmitted(true);
-    setTimeout(onClose, 2000);
-  }
+function RadialProgress({ pct, color, size = 52, stroke = 5 }) {
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const dash = (pct / 100) * circ;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: "rotate(-90deg)" }}>
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke="var(--surface3)" strokeWidth={stroke} />
+      <circle cx={size/2} cy={size/2} r={r} fill="none" stroke={color} strokeWidth={stroke}
+        strokeDasharray={`${dash} ${circ - dash}`} strokeLinecap="round" />
+    </svg>
+  );
+}
 
-  if (submitted) return (
-    <div className="ih-modal-overlay" onClick={onClose}>
-      <div className="ih-modal ih-modal--success" onClick={e => e.stopPropagation()}>
-        <div className="ih-success-anim">
-          <CheckCircle size={48} color="var(--c-teal)" />
-          <h3>Idea Submitted!</h3>
-          <p>Your innovation has been added to the hub.</p>
+// ─── IDEA CARD ────────────────────────────────────────────────────
+function IdeaCard({ idea, onLike, onBookmark }) {
+  const domainColor = DOMAIN_COLORS[idea.domain] || "var(--text3)";
+  return (
+    <div className="ih-idea-card">
+      {idea.featured && (
+        <div className="ih-featured-badge">
+          <Flame size={9} /> Featured
         </div>
+      )}
+      <div className="ih-card-top">
+        <div className="ih-avatar">{idea.avatar}</div>
+        <div className="ih-card-meta">
+          <span className="ih-author">{idea.author}</span>
+          <span className="ih-time">{idea.timeAgo}</span>
+        </div>
+        <div className="ih-domain-badge" style={{ color: domainColor, borderColor: `${domainColor}33`, background: `${domainColor}11` }}>
+          {DOMAIN_ICONS[idea.domain]} {idea.domain}
+        </div>
+      </div>
+
+      <h3 className="ih-idea-title">{idea.title}</h3>
+      <p className="ih-idea-desc">{idea.desc}</p>
+
+      <div className="ih-tags">
+        {idea.tags.map(t => (
+          <span key={t} className="ih-tag">#{t}</span>
+        ))}
+      </div>
+
+      <div className="ih-stage-row">
+        <span className="ih-stage" style={{ color: idea.stageColor, borderColor: `${idea.stageColor}33`, background: `${idea.stageColor}11` }}>
+          <Circle size={6} style={{ fill: idea.stageColor, stroke: idea.stageColor }} /> {idea.stage}
+        </span>
+        {idea.looking.length > 0 && (
+          <span className="ih-looking">
+            <Users size={10} /> Looking for: {idea.looking.join(", ")}
+          </span>
+        )}
+      </div>
+
+      <div className="ih-card-actions">
+        <button className={`ih-action-btn ${idea.liked ? "active-rose" : ""}`} onClick={() => onLike(idea.id)}>
+          <Heart size={13} style={idea.liked ? { fill: "var(--rose)", stroke: "var(--rose)" } : {}} />
+          {idea.likes}
+        </button>
+        <button className="ih-action-btn">
+          <MessageCircle size={13} /> {idea.comments}
+        </button>
+        <button className={`ih-action-btn ${idea.bookmarked ? "active-indigo" : ""}`} onClick={() => onBookmark(idea.id)}>
+          <Bookmark size={13} style={idea.bookmarked ? { fill: "var(--indigo-ll)", stroke: "var(--indigo-ll)" } : {}} />
+          {idea.bookmarks}
+        </button>
+        <button className="ih-action-btn ih-action-share">
+          <Share2 size={13} />
+        </button>
+        <button className="ih-join-btn">
+          Collaborate <ArrowUpRight size={11} />
+        </button>
       </div>
     </div>
   );
+}
+
+// ─── SUBMIT IDEA MODAL ────────────────────────────────────────────
+function SubmitIdeaModal({ onClose }) {
+  const [form, setForm] = useState({ title: "", domain: "AI/ML", desc: "", tags: "", looking: "" });
+  const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
 
   return (
-    <div className="ih-modal-overlay" onClick={onClose}>
-      <div className="ih-modal" onClick={e => e.stopPropagation()}>
-        <div className="ih-modal-header">
-          <div className="ih-modal-title">
-            <Lightbulb size={18} color="var(--c-amber)" />
-            <span>Submit Your Innovation</span>
+    <div className="ih-modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
+      <div className="ih-modal">
+        <div className="ih-modal-hd">
+          <div>
+            <div className="ih-modal-title">Submit Your Idea 💡</div>
+            <div className="ih-modal-sub">Share it with the campus innovation community</div>
           </div>
-          <div className="ih-modal-steps">
-            <span className={step >= 1 ? "ih-step ih-step--active" : "ih-step"}>1 Details</span>
-            <ChevronRight size={12} />
-            <span className={step >= 2 ? "ih-step ih-step--active" : "ih-step"}>2 Tech</span>
-            <ChevronRight size={12} />
-            <span className={step >= 3 ? "ih-step ih-step--active" : "ih-step"}>3 Team</span>
-          </div>
-          <button className="ih-modal-close" onClick={onClose}><X size={16} /></button>
+          <button className="ih-modal-close" onClick={onClose}><X size={14} /></button>
         </div>
 
         <div className="ih-modal-body">
-          {step === 1 && (
-            <div className="ih-form-section">
-              <div className="ih-field">
-                <label>Innovation Title *</label>
-                <input placeholder="e.g. AI-powered crop disease detection" value={form.title} onChange={e => set("title", e.target.value)} />
-              </div>
-              <div className="ih-field-row">
-                <div className="ih-field">
-                  <label>Category *</label>
-                  <select value={form.category} onChange={e => set("category", e.target.value)}>
-                    {Object.keys(CAT_COLOR).map(c => <option key={c}>{c}</option>)}
-                  </select>
-                </div>
-                <div className="ih-field">
-                  <label>Event / Program</label>
-                  <input placeholder="e.g. SIH 2025, GSoC, Patent" value={form.event} onChange={e => set("event", e.target.value)} />
-                </div>
-              </div>
-              <div className="ih-field">
-                <label>Description *</label>
-                <textarea rows={4} placeholder="Describe your innovation, its problem statement and impact..." value={form.desc} onChange={e => set("desc", e.target.value)} />
-              </div>
-              <div className="ih-field">
-                <label>Tags <span className="ih-hint">(comma separated)</span></label>
-                <input placeholder="AI/ML, IoT, Healthcare..." value={form.tags} onChange={e => set("tags", e.target.value)} />
-              </div>
+          <div className="ih-field">
+            <label>Idea Title *</label>
+            <input className="ih-input" placeholder="Give your idea a catchy name…"
+              value={form.title} onChange={e => set("title", e.target.value)} />
+          </div>
+          <div className="ih-field-row">
+            <div className="ih-field">
+              <label>Domain *</label>
+              <select className="ih-input ih-select" value={form.domain} onChange={e => set("domain", e.target.value)}>
+                {CATEGORIES.filter(c => c !== "All").map(c => <option key={c}>{c}</option>)}
+              </select>
             </div>
-          )}
-
-          {step === 2 && (
-            <div className="ih-form-section">
-              <div className="ih-field">
-                <label>Tech Stack <span className="ih-hint">(comma separated)</span></label>
-                <input placeholder="Python, React, TensorFlow..." value={form.techStack} onChange={e => set("techStack", e.target.value)} />
-              </div>
-              <div className="ih-field">
-                <label>Project Links</label>
-                <input placeholder="GitHub URL, Demo URL, Pitch Deck URL..." value={form.links} onChange={e => set("links", e.target.value)} />
-              </div>
-              <div className="ih-field">
-                <label>Upload Files <span className="ih-hint">(optional)</span></label>
-                <div className="ih-dropzone">
-                  <Upload size={24} color="var(--text-dim)" />
-                  <p>Drag & drop or click to upload<br /><small>PDF, PPT, ZIP — max 20 MB</small></p>
-                </div>
-              </div>
-              <div className="ih-ai-tip">
-                <Sparkles size={13} color="var(--c-purple)" />
-                <span><strong>Lucyna AI:</strong> A clear GitHub link increases your project visibility by 3×. Add a README with screenshots!</span>
-              </div>
+            <div className="ih-field">
+              <label>Looking For</label>
+              <input className="ih-input" placeholder="e.g. ML Engineer, UI Designer"
+                value={form.looking} onChange={e => set("looking", e.target.value)} />
             </div>
-          )}
-
-          {step === 3 && (
-            <div className="ih-form-section">
-              <div className="ih-field">
-                <label>Team Members <span className="ih-hint">(comma separated roll numbers)</span></label>
-                <input placeholder="21CS047, 21CS041, 21CS029..." value={form.teamMembers} onChange={e => set("teamMembers", e.target.value)} />
-              </div>
-              <div className="ih-field">
-                <label>Faculty Mentor <span className="ih-hint">(optional)</span></label>
-                <input placeholder="Prof. / Dr. name..." />
-              </div>
-              <div className="ih-ai-tip ih-ai-tip--green">
-                <Sparkles size={13} color="var(--c-teal)" />
-                <span><strong>Lucyna AI:</strong> Projects with faculty mentors have a 2.4× higher chance of winning institutional support grants.</span>
-              </div>
-            </div>
-          )}
+          </div>
+          <div className="ih-field">
+            <label>Description *</label>
+            <textarea className="ih-input ih-textarea" rows={4}
+              placeholder="Describe your idea, the problem it solves, and your approach…"
+              value={form.desc} onChange={e => set("desc", e.target.value)} />
+          </div>
+          <div className="ih-field">
+            <label>Tags</label>
+            <input className="ih-input" placeholder="e.g. Python, OpenCV, Healthcare (comma separated)"
+              value={form.tags} onChange={e => set("tags", e.target.value)} />
+          </div>
         </div>
 
         <div className="ih-modal-footer">
-          {step > 1 && <button className="ih-btn-ghost" onClick={() => setStep(s => s - 1)}>← Back</button>}
-          {step < 3
-            ? <button className="ih-btn-primary" onClick={() => setStep(s => s + 1)} disabled={step === 1 && (!form.title || !form.desc)}>Continue →</button>
-            : <button className="ih-btn-primary" onClick={handleSubmit}><Send size={14} /> Submit Innovation</button>
-          }
+          <button className="ih-modal-cancel" onClick={onClose}>Cancel</button>
+          <button className="ih-modal-submit">
+            <UploadCloud size={13} /> Submit Idea
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-// ─── DETAIL DRAWER ──────────────────────────────────────────────
-function DetailDrawer({ item, onClose }) {
-  const [tab, setTab] = useState("overview");
-  const col = CAT_COLOR[item.category] || CAT_COLOR.Hackathon;
-  const sMeta = STATUS_META[item.status] || STATUS_META.Active;
-  const [liked, setLiked] = useState(false);
-  const [bookmarked, setBookmarked] = useState(item.bookmarked);
+// ─── IDEA FEED TAB ────────────────────────────────────────────────
+function TabFeed() {
+  const [ideas, setIdeas] = useState(IDEAS);
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("All");
+  const [showModal, setShowModal] = useState(false);
+
+  const filtered = ideas.filter(i =>
+    (category === "All" || i.domain === category) &&
+    (i.title.toLowerCase().includes(search.toLowerCase()) || i.desc.toLowerCase().includes(search.toLowerCase()))
+  );
+
+  const toggleLike     = id => setIdeas(prev => prev.map(i => i.id === id ? { ...i, liked: !i.liked, likes: i.likes + (i.liked ? -1 : 1) } : i));
+  const toggleBookmark = id => setIdeas(prev => prev.map(i => i.id === id ? { ...i, bookmarked: !i.bookmarked, bookmarks: i.bookmarks + (i.bookmarked ? -1 : 1) } : i));
 
   return (
-    <div className="ih-drawer-overlay" onClick={onClose}>
-      <div className="ih-drawer" onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <div className="ih-drawer-header" style={{ borderTop: `3px solid ${col.bg}` }}>
-          <div className="ih-drawer-cat" style={{ background: col.light, color: col.bg }}>
-            {item.category}
-          </div>
-          <button className="ih-drawer-close" onClick={onClose}><X size={16} /></button>
-        </div>
+    <div className="ih-tab-content">
+      {showModal && <SubmitIdeaModal onClose={() => setShowModal(false)} />}
 
-        {/* Title + actions */}
-        <div className="ih-drawer-title-row">
-          <h2 className="ih-drawer-title">{item.title}</h2>
-          <div className="ih-drawer-actions">
-            <button className={`ih-act-btn ${liked ? "ih-act-btn--active" : ""}`} onClick={() => setLiked(l => !l)}>
-              <Heart size={14} /> {item.likes + (liked ? 1 : 0)}
+      {/* Hero banner */}
+      <div className="ih-feed-hero">
+        <div className="ih-hero-left">
+          <div className="greet-tag" style={{ marginBottom: 8 }}>
+            <div className="greet-pip" />
+            <span className="greet-pip-txt">Campus Innovation Community</span>
+          </div>
+          <h2 className="ih-hero-title">Turn Ideas into <em>Impact</em></h2>
+          <p className="ih-hero-sub">Browse, collaborate on, and submit ideas that solve real campus and societal problems.</p>
+          <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
+            <button className="ih-btn-primary" onClick={() => setShowModal(true)}>
+              <Plus size={13} /> Submit Idea
             </button>
-            <button className={`ih-act-btn ${bookmarked ? "ih-act-btn--active" : ""}`} onClick={() => setBookmarked(b => !b)}>
-              <Bookmark size={14} />
+            <button className="ih-btn-ghost">
+              <Rocket size={13} /> Browse Projects
             </button>
-            <button className="ih-act-btn"><Share2 size={14} /></button>
           </div>
         </div>
-
-        <div className="ih-drawer-event">{item.event}</div>
-
-        {/* Status + stats */}
-        <div className="ih-drawer-stats">
-          <span className="ih-status-pill" style={{ background: sMeta.color + "22", color: sMeta.color, borderColor: sMeta.color + "44" }}>
-            {sMeta.icon} {item.status}
-          </span>
-          <span className="ih-drawer-stat"><Eye size={12} /> {item.views}</span>
-          <span className="ih-drawer-stat"><MessageSquare size={12} /> {item.comments}</span>
-          {item.prize && <span className="ih-prize-pill"><Trophy size={11} /> {item.prize}</span>}
+        <div className="ih-hero-stats">
+          {[
+            { val: "124", lbl: "Ideas Shared",   color: "var(--teal)"     },
+            { val: "38",  lbl: "Active Projects", color: "var(--indigo-ll)"},
+            { val: "6",   lbl: "Hackathons",      color: "var(--amber)"   },
+            { val: "312", lbl: "Collaborators",   color: "var(--violet)"  },
+          ].map(({ val, lbl, color }) => (
+            <div key={lbl} className="ih-hero-stat">
+              <div className="ih-hs-val" style={{ color }}>{val}</div>
+              <div className="ih-hs-lbl">{lbl}</div>
+            </div>
+          ))}
         </div>
+      </div>
 
-        {/* Tabs */}
-        <div className="ih-drawer-tabs">
-          {["overview", "timeline", "team", "links"].map(t => (
-            <button key={t} className={`ih-dtab ${tab === t ? "ih-dtab--active" : ""}`} onClick={() => setTab(t)}>
-              {t.charAt(0).toUpperCase() + t.slice(1)}
+      {/* Trending tags */}
+      <div className="ih-trending">
+        <span className="ih-trending-lbl"><Flame size={11} /> Trending:</span>
+        {TRENDING_TAGS.map(t => (
+          <span key={t} className="ih-trend-tag">{t}</span>
+        ))}
+      </div>
+
+      {/* Filters */}
+      <div className="ih-filters">
+        <div className="ih-search-wrap">
+          <Search size={12} style={{ color: "var(--text3)", flexShrink: 0 }} />
+          <input className="ih-search" placeholder="Search ideas…"
+            value={search} onChange={e => setSearch(e.target.value)} />
+          {search && <button className="ih-search-clear" onClick={() => setSearch("")}><X size={10} /></button>}
+        </div>
+        <div className="ih-cat-pills">
+          {CATEGORIES.map(c => (
+            <button key={c}
+              className={`ih-cat-pill ${category === c ? "active" : ""}`}
+              onClick={() => setCategory(c)}>
+              {c}
             </button>
           ))}
         </div>
-
-        <div className="ih-drawer-body">
-          {/* Overview Tab */}
-          {tab === "overview" && (
-            <div className="ih-tab-content">
-              <p className="ih-drawer-desc">{item.desc}</p>
-
-              {/* Progress */}
-              <div className="ih-detail-section">
-                <div className="ih-detail-label"><BarChart2 size={12} /> Progress</div>
-                <div className="ih-prog-bar-wrap">
-                  <div className="ih-prog-bar">
-                    <div className="ih-prog-fill" style={{ width: item.progress + "%", background: col.bg }} />
-                  </div>
-                  <span className="ih-prog-pct">{item.progress}%</span>
-                </div>
-              </div>
-
-              {/* Tags */}
-              <div className="ih-detail-section">
-                <div className="ih-detail-label"><Tag size={12} /> Tags</div>
-                <div className="ih-tags-wrap">
-                  {item.tags.map(t => <span key={t} className="ih-tag">{t}</span>)}
-                </div>
-              </div>
-
-              {/* Tech Stack */}
-              <div className="ih-detail-section">
-                <div className="ih-detail-label"><Cpu size={12} /> Tech Stack</div>
-                <div className="ih-tags-wrap">
-                  {item.techStack.map(t => <span key={t} className="ih-tech-tag">{t}</span>)}
-                </div>
-              </div>
-
-              {/* Achievements */}
-              {item.achievements.length > 0 && (
-                <div className="ih-detail-section">
-                  <div className="ih-detail-label"><Award size={12} /> Achievements</div>
-                  <div className="ih-achievements">
-                    {item.achievements.map(a => (
-                      <div key={a} className="ih-achievement-pill">
-                        <Star size={11} color="#f5c842" /> {a}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Faculty feedback */}
-              {item.feedback && (
-                <div className="ih-feedback-box">
-                  <div className="ih-feedback-label"><MessageSquare size={12} /> Faculty / Judge Feedback</div>
-                  <p className="ih-feedback-text">"{item.feedback}"</p>
-                </div>
-              )}
-
-              {/* Lucyna AI tip */}
-              <div className="ih-ai-tip ih-ai-tip--purple">
-                <Sparkles size={13} color="var(--c-purple)" />
-                <span><strong>Lucyna AI:</strong> {item.status === "Active"
-                  ? "You're on track! Consider preparing a 2-min demo video to boost visibility."
-                  : item.status === "Won"
-                  ? "Excellent work! Consider writing a case study blog to maximize your profile impact."
-                  : "Document your learnings to build a strong portfolio entry even without a win."}</span>
-              </div>
-            </div>
-          )}
-
-          {/* Timeline Tab */}
-          {tab === "timeline" && (
-            <div className="ih-tab-content">
-              <div className="ih-timeline">
-                {item.timeline.map((phase, i) => (
-                  <div key={phase.phase} className={`ih-tl-step ${phase.done ? "ih-tl-step--done" : ""}`}>
-                    <div className="ih-tl-dot" style={{ background: phase.done ? col.bg : "var(--bg-card)" }} />
-                    {i < item.timeline.length - 1 && (
-                      <div className="ih-tl-line" style={{ background: phase.done ? col.bg + "55" : "var(--border)" }} />
-                    )}
-                    <div className="ih-tl-content">
-                      <span className="ih-tl-phase">{phase.phase}</span>
-                      <span className="ih-tl-date">{phase.date}</span>
-                      {phase.done && <CheckCircle size={12} color={col.bg} />}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {item.deadline && (
-                <div className="ih-deadline-box">
-                  <Calendar size={13} color="var(--c-amber)" />
-                  <span>Final Deadline: <strong>{item.deadline}</strong></span>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Team Tab */}
-          {tab === "team" && (
-            <div className="ih-tab-content">
-              <div className="ih-team-list">
-                {item.team.map((member, i) => (
-                  <div key={member} className="ih-team-member">
-                    <div className="ih-member-avatar" style={{ background: Object.values(CAT_COLOR)[i % 6].bg }}>
-                      {member.split(" ").map(n => n[0]).join("").slice(0, 2)}
-                    </div>
-                    <div className="ih-member-info">
-                      <div className="ih-member-name">{member}</div>
-                      <div className="ih-member-role">{i === 0 ? "Team Lead" : "Member"}</div>
-                    </div>
-                    {i === 0 && <span className="ih-lead-badge">Lead</span>}
-                  </div>
-                ))}
-              </div>
-              {item.mentors.length > 0 && (
-                <div className="ih-mentors-section">
-                  <div className="ih-detail-label"><Award size={12} /> Faculty Mentors</div>
-                  {item.mentors.map(m => (
-                    <div key={m} className="ih-mentor-row">
-                      <div className="ih-mentor-dot" />
-                      <span>{m}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Links Tab */}
-          {tab === "links" && (
-            <div className="ih-tab-content">
-              {item.links.length > 0 ? item.links.map(link => (
-                <a key={link.label} href={link.url} className="ih-link-row" target="_blank" rel="noreferrer">
-                  <span className="ih-link-icon">{link.icon}</span>
-                  <span className="ih-link-label">{link.label}</span>
-                  <ExternalLink size={12} className="ih-link-ext" />
-                </a>
-              )) : <p className="ih-empty-msg">No links added yet.</p>}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── INNOVATION CARD (GRID) ──────────────────────────────────────
-function InnovationCard({ item, onClick }) {
-  const col = CAT_COLOR[item.category] || CAT_COLOR.Hackathon;
-  const sMeta = STATUS_META[item.status] || STATUS_META.Active;
-  const [liked, setLiked] = useState(false);
-  const [bookmarked, setBookmarked] = useState(item.bookmarked);
-
-  return (
-    <div className={`ih-card ${item.myEntry ? "ih-card--mine" : ""}`} onClick={onClick}
-      style={{ "--card-accent": col.bg }}>
-      {/* Top ribbon */}
-      <div className="ih-card-top" style={{ background: col.light }}>
-        <span className="ih-card-cat" style={{ color: col.bg }}>{item.category}</span>
-        <span className="ih-card-status" style={{ color: sMeta.color }}>
-          {sMeta.icon} {item.status}
-        </span>
       </div>
 
-      <div className="ih-card-body">
-        <h4 className="ih-card-title">{item.title}</h4>
-        <p className="ih-card-event">{item.event}</p>
-        <p className="ih-card-desc">{item.desc.slice(0, 100)}…</p>
-
-        {/* Progress */}
-        <div className="ih-card-progress">
-          <div className="ih-cprog-bar">
-            <div className="ih-cprog-fill" style={{ width: item.progress + "%", background: col.bg }} />
+      {/* Feed */}
+      <div className="ih-feed-grid">
+        {filtered.length === 0 ? (
+          <div className="ih-empty">
+            <div style={{ fontSize: 28, marginBottom: 8 }}>🔍</div>
+            <div>No ideas match your search.</div>
           </div>
-          <span className="ih-cprog-pct">{item.progress}%</span>
-        </div>
-
-        {/* Tags */}
-        <div className="ih-card-tags">
-          {item.tags.slice(0, 3).map(t => <span key={t} className="ih-tag">{t}</span>)}
-          {item.tags.length > 3 && <span className="ih-tag ih-tag--more">+{item.tags.length - 3}</span>}
-        </div>
-
-        {/* Team avatars */}
-        <div className="ih-card-footer">
-          <div className="ih-card-avatars">
-            {item.team.slice(0, 3).map((m, i) => (
-              <div key={m} className="ih-mini-avatar"
-                style={{ background: Object.values(CAT_COLOR)[i % 6].bg, zIndex: 10 - i }}>
-                {m[0]}
-              </div>
-            ))}
-            {item.teamSize > 3 && <div className="ih-mini-avatar ih-mini-avatar--more">+{item.teamSize - 3}</div>}
-          </div>
-          <div className="ih-card-actions" onClick={e => e.stopPropagation()}>
-            <button className={`ih-icon-btn ${liked ? "ih-icon-btn--liked" : ""}`}
-              onClick={() => setLiked(l => !l)}>
-              <Heart size={13} /> {item.likes + (liked ? 1 : 0)}
-            </button>
-            <button className="ih-icon-btn"><MessageSquare size={13} /> {item.comments}</button>
-            <button className={`ih-icon-btn ${bookmarked ? "ih-icon-btn--saved" : ""}`}
-              onClick={() => setBookmarked(b => !b)}>
-              <Bookmark size={13} />
-            </button>
-          </div>
-        </div>
-
-        {item.prize && (
-          <div className="ih-prize-strip" style={{ background: col.light, borderColor: col.bg + "44" }}>
-            <Trophy size={12} color="#f5c842" /> <span>{item.prize}</span>
-          </div>
+        ) : (
+          filtered.map(idea => (
+            <IdeaCard key={idea.id} idea={idea} onLike={toggleLike} onBookmark={toggleBookmark} />
+          ))
         )}
       </div>
     </div>
   );
 }
 
-// ─── INNOVATION ROW (LIST) ──────────────────────────────────────
-function InnovationRow({ item, onClick }) {
-  const col = CAT_COLOR[item.category] || CAT_COLOR.Hackathon;
-  const sMeta = STATUS_META[item.status] || STATUS_META.Active;
-  const [liked, setLiked] = useState(false);
+// ─── MY PROJECTS TAB ─────────────────────────────────────────────
+function TabProjects() {
+  const [expanded, setExpanded] = useState("p1");
+  return (
+    <div className="ih-tab-content">
+      <div className="ih-projects-header">
+        <div>
+          <h2 className="greet-title" style={{ fontSize: 20 }}>My <em>Projects</em></h2>
+          <p className="greet-sub">Track progress, manage tasks, and collaborate with your team.</p>
+        </div>
+        <button className="ih-btn-primary"><Plus size={13} /> New Project</button>
+      </div>
+
+      {/* KPI strip */}
+      <div className="ih-proj-kpis">
+        {[
+          { val: "2",    lbl: "Active Projects",  color: "var(--indigo-ll)", cls: "sc-indigo" },
+          { val: "68%",  lbl: "Avg Completion",   color: "var(--teal)",      cls: "sc-teal"   },
+          { val: "3",    lbl: "Open Milestones",  color: "var(--amber)",     cls: "sc-amber"  },
+          { val: "60",   lbl: "Stars Received",   color: "var(--violet)",    cls: "sc-violet" },
+        ].map(({ val, lbl, color, cls }) => (
+          <div key={lbl} className={`san-kpi-card ${cls}`}>
+            <div className="san-kpi-val" style={{ color }}>{val}</div>
+            <div className="san-kpi-lbl">{lbl}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Project cards */}
+      {MY_PROJECTS.map((proj, pi) => (
+        <div key={proj.id} className="ih-proj-card panel" style={{ marginBottom: 14 }}>
+          <div className="ih-proj-card-header" onClick={() => setExpanded(expanded === proj.id ? null : proj.id)}>
+            <div className="ih-pcl">
+              <div className="ih-proj-icon" style={{ background: `rgba(${proj.colorRgb},.12)`, borderColor: `rgba(${proj.colorRgb},.22)`, color: proj.color }}>
+                <Rocket size={16} />
+              </div>
+              <div>
+                <div className="ih-proj-title">{proj.title}</div>
+                <div className="ih-proj-meta">
+                  <span style={{ color: proj.stageColor }}>{proj.stage}</span>
+                  <span className="mc-row-dot" />
+                  <span>{proj.domain}</span>
+                  <span className="mc-row-dot" />
+                  <span>Due milestone in <em style={{ color: proj.color }}>{proj.dueIn}</em></span>
+                </div>
+              </div>
+            </div>
+            <div className="ih-pcr">
+              <div className="ih-proj-team">
+                {proj.team.map((m, i) => (
+                  <div key={i} className="ih-team-avatar" style={{ background: `rgba(${proj.colorRgb},.15)`, borderColor: `rgba(${proj.colorRgb},.3)`, color: proj.color, zIndex: proj.team.length - i }}>
+                    {m}
+                  </div>
+                ))}
+              </div>
+              <div style={{ position: "relative", width: 52, height: 52, flexShrink: 0 }}>
+                <RadialProgress pct={proj.progress} color={proj.color} size={52} stroke={5} />
+                <div style={{ position: "absolute", inset: 0, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 9.5, fontWeight: 700, color: proj.color }}>{proj.progress}%</div>
+              </div>
+              <div style={{ color: "var(--text3)", transition: "transform .2s", transform: expanded === proj.id ? "rotate(180deg)" : "none" }}>
+                <ChevronRight size={14} style={{ transform: "rotate(90deg)" }} />
+              </div>
+            </div>
+          </div>
+
+          {expanded === proj.id && (
+            <div className="ih-proj-expanded">
+              <div className="ih-proj-expand-grid">
+                {/* Tasks */}
+                <div className="panel ih-inner-panel">
+                  <div className="panel-hd" style={{ padding: "12px 16px" }}>
+                    <div className="panel-ttl"><CheckCircle size={13} style={{ color: "var(--indigo-ll)" }} /> Tasks</div>
+                    <span style={{ fontSize: 10, color: "var(--text3)" }}>{proj.tasks.filter(t => t.done).length}/{proj.tasks.length} done</span>
+                  </div>
+                  <div style={{ padding: "8px 16px 14px" }}>
+                    {proj.tasks.map((task, i) => (
+                      <div key={i} className="ih-task-item">
+                        {task.done
+                          ? <CheckCircle size={14} style={{ color: "var(--teal)", flexShrink: 0 }} />
+                          : <Circle size={14} style={{ color: "var(--text3)", flexShrink: 0 }} />
+                        }
+                        <span style={{ fontSize: 12, color: task.done ? "var(--text3)" : "var(--text2)", textDecoration: task.done ? "line-through" : "none" }}>
+                          {task.label}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Description + Activity */}
+                <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+                  <div className="panel ih-inner-panel">
+                    <div className="panel-hd" style={{ padding: "12px 16px" }}>
+                      <div className="panel-ttl"><Lightbulb size={13} style={{ color: "var(--indigo-ll)" }} /> About</div>
+                    </div>
+                    <div style={{ padding: "0 16px 14px", fontSize: 12, color: "var(--text2)", lineHeight: 1.65 }}>{proj.desc}</div>
+                  </div>
+                  <div className="panel ih-inner-panel">
+                    <div className="panel-hd" style={{ padding: "12px 16px" }}>
+                      <div className="panel-ttl"><Clock size={13} style={{ color: "var(--indigo-ll)" }} /> Recent Activity</div>
+                    </div>
+                    <div style={{ padding: "0 16px 14px" }}>
+                      {proj.updates.map((u, i) => (
+                        <div key={i} className="ih-update-item">
+                          <div className="ih-upd-dot" style={{ background: proj.color }} />
+                          <div>
+                            <div style={{ fontSize: 12, color: "var(--text2)" }}>{u.text}</div>
+                            <div style={{ fontSize: 10, color: "var(--text3)", marginTop: 2 }}>{u.when}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="ih-proj-footer">
+                <div style={{ fontSize: 11, color: "var(--text3)", display: "flex", alignItems: "center", gap: 5 }}>
+                  <Star size={11} style={{ color: "var(--amber)" }} /> {proj.stars} stars from the community
+                </div>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <button className="ih-btn-ghost" style={{ padding: "7px 14px", fontSize: 11.5 }}><ExternalLink size={11} /> View Full</button>
+                  <button className="ih-btn-primary" style={{ padding: "7px 14px", fontSize: 11.5 }}><Users size={11} /> Manage Team</button>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ─── HACKATHONS TAB ───────────────────────────────────────────────
+function TabHackathons() {
+  const [hacks, setHacks] = useState(HACKATHONS);
+  const [filterDomain, setFilterDomain] = useState("All");
+  const register = id => setHacks(prev => prev.map(h =>
+    h.id === id ? { ...h, registered: true, status: "Registered", statusColor: "var(--teal)" } : h
+  ));
+  const domains = ["All", ...Array.from(new Set(HACKATHONS.map(h => h.domain)))];
+  const filtered = hacks.filter(h => filterDomain === "All" || h.domain === filterDomain);
 
   return (
-    <div className="ih-row" onClick={onClick} style={{ "--card-accent": col.bg }}>
-      <div className="ih-row-stripe" style={{ background: col.bg }} />
-      <div className="ih-row-body">
-        <div className="ih-row-left">
-          <div className="ih-row-title-line">
-            <h4 className="ih-row-title">{item.title}</h4>
-            {item.myEntry && <span className="ih-mine-badge">Mine</span>}
-            {item.prize && <span className="ih-prize-badge"><Trophy size={10} /> {item.prize}</span>}
-          </div>
-          <p className="ih-row-event">{item.event}</p>
-          <div className="ih-row-tags">
-            {item.tags.slice(0, 4).map(t => <span key={t} className="ih-tag">{t}</span>)}
-          </div>
+    <div className="ih-tab-content">
+
+      {/* ── Section bar ── */}
+      <div className="ih-section-bar">
+        <div>
+          <h2 className="ih-section-title">Hackathons &amp; <em>Competitions</em></h2>
+          <p className="ih-section-sub">Find your next challenge. Build. Win. Repeat.</p>
         </div>
-        <div className="ih-row-right">
-          <span className="ih-card-status" style={{ color: sMeta.color }}>{sMeta.icon} {item.status}</span>
-          <div className="ih-row-prog">
-            <div className="ih-cprog-bar">
-              <div className="ih-cprog-fill" style={{ width: item.progress + "%", background: col.bg }} />
+        <div className="ih-cat-pills">
+          {domains.map(d => (
+            <button key={d} className={`ih-cat-pill ${filterDomain === d ? "active" : ""}`}
+              onClick={() => setFilterDomain(d)}>{d}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── KPI strip ── */}
+      <div className="ih-hack-kpi-strip">
+        {[
+          { val: "1",     lbl: "Registered",    color: "var(--teal)",      icon: <CheckCircle size={14}/> },
+          { val: "3",     lbl: "Open to Join",  color: "var(--indigo-ll)", icon: <Trophy size={14}/> },
+          { val: "\u20b92.5L", lbl: "Total Prizes",  color: "var(--amber)",     icon: <Award size={14}/> },
+          { val: "24",    lbl: "Days Min Left", color: "var(--rose)",      icon: <Clock size={14}/> },
+        ].map(({ val, lbl, color, icon }) => (
+          <div key={lbl} className="ih-hack-kpi">
+            <div className="ih-hack-kpi-icon" style={{ color, background: `${color}14`, borderColor: `${color}28` }}>{icon}</div>
+            <div>
+              <div className="ih-hs-val" style={{ color, fontSize: 20 }}>{val}</div>
+              <div className="ih-hs-lbl">{lbl}</div>
             </div>
-            <span className="ih-cprog-pct">{item.progress}%</span>
           </div>
-          <div className="ih-row-stats" onClick={e => e.stopPropagation()}>
-            <button className={`ih-icon-btn ${liked ? "ih-icon-btn--liked" : ""}`}
-              onClick={() => setLiked(l => !l)}>
-              <Heart size={12} /> {item.likes + (liked ? 1 : 0)}
-            </button>
-            <span className="ih-icon-btn"><Eye size={12} /> {item.views}</span>
-            <span className="ih-icon-btn"><MessageSquare size={12} /> {item.comments}</span>
+        ))}
+      </div>
+
+      {/* ── Cards grid ── */}
+      <div className="ih-hack-grid">
+        {filtered.map(h => (
+          <div key={h.id} className="ih-hack-card" style={{ "--hack-rgb": h.colorRgb }}>
+            <div className="ih-hack-glow" />
+
+            <div className="ih-hack-top">
+              <div className="ih-hack-domain"
+                style={{ color: h.color, borderColor: `rgba(${h.colorRgb},.25)`, background: `rgba(${h.colorRgb},.09)` }}>
+                {h.domain}
+              </div>
+              <div className="ih-hack-status"
+                style={{ color: h.statusColor, borderColor: `${h.statusColor}33`, background: `${h.statusColor}11` }}>
+                {h.registered && <CheckCircle size={9} />} {h.status}
+              </div>
+            </div>
+
+            <div>
+              <h3 className="ih-hack-title">{h.name}</h3>
+              <div className="ih-hack-org">{h.org}</div>
+            </div>
+
+            <p className="ih-hack-desc">{h.desc}</p>
+
+            <div className="ih-hack-details">
+              <div className="ih-hd-item">
+                <Trophy size={11} style={{ color: "var(--amber)", flexShrink: 0 }} />
+                <span style={{ color: "var(--amber)", fontWeight: 600 }}>{h.prize}</span>
+              </div>
+              <div className="ih-hd-item"><Clock size={11} style={{ color: "var(--text3)", flexShrink: 0 }} /> {h.deadline}</div>
+              <div className="ih-hd-item"><Users size={11} style={{ color: "var(--text3)", flexShrink: 0 }} /> Team {h.teamSize}</div>
+              <div className="ih-hd-item"><Globe size={11} style={{ color: "var(--text3)", flexShrink: 0 }} /> {h.mode}</div>
+            </div>
+
+            <div className="ih-hack-urgency">
+              <div className="ih-urgency-bar-wrap">
+                <AnimBar pct={Math.max(8, 100 - h.daysLeft)} color={h.daysLeft < 30 ? "var(--rose)" : h.color} height={3} delay={400} />
+              </div>
+              <span className="ih-urgency-lbl" style={{ color: h.daysLeft < 30 ? "var(--rose)" : "var(--text3)" }}>
+                {h.daysLeft}d left
+              </span>
+            </div>
+
+            <div className="ih-hack-footer">
+              {h.registered ? (
+                <button className="ih-registered-btn"><CheckCircle size={12} /> Registered</button>
+              ) : (
+                <button className="ih-register-btn" style={{ background: h.color }} onClick={() => register(h.id)}>
+                  Register Now <ArrowUpRight size={11} />
+                </button>
+              )}
+              <button className="ih-btn-ghost" style={{ padding: "7px 12px", fontSize: 11 }}><ExternalLink size={11} /> Details</button>
+            </div>
           </div>
-        </div>
+        ))}
       </div>
     </div>
   );
 }
 
-// ─── MAIN COMPONENT ─────────────────────────────────────────────
-export default function StudentInnovationHub({ onBack }) {
-  const [activeCat, setActiveCat] = useState("All");
-  const [activeTab, setActiveTab] = useState("All");
+// ─── COLLABORATE TAB ──────────────────────────────────────────────
+function TabCollaborate() {
   const [search, setSearch] = useState("");
-  const [sort, setSort] = useState("Recent");
-  const [viewMode, setViewMode] = useState("grid");
-  const [showSubmit, setShowSubmit] = useState(false);
-  const [selected, setSelected] = useState(null);
-  const [showSortMenu, setShowSortMenu] = useState(false);
-  const sortRef = useRef(null);
+  const [filter, setFilter] = useState("All");
 
-  const TABS = ["All", "Active", "Completed", "Won", "Mine"];
-  const SORTS = ["Recent", "Most Liked", "Most Viewed", "Progress"];
+  const filtered = COLLABORATORS.filter(c =>
+    (filter === "All" || (filter === "Available" ? c.available : !c.available)) &&
+    c.name.toLowerCase().includes(search.toLowerCase())
+  );
 
-  // Close sort dropdown on outside click
-  useEffect(() => {
-    const handler = (e) => {
-      if (sortRef.current && !sortRef.current.contains(e.target)) setShowSortMenu(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+  return (
+    <div className="ih-tab-content">
+      <div className="ih-projects-header">
+        <div>
+          <h2 className="greet-title" style={{ fontSize: 20 }}>Find <em>Collaborators</em></h2>
+          <p className="greet-sub">Connect with peers whose skills complement yours. Build together.</p>
+        </div>
+        <div style={{ display: "flex", gap: 8 }}>
+          <button className="ih-btn-primary"><Send size={12} /> Post a Need</button>
+        </div>
+      </div>
 
-  const filtered = INNOVATIONS.filter(item => {
-    const catMatch = activeCat === "All" || item.category === activeCat;
-    const tabMatch = activeTab === "All"
-      ? true
-      : activeTab === "Mine"
-      ? item.myEntry
-      : activeTab === "Won"
-      ? item.status === "Won"
-      : activeTab === "Completed"
-      ? item.status === "Completed" || item.status === "Won"
-      : item.status === "Active" || item.status === "Ideation" || item.status === "Review";
-    const searchMatch = !search
-      || item.title.toLowerCase().includes(search.toLowerCase())
-      || item.tags.some(t => t.toLowerCase().includes(search.toLowerCase()))
-      || item.event.toLowerCase().includes(search.toLowerCase());
-    return catMatch && tabMatch && searchMatch;
-  }).sort((a, b) => {
-    if (sort === "Most Liked")  return b.likes - a.likes;
-    if (sort === "Most Viewed") return b.views - a.views;
-    if (sort === "Progress")    return b.progress - a.progress;
-    return b.id - a.id;
-  });
+      {/* My profile card */}
+      <div className="ih-my-profile panel" style={{ marginBottom: 16 }}>
+        <div className="panel-hd">
+          <div className="panel-ttl"><Award size={13} style={{ color: "var(--indigo-ll)" }} /> Your Collaboration Profile</div>
+          <button className="panel-act">Edit <ChevronRight size={11} /></button>
+        </div>
+        <div style={{ padding: "14px 20px", display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
+          <div className="ih-avatar" style={{ width: 48, height: 48, fontSize: 16 }}>AR</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14, fontWeight: 600 }}>Arjun Reddy</div>
+            <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 2 }}>CSE · Sem 5 · Roll 21CS047</div>
+            <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
+              {["Python", "React", "DSA", "FastAPI"].map(s => (
+                <span key={s} className="ih-tag" style={{ background: "rgba(91,78,248,.1)", color: "var(--indigo-ll)", borderColor: "rgba(91,78,248,.2)" }}>{s}</span>
+              ))}
+            </div>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8, alignItems: "flex-end" }}>
+            <div style={{ fontSize: 10, color: "var(--text3)" }}>Actively looking for teammates</div>
+            <div style={{ display: "flex", gap: 4 }}>
+              {["Open to Ideas", "Available"].map(t => (
+                <span key={t} className="ih-stage" style={{ color: "var(--teal)", borderColor: "rgba(39,201,176,.25)", background: "rgba(39,201,176,.08)" }}>
+                  <Circle size={5} style={{ fill: "var(--teal)", stroke: "var(--teal)" }} /> {t}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
 
-  // KPI stats
-  const totalProjects = INNOVATIONS.filter(i => i.myEntry).length;
-  const active  = INNOVATIONS.filter(i => i.myEntry && (i.status === "Active" || i.status === "Ideation" || i.status === "Review")).length;
-  const won     = INNOVATIONS.filter(i => i.myEntry && i.status === "Won").length;
-  const totalLikes = INNOVATIONS.filter(i => i.myEntry).reduce((s, i) => s + i.likes, 0);
+      {/* Search + filter */}
+      <div className="ih-filters" style={{ marginBottom: 16 }}>
+        <div className="ih-search-wrap">
+          <Search size={12} style={{ color: "var(--text3)" }} />
+          <input className="ih-search" placeholder="Search by name or skill…"
+            value={search} onChange={e => setSearch(e.target.value)} />
+          {search && <button className="ih-search-clear" onClick={() => setSearch("")}><X size={10} /></button>}
+        </div>
+        <div className="ih-cat-pills">
+          {["All", "Available", "Busy"].map(f => (
+            <button key={f} className={`ih-cat-pill ${filter === f ? "active" : ""}`} onClick={() => setFilter(f)}>{f}</button>
+          ))}
+        </div>
+      </div>
+
+      {/* Collaborator cards */}
+      <div className="ih-collab-grid">
+        {filtered.map((c, i) => (
+          <div key={i} className="ih-collab-card">
+            <div className="ih-collab-top">
+              <div className="ih-avatar" style={{ background: `${c.color}22`, borderColor: `${c.color}44`, color: c.color }}>
+                {c.avatar}
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 13, fontWeight: 600 }}>{c.name}</div>
+                <div style={{ fontSize: 10, color: "var(--text3)", marginTop: 2 }}>{c.roll}</div>
+              </div>
+              <div className="ih-match-badge" style={{ color: c.color, borderColor: `${c.color}33`, background: `${c.color}11` }}>
+                {c.match}% match
+              </div>
+            </div>
+
+            <div className="ih-collab-skills">
+              {c.skills.map(s => (
+                <span key={s} className="ih-tag">{s}</span>
+              ))}
+            </div>
+
+            <div className="ih-collab-footer">
+              <span className={`ih-avail ${c.available ? "avail" : "busy"}`}>
+                <Circle size={5} style={{ fill: c.available ? "var(--teal)" : "var(--rose)", stroke: c.available ? "var(--teal)" : "var(--rose)" }} />
+                {c.available ? "Available" : "Busy"}
+              </span>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button className="ih-btn-ghost" style={{ padding: "6px 10px", fontSize: 11 }}><MessageCircle size={10} /> Message</button>
+                <button className="ih-btn-primary" style={{ padding: "6px 10px", fontSize: 11 }}><Plus size={10} /> Invite</button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── MAIN EXPORT ─────────────────────────────────────────────────
+export default function StudentInnovationHub({ onBack }) {
+  const [tab, setTab] = useState("feed");
 
   return (
     <div className="ih-root">
-      {/* Back */}
-      <button className="san-back-btn" onClick={onBack}>
-        <ChevronLeft size={14} /> Back to Dashboard
-      </button>
-
-      {/* Page header */}
+      {/* ── Page Header ── */}
       <div className="ih-page-header">
-        <div className="ih-header-left">
-          <div className="ih-header-icon"><Rocket size={20} color="var(--c-purple)" /></div>
-          <div>
-            <h1 className="ih-page-title">Innovation Hub</h1>
-            <p className="ih-page-sub">Your projects, hackathons, patents & research — all in one place</p>
+        <div className="ih-page-header-inner">
+          {/* Breadcrumb row */}
+          <div className="ih-breadcrumb-row">
+            <button className="ih-back-btn" onClick={onBack}>
+              <ChevronLeft size={13} /> Dashboard
+            </button>
+            <div className="ih-breadcrumb">
+              <span>Dashboard</span>
+              <ChevronRight size={10} style={{ color: "var(--text3)", flexShrink: 0 }} />
+              <span className="ih-bc-active">Innovation Hub</span>
+            </div>
+          </div>
+
+          {/* Title row */}
+          <div className="ih-page-title-row">
+            <div className="ih-page-title-left">
+              <div className="greet-tag" style={{ marginBottom: 6 }}>
+                <div className="greet-pip" />
+                <span className="greet-pip-txt">Campus Innovation · Semester 5</span>
+              </div>
+              <h1 className="greet-title">
+                Innovation <em>Hub</em>
+              </h1>
+              <p className="greet-sub">
+                Ideate, build, collaborate, and compete. Your launchpad for campus innovation.
+              </p>
+            </div>
+            <div className="ih-page-title-right">
+              <div className="ih-header-stat">
+                <div className="ih-hs-val" style={{ color: "var(--teal)" }}>124</div>
+                <div className="ih-hs-lbl">Ideas</div>
+              </div>
+              <div className="ih-header-stat-sep" />
+              <div className="ih-header-stat">
+                <div className="ih-hs-val" style={{ color: "var(--indigo-ll)" }}>38</div>
+                <div className="ih-hs-lbl">Projects</div>
+              </div>
+              <div className="ih-header-stat-sep" />
+              <div className="ih-header-stat">
+                <div className="ih-hs-val" style={{ color: "var(--amber)" }}>6</div>
+                <div className="ih-hs-lbl">Hackathons</div>
+              </div>
+              <div className="ih-header-stat-sep" />
+              <div className="ih-header-stat">
+                <div className="ih-hs-val" style={{ color: "var(--violet)" }}>312</div>
+                <div className="ih-hs-lbl">Members</div>
+              </div>
+            </div>
           </div>
         </div>
-        <button className="ih-submit-btn" onClick={() => setShowSubmit(true)}>
-          <Plus size={15} /> Submit Innovation
-        </button>
       </div>
 
-      {/* KPI strip */}
-      <div className="san-kpi-grid ih-kpi-grid">
-        <div className="san-kpi-card">
-          <div className="san-kpi-top"><span className="san-kpi-label">My Projects</span><Rocket size={14} className="san-kpi-icon" /></div>
-          <div className="san-kpi-val">{totalProjects}</div>
-          <div className="san-kpi-sub">submitted innovations</div>
-        </div>
-        <div className="san-kpi-card">
-          <div className="san-kpi-top"><span className="san-kpi-label">Active</span><Flame size={14} className="san-kpi-icon" style={{ color: "var(--c-teal)" }} /></div>
-          <div className="san-kpi-val" style={{ color: "var(--c-teal)" }}>{active}</div>
-          <div className="san-kpi-sub">in progress right now</div>
-        </div>
-        <div className="san-kpi-card">
-          <div className="san-kpi-top"><span className="san-kpi-label">Won / Recognised</span><Trophy size={14} className="san-kpi-icon" style={{ color: "#f5c842" }} /></div>
-          <div className="san-kpi-val" style={{ color: "#f5c842" }}>{won}</div>
-          <div className="san-kpi-sub">awards & recognitions</div>
-        </div>
-        <div className="san-kpi-card">
-          <div className="san-kpi-top"><span className="san-kpi-label">Total Likes</span><Heart size={14} className="san-kpi-icon" style={{ color: "#e05c8a" }} /></div>
-          <div className="san-kpi-val" style={{ color: "#e05c8a" }}>{totalLikes}</div>
-          <div className="san-kpi-sub">across all projects</div>
-        </div>
+      {/* ── Tab bar ── */}
+      <div className="ih-tabs-bar">
+        {TABS.map(({ id, label, Icon }) => (
+          <button
+            key={id}
+            className={`ih-tab-btn ${tab === id ? "active" : ""}`}
+            onClick={() => setTab(id)}
+          >
+            <Icon size={13} />
+            {label}
+          </button>
+        ))}
       </div>
 
-      {/* Main layout */}
-      <div className="ih-layout">
-        {/* Sidebar */}
-        <aside className="ih-sidebar">
-          <div className="ih-sidebar-section">
-            <div className="ih-sidebar-heading">Categories</div>
-            {CATEGORIES.map(cat => (
-              <button key={cat.key}
-                className={`ih-cat-item ${activeCat === cat.key ? "ih-cat-item--active" : ""}`}
-                onClick={() => setActiveCat(cat.key)}>
-                <span className="ih-cat-icon">{cat.icon}</span>
-                <span className="ih-cat-label">{cat.label}</span>
-                <span className="ih-cat-count">{cat.count}</span>
-              </button>
-            ))}
-          </div>
-
-          {/* Upcoming Events */}
-          <div className="ih-sidebar-section">
-            <div className="ih-sidebar-heading">Upcoming Events</div>
-            {UPCOMING_EVENTS.map(ev => {
-              const col = CAT_COLOR[ev.category] || CAT_COLOR.Hackathon;
-              return (
-                <div key={ev.name} className="ih-event-item">
-                  <div className="ih-event-dot" style={{ background: col.bg }} />
-                  <div className="ih-event-info">
-                    <div className="ih-event-name">{ev.name}</div>
-                    <div className="ih-event-meta">
-                      <Calendar size={10} /> {ev.date}
-                      {ev.registered && <span className="ih-reg-badge">Registered</span>}
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Leaderboard */}
-          <div className="ih-sidebar-section">
-            <div className="ih-sidebar-heading"><Trophy size={12} /> Innovators Board</div>
-            {LEADERBOARD.map(user => (
-              <div key={user.rank} className={`ih-lb-row ${user.name === "Arjun Reddy" ? "ih-lb-row--me" : ""}`}>
-                <span className="ih-lb-rank">{user.badge || `#${user.rank}`}</span>
-                <div className="ih-lb-info">
-                  <div className="ih-lb-name">{user.name}</div>
-                  <div className="ih-lb-pts">{user.points} pts · {user.wins} wins</div>
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Lucyna AI tip */}
-          <div className="ih-lucyna-card">
-            <div className="ih-lucyna-header"><Sparkles size={14} color="var(--c-purple)" /> Lucyna AI</div>
-            <p className="ih-lucyna-tip">You're ranked <strong>#2</strong> in your department! Completing <strong>CampusNav</strong> could push you to the top spot. 🚀</p>
-          </div>
-        </aside>
-
-        {/* Main content */}
-        <main className="ih-main">
-          {/* Toolbar */}
-          <div className="mc-toolbar ih-toolbar">
-            <div className="mc-filter-tabs">
-              {TABS.map(t => (
-                <button key={t}
-                  className={`mc-filter-tab ${activeTab === t ? "mc-filter-tab--active" : ""}`}
-                  onClick={() => setActiveTab(t)}>
-                  {t}
-                  {t === "Active" && <span className="mc-tab-badge" style={{ background: "var(--c-teal)" }}>{active}</span>}
-                  {t === "Mine" && <span className="mc-tab-badge" style={{ background: "var(--c-purple)" }}>{totalProjects}</span>}
-                </button>
-              ))}
-            </div>
-            <div className="mc-toolbar-right">
-              <div className="mc-search-wrap">
-                <Search size={13} />
-                <input className="mc-search" placeholder="Search innovations…"
-                  value={search} onChange={e => setSearch(e.target.value)} />
-              </div>
-              <div className="ih-sort-wrap" ref={sortRef}>
-                <button className="ih-sort-btn" onClick={() => setShowSortMenu(s => !s)}>
-                  <Filter size={13} /> {sort} <ChevronDown size={11} />
-                </button>
-                {showSortMenu && (
-                  <div className="ih-sort-menu">
-                    {SORTS.map(s => (
-                      <button key={s} className={`ih-sort-item ${sort === s ? "ih-sort-item--active" : ""}`}
-                        onClick={() => { setSort(s); setShowSortMenu(false); }}>
-                        {s}
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className="mc-view-toggle">
-                <button className={`mc-view-btn ${viewMode === "grid" ? "mc-view-btn--active" : ""}`}
-                  onClick={() => setViewMode("grid")}><Grid size={14} /></button>
-                <button className={`mc-view-btn ${viewMode === "list" ? "mc-view-btn--active" : ""}`}
-                  onClick={() => setViewMode("list")}><List size={14} /></button>
-              </div>
-            </div>
-          </div>
-
-          {/* Results count */}
-          <div className="ih-results-count">
-            {filtered.length} innovation{filtered.length !== 1 ? "s" : ""} found
-          </div>
-
-          {/* Grid or List */}
-          {viewMode === "grid" ? (
-            <div className="ih-grid">
-              {filtered.map(item => (
-                <InnovationCard key={item.id} item={item} onClick={() => setSelected(item)} />
-              ))}
-            </div>
-          ) : (
-            <div className="ih-list">
-              {filtered.map(item => (
-                <InnovationRow key={item.id} item={item} onClick={() => setSelected(item)} />
-              ))}
-            </div>
-          )}
-
-          {filtered.length === 0 && (
-            <div className="ih-empty">
-              <Lightbulb size={40} color="var(--text-dim)" />
-              <p>No innovations match your filters.</p>
-              <button className="ih-btn-primary" onClick={() => setShowSubmit(true)}>
-                <Plus size={14} /> Submit Your First Innovation
-              </button>
-            </div>
-          )}
-        </main>
-      </div>
-
-      {/* Modals */}
-      {showSubmit && <SubmitModal onClose={() => setShowSubmit(false)} />}
-      {selected && <DetailDrawer item={selected} onClose={() => setSelected(null)} />}
+      {tab === "feed"        && <TabFeed />}
+      {tab === "projects"    && <TabProjects />}
+      {tab === "hackathons"  && <TabHackathons />}
+      {tab === "collaborate" && <TabCollaborate />}
     </div>
   );
 }
