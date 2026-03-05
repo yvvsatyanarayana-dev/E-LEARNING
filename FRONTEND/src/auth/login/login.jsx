@@ -34,10 +34,10 @@ export default function LoginModal({ open, onClose, onGoSignup, onGoForgot }) {
   const [loading,  setLoading]  = useState(false);
 
   const roles = [
-    { key: "student",           name: "Student",   desc: "Track your progress" },
-    { key: "faculty",           name: "Faculty",   desc: "Manage courses" },
-    { key: "placement_officer", name: "Placement", desc: "Readiness reports" },
-    { key: "admin",             name: "Admin",     desc: "Full control" },
+    // { key: "student",           name: "Student",   desc: "Track your progress" },
+    // { key: "faculty",           name: "Faculty",   desc: "Manage courses" },
+    // { key: "placement_officer", name: "Placement", desc: "Readiness reports" },
+    // { key: "admin",             name: "Admin",     desc: "Full control" },
   ];
 
   const handleLogin = async () => {

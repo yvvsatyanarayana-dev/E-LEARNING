@@ -1,3 +1,4 @@
 react-router-dom
 init -y
 express pg bcryptjs jsonwebtoken dotenv cors
+lucide-react

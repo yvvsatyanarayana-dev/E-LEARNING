@@ -6,10 +6,10 @@ import RoleRoute from "./RoleRoute";
 
 const router = createBrowserRouter([
   // ── Public routes ──────────────────────────────────────────
-  { path: "/",               element: <SmartCampus /> },
-  { path: "/login",          element: <SmartCampus defaultModal="login" /> },
-  { path: "/register",       element: <SmartCampus defaultModal="signup" /> },
-  { path: "/forgot-password",element: <SmartCampus defaultModal="forgot" /> },
+  { path: "/",                element: <SmartCampus /> },
+  { path: "/login",           element: <SmartCampus defaultModal="login" /> },
+  { path: "/register",        element: <SmartCampus defaultModal="signup" /> },
+  { path: "/forgot-password", element: <SmartCampus defaultModal="forgot" /> },
 
   // ── Student routes ─────────────────────────────────────────
   {
@@ -22,6 +22,54 @@ const router = createBrowserRouter([
   },
   {
     path: "/studentdashboard/studentAnalytics",
+    element: (
+      <RoleRoute allowedRoles={["student", "admin"]}>
+        <StudentDashboard />
+      </RoleRoute>
+    ),
+  },
+  {
+    path: "/studentdashboard/studentMycourses",
+    element: (
+      <RoleRoute allowedRoles={["student", "admin"]}>
+        <StudentDashboard />
+      </RoleRoute>
+    ),
+  },
+  {
+    path: "/studentdashboard/studentVideoLectures",
+    element: (
+      <RoleRoute allowedRoles={["student", "admin"]}>
+        <StudentDashboard />
+      </RoleRoute>
+    ),
+  },
+  {
+    path: "/studentdashboard/studentAssignments",
+    element: (
+      <RoleRoute allowedRoles={["student", "admin"]}>
+        <StudentDashboard />
+      </RoleRoute>
+    ),
+  },
+  {
+    path: "/studentdashboard/studentQuizzes",
+    element: (
+      <RoleRoute allowedRoles={["student", "admin"]}>
+        <StudentDashboard />
+      </RoleRoute>
+    ),
+  },
+  {
+    path: "/studentdashboard/studentInnovationHub",
+    element: (
+      <RoleRoute allowedRoles={["student", "admin"]}>
+        <StudentDashboard />
+      </RoleRoute>
+    ),
+  },
+  {
+    path: "/studentdashboard/innovationHub",
     element: (
       <RoleRoute allowedRoles={["student", "admin"]}>
         <StudentDashboard />
@@ -47,7 +95,7 @@ const router = createBrowserRouter([
     ),
   },
 
-  // ── Placement & Admin (add pages when ready) ───────────────
+  // ── Placement & Admin ──────────────────────────────────────
   {
     path: "/placementdashboard",
     element: (

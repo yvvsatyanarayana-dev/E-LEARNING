@@ -42,6 +42,17 @@ const ROUTES = {
   ANALYTICS: "Analytics",
 };
 
+// URL param → ROUTES key (lowercase URL segment → route label)
+const PAGE_PARAM_MAP = {
+  "facultyanalytics": ROUTES.ANALYTICS,
+};
+
+// ROUTES label → URL path segment
+const ROUTE_TO_URL = {
+  [ROUTES.DASHBOARD]: "/facultydashboard",
+  [ROUTES.ANALYTICS]: "/facultydashboard/facultyAnalytics",
+};
+
 // ─── DATA ────────────────────────────────────────────────────────
 const MY_COURSES = [
   {
@@ -421,23 +432,33 @@ export default function FacultyDashboard() {
   const navigateRouter = useNavigate();
   const { page } = useParams();
 
-  const [activePage, setActivePage] = useState(() =>
-    page && page.toLowerCase() === "analytics" ? ROUTES.ANALYTICS : ROUTES.DASHBOARD
-  );
+  const [activePage, setActivePage] = useState(() => {
+    if (!page) return ROUTES.DASHBOARD;
+    const mapped = PAGE_PARAM_MAP[page.toLowerCase()];
+    return mapped || ROUTES.DASHBOARD;
+  });
   const [aiOpen, setAiOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [checkedTasks, setCheckedTasks] = useState([]);
 
   useCursor();
 
-  const navigate = (p) => {
-    setActivePage(p);
-    if (p === ROUTES.ANALYTICS) {
-      navigateRouter("/facultydashboard/facultyAnalytics");
+  // Keep activePage in sync if URL changes externally
+  useEffect(() => {
+    if (!page) {
+      setActivePage(ROUTES.DASHBOARD);
     } else {
-      navigateRouter("/facultydashboard");
+      const mapped = PAGE_PARAM_MAP[page.toLowerCase()];
+      if (mapped && mapped !== activePage) setActivePage(mapped);
     }
-  };
+  }, [page]);
+
+  // Central navigate function
+  const navigate = useCallback((targetPage) => {
+    setActivePage(targetPage);
+    const url = ROUTE_TO_URL[targetPage] || "/facultydashboard";
+    navigateRouter(url);
+  }, [navigateRouter]);
 
   useEffect(() => {
     const handleEsc = (e) => {
