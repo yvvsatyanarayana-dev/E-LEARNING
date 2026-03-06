@@ -1,4 +1,8 @@
-// studentDashboard.jsx — updated with Assignments routing
+import StudentInternships from "../studentInterships/studentInterships";
+import StudentMockInterview from "../studentMockInterview/studentMockInterview";
+import StudentPlacementPrep from "../studdentPlacementPrep/studentPlacementPrep";
+import StudentInnovationHub from "../studentInnovationHub/studentinnovationhub";
+// studentDashboard.jsx — updated with Schedule routing
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import "./StudentDashboard.css";
@@ -14,6 +18,8 @@ import StudentQuizzes from "../studentQuizzes/studentQuizzes";
 import "../studentQuizzes/studentQuizzes.css";
 import StudentStudyGroups from "../studentStudyGroup/studentStudyGroup";
 import "../studentStudyGroup/studentStudyGroup.css";
+import StudentSchedule from "../studentSchedules/studentSchedules";
+import "../studentSchedules/studentSchedules.css";
 import lucynaJpg from "../../../assets/Cyberpunk 2077.jpg";
 import api from "../../../utils/api";
 
@@ -47,23 +53,33 @@ const IcoLogout = (p) => <svg {...p} width="16" height="16" viewBox="0 0 24 24" 
 
 // ─── ROUTE KEYS ──────────────────────────────────────────────────
 const ROUTES = {
-  DASHBOARD: "Dashboard",
-  ANALYTICS: "Analytics",
-  MY_COURSES: "My Courses",
-  VIDEO_LECTURES: "Video Lectures",
-  ASSIGNMENTS: "Assignments",
-  QUIZZES: "Quizzes",
-  STUDY_GROUPS: "Study Groups",
+  DASHBOARD:       "Dashboard",
+  ANALYTICS:       "Analytics",
+  MY_COURSES:      "My Courses",
+  VIDEO_LECTURES:  "Video Lectures",
+  ASSIGNMENTS:     "Assignments",
+  QUIZZES:         "Quizzes",
+  STUDY_GROUPS:    "Study Groups",
+  SCHEDULE:        "Schedule",
+  INNOVATION_HUB:  "Innovation Hub",
+  PLACEMENT_PREP:  "Placement Prep",
+  INTERNSHIPS:     "Internships",
+  MOCK_INTERVIEW:  "Mock Interviews",
 };
 
 // URL slug → ROUTE lookup
 const PAGE_PARAM_MAP = {
-  "studentanalytics": "Analytics",
-  "studentmycourses": "My Courses",
-  "studentvideolectures": "Video Lectures",
-  "studentassignments": "Assignments",
-  "studentquizzes": "Quizzes",
-  "studentstudygroups": "Study Groups",
+  "studentanalytics":      "Analytics",
+  "studentmycourses":      "My Courses",
+  "studentvideolectures":  "Video Lectures",
+  "studentassignments":    "Assignments",
+  "studentquizzes":        "Quizzes",
+  "studentstudygroups":    "Study Groups",
+  "studentschedule":       "Schedule",
+  "studentinnovationhub":  "Innovation Hub",
+  "studentplacementprep":  "Placement Prep",
+  "studentinternships":    "Internships",
+  "studentmockinterview":  "Mock Interviews",
 };
 
 // ─── ROUTABLE NAV LABELS ─────────────────────────────────────────
@@ -153,16 +169,16 @@ const NAV_ITEMS = [
   },
   {
     section: "Campus", links: [
-      { label: "Innovation Hub", icon: <IcoSun /> },
+      { label: ROUTES.INNOVATION_HUB, icon: <IcoSun /> },
       { label: ROUTES.STUDY_GROUPS, icon: <IcoUsers /> },
-      { label: "Schedule", icon: <IcoCal /> },
+      { label: ROUTES.SCHEDULE, icon: <IcoCal /> },
     ]
   },
   {
     section: "Career", links: [
-      { label: "Placement Prep", icon: <IcoAward /> },
-      { label: "Internships", icon: <IcoBrief /> },
-      { label: "Mock Interviews", icon: <IcoPen /> },
+      { label: ROUTES.PLACEMENT_PREP, icon: <IcoAward /> },
+      { label: ROUTES.INTERNSHIPS,    icon: <IcoBrief /> },
+      { label: ROUTES.MOCK_INTERVIEW, icon: <IcoPen /> },
     ]
   },
 ];
@@ -308,12 +324,16 @@ function Sidebar({ activePage, onNavigate, mobileOpen, onMobileClose }) {
 function Topbar({ activePage, onHamburger }) {
   const date = new Date().toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
   const PAGE_LABELS = {
-    [ROUTES.ANALYTICS]: "Analytics",
-    [ROUTES.MY_COURSES]: "My Courses",
-    [ROUTES.VIDEO_LECTURES]: "Video Lectures",
-    [ROUTES.ASSIGNMENTS]: "Assignments",
-    [ROUTES.QUIZZES]: "Quizzes",
-    [ROUTES.STUDY_GROUPS]: "Study Groups",
+    [ROUTES.ANALYTICS]:       "Analytics",
+    [ROUTES.MY_COURSES]:      "My Courses",
+    [ROUTES.VIDEO_LECTURES]:  "Video Lectures",
+    [ROUTES.ASSIGNMENTS]:     "Assignments",
+    [ROUTES.QUIZZES]:         "Quizzes",
+    [ROUTES.STUDY_GROUPS]:    "Study Groups",
+    [ROUTES.SCHEDULE]:        "Schedule",
+    [ROUTES.PLACEMENT_PREP]:  "Placement Prep",
+    [ROUTES.INTERNSHIPS]:     "Internships",
+    [ROUTES.MOCK_INTERVIEW]:  "Mock Interviews",
   };
   const pageLabel = PAGE_LABELS[activePage] || "Dashboard";
   return (
@@ -463,7 +483,6 @@ function DashboardContent({ stats, courses, schedule, quizzes, skills, onNavigat
         ))}
       </div>
 
-      {/* Active Courses */}
       <div className="panel" style={{ animationDelay: "0.07s" }}>
         <div className="panel-hd">
           <div className="panel-ttl">
@@ -501,7 +520,6 @@ function DashboardContent({ stats, courses, schedule, quizzes, skills, onNavigat
       </div>
 
       <div className="bottom-grid">
-        {/* Schedule */}
         <div className="panel" style={{ animationDelay: "0.07s" }}>
           <div className="panel-hd">
             <div className="panel-ttl">
@@ -530,7 +548,6 @@ function DashboardContent({ stats, courses, schedule, quizzes, skills, onNavigat
           </div>
         </div>
 
-        {/* Quiz Performance */}
         <div className="panel" style={{ animationDelay: "0.12s" }}>
           <div className="panel-hd">
             <div className="panel-ttl">
@@ -557,7 +574,6 @@ function DashboardContent({ stats, courses, schedule, quizzes, skills, onNavigat
           </div>
         </div>
 
-        {/* Skill Tracker */}
         <div className="panel" style={{ animationDelay: "0.18s" }}>
           <div className="panel-hd">
             <div className="panel-ttl">
@@ -625,16 +641,13 @@ export default function StudentDashboard() {
     const fetchData = async () => {
       try {
         setLoading(true);
-        // In a real scenario, you might have a single /student/dashboard endpoint
-        // or fetch individual ones. For now, we attempt the dashboard endpoint.
         const data = await api.get("/student/dashboard").catch(() => null);
-
         if (data) {
           setStats(data.stats || stats);
-          if (data.courses) setCourses(data.courses);
+          if (data.courses)  setCourses(data.courses);
           if (data.schedule) setSchedule(data.schedule);
-          if (data.quizzes) setQuizzes(data.quizzes);
-          if (data.skills) setSkills(data.skills);
+          if (data.quizzes)  setQuizzes(data.quizzes);
+          if (data.skills)   setSkills(data.skills);
         }
       } catch (err) {
         console.error("Failed to fetch dashboard data:", err);
@@ -643,7 +656,6 @@ export default function StudentDashboard() {
         setLoading(false);
       }
     };
-
     fetchData();
   }, []);
 
@@ -659,12 +671,17 @@ export default function StudentDashboard() {
 
   // ── URL slug map ──
   const ROUTE_TO_URL = {
-    [ROUTES.ANALYTICS]: "/studentdashboard/studentAnalytics",
-    [ROUTES.MY_COURSES]: "/studentdashboard/studentMycourses",
-    [ROUTES.VIDEO_LECTURES]: "/studentdashboard/studentVideoLectures",
-    [ROUTES.ASSIGNMENTS]: "/studentdashboard/studentAssignments",
-    [ROUTES.QUIZZES]: "/studentdashboard/studentQuizzes",
-    [ROUTES.STUDY_GROUPS]: "/studentdashboard/studentStudyGroups",
+    [ROUTES.ANALYTICS]:       "/studentdashboard/studentAnalytics",
+    [ROUTES.MY_COURSES]:      "/studentdashboard/studentMycourses",
+    [ROUTES.VIDEO_LECTURES]:  "/studentdashboard/studentVideoLectures",
+    [ROUTES.ASSIGNMENTS]:     "/studentdashboard/studentAssignments",
+    [ROUTES.QUIZZES]:         "/studentdashboard/studentQuizzes",
+    [ROUTES.STUDY_GROUPS]:    "/studentdashboard/studentStudyGroups",
+    [ROUTES.SCHEDULE]:        "/studentdashboard/studentSchedule",
+    [ROUTES.INNOVATION_HUB]:  "/studentdashboard/studentInnovationHub",
+    [ROUTES.PLACEMENT_PREP]:  "/studentdashboard/studentPlacementPrep",
+    [ROUTES.INTERNSHIPS]:     "/studentdashboard/studentInternships",
+    [ROUTES.MOCK_INTERVIEW]:  "/studentdashboard/studentMockInterview",
   };
 
   const navigate = (targetPage) => {
@@ -738,7 +755,28 @@ export default function StudentDashboard() {
             <StudentStudyGroups onBack={() => navigate(ROUTES.DASHBOARD)} />
           )}
 
-          {/* Coming Soon */}
+          {activePage === ROUTES.SCHEDULE && (
+            <StudentSchedule onBack={() => navigate(ROUTES.DASHBOARD)} />
+          )}
+
+          {activePage === ROUTES.INNOVATION_HUB && (
+            <StudentInnovationHub onBack={() => navigate(ROUTES.DASHBOARD)} />
+          )}
+
+          {activePage === ROUTES.PLACEMENT_PREP && (
+            <StudentPlacementPrep onBack={() => navigate(ROUTES.DASHBOARD)} />
+          )}
+
+          {/* ── THE TWO MISSING BLOCKS ── */}
+          {activePage === ROUTES.INTERNSHIPS && (
+            <StudentInternships onBack={() => navigate(ROUTES.DASHBOARD)} />
+          )}
+
+          {activePage === ROUTES.MOCK_INTERVIEW && (
+            <StudentMockInterview onBack={() => navigate(ROUTES.DASHBOARD)} />
+          )}
+
+          {/* Coming Soon — only shown for truly unknown pages */}
           {!KNOWN_PAGES.has(activePage) && (
             <div className="content">
               <div style={{ padding: "60px 20px", textAlign: "center", color: "var(--text3)" }}>

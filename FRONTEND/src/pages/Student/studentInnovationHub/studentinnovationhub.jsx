@@ -1,3 +1,4 @@
+import "./studentinnovationhub.css";
 // studentinnovationhub.jsx
 // Innovation Hub module — imported into StudentDashboard.jsx
 // Matches SmartCampus design system: Plus Jakarta Sans + Fraunces, CSS vars, same panel/card patterns
