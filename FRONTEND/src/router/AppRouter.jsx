@@ -5,13 +5,14 @@ import FacultyDashboard from "../pages/Faculty/facultyDashboard/facultyDashboard
 import RoleRoute from "./RoleRoute";
 
 const router = createBrowserRouter([
-  // ── Public routes ──────────────────────────────────────────
-  { path: "/",                element: <SmartCampus /> },
-  { path: "/login",           element: <SmartCampus defaultModal="login" /> },
-  { path: "/register",        element: <SmartCampus defaultModal="signup" /> },
+  // ── Public ─────────────────────────────────────────────────
+  { path: "/", element: <SmartCampus /> },
+  { path: "/login", element: <SmartCampus defaultModal="login" /> },
+  { path: "/register", element: <SmartCampus defaultModal="signup" /> },
   { path: "/forgot-password", element: <SmartCampus defaultModal="forgot" /> },
 
-  // ── Student routes ─────────────────────────────────────────
+  // ── Student sub-pages — all render <StudentDashboard /> ────
+  // The dashboard reads the :page param and switches views.
   {
     path: "/studentdashboard",
     element: (
@@ -61,15 +62,7 @@ const router = createBrowserRouter([
     ),
   },
   {
-    path: "/studentdashboard/studentInnovationHub",
-    element: (
-      <RoleRoute allowedRoles={["student", "admin"]}>
-        <StudentDashboard />
-      </RoleRoute>
-    ),
-  },
-  {
-    path: "/studentdashboard/innovationHub",
+    path: "/studentdashboard/studentStudyGroups",
     element: (
       <RoleRoute allowedRoles={["student", "admin"]}>
         <StudentDashboard />
@@ -77,7 +70,7 @@ const router = createBrowserRouter([
     ),
   },
 
-  // ── Faculty routes ─────────────────────────────────────────
+  // ── Faculty ─────────────────────────────────────────────────
   {
     path: "/facultydashboard",
     element: (
@@ -95,7 +88,7 @@ const router = createBrowserRouter([
     ),
   },
 
-  // ── Placement & Admin ──────────────────────────────────────
+  // ── Placement & Admin ────────────────────────────────────────
   {
     path: "/placementdashboard",
     element: (
@@ -113,7 +106,7 @@ const router = createBrowserRouter([
     ),
   },
 
-  // ── Catch-all ──────────────────────────────────────────────
+  // ── Catch-all ────────────────────────────────────────────────
   { path: "*", element: <Navigate to="/" replace /> },
 ]);
 

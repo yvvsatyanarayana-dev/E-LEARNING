@@ -635,7 +635,8 @@ export default function StudentVideoLectures({ onBack }) {
                           unitNum={g.unit} unitName={g.unitName}
                           lectures={g.lectures} course={g.course}
                           viewMode={viewMode} onPlay={(l,c)=>{setPlayingLecture(l);setPlayingCourse(c);}}/>
-                      ))
+                      )
+                    )
                   }
                 </div>
             }
