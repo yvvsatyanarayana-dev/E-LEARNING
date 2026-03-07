@@ -1,6 +1,6 @@
-// StudentMyCourses.jsx
+// facultyMyCourses.jsx
 // My Courses module — import into StudentDashboard.jsx
-// Uses CSS variables from StudentDashboard.css + StudentMyCourses.css
+// Uses CSS variables from StudentDashboard.css + facultyMyCourses.css
 
 import { useState, useEffect } from "react";
 import {
@@ -635,7 +635,7 @@ function DeadlinesPanel() {
 }
 
 // ─── MAIN EXPORT ─────────────────────────────────────────────────
-export default function StudentMyCourses({ onBack }) {
+export default function facultyMyCourses({ onBack }) {
   const [filterTab,  setFilterTab]  = useState("All Courses");
   const [viewMode,   setViewMode]   = useState("grid");
   const [search,     setSearch]     = useState("");
