@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import "./FacultyDashboard.css";
 import FacultyAnalytics from "../facultyAnalytics/facultyAnalytics";
+import FacultyMyCourses from "../../Student/studentMycourse/studentMycourse";
 
 // ─── ICONS ───────────────────────────────────────────────────────
 const IcoDashboard = (p) => <svg {...p} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>;
@@ -40,17 +41,20 @@ const IcoLogout  = (p) => <svg {...p} width="16" height="16" viewBox="0 0 24 24"
 const ROUTES = {
   DASHBOARD: "Dashboard",
   ANALYTICS: "Analytics",
+  MY_COURSES: "My Course"
 };
 
 // URL param → ROUTES key (lowercase URL segment → route label)
 const PAGE_PARAM_MAP = {
   "facultyanalytics": ROUTES.ANALYTICS,
+  "facultyMycourses": ROUTES.MY_COURSES
 };
 
 // ROUTES label → URL path segment
 const ROUTE_TO_URL = {
   [ROUTES.DASHBOARD]: "/facultydashboard",
   [ROUTES.ANALYTICS]: "/facultydashboard/facultyAnalytics",
+  [ROUTES.MY_COURSES]:"/facultydashboard/facultyMycourse",
 };
 
 // ─── DATA ────────────────────────────────────────────────────────
@@ -746,6 +750,9 @@ export default function FacultyDashboard() {
           )}
           {activePage === ROUTES.ANALYTICS && (
             <FacultyAnalytics onBack={() => navigate(ROUTES.DASHBOARD)} />
+          )}
+          {activePage !== ROUTES.DASHBOARD && activePage !== ROUTES.ANALYTICS && (
+            <FacultyMyCourses onBack={() => navigate(ROUTES.DASHBOARD)} />
           )}
         </main>
       </div>

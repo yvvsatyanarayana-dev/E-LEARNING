@@ -1,8 +1,16 @@
+// studentDashboard.jsx — with Settings, Profile, Resume, Notifications
 import StudentInternships from "../studentInterships/studentInterships";
 import StudentMockInterview from "../studentMockInterview/studentMockInterview";
 import StudentPlacementPrep from "../studdentPlacementPrep/studentPlacementPrep";
 import StudentInnovationHub from "../studentInnovationHub/studentinnovationhub";
-// studentDashboard.jsx — updated with Schedule routing
+import StudentSettings from "../studentSettings/studentSettings";
+import StudentProfile from "../studentProfile/studentProfile";
+import StudentResume from "../studentResume/studentResume";
+import NotificationPanel from "../studentNotificationPanel/NotificationPanel";
+import "../studentSettings/studentSettings.css";
+import "../studentProfile/studentProfile.css";
+import "../studentResume/studentResume.css";
+import "../studentNotificationPanel/NotificationPanel.css";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import "./StudentDashboard.css";
@@ -50,98 +58,78 @@ const IcoSend = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fi
 const IcoClose = (p) => <svg {...p} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
 const IcoHamburger = (p) => <svg {...p} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><line x1="3" y1="6" x2="21" y2="6" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="3" y1="18" x2="21" y2="18" /></svg>;
 const IcoLogout = (p) => <svg {...p} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>;
+const IcoFileText = (p) => <svg {...p} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>;
 
 // ─── ROUTE KEYS ──────────────────────────────────────────────────
 const ROUTES = {
-  DASHBOARD:       "Dashboard",
-  ANALYTICS:       "Analytics",
-  MY_COURSES:      "My Courses",
-  VIDEO_LECTURES:  "Video Lectures",
-  ASSIGNMENTS:     "Assignments",
-  QUIZZES:         "Quizzes",
-  STUDY_GROUPS:    "Study Groups",
-  SCHEDULE:        "Schedule",
-  INNOVATION_HUB:  "Innovation Hub",
-  PLACEMENT_PREP:  "Placement Prep",
-  INTERNSHIPS:     "Internships",
-  MOCK_INTERVIEW:  "Mock Interviews",
+  DASHBOARD:      "Dashboard",
+  ANALYTICS:      "Analytics",
+  MY_COURSES:     "My Courses",
+  VIDEO_LECTURES: "Video Lectures",
+  ASSIGNMENTS:    "Assignments",
+  QUIZZES:        "Quizzes",
+  STUDY_GROUPS:   "Study Groups",
+  SCHEDULE:       "Schedule",
+  INNOVATION_HUB: "Innovation Hub",
+  PLACEMENT_PREP: "Placement Prep",
+  INTERNSHIPS:    "Internships",
+  MOCK_INTERVIEW: "Mock Interviews",
+  SETTINGS:       "Settings",
+  PROFILE:        "Profile",
+  RESUME:         "Resume",
 };
 
-// URL slug → ROUTE lookup
 const PAGE_PARAM_MAP = {
-  "studentanalytics":      "Analytics",
-  "studentmycourses":      "My Courses",
-  "studentvideolectures":  "Video Lectures",
-  "studentassignments":    "Assignments",
-  "studentquizzes":        "Quizzes",
-  "studentstudygroups":    "Study Groups",
-  "studentschedule":       "Schedule",
-  "studentinnovationhub":  "Innovation Hub",
-  "studentplacementprep":  "Placement Prep",
-  "studentinternships":    "Internships",
-  "studentmockinterview":  "Mock Interviews",
+  "studentanalytics":     "Analytics",
+  "studentmycourses":     "My Courses",
+  "studentvideolectures": "Video Lectures",
+  "studentassignments":   "Assignments",
+  "studentquizzes":       "Quizzes",
+  "studentstudygroups":   "Study Groups",
+  "studentschedule":      "Schedule",
+  "studentinnovationhub": "Innovation Hub",
+  "studentplacementprep": "Placement Prep",
+  "studentinternships":   "Internships",
+  "studentmockinterview": "Mock Interviews",
+  "studentsettings":      "Settings",
+  "studentprofile":       "Profile",
+  "studentresume":        "Resume",
 };
 
-// ─── ROUTABLE NAV LABELS ─────────────────────────────────────────
 const ROUTABLE = new Set(Object.values(ROUTES));
 
-// ─── INITIAL/MOCK DATA (Fallback) ───────────────────────────────
+// ─── MOCK DATA ───────────────────────────────────────────────────
 const INITIAL_COURSES = [
-  {
-    name: "Operating Systems", meta: "Dr. S. Prakash · 42 lectures", pct: 78, color: "var(--indigo-l)", grade: "A",
-    gradeStyle: { background: "rgba(39,201,176,.1)", color: "var(--teal)" }, due: "Quiz · Today",
-    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2" /><line x1="8" y1="21" x2="16" y2="21" /><line x1="12" y1="17" x2="12" y2="21" /></svg>,
-    badgeStyle: { background: "rgba(91,78,248,.12)", color: "var(--indigo-ll)" }, pctColor: "var(--indigo-ll)", next: "Next: Memory Mgmt"
-  },
-  {
-    name: "Database Management Systems", meta: "Prof. R. Nair · 38 lectures", pct: 61, color: "var(--teal)", grade: "A−",
-    gradeStyle: { background: "rgba(91,78,248,.1)", color: "var(--indigo-ll)" }, due: "Asgmt · 2 days",
-    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3" /><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" /><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" /></svg>,
-    badgeStyle: { background: "rgba(39,201,176,.1)", color: "var(--teal)" }, pctColor: "var(--teal)", next: "Next: Transactions"
-  },
-  {
-    name: "Machine Learning Fundamentals", meta: "Dr. A. Kumar · 36 lectures", pct: 44, color: "var(--amber)", grade: "B+",
-    gradeStyle: { background: "rgba(244,165,53,.1)", color: "var(--amber)" }, due: "Project · 5 days",
-    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" /><polyline points="3.27 6.96 12 12.01 20.73 6.96" /><line x1="12" y1="22.08" x2="12" y2="12" /></svg>,
-    badgeStyle: { background: "rgba(244,165,53,.1)", color: "var(--amber)" }, pctColor: "var(--amber)", next: "Next: SVM Classifiers"
-  },
-  {
-    name: "Computer Networks", meta: "Prof. T. Mehta · 40 lectures", pct: 55, color: "var(--violet)", grade: "A",
-    gradeStyle: { background: "rgba(159,122,234,.1)", color: "var(--violet)" }, due: "Lab · Tomorrow",
-    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2" /><rect x="2" y="14" width="20" height="8" rx="2" /><line x1="6" y1="6" x2="6.01" y2="6" /><line x1="6" y1="18" x2="6.01" y2="18" /></svg>,
-    badgeStyle: { background: "rgba(159,122,234,.1)", color: "var(--violet)" }, pctColor: "var(--violet)", next: "Next: TCP/IP Stack"
-  },
-  {
-    name: "Cryptography & Network Security", meta: "Dr. P. Sharma · 34 lectures", pct: 32, color: "var(--rose)", grade: "B",
-    gradeStyle: { background: "rgba(242,68,92,.1)", color: "var(--rose)" }, due: "Asgmt · Today",
-    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>,
-    badgeStyle: { background: "rgba(242,68,92,.1)", color: "var(--rose)" }, pctColor: "var(--rose)", next: "Next: RSA Algorithm"
-  },
+  { name:"Operating Systems",meta:"Dr. S. Prakash · 42 lectures",pct:78,color:"var(--indigo-l)",grade:"A",gradeStyle:{background:"rgba(39,201,176,.1)",color:"var(--teal)"},due:"Quiz · Today",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>,badgeStyle:{background:"rgba(91,78,248,.12)",color:"var(--indigo-ll)"},pctColor:"var(--indigo-ll)",next:"Next: Memory Mgmt"},
+  { name:"Database Management Systems",meta:"Prof. R. Nair · 38 lectures",pct:61,color:"var(--teal)",grade:"A−",gradeStyle:{background:"rgba(91,78,248,.1)",color:"var(--indigo-ll)"},due:"Asgmt · 2 days",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>,badgeStyle:{background:"rgba(39,201,176,.1)",color:"var(--teal)"},pctColor:"var(--teal)",next:"Next: Transactions"},
+  { name:"Machine Learning Fundamentals",meta:"Dr. A. Kumar · 36 lectures",pct:44,color:"var(--amber)",grade:"B+",gradeStyle:{background:"rgba(244,165,53,.1)",color:"var(--amber)"},due:"Project · 5 days",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>,badgeStyle:{background:"rgba(244,165,53,.1)",color:"var(--amber)"},pctColor:"var(--amber)",next:"Next: SVM Classifiers"},
+  { name:"Computer Networks",meta:"Prof. T. Mehta · 40 lectures",pct:55,color:"var(--violet)",grade:"A",gradeStyle:{background:"rgba(159,122,234,.1)",color:"var(--violet)"},due:"Lab · Tomorrow",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>,badgeStyle:{background:"rgba(159,122,234,.1)",color:"var(--violet)"},pctColor:"var(--violet)",next:"Next: TCP/IP Stack"},
+  { name:"Cryptography & Network Security",meta:"Dr. P. Sharma · 34 lectures",pct:32,color:"var(--rose)",grade:"B",gradeStyle:{background:"rgba(242,68,92,.1)",color:"var(--rose)"},due:"Asgmt · Today",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,badgeStyle:{background:"rgba(242,68,92,.1)",color:"var(--rose)"},pctColor:"var(--rose)",next:"Next: RSA Algorithm"},
 ];
 
 const INITIAL_SCHEDULE = [
-  { from: "09:00", to: "10:00", name: "Operating Systems", room: "Room 301 · Dr. Prakash", tag: "Lecture", color: "var(--teal)", tagStyle: { background: "rgba(39,201,176,.1)", color: "var(--teal)" } },
-  { from: "10:30", to: "11:30", name: "OS Quiz — Unit III", room: "Exam Hall B", tag: "Quiz Today", color: "var(--amber)", tagStyle: { background: "rgba(244,165,53,.12)", color: "var(--amber)" } },
-  { from: "13:00", to: "14:30", name: "DBMS Lab", room: "Lab 2 · Prof. Nair", tag: "Lab", color: "var(--indigo-l)", tagStyle: { background: "rgba(91,78,248,.1)", color: "var(--indigo-ll)" } },
-  { from: "15:00", to: "16:00", name: "ML — SVM Classifiers", room: "Room 204 · Dr. Kumar", tag: "Lecture", color: "var(--violet)", tagStyle: { background: "rgba(159,122,234,.1)", color: "var(--violet)" } },
-  { from: "16:30", to: "17:00", name: "Mock Interview", room: "Placement Cell · AI Sim", tag: "Career", color: "var(--rose)", tagStyle: { background: "rgba(242,68,92,.1)", color: "var(--rose)" } },
+  {from:"09:00",to:"10:00",name:"Operating Systems",room:"Room 301 · Dr. Prakash",tag:"Lecture",color:"var(--teal)",tagStyle:{background:"rgba(39,201,176,.1)",color:"var(--teal)"}},
+  {from:"10:30",to:"11:30",name:"OS Quiz — Unit III",room:"Exam Hall B",tag:"Quiz Today",color:"var(--amber)",tagStyle:{background:"rgba(244,165,53,.12)",color:"var(--amber)"}},
+  {from:"13:00",to:"14:30",name:"DBMS Lab",room:"Lab 2 · Prof. Nair",tag:"Lab",color:"var(--indigo-l)",tagStyle:{background:"rgba(91,78,248,.1)",color:"var(--indigo-ll)"}},
+  {from:"15:00",to:"16:00",name:"ML — SVM Classifiers",room:"Room 204 · Dr. Kumar",tag:"Lecture",color:"var(--violet)",tagStyle:{background:"rgba(159,122,234,.1)",color:"var(--violet)"}},
+  {from:"16:30",to:"17:00",name:"Mock Interview",room:"Placement Cell · AI Sim",tag:"Career",color:"var(--rose)",tagStyle:{background:"rgba(242,68,92,.1)",color:"var(--rose)"}},
 ];
 
 const INITIAL_QUIZZES = [
-  { name: "OS – Process Scheduling", score: "92%", pct: 92, scoreStyle: { background: "rgba(39,201,176,.1)", color: "var(--teal)" }, bar: "var(--teal)", answered: "20/20 answered", rank: "Rank 3rd / 112" },
-  { name: "DBMS – Normalization", score: "85%", pct: 85, scoreStyle: { background: "rgba(91,78,248,.1)", color: "var(--indigo-ll)" }, bar: "var(--indigo-l)", answered: "17/20 answered", rank: "Rank 8th / 112" },
-  { name: "CN – OSI Layers", score: "78%", pct: 78, scoreStyle: { background: "rgba(159,122,234,.1)", color: "var(--violet)" }, bar: "var(--violet)", answered: "15/20 answered", rank: "Rank 14th / 112" },
-  { name: "ML – Linear Regression", score: "71%", pct: 71, scoreStyle: { background: "rgba(244,165,53,.1)", color: "var(--amber)" }, bar: "var(--amber)", answered: "14/20 answered", rank: "Rank 22nd / 112" },
-  { name: "Crypto – Symmetric Keys", score: "58%", pct: 58, scoreStyle: { background: "rgba(242,68,92,.1)", color: "var(--rose)" }, bar: "var(--rose)", answered: "11/20 answered", rank: "Rank 51st / 112" },
+  {name:"OS – Process Scheduling",score:"92%",pct:92,scoreStyle:{background:"rgba(39,201,176,.1)",color:"var(--teal)"},bar:"var(--teal)",answered:"20/20 answered",rank:"Rank 3rd / 112"},
+  {name:"DBMS – Normalization",score:"85%",pct:85,scoreStyle:{background:"rgba(91,78,248,.1)",color:"var(--indigo-ll)"},bar:"var(--indigo-l)",answered:"17/20 answered",rank:"Rank 8th / 112"},
+  {name:"CN – OSI Layers",score:"78%",pct:78,scoreStyle:{background:"rgba(159,122,234,.1)",color:"var(--violet)"},bar:"var(--violet)",answered:"15/20 answered",rank:"Rank 14th / 112"},
+  {name:"ML – Linear Regression",score:"71%",pct:71,scoreStyle:{background:"rgba(244,165,53,.1)",color:"var(--amber)"},bar:"var(--amber)",answered:"14/20 answered",rank:"Rank 22nd / 112"},
+  {name:"Crypto – Symmetric Keys",score:"58%",pct:58,scoreStyle:{background:"rgba(242,68,92,.1)",color:"var(--rose)"},bar:"var(--rose)",answered:"11/20 answered",rank:"Rank 51st / 112"},
 ];
 
 const INITIAL_SKILLS = [
-  { label: "DSA", pct: 82, color: "var(--teal)", pctColor: "var(--teal)" },
-  { label: "Python", pct: 74, color: "var(--indigo-l)", pctColor: "var(--indigo-ll)" },
-  { label: "SQL", pct: 68, color: "var(--violet)", pctColor: "var(--violet)" },
-  { label: "Machine Learning", pct: 55, color: "var(--amber)", pctColor: "var(--amber)" },
-  { label: "System Design", pct: 41, color: "var(--rose)", pctColor: "var(--rose)" },
-  { label: "Communication", pct: 77, color: "linear-gradient(90deg,var(--indigo),var(--teal))", pctColor: "var(--indigo-ll)" },
+  {label:"DSA",pct:82,color:"var(--teal)",pctColor:"var(--teal)"},
+  {label:"Python",pct:74,color:"var(--indigo-l)",pctColor:"var(--indigo-ll)"},
+  {label:"SQL",pct:68,color:"var(--violet)",pctColor:"var(--violet)"},
+  {label:"Machine Learning",pct:55,color:"var(--amber)",pctColor:"var(--amber)"},
+  {label:"System Design",pct:41,color:"var(--rose)",pctColor:"var(--rose)"},
+  {label:"Communication",pct:77,color:"linear-gradient(90deg,var(--indigo),var(--teal))",pctColor:"var(--indigo-ll)"},
 ];
 
 const AI_RESPONSES = [
@@ -153,128 +141,115 @@ const AI_RESPONSES = [
 ];
 
 const NAV_ITEMS = [
-  {
-    section: "Overview", links: [
-      { label: ROUTES.DASHBOARD, icon: <IcoDashboard /> },
-      { label: ROUTES.ANALYTICS, icon: <IcoBar />, badge: "New" },
-    ]
-  },
-  {
-    section: "Learning", links: [
-      { label: ROUTES.MY_COURSES, icon: <IcoBook />, badge: "6" },
-      { label: ROUTES.VIDEO_LECTURES, icon: <IcoVideo /> },
-      { label: ROUTES.ASSIGNMENTS, icon: <IcoFile />, badge: "3", badgeClass: "rose" },
-      { label: ROUTES.QUIZZES, icon: <IcoClock />, badge: "1", badgeClass: "" },
-    ]
-  },
-  {
-    section: "Campus", links: [
-      { label: ROUTES.INNOVATION_HUB, icon: <IcoSun /> },
-      { label: ROUTES.STUDY_GROUPS, icon: <IcoUsers /> },
-      { label: ROUTES.SCHEDULE, icon: <IcoCal /> },
-    ]
-  },
-  {
-    section: "Career", links: [
-      { label: ROUTES.PLACEMENT_PREP, icon: <IcoAward /> },
-      { label: ROUTES.INTERNSHIPS,    icon: <IcoBrief /> },
-      { label: ROUTES.MOCK_INTERVIEW, icon: <IcoPen /> },
-    ]
-  },
+  { section:"Overview", links:[
+    {label:ROUTES.DASHBOARD, icon:<IcoDashboard/>},
+    {label:ROUTES.ANALYTICS, icon:<IcoBar/>, badge:"New"},
+  ]},
+  { section:"Learning", links:[
+    {label:ROUTES.MY_COURSES,     icon:<IcoBook/>,  badge:"6"},
+    {label:ROUTES.VIDEO_LECTURES, icon:<IcoVideo/>},
+    {label:ROUTES.ASSIGNMENTS,    icon:<IcoFile/>,  badge:"3", badgeClass:"rose"},
+    {label:ROUTES.QUIZZES,        icon:<IcoClock/>, badge:"1"},
+  ]},
+  { section:"Campus", links:[
+    {label:ROUTES.INNOVATION_HUB, icon:<IcoSun/>},
+    {label:ROUTES.STUDY_GROUPS,   icon:<IcoUsers/>},
+    {label:ROUTES.SCHEDULE,       icon:<IcoCal/>},
+  ]},
+  { section:"Career", links:[
+    {label:ROUTES.PLACEMENT_PREP,  icon:<IcoAward/>},
+    {label:ROUTES.INTERNSHIPS,     icon:<IcoBrief/>},
+    {label:ROUTES.MOCK_INTERVIEW,  icon:<IcoPen/>},
+  ]},
 ];
 
-// ─── HELPERS ─────────────────────────────────────────────────────
+// ─── HELPERS ────────────────────────────────────────────────────
 function addRipple(e, el) {
-  const r = document.createElement("span");
-  r.className = "ripple";
-  const rect = el.getBoundingClientRect();
-  const s = Math.max(rect.width, rect.height);
-  r.style.cssText = `width:${s}px;height:${s}px;left:${e.clientX - rect.left - s / 2}px;top:${e.clientY - rect.top - s / 2}px`;
-  el.appendChild(r);
-  r.addEventListener("animationend", () => r.remove());
+  const r = document.createElement("span"); r.className = "ripple";
+  const rect = el.getBoundingClientRect(), s = Math.max(rect.width, rect.height);
+  r.style.cssText = `width:${s}px;height:${s}px;left:${e.clientX-rect.left-s/2}px;top:${e.clientY-rect.top-s/2}px`;
+  el.appendChild(r); r.addEventListener("animationend", ()=>r.remove());
 }
 
 function useCursor() {
-  useEffect(() => {
-    const cur = document.getElementById("sc-cursor");
-    const ring = document.getElementById("sc-cursor-ring");
-    if (!cur || !ring) return;
-    let mx = 0, my = 0, rx = 0, ry = 0, rafId;
-    const onMove = e => { mx = e.clientX; my = e.clientY; };
-    const tick = () => {
-      cur.style.left = mx + "px"; cur.style.top = my + "px";
-      rx += (mx - rx) * .12; ry += (my - ry) * .12;
-      ring.style.left = rx + "px"; ring.style.top = ry + "px";
-      rafId = requestAnimationFrame(tick);
+  useEffect(()=>{
+    const cur=document.getElementById("sc-cursor"), ring=document.getElementById("sc-cursor-ring");
+    if(!cur||!ring) return;
+    let mx=0,my=0,rx=0,ry=0,rafId;
+    const onMove=e=>{mx=e.clientX;my=e.clientY;};
+    const tick=()=>{
+      cur.style.left=mx+"px";cur.style.top=my+"px";
+      rx+=(mx-rx)*.12;ry+=(my-ry)*.12;
+      ring.style.left=rx+"px";ring.style.top=ry+"px";
+      rafId=requestAnimationFrame(tick);
     };
-    const onDown = () => document.body.classList.add("c-click");
-    const onUp = () => document.body.classList.remove("c-click");
-    document.addEventListener("mousemove", onMove);
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("mouseup", onUp);
-    rafId = requestAnimationFrame(tick);
-    return () => {
-      document.removeEventListener("mousemove", onMove);
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("mouseup", onUp);
+    const onDown=()=>document.body.classList.add("c-click");
+    const onUp=()=>document.body.classList.remove("c-click");
+    document.addEventListener("mousemove",onMove);
+    document.addEventListener("mousedown",onDown);
+    document.addEventListener("mouseup",onUp);
+    rafId=requestAnimationFrame(tick);
+    return()=>{
+      document.removeEventListener("mousemove",onMove);
+      document.removeEventListener("mousedown",onDown);
+      document.removeEventListener("mouseup",onUp);
       cancelAnimationFrame(rafId);
     };
-  }, []);
+  },[]);
 }
 
-function Hoverable({ children, className = "", style, ...rest }) {
-  const enter = () => document.body.classList.add("c-hover");
-  const leave = () => document.body.classList.remove("c-hover");
+function Hoverable({children,className="",style,...rest}){
+  const enter=()=>document.body.classList.add("c-hover");
+  const leave=()=>document.body.classList.remove("c-hover");
   return <div className={className} style={style} onMouseEnter={enter} onMouseLeave={leave} {...rest}>{children}</div>;
 }
 
-function Btn({ children, className = "", onClick, style }) {
-  const ref = useRef();
-  const enter = () => document.body.classList.add("c-hover");
-  const leave = () => document.body.classList.remove("c-hover");
-  return (
+function Btn({children,className="",onClick,style}){
+  const ref=useRef();
+  const enter=()=>document.body.classList.add("c-hover");
+  const leave=()=>document.body.classList.remove("c-hover");
+  return(
     <button ref={ref} className={`btn ${className}`} style={style}
       onMouseEnter={enter} onMouseLeave={leave}
-      onClick={e => { addRipple(e, ref.current); onClick?.(e); }}>
+      onClick={e=>{addRipple(e,ref.current);onClick?.(e);}}>
       {children}
     </button>
   );
 }
 
-function AnimatedProgressBar({ pct, color, height = 3, delay = 500 }) {
-  const [width, setWidth] = useState(0);
-  useEffect(() => { const t = setTimeout(() => setWidth(pct), delay); return () => clearTimeout(t); }, [pct, delay]);
-  return (
-    <div style={{ height, background: "var(--surface3)", borderRadius: 2, overflow: "hidden" }}>
-      <div style={{ height: "100%", width: `${width}%`, background: color, borderRadius: 2, transition: "width 1.1s ease" }} />
+function AnimatedProgressBar({pct,color,height=3,delay=500}){
+  const [width,setWidth]=useState(0);
+  useEffect(()=>{const t=setTimeout(()=>setWidth(pct),delay);return()=>clearTimeout(t);},[pct,delay]);
+  return(
+    <div style={{height,background:"var(--surface3)",borderRadius:2,overflow:"hidden"}}>
+      <div style={{height:"100%",width:`${width}%`,background:color,borderRadius:2,transition:"width 1.1s ease"}}/>
     </div>
   );
 }
 
 // ─── SIDEBAR ─────────────────────────────────────────────────────
-function Sidebar({ activePage, onNavigate, mobileOpen, onMobileClose }) {
-  const logoutNavigate = useNavigate();
-  const [priW, setPriW] = useState(0);
-  useEffect(() => { const t = setTimeout(() => setPriW(72), 600); return () => clearTimeout(t); }, []);
+function Sidebar({activePage,onNavigate,mobileOpen,onMobileClose,onNavigateSettings,onNavigateProfile}){
+  const logoutNavigate=useNavigate();
+  const [priW,setPriW]=useState(0);
+  useEffect(()=>{const t=setTimeout(()=>setPriW(72),600);return()=>clearTimeout(t);},[]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-    logoutNavigate("/login", { replace: true });
+  const handleLogout=()=>{
+    localStorage.removeItem("token");localStorage.removeItem("user");
+    logoutNavigate("/login",{replace:true});
   };
 
-  return (
+  return(
     <>
-      <div className={`sb-overlay ${mobileOpen ? "visible" : ""}`} onClick={onMobileClose} />
-      <aside className={`sidebar ${mobileOpen ? "sb-open" : ""}`}>
+      <div className={`sb-overlay ${mobileOpen?"visible":""}`} onClick={onMobileClose}/>
+      <aside className={`sidebar ${mobileOpen?"sb-open":""}`}>
         <div className="sb-top">
-          <a href="#" className="sb-brand" onClick={e => e.preventDefault()}>
-            <div className="sb-mark">SC</div>
-            <span className="sb-name">SmartCampus</span>
+          <a href="#" className="sb-brand" onClick={e=>e.preventDefault()}>
+            <div className="sb-mark">SC</div><span className="sb-name">SmartCampus</span>
           </a>
-          <button className="sb-mobile-close" onClick={onMobileClose}><IcoClose /></button>
+          <button className="sb-mobile-close" onClick={onMobileClose}><IcoClose/></button>
         </div>
-        <div className="sb-user">
+        {/* Clickable user card → Profile */}
+        <div className="sb-user" style={{cursor:"pointer"}} onClick={()=>{onNavigateProfile();onMobileClose();}}>
           <div className="sb-avatar">AR</div>
           <div>
             <div className="sb-uname">Arjun Reddy</div>
@@ -282,18 +257,15 @@ function Sidebar({ activePage, onNavigate, mobileOpen, onMobileClose }) {
           </div>
         </div>
         <nav className="sb-nav">
-          {NAV_ITEMS.map(({ section, links }) => (
+          {NAV_ITEMS.map(({section,links})=>(
             <div key={section}>
               <div className="sb-sec-label">{section}</div>
-              {links.map(({ label, icon, badge, badgeClass }) => (
+              {links.map(({label,icon,badge,badgeClass})=>(
                 <a key={label} href="#"
-                  className={`sb-link ${activePage === label ? "active" : ""}`}
-                  onClick={e => {
-                    e.preventDefault();
-                    if (ROUTABLE.has(label)) { onNavigate(label); onMobileClose(); }
-                  }}>
+                  className={`sb-link ${activePage===label?"active":""}`}
+                  onClick={e=>{e.preventDefault();if(ROUTABLE.has(label)){onNavigate(label);onMobileClose();}}}>
                   {icon}{label}
-                  {badge && <span className={`sb-badge ${badgeClass || ""}`}>{badge}</span>}
+                  {badge&&<span className={`sb-badge ${badgeClass||""}`}>{badge}</span>}
                 </a>
               ))}
             </div>
@@ -304,16 +276,13 @@ function Sidebar({ activePage, onNavigate, mobileOpen, onMobileClose }) {
             <div className="sb-pri-lbl">Placement Readiness Index</div>
             <div className="sb-pri-val">72</div>
             <div className="sb-pri-sub">Good · 13 pts to Excellent</div>
-            <div className="sb-pri-bar">
-              <div className="sb-pri-fill" style={{ width: `${priW}%` }} />
-            </div>
+            <div className="sb-pri-bar"><div className="sb-pri-fill" style={{width:`${priW}%`}}/></div>
           </div>
-          <a href="#" className="sb-link" onClick={e => e.preventDefault()}>
-            <IcoSettings /> Settings
+          {/* Settings link */}
+          <a href="#" className="sb-link" onClick={e=>{e.preventDefault();onNavigateSettings();onMobileClose();}}>
+            <IcoSettings/> Settings
           </a>
-          <button className="sb-logout" onClick={handleLogout}>
-            <IcoLogout /> Sign Out
-          </button>
+          <button className="sb-logout" onClick={handleLogout}><IcoLogout/> Sign Out</button>
         </div>
       </aside>
     </>
@@ -321,38 +290,50 @@ function Sidebar({ activePage, onNavigate, mobileOpen, onMobileClose }) {
 }
 
 // ─── TOPBAR ──────────────────────────────────────────────────────
-function Topbar({ activePage, onHamburger }) {
-  const date = new Date().toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
-  const PAGE_LABELS = {
-    [ROUTES.ANALYTICS]:       "Analytics",
-    [ROUTES.MY_COURSES]:      "My Courses",
-    [ROUTES.VIDEO_LECTURES]:  "Video Lectures",
-    [ROUTES.ASSIGNMENTS]:     "Assignments",
-    [ROUTES.QUIZZES]:         "Quizzes",
-    [ROUTES.STUDY_GROUPS]:    "Study Groups",
-    [ROUTES.SCHEDULE]:        "Schedule",
-    [ROUTES.PLACEMENT_PREP]:  "Placement Prep",
-    [ROUTES.INTERNSHIPS]:     "Internships",
-    [ROUTES.MOCK_INTERVIEW]:  "Mock Interviews",
+function Topbar({activePage,onHamburger,onNavigateProfile,onNavigateResume,notifCount,onToggleNotif,notifOpen}){
+  const date=new Date().toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"});
+  const PAGE_LABELS={
+    [ROUTES.ANALYTICS]:"Analytics",[ROUTES.MY_COURSES]:"My Courses",
+    [ROUTES.VIDEO_LECTURES]:"Video Lectures",[ROUTES.ASSIGNMENTS]:"Assignments",
+    [ROUTES.QUIZZES]:"Quizzes",[ROUTES.STUDY_GROUPS]:"Study Groups",
+    [ROUTES.SCHEDULE]:"Schedule",[ROUTES.PLACEMENT_PREP]:"Placement Prep",
+    [ROUTES.INTERNSHIPS]:"Internships",[ROUTES.MOCK_INTERVIEW]:"Mock Interviews",
+    [ROUTES.SETTINGS]:"Settings",[ROUTES.PROFILE]:"My Profile",[ROUTES.RESUME]:"Resume Builder",
   };
-  const pageLabel = PAGE_LABELS[activePage] || "Dashboard";
-  return (
+  const pageLabel=PAGE_LABELS[activePage]||"Dashboard";
+
+  return(
     <div className="topbar">
-      <button className="tb-hamburger" onClick={onHamburger} aria-label="Toggle menu">
-        <IcoHamburger />
-      </button>
+      <button className="tb-hamburger" onClick={onHamburger} aria-label="Toggle menu"><IcoHamburger/></button>
       <span className="tb-page">{pageLabel}</span>
-      <div className="tb-sep" />
+      <div className="tb-sep"/>
       <div className="tb-search">
-        <IcoSearch style={{ color: "var(--text3)", flexShrink: 0 }} />
-        <input type="text" placeholder="Search courses, topics, people…" />
+        <IcoSearch style={{color:"var(--text3)",flexShrink:0}}/>
+        <input type="text" placeholder="Search courses, topics, people…"/>
       </div>
       <div className="tb-right">
         <span className="tb-date">{date}</span>
-        <div className="tb-icon-btn"><IcoBell /><div className="notif-dot" /></div>
-        <div className="tb-icon-btn"><IcoUser /></div>
-        <Btn className="btn-solid" style={{ padding: "7px 16px", fontSize: 11, gap: 5 }}>
-          <IcoPlus /> Resume
+        {/* Bell with notification panel */}
+        <div className="tb-notif-wrap">
+          <div
+            className="tb-icon-btn"
+            onClick={onToggleNotif}
+            style={{cursor:"pointer",position:"relative"}}
+          >
+            <IcoBell/>
+            {notifCount>0 && (
+              <div className="notif-dot" style={{position:"absolute",top:2,right:2}}/>
+            )}
+          </div>
+          <NotificationPanel open={notifOpen} onClose={onToggleNotif}/>
+        </div>
+        {/* Profile icon */}
+        <div className="tb-icon-btn" onClick={onNavigateProfile} style={{cursor:"pointer"}} title="My Profile">
+          <IcoUser/>
+        </div>
+        {/* Resume button */}
+        <Btn className="btn-solid" style={{padding:"7px 16px",fontSize:11,gap:5}} onClick={onNavigateResume}>
+          <IcoFileText/> Resume
         </Btn>
       </div>
     </div>
@@ -360,121 +341,112 @@ function Topbar({ activePage, onHamburger }) {
 }
 
 // ─── LUCYNA PANEL ────────────────────────────────────────────────
-function LucynaPanel({ open, onClose }) {
-  const [messages, setMessages] = useState([
-    { role: "ai", html: "Hey Arjun! 👋 You have an <strong style='color:var(--indigo-ll)'>OS quiz</strong> today and <strong style='color:var(--rose)'>2 assignments</strong> due. Want a quick recap?" },
-    { role: "user", html: "Yes! Help me with OS scheduling first." },
-    { role: "ai", html: "<strong style='color:var(--teal)'>Round Robin</strong> uses a fixed time quantum (10–20ms). Each process gets equal CPU time — no starvation, but higher avg turnaround for long jobs.<br/><br/>Your quiz has 3 questions on this. Want a practice set? 🎯" },
+function LucynaPanel({open,onClose}){
+  const [messages,setMessages]=useState([
+    {role:"ai",html:"Hey Arjun! 👋 You have an <strong style='color:var(--indigo-ll)'>OS quiz</strong> today and <strong style='color:var(--rose)'>2 assignments</strong> due. Want a quick recap?"},
+    {role:"user",html:"Yes! Help me with OS scheduling first."},
+    {role:"ai",html:"<strong style='color:var(--teal)'>Round Robin</strong> uses a fixed time quantum (10–20ms). Each process gets equal CPU time — no starvation, but higher avg turnaround for long jobs.<br/><br/>Your quiz has 3 questions on this. Want a practice set? 🎯"},
   ]);
-  const [input, setInput] = useState("");
-  const [typing, setTyping] = useState(false);
-  const [showChips, setShowChips] = useState(true);
-  const [aiIdx, setAiIdx] = useState(0);
-  const msgRef = useRef();
+  const [input,setInput]=useState("");
+  const [typing,setTyping]=useState(false);
+  const [showChips,setShowChips]=useState(true);
+  const [aiIdx,setAiIdx]=useState(0);
+  const msgRef=useRef();
 
-  useEffect(() => {
-    if (msgRef.current) msgRef.current.scrollTop = msgRef.current.scrollHeight;
-  }, [messages, typing]);
+  useEffect(()=>{if(msgRef.current)msgRef.current.scrollTop=msgRef.current.scrollHeight;},[messages,typing]);
 
-  const send = useCallback((text) => {
-    const val = text || input.trim();
-    if (!val) return;
-    setMessages(m => [...m, { role: "user", html: val }]);
-    setInput(""); setShowChips(false); setTyping(true);
-    setTimeout(() => {
+  const send=useCallback((text)=>{
+    const val=text||input.trim();if(!val)return;
+    setMessages(m=>[...m,{role:"user",html:val}]);
+    setInput("");setShowChips(false);setTyping(true);
+    setTimeout(()=>{
       setTyping(false);
-      setMessages(m => [...m, { role: "ai", html: AI_RESPONSES[aiIdx % AI_RESPONSES.length] }]);
-      setAiIdx(i => i + 1);
-    }, 950);
-  }, [input, aiIdx]);
+      setMessages(m=>[...m,{role:"ai",html:AI_RESPONSES[aiIdx%AI_RESPONSES.length]}]);
+      setAiIdx(i=>i+1);
+    },950);
+  },[input,aiIdx]);
 
-  return (
-    <div className={`lucyna-panel ${open ? "open" : ""}`}>
+  return(
+    <div className={`lucyna-panel ${open?"open":""}`}>
       <div className="lp-header">
-        <div className="lp-orb"><div className="lp-orb-ring" /><img src={lucynaJpg} alt="Lucyna" className="lp-orb-img" /></div>
-        <div>
-          <div className="lp-name">Lucyna AI Mentor</div>
-          <div className="lp-status"><div className="lp-dot" />Online · Always available</div>
-        </div>
-        <button className="lp-close" onClick={onClose}><IcoClose /></button>
+        <div className="lp-orb"><div className="lp-orb-ring"/><img src={lucynaJpg} alt="Lucyna" className="lp-orb-img"/></div>
+        <div><div className="lp-name">Lucyna AI Mentor</div><div className="lp-status"><div className="lp-dot"/>Online · Always available</div></div>
+        <button className="lp-close" onClick={onClose}><IcoClose/></button>
       </div>
       <div className="lp-messages" ref={msgRef}>
-        {messages.map((m, i) => (
-          <div key={i} className={`lp-msg ${m.role === "user" ? "user" : ""}`}>
-            <div className={`msg-av ${m.role === "ai" ? "ai-av" : "usr-av"}`}>{m.role === "ai" ? "L" : "A"}</div>
-            <div className={`msg-bubble ${m.role}`} dangerouslySetInnerHTML={{ __html: m.html }} />
+        {messages.map((m,i)=>(
+          <div key={i} className={`lp-msg ${m.role==="user"?"user":""}`}>
+            <div className={`msg-av ${m.role==="ai"?"ai-av":"usr-av"}`}>{m.role==="ai"?"L":"A"}</div>
+            <div className={`msg-bubble ${m.role}`} dangerouslySetInnerHTML={{__html:m.html}}/>
           </div>
         ))}
-        {typing && (
+        {typing&&(
           <div className="lp-msg">
             <div className="msg-av ai-av">L</div>
-            <div className="msg-bubble ai"><div className="typing-dots"><span /><span /><span /></div></div>
+            <div className="msg-bubble ai"><div className="typing-dots"><span/><span/><span/></div></div>
           </div>
         )}
       </div>
-      {showChips && (
+      {showChips&&(
         <div className="lp-suggestions">
-          {["Practice MCQs", "Explain Deadlock", "My weak topics", "Assignment help"].map(c => (
-            <span key={c} className="lp-chip" onClick={() => send(c)}>{c}</span>
+          {["Practice MCQs","Explain Deadlock","My weak topics","Assignment help"].map(c=>(
+            <span key={c} className="lp-chip" onClick={()=>send(c)}>{c}</span>
           ))}
         </div>
       )}
       <div className="lp-input-row">
         <div className="lp-input-wrap">
           <input className="lp-input" value={input} placeholder="Ask anything about your coursework…"
-            onChange={e => setInput(e.target.value)} onKeyDown={e => e.key === "Enter" && send()} />
-          {input && <button className="lp-clear" onClick={() => setInput("")} aria-label="Clear"><IcoClose width={10} height={10} /></button>}
+            onChange={e=>setInput(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()}/>
+          {input&&<button className="lp-clear" onClick={()=>setInput("")}><IcoClose width={10} height={10}/></button>}
         </div>
         <label className="lp-attach" title="Attach file">
-          <input type="file" style={{ display: "none" }} />
+          <input type="file" style={{display:"none"}}/>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="16 16 12 12 8 16" /><line x1="12" y1="12" x2="12" y2="21" />
-            <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" />
+            <polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/>
+            <path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/>
           </svg>
         </label>
-        <button className="lp-send" onClick={() => send()}><IcoSend /></button>
+        <button className="lp-send" onClick={()=>send()}><IcoSend/></button>
       </div>
     </div>
   );
 }
 
-function LucynaFab({ onClick }) {
-  return (
+function LucynaFab({onClick}){
+  return(
     <button className="lucyna-fab" onClick={onClick} aria-label="Open Lucyna AI">
-      <div className="lucyna-fab-ring" /><div className="lucyna-fab-dot" />
-      <img src={lucynaJpg} alt="Lucyna" className="lucyna-fab-img" />
+      <div className="lucyna-fab-ring"/><div className="lucyna-fab-dot"/>
+      <img src={lucynaJpg} alt="Lucyna" className="lucyna-fab-img"/>
       <span className="lucyna-fab-tip">Ask Lucyna AI</span>
     </button>
   );
 }
 
 // ─── DASHBOARD CONTENT ───────────────────────────────────────────
-function DashboardContent({ stats, courses, schedule, quizzes, skills, onNavigateToAnalytics, onNavigateToMyCourses, onNavigateToVideoLectures, onNavigateToAssignments, onNavigateToQuizzes }) {
-  return (
+function DashboardContent({stats,courses,schedule,quizzes,skills,onNavigateToAnalytics,onNavigateToMyCourses,onNavigateToVideoLectures,onNavigateToAssignments,onNavigateToQuizzes}){
+  return(
     <div className="content">
       <div className="greet-row">
-        <div className="greet-tag">
-          <div className="greet-pip" />
-          <span className="greet-pip-txt">Semester 5 · Week 11</span>
-        </div>
+        <div className="greet-tag"><div className="greet-pip"/><span className="greet-pip-txt">Semester 5 · Week 11</span></div>
         <h1 className="greet-title">Good morning, <em>Arjun</em></h1>
         <p className="greet-sub">You have 3 pending assignments and 1 quiz due today. Let's get ahead.</p>
         <div className="greet-actions">
-          <Btn className="btn-solid" onClick={onNavigateToVideoLectures}><IcoPlay /> Continue Learning</Btn>
-          <Btn className="btn-ghost" onClick={onNavigateToAssignments}><IcoFile width={12} height={12} /> Assignments</Btn>
-          <Btn className="btn-ghost" onClick={onNavigateToQuizzes}><IcoClock width={12} height={12} /> Quizzes</Btn>
-          <Btn className="btn-ghost" onClick={onNavigateToAnalytics}><IcoBar width={12} height={12} /> Analytics</Btn>
+          <Btn className="btn-solid" onClick={onNavigateToVideoLectures}><IcoPlay/> Continue Learning</Btn>
+          <Btn className="btn-ghost" onClick={onNavigateToAssignments}><IcoFile width={12} height={12}/> Assignments</Btn>
+          <Btn className="btn-ghost" onClick={onNavigateToQuizzes}><IcoClock width={12} height={12}/> Quizzes</Btn>
+          <Btn className="btn-ghost" onClick={onNavigateToAnalytics}><IcoBar width={12} height={12}/> Analytics</Btn>
         </div>
       </div>
 
       <div className="stat-grid">
         {[
-          { cls: "sc-indigo", icon: <IcoBook width={18} height={18} />, val: stats.activeCourses, lbl: "Active Courses", delta: <><IcoChevUp />2 this semester</>, dc: "delta-up" },
-          { cls: "sc-teal", icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12" /></svg>, val: stats.cgpa, lbl: "Current CGPA", delta: <><IcoChevUp />+0.2 vs last sem</>, dc: "delta-up" },
-          { cls: "sc-amber", icon: <IcoUsers width={18} height={18} />, val: stats.attendance, lbl: "Attendance Rate", delta: <><IcoChevDn />Min 75% required</>, dc: "delta-dn" },
-          { cls: "sc-violet", icon: <IcoAward width={18} height={18} />, val: stats.placementIndex, lbl: "Placement Readiness", delta: <><IcoMinus />Improving steadily</>, dc: "delta-neu" },
-        ].map(({ cls, icon, val, lbl, delta, dc }, i) => (
-          <Hoverable key={lbl} className={`stat-card ${cls}`} style={{ animationDelay: `${(i + 1) * .07}s` }}>
+          {cls:"sc-indigo",icon:<IcoBook width={18} height={18}/>,val:stats.activeCourses,lbl:"Active Courses",delta:<><IcoChevUp/>2 this semester</>,dc:"delta-up"},
+          {cls:"sc-teal",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,val:stats.cgpa,lbl:"Current CGPA",delta:<><IcoChevUp/>+0.2 vs last sem</>,dc:"delta-up"},
+          {cls:"sc-amber",icon:<IcoUsers width={18} height={18}/>,val:stats.attendance,lbl:"Attendance Rate",delta:<><IcoChevDn/>Min 75% required</>,dc:"delta-dn"},
+          {cls:"sc-violet",icon:<IcoAward width={18} height={18}/>,val:stats.placementIndex,lbl:"Placement Readiness",delta:<><IcoMinus/>Improving steadily</>,dc:"delta-neu"},
+        ].map(({cls,icon,val,lbl,delta,dc},i)=>(
+          <Hoverable key={lbl} className={`stat-card ${cls}`} style={{animationDelay:`${(i+1)*.07}s`}}>
             <div className="stat-ic">{icon}</div>
             <div className="stat-val">{val}</div>
             <div className="stat-lbl">{lbl}</div>
@@ -483,28 +455,23 @@ function DashboardContent({ stats, courses, schedule, quizzes, skills, onNavigat
         ))}
       </div>
 
-      <div className="panel" style={{ animationDelay: "0.07s" }}>
+      <div className="panel" style={{animationDelay:"0.07s"}}>
         <div className="panel-hd">
-          <div className="panel-ttl">
-            <IcoBook width={14} height={14} style={{ color: "var(--indigo-ll)" }} />
-            Active Courses <span>{courses.length} enrolled</span>
-          </div>
-          <a href="#" className="panel-act" onClick={e => { e.preventDefault(); onNavigateToMyCourses(); }}>
-            View all <IcoChevR />
-          </a>
+          <div className="panel-ttl"><IcoBook width={14} height={14} style={{color:"var(--indigo-ll)"}}/> Active Courses <span>{courses.length} enrolled</span></div>
+          <a href="#" className="panel-act" onClick={e=>{e.preventDefault();onNavigateToMyCourses();}}>View all <IcoChevR/></a>
         </div>
         <div className="panel-body">
           <div className="course-list">
-            {courses.map(c => (
+            {courses.map(c=>(
               <Hoverable key={c.name} className="course-item">
                 <div className="ci-badge" style={c.badgeStyle}>{c.icon}</div>
                 <div className="ci-info">
                   <div className="ci-name">{c.name}</div>
                   <div className="ci-meta">{c.meta}</div>
                   <div className="ci-prog">
-                    <AnimatedProgressBar pct={c.pct} color={c.color} />
+                    <AnimatedProgressBar pct={c.pct} color={c.color}/>
                     <div className="ci-prog-lbl">
-                      <span className="ci-prog-pct" style={{ color: c.pctColor }}>{c.pct}%</span>
+                      <span className="ci-prog-pct" style={{color:c.pctColor}}>{c.pct}%</span>
                       <span className="ci-prog-next">{c.next}</span>
                     </div>
                   </div>
@@ -520,26 +487,19 @@ function DashboardContent({ stats, courses, schedule, quizzes, skills, onNavigat
       </div>
 
       <div className="bottom-grid">
-        <div className="panel" style={{ animationDelay: "0.07s" }}>
+        <div className="panel" style={{animationDelay:"0.07s"}}>
           <div className="panel-hd">
-            <div className="panel-ttl">
-              <IcoCal width={14} height={14} style={{ color: "var(--indigo-ll)" }} />
-              Today's Schedule <span>Fri, 28 Feb</span>
-            </div>
-            <a href="#" className="panel-act" onClick={e => e.preventDefault()}>Full week <IcoChevR /></a>
+            <div className="panel-ttl"><IcoCal width={14} height={14} style={{color:"var(--indigo-ll)"}}/> Today's Schedule <span>Fri, 28 Feb</span></div>
+            <a href="#" className="panel-act" onClick={e=>e.preventDefault()}>Full week <IcoChevR/></a>
           </div>
           <div className="panel-body">
             <div className="sched-list">
-              {schedule.map(s => (
+              {schedule.map(s=>(
                 <Hoverable key={s.from} className="sched-item">
-                  <div className="sched-time">
-                    <div className="st-from" style={{ color: s.color }}>{s.from}</div>
-                    <div className="st-to">{s.to}</div>
-                  </div>
-                  <div className="sched-div" style={{ background: s.color }} />
+                  <div className="sched-time"><div className="st-from" style={{color:s.color}}>{s.from}</div><div className="st-to">{s.to}</div></div>
+                  <div className="sched-div" style={{background:s.color}}/>
                   <div className="sched-info">
-                    <div className="si-name">{s.name}</div>
-                    <div className="si-room">{s.room}</div>
+                    <div className="si-name">{s.name}</div><div className="si-room">{s.room}</div>
                     <span className="si-tag" style={s.tagStyle}>{s.tag}</span>
                   </div>
                 </Hoverable>
@@ -548,25 +508,17 @@ function DashboardContent({ stats, courses, schedule, quizzes, skills, onNavigat
           </div>
         </div>
 
-        <div className="panel" style={{ animationDelay: "0.12s" }}>
+        <div className="panel" style={{animationDelay:"0.12s"}}>
           <div className="panel-hd">
-            <div className="panel-ttl">
-              <IcoClock width={14} height={14} style={{ color: "var(--indigo-ll)" }} />
-              Quiz Performance <span>Last 30 days</span>
-            </div>
-            <a href="#" className="panel-act" onClick={e => { e.preventDefault(); onNavigateToAnalytics(); }}>
-              Full Analytics <IcoChevR />
-            </a>
+            <div className="panel-ttl"><IcoClock width={14} height={14} style={{color:"var(--indigo-ll)"}}/> Quiz Performance <span>Last 30 days</span></div>
+            <a href="#" className="panel-act" onClick={e=>{e.preventDefault();onNavigateToAnalytics();}}>Full Analytics <IcoChevR/></a>
           </div>
           <div className="panel-body">
             <div className="quiz-list">
-              {quizzes.map(q => (
+              {quizzes.map(q=>(
                 <Hoverable key={q.name} className="quiz-item">
-                  <div className="qi-top">
-                    <span className="qi-name">{q.name}</span>
-                    <span className="qi-score" style={q.scoreStyle}>{q.score}</span>
-                  </div>
-                  <div className="qi-bar"><div className="qi-fill" style={{ width: `${q.pct}%`, background: q.bar }} /></div>
+                  <div className="qi-top"><span className="qi-name">{q.name}</span><span className="qi-score" style={q.scoreStyle}>{q.score}</span></div>
+                  <div className="qi-bar"><div className="qi-fill" style={{width:`${q.pct}%`,background:q.bar}}/></div>
                   <div className="qi-meta"><span>{q.answered}</span><span>{q.rank}</span></div>
                 </Hoverable>
               ))}
@@ -574,23 +526,18 @@ function DashboardContent({ stats, courses, schedule, quizzes, skills, onNavigat
           </div>
         </div>
 
-        <div className="panel" style={{ animationDelay: "0.18s" }}>
+        <div className="panel" style={{animationDelay:"0.18s"}}>
           <div className="panel-hd">
-            <div className="panel-ttl">
-              <IcoBar width={14} height={14} style={{ color: "var(--indigo-ll)" }} />
-              Skill Tracker
-            </div>
-            <a href="#" className="panel-act" onClick={e => { e.preventDefault(); onNavigateToAnalytics(); }}>
-              Full report <IcoChevR />
-            </a>
+            <div className="panel-ttl"><IcoBar width={14} height={14} style={{color:"var(--indigo-ll)"}}/> Skill Tracker</div>
+            <a href="#" className="panel-act" onClick={e=>{e.preventDefault();onNavigateToAnalytics();}}>Full report <IcoChevR/></a>
           </div>
           <div className="panel-body">
             <div className="skill-list">
-              {skills.map(s => (
+              {skills.map(s=>(
                 <Hoverable key={s.label} className="skill-item">
                   <span className="sk-label">{s.label}</span>
-                  <AnimatedProgressBar pct={s.pct} color={s.color} height={5} delay={600} />
-                  <span className="sk-pct" style={{ color: s.pctColor }}>{s.pct}%</span>
+                  <AnimatedProgressBar pct={s.pct} color={s.color} height={5} delay={600}/>
+                  <span className="sk-pct" style={{color:s.pctColor}}>{s.pct}%</span>
                 </Hoverable>
               ))}
             </div>
@@ -599,9 +546,7 @@ function DashboardContent({ stats, courses, schedule, quizzes, skills, onNavigat
               <div className="ss-pri">
                 <div className="ss-pri-val">{stats.placementIndex}</div>
                 <div className="ss-pri-info">
-                  <div className="ss-pri-bar">
-                    <AnimatedProgressBar pct={stats.placementIndex} color="linear-gradient(90deg,var(--indigo),var(--teal))" height={4} delay={700} />
-                  </div>
+                  <div className="ss-pri-bar"><AnimatedProgressBar pct={stats.placementIndex} color="linear-gradient(90deg,var(--indigo),var(--teal))" height={4} delay={700}/></div>
                   <div className="ss-pri-lbl">Good · Target 85 for excellent tier</div>
                 </div>
               </div>
@@ -613,7 +558,7 @@ function DashboardContent({ stats, courses, schedule, quizzes, skills, onNavigat
   );
 }
 
-// ─── MAIN COMPONENT ──────────────────────────────────────────────
+// ─── MAIN ────────────────────────────────────────────────────────
 export default function StudentDashboard() {
   const navigateRouter = useNavigate();
   const { page } = useParams();
@@ -623,53 +568,47 @@ export default function StudentDashboard() {
     return PAGE_PARAM_MAP[page.toLowerCase()] || ROUTES.DASHBOARD;
   });
 
-  const [aiOpen, setAiOpen] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-
-  // ── API STATES ──
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [stats, setStats] = useState({ activeCourses: "0", cgpa: "0.0", attendance: "0%", placementIndex: 0 });
-  const [courses, setCourses] = useState(INITIAL_COURSES);
-  const [schedule, setSchedule] = useState(INITIAL_SCHEDULE);
-  const [quizzes, setQuizzes] = useState(INITIAL_QUIZZES);
-  const [skills, setSkills] = useState(INITIAL_SKILLS);
+  const [aiOpen,      setAiOpen]      = useState(false);
+  const [mobileOpen,  setMobileOpen]  = useState(false);
+  const [notifOpen,   setNotifOpen]   = useState(false);
+  const [loading,     setLoading]     = useState(true);
+  const [error,       setError]       = useState(null);
+  const [stats,       setStats]       = useState({ activeCourses:"0", cgpa:"0.0", attendance:"0%", placementIndex:0 });
+  const [courses,     setCourses]     = useState(INITIAL_COURSES);
+  const [schedule,    setSchedule]    = useState(INITIAL_SCHEDULE);
+  const [quizzes,     setQuizzes]     = useState(INITIAL_QUIZZES);
+  const [skills,      setSkills]      = useState(INITIAL_SKILLS);
 
   useCursor();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
+  useEffect(()=>{
+    const fetchData=async()=>{
+      try{
         setLoading(true);
-        const data = await api.get("/student/dashboard").catch(() => null);
-        if (data) {
-          setStats(data.stats || stats);
-          if (data.courses)  setCourses(data.courses);
-          if (data.schedule) setSchedule(data.schedule);
-          if (data.quizzes)  setQuizzes(data.quizzes);
-          if (data.skills)   setSkills(data.skills);
+        const data=await api.get("/student/dashboard").catch(()=>null);
+        if(data){
+          setStats(data.stats||stats);
+          if(data.courses)  setCourses(data.courses);
+          if(data.schedule) setSchedule(data.schedule);
+          if(data.quizzes)  setQuizzes(data.quizzes);
+          if(data.skills)   setSkills(data.skills);
         }
-      } catch (err) {
-        console.error("Failed to fetch dashboard data:", err);
+      }catch(err){
+        console.error("Dashboard fetch failed:",err);
         setError("Could not load dashboard data. Using offline fallbacks.");
-      } finally {
-        setLoading(false);
-      }
+      }finally{ setLoading(false); }
     };
     fetchData();
-  }, []);
+  },[]);
 
-  useEffect(() => {
-    const h = e => { if (e.key === "Escape") { setAiOpen(false); setMobileOpen(false); } };
-    document.addEventListener("keydown", h);
-    return () => document.removeEventListener("keydown", h);
-  }, []);
+  useEffect(()=>{
+    const h=e=>{if(e.key==="Escape"){setAiOpen(false);setMobileOpen(false);setNotifOpen(false);}};
+    document.addEventListener("keydown",h);
+    return()=>document.removeEventListener("keydown",h);
+  },[]);
 
-  useEffect(() => {
-    window.scrollTo({ top: 0, behavior: "smooth" });
-  }, [activePage]);
+  useEffect(()=>{ window.scrollTo({top:0,behavior:"smooth"}); },[activePage]);
 
-  // ── URL slug map ──
   const ROUTE_TO_URL = {
     [ROUTES.ANALYTICS]:       "/studentdashboard/studentAnalytics",
     [ROUTES.MY_COURSES]:      "/studentdashboard/studentMycourses",
@@ -682,6 +621,9 @@ export default function StudentDashboard() {
     [ROUTES.PLACEMENT_PREP]:  "/studentdashboard/studentPlacementPrep",
     [ROUTES.INTERNSHIPS]:     "/studentdashboard/studentInternships",
     [ROUTES.MOCK_INTERVIEW]:  "/studentdashboard/studentMockInterview",
+    [ROUTES.SETTINGS]:        "/studentdashboard/studentSettings",
+    [ROUTES.PROFILE]:         "/studentdashboard/studentProfile",
+    [ROUTES.RESUME]:          "/studentdashboard/studentResume",
   };
 
   const navigate = (targetPage) => {
@@ -693,96 +635,82 @@ export default function StudentDashboard() {
 
   return (
     <>
-      <div className="sc-cursor" id="sc-cursor" />
-      <div className="sc-cursor-ring" id="sc-cursor-ring" />
-      <div className="sc-noise" />
+      <div className="sc-cursor" id="sc-cursor"/>
+      <div className="sc-cursor-ring" id="sc-cursor-ring"/>
+      <div className="sc-noise"/>
 
-      <LucynaFab onClick={() => setAiOpen(o => !o)} />
-      <LucynaPanel open={aiOpen} onClose={() => setAiOpen(false)} />
+      <LucynaFab onClick={()=>setAiOpen(o=>!o)}/>
+      <LucynaPanel open={aiOpen} onClose={()=>setAiOpen(false)}/>
 
       <div className="app">
         <Sidebar
           activePage={activePage}
           onNavigate={navigate}
           mobileOpen={mobileOpen}
-          onMobileClose={() => setMobileOpen(false)}
+          onMobileClose={()=>setMobileOpen(false)}
+          onNavigateSettings={()=>navigate(ROUTES.SETTINGS)}
+          onNavigateProfile={()=>navigate(ROUTES.PROFILE)}
         />
         <main className="main">
-          <Topbar activePage={activePage} onHamburger={() => setMobileOpen(o => !o)} />
+          <Topbar
+            activePage={activePage}
+            onHamburger={()=>setMobileOpen(o=>!o)}
+            onNavigateProfile={()=>navigate(ROUTES.PROFILE)}
+            onNavigateResume={()=>navigate(ROUTES.RESUME)}
+            notifCount={3}
+            notifOpen={notifOpen}
+            onToggleNotif={()=>setNotifOpen(o=>!o)}
+          />
 
           {error && (
-            <div style={{ padding: "10px 20px", background: "rgba(242,68,92,.1)", color: "var(--rose)", fontSize: 12, textAlign: "center" }}>
+            <div style={{padding:"10px 20px",background:"rgba(242,68,92,.1)",color:"var(--rose)",fontSize:12,textAlign:"center"}}>
               {error}
             </div>
           )}
 
           {activePage === ROUTES.DASHBOARD && (
             <DashboardContent
-              stats={stats}
-              courses={courses}
-              schedule={schedule}
-              quizzes={quizzes}
-              skills={skills}
-              onNavigateToAnalytics={() => navigate(ROUTES.ANALYTICS)}
-              onNavigateToMyCourses={() => navigate(ROUTES.MY_COURSES)}
-              onNavigateToVideoLectures={() => navigate(ROUTES.VIDEO_LECTURES)}
-              onNavigateToAssignments={() => navigate(ROUTES.ASSIGNMENTS)}
-              onNavigateToQuizzes={() => navigate(ROUTES.QUIZZES)}
+              stats={stats} courses={courses} schedule={schedule} quizzes={quizzes} skills={skills}
+              onNavigateToAnalytics={()=>navigate(ROUTES.ANALYTICS)}
+              onNavigateToMyCourses={()=>navigate(ROUTES.MY_COURSES)}
+              onNavigateToVideoLectures={()=>navigate(ROUTES.VIDEO_LECTURES)}
+              onNavigateToAssignments={()=>navigate(ROUTES.ASSIGNMENTS)}
+              onNavigateToQuizzes={()=>navigate(ROUTES.QUIZZES)}
             />
           )}
+          {activePage === ROUTES.ANALYTICS      && <StudentAnalytics    onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
+          {activePage === ROUTES.MY_COURSES     && <StudentMyCourses    onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
+          {activePage === ROUTES.VIDEO_LECTURES && <StudentVideoLectures onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
+          {activePage === ROUTES.ASSIGNMENTS    && <StudentAssignments  onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
+          {activePage === ROUTES.QUIZZES        && <StudentQuizzes      onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
+          {activePage === ROUTES.STUDY_GROUPS   && <StudentStudyGroups  onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
+          {activePage === ROUTES.SCHEDULE       && <StudentSchedule     onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
+          {activePage === ROUTES.INNOVATION_HUB && <StudentInnovationHub onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
+          {activePage === ROUTES.PLACEMENT_PREP && <StudentPlacementPrep onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
+          {activePage === ROUTES.INTERNSHIPS    && <StudentInternships  onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
+          {activePage === ROUTES.MOCK_INTERVIEW && <StudentMockInterview onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
 
-          {activePage === ROUTES.ANALYTICS && (
-            <StudentAnalytics onBack={() => navigate(ROUTES.DASHBOARD)} />
+          {/* ── NEW PAGES ── */}
+          {activePage === ROUTES.SETTINGS && (
+            <StudentSettings onBack={()=>navigate(ROUTES.DASHBOARD)}/>
+          )}
+          {activePage === ROUTES.PROFILE && (
+            <StudentProfile
+              onBack={()=>navigate(ROUTES.DASHBOARD)}
+              onNavigateSettings={()=>navigate(ROUTES.SETTINGS)}
+            />
+          )}
+          {activePage === ROUTES.RESUME && (
+            <StudentResume onBack={()=>navigate(ROUTES.DASHBOARD)}/>
           )}
 
-          {activePage === ROUTES.MY_COURSES && (
-            <StudentMyCourses onBack={() => navigate(ROUTES.DASHBOARD)} />
-          )}
-
-          {activePage === ROUTES.VIDEO_LECTURES && (
-            <StudentVideoLectures onBack={() => navigate(ROUTES.DASHBOARD)} />
-          )}
-
-          {activePage === ROUTES.ASSIGNMENTS && (
-            <StudentAssignments onBack={() => navigate(ROUTES.DASHBOARD)} />
-          )}
-
-          {activePage === ROUTES.QUIZZES && (
-            <StudentQuizzes onBack={() => navigate(ROUTES.DASHBOARD)} />
-          )}
-
-          {activePage === ROUTES.STUDY_GROUPS && (
-            <StudentStudyGroups onBack={() => navigate(ROUTES.DASHBOARD)} />
-          )}
-
-          {activePage === ROUTES.SCHEDULE && (
-            <StudentSchedule onBack={() => navigate(ROUTES.DASHBOARD)} />
-          )}
-
-          {activePage === ROUTES.INNOVATION_HUB && (
-            <StudentInnovationHub onBack={() => navigate(ROUTES.DASHBOARD)} />
-          )}
-
-          {activePage === ROUTES.PLACEMENT_PREP && (
-            <StudentPlacementPrep onBack={() => navigate(ROUTES.DASHBOARD)} />
-          )}
-
-          {/* ── THE TWO MISSING BLOCKS ── */}
-          {activePage === ROUTES.INTERNSHIPS && (
-            <StudentInternships onBack={() => navigate(ROUTES.DASHBOARD)} />
-          )}
-
-          {activePage === ROUTES.MOCK_INTERVIEW && (
-            <StudentMockInterview onBack={() => navigate(ROUTES.DASHBOARD)} />
-          )}
-
-          {/* Coming Soon — only shown for truly unknown pages */}
+          {/* Coming Soon */}
           {!KNOWN_PAGES.has(activePage) && (
             <div className="content">
-              <div style={{ padding: "60px 20px", textAlign: "center", color: "var(--text3)" }}>
-                <div style={{ fontSize: 32, marginBottom: 10 }}>🚧</div>
-                <div style={{ fontFamily: "'Fraunces',serif", fontSize: 22, color: "var(--text2)", marginBottom: 8 }}>{activePage}</div>
-                <div style={{ fontSize: 12 }}>This page is coming soon.</div>
+              <div style={{padding:"60px 20px",textAlign:"center",color:"var(--text3)"}}>
+                <div style={{fontSize:32,marginBottom:10}}>🚧</div>
+                <div style={{fontFamily:"'Fraunces',serif",fontSize:22,color:"var(--text2)",marginBottom:8}}>{activePage}</div>
+                <div style={{fontSize:12}}>This page is coming soon.</div>
               </div>
             </div>
           )}
