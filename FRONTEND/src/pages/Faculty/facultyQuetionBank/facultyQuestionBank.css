@@ -1,0 +1,52 @@
+/* questionBank.css */
+.qb-root { padding:26px 30px 100px; flex:1; animation:reveal-in .45s ease both; }
+.qb-page-hd { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:22px; flex-wrap:wrap; }
+.qb-back-btn { display:inline-flex; align-items:center; gap:5px; background:none; border:none; color:var(--text2); font-size:13px; cursor:pointer; margin-bottom:4px; padding:0; transition:color .18s; font-family:'Plus Jakarta Sans',sans-serif; }
+.qb-back-btn:hover { color:var(--text); }
+.qb-hd-right { display:flex; align-items:center; gap:8px; padding-top:8px; flex-wrap:wrap; }
+.qb-stat-strip { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:18px; }
+.qb-stat-strip .stat-card { margin-bottom:0; }
+.qb-toolbar { display:flex; gap:10px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
+.qb-search { display:flex; align-items:center; gap:8px; padding:0 12px; background:var(--surface2); border:1px solid var(--border); border-radius:9px; height:36px; flex:0 0 280px; transition:border-color .2s; }
+.qb-search:focus-within { border-color:rgba(91,78,248,.4); }
+.qb-search-inp { background:none; border:none; outline:none; font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; color:var(--text); flex:1; }
+.qb-search-inp::placeholder { color:var(--text3); }
+.qb-search-clear { background:none; border:none; color:var(--text3); cursor:pointer; display:flex; align-items:center; padding:2px; border-radius:4px; transition:color .18s; }
+.qb-search-clear:hover { color:var(--rose); }
+.qb-toolbar-right { display:flex; gap:8px; align-items:center; margin-left:auto; flex-wrap:wrap; }
+.qb-select { height:36px; padding:0 10px; background:var(--surface2); border:1px solid var(--border); border-radius:9px; color:var(--text2); font-family:'Plus Jakarta Sans',sans-serif; font-size:11.5px; cursor:pointer; outline:none; transition:border-color .18s; }
+.qb-select:focus { border-color:rgba(91,78,248,.4); }
+.qb-list-hd { display:flex; align-items:center; gap:8px; font-size:11px; color:var(--text3); margin-bottom:10px; }
+.qb-check-wrap { display:inline-flex; align-items:center; cursor:pointer; }
+.qb-check-wrap input { display:none; }
+.qb-check-box { width:16px; height:16px; border-radius:4px; border:1.5px solid var(--border2); background:var(--surface2); display:flex; align-items:center; justify-content:center; transition:border-color .18s,background .18s; color:var(--indigo-ll); flex-shrink:0; }
+.qb-check-wrap:hover .qb-check-box { border-color:var(--indigo-l); }
+.qb-card--sel .qb-check-box, .qb-check-wrap input:checked + .qb-check-box { background:rgba(91,78,248,.12); border-color:var(--indigo-l); }
+.qb-list { display:flex; flex-direction:column; gap:8px; }
+.qb-card { display:flex; align-items:flex-start; gap:12px; padding:14px 16px; background:var(--surface); border:1px solid var(--border); border-radius:12px; cursor:pointer; transition:border-color .2s,background .2s; animation:reveal-in .45s ease both; }
+.qb-card:hover { border-color:var(--border2); }
+.qb-card--sel { border-color:rgba(91,78,248,.3); background:rgba(91,78,248,.04); }
+.qb-card-body { flex:1; min-width:0; }
+.qb-card-top { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:8px; flex-wrap:wrap; }
+.qb-card-badges { display:flex; gap:5px; flex-wrap:wrap; align-items:center; }
+.qb-course-chip { font-size:9px; font-weight:800; letter-spacing:.06em; padding:2px 7px; border-radius:5px; border:1px solid; }
+.qb-unit-chip { font-size:9px; font-weight:600; color:var(--text3); padding:2px 6px; border-radius:5px; background:var(--surface3); border:1px solid var(--border); }
+.qb-type-badge { display:inline-flex; align-items:center; gap:3px; font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:6px; }
+.qb-diff-badge { font-size:9px; font-weight:700; padding:2px 7px; border-radius:6px; border:1px solid; }
+.qb-marks-badge { font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:10px; background:rgba(255,255,255,.05); border:1px solid var(--border); color:var(--text2); }
+.qb-card-acts { display:flex; gap:5px; }
+.qb-act-btn { width:24px; height:24px; border-radius:6px; background:var(--surface2); border:1px solid var(--border); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--text3); transition:background .18s,color .18s; font-family:'Plus Jakarta Sans',sans-serif; }
+.qb-act-btn:hover { background:var(--surface3); color:var(--text2); }
+.qb-act-del:hover { background:rgba(242,68,92,.1); color:var(--rose); border-color:rgba(242,68,92,.2); }
+.qb-question-text { font-size:13px; font-weight:500; color:var(--text); line-height:1.5; margin-bottom:8px; }
+.qb-options { display:flex; flex-wrap:wrap; gap:5px; margin-bottom:7px; }
+.qb-opt { font-size:10.5px; padding:3px 9px; border-radius:6px; background:var(--surface2); border:1px solid var(--border); color:var(--text3); display:inline-flex; align-items:center; gap:3px; }
+.qb-opt--correct { background:rgba(39,201,176,.1); border-color:rgba(39,201,176,.25); color:var(--teal); font-weight:700; }
+.qb-answer { font-size:11px; color:var(--text3); margin-bottom:6px; }
+.qb-card-footer { display:flex; align-items:center; gap:8px; }
+.qb-used { font-size:9.5px; color:var(--text3); background:var(--surface3); border:1px solid var(--border); padding:1px 7px; border-radius:8px; }
+.qb-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:80px 20px; text-align:center; color:var(--text3); }
+.qb-toast { position:fixed; bottom:32px; left:50%; transform:translateX(-50%); z-index:9999; padding:10px 22px; background:var(--surface); border:1px solid rgba(39,201,176,.3); border-radius:10px; font-size:13px; font-weight:600; color:var(--teal); box-shadow:0 16px 40px rgba(0,0,0,.5); animation:qb-toast-in .3s cubic-bezier(.16,1,.3,1); white-space:nowrap; }
+@keyframes qb-toast-in { from{opacity:0;transform:translateX(-50%) translateY(10px);}to{opacity:1;transform:translateX(-50%) translateY(0);} }
+@media(max-width:768px){ .qb-root{padding:18px 14px 100px;} .qb-stat-strip{grid-template-columns:1fr 1fr;} }
+@media(min-width:1400px){ .qb-root{padding:30px 40px 100px;} }

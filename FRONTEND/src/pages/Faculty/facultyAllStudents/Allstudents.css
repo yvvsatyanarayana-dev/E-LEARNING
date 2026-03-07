@@ -1,0 +1,72 @@
+/* allStudents.css — place at: src/pages/Faculty/allStudents/allStudents.css */
+.stu-root { padding: 26px 30px 100px; flex: 1; animation: reveal-in .45s ease both; }
+.stu-page-hd { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:22px; flex-wrap:wrap; }
+.stu-back-btn { display:inline-flex; align-items:center; gap:5px; background:none; border:none; color:var(--text2); font-size:13px; cursor:pointer; margin-bottom:4px; padding:0; transition:color .18s; font-family:'Plus Jakarta Sans',sans-serif; }
+.stu-back-btn:hover { color:var(--text); }
+.stu-hd-right { display:flex; align-items:center; gap:8px; padding-top:8px; flex-wrap:wrap; }
+
+.stu-stat-strip { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:18px; }
+.stu-stat-strip .stat-card { margin-bottom:0; }
+
+.stu-risk-banner { display:flex; align-items:center; gap:12px; padding:12px 18px; background:rgba(242,68,92,.06); border:1px solid rgba(242,68,92,.2); border-radius:12px; margin-bottom:16px; font-size:12px; color:var(--text2); flex-wrap:wrap; }
+.stu-risk-title { font-weight:700; color:var(--rose); }
+.stu-risk-sub { color:var(--text3); }
+
+.stu-toolbar { display:flex; gap:10px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
+.stu-search { display:flex; align-items:center; gap:8px; padding:0 12px; background:var(--surface2); border:1px solid var(--border); border-radius:9px; height:36px; flex:0 0 260px; transition:border-color .2s; }
+.stu-search:focus-within { border-color:rgba(91,78,248,.4); }
+.stu-search-inp { background:none; border:none; outline:none; font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; color:var(--text); flex:1; }
+.stu-search-inp::placeholder { color:var(--text3); }
+.stu-search-clear { background:none; border:none; color:var(--text3); cursor:pointer; display:flex; align-items:center; padding:2px; border-radius:4px; transition:color .18s; }
+.stu-search-clear:hover { color:var(--rose); }
+.stu-toolbar-right { display:flex; gap:8px; align-items:center; margin-left:auto; flex-wrap:wrap; }
+.stu-select { height:36px; padding:0 10px; background:var(--surface2); border:1px solid var(--border); border-radius:9px; color:var(--text2); font-family:'Plus Jakarta Sans',sans-serif; font-size:11.5px; cursor:pointer; outline:none; transition:border-color .18s; }
+.stu-select:focus { border-color:rgba(91,78,248,.4); }
+.stu-view-toggle { display:flex; background:var(--surface2); border:1px solid var(--border); border-radius:9px; overflow:hidden; }
+.stu-vbtn { width:36px; height:36px; display:flex; align-items:center; justify-content:center; background:none; border:none; color:var(--text3); cursor:pointer; transition:background .18s,color .18s; font-family:'Plus Jakarta Sans',sans-serif; }
+.stu-vbtn:hover { background:var(--surface3); color:var(--text2); }
+.stu-vbtn--active { background:rgba(91,78,248,.12); color:var(--indigo-ll); }
+.stu-results-bar { font-size:11px; color:var(--text3); margin-bottom:16px; }
+
+/* Grid */
+.stu-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+
+/* Card */
+.stu-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:16px; position:relative; overflow:hidden; cursor:default; transition:border-color .22s,transform .22s,box-shadow .22s; animation:reveal-in .45s ease both; display:flex; flex-direction:column; gap:10px; }
+.stu-card:hover { border-color:var(--border2); transform:translateY(-2px); box-shadow:0 8px 32px rgba(0,0,0,.28); }
+.stu-card-accent { position:absolute; top:0; left:0; right:0; height:2px; border-radius:2px 2px 0 0; }
+.stu-card-top { display:flex; align-items:center; gap:10px; }
+.stu-card-avatar { width:38px; height:38px; border-radius:50%; border:1.5px solid; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; }
+.stu-card-info { flex:1; min-width:0; }
+.stu-card-name { font-size:13px; font-weight:700; color:var(--text); }
+.stu-card-roll { font-size:9.5px; color:var(--text3); margin-top:2px; }
+.stu-card-chips { display:flex; gap:5px; flex-wrap:wrap; }
+.stu-course-chip { font-size:9px; font-weight:800; letter-spacing:.06em; padding:2px 7px; border-radius:5px; border:1px solid; }
+.stu-batch-chip { font-size:9px; font-weight:600; color:var(--text3); padding:2px 6px; border-radius:5px; background:var(--surface3); border:1px solid var(--border); }
+.stu-status-badge { display:inline-flex; align-items:center; font-size:9px; font-weight:700; padding:2px 8px; border-radius:10px; border:1px solid transparent; white-space:nowrap; flex-shrink:0; }
+.stu-card-stats { display:flex; align-items:center; gap:0; padding:10px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; }
+.stu-stat { flex:1; text-align:center; }
+.stu-stat-val { font-family:'Fraunces',serif; font-size:17px; font-weight:400; line-height:1; }
+.stu-stat-lbl { font-size:9px; color:var(--text3); margin-top:3px; }
+.stu-stat-sep { width:1px; height:28px; background:var(--border); flex-shrink:0; }
+.stu-card-email { display:flex; align-items:center; gap:5px; font-size:9.5px; color:var(--text3); }
+.stu-prog-track { width:100%; border-radius:4px; background:rgba(255,255,255,.06); overflow:hidden; }
+.stu-prog-fill  { height:100%; border-radius:4px; transition:width .6s ease; }
+
+/* List */
+.stu-list-panel { margin-top:4px; }
+.stu-list-head { display:grid; grid-template-columns:28px 1.6fr 72px 56px 56px 100px 64px 80px; gap:12px; align-items:center; padding:10px 20px; border-bottom:1px solid var(--border); font-size:9.5px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:.08em; }
+.stu-row { display:grid; grid-template-columns:28px 1.6fr 72px 56px 56px 100px 64px 80px; gap:12px; align-items:center; padding:12px 20px; border-bottom:1px solid var(--border); transition:background .18s; cursor:default; }
+.stu-row:last-child { border-bottom:none; }
+.stu-row:hover { background:rgba(255,255,255,.025); }
+.stu-row-num { font-size:10px; color:var(--text3); text-align:center; font-weight:600; }
+.stu-row-name-cell { display:flex; align-items:center; gap:8px; min-width:0; }
+.stu-row-avatar { width:26px; height:26px; border-radius:50%; border:1px solid; display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:700; flex-shrink:0; }
+.stu-row-name { font-size:12.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.stu-row-roll { font-size:9.5px; color:var(--text3); margin-top:1px; }
+.stu-row-att-col { display:flex; flex-direction:column; gap:3px; }
+.stu-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:80px 20px; text-align:center; color:var(--text3); }
+
+@media(max-width:1100px){ .stu-grid{grid-template-columns:repeat(2,1fr);} .stu-stat-strip{grid-template-columns:repeat(3,1fr);} }
+@media(max-width:768px){ .stu-root{padding:18px 14px 100px;} .stu-grid{grid-template-columns:1fr;} .stu-stat-strip{grid-template-columns:1fr 1fr;} .stu-search{flex:1 1 100%;} .stu-list-head,.stu-row{grid-template-columns:24px 1fr 64px 64px 72px;} .stu-row>*:nth-child(n+5){display:none;} .stu-list-head>*:nth-child(n+5){display:none;} }
+@media(min-width:1400px){ .stu-root{padding:30px 40px 100px;} .stu-grid{grid-template-columns:repeat(4,1fr);} }

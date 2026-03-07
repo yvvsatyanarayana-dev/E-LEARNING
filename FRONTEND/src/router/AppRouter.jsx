@@ -11,10 +11,13 @@ const SD = (
 );
 
 const router = createBrowserRouter([
+  // ──────── AUTH ROUTES ────────
   { path: "/",                element: <SmartCampus /> },
   { path: "/login",           element: <SmartCampus defaultModal="login" /> },
   { path: "/register",        element: <SmartCampus defaultModal="signup" /> },
   { path: "/forgot-password", element: <SmartCampus defaultModal="forgot" /> },
+
+  // ──────── STUDENT DASHBOARD ROUTES ────────
   { path: "/studentdashboard",                           element: SD },
   { path: "/studentdashboard/studentAnalytics",          element: SD },
   { path: "/studentdashboard/studentMycourses",          element: SD },
@@ -30,6 +33,8 @@ const router = createBrowserRouter([
   { path: "/studentdashboard/studentSettings",           element: SD },
   { path: "/studentdashboard/studentProfile",            element: SD },
   { path: "/studentdashboard/studentResume",             element: SD },
+
+  // ──────── FACULTY DASHBOARD ROUTES ────────
   {
     path: "/facultydashboard",
     element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
@@ -39,6 +44,48 @@ const router = createBrowserRouter([
     element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
   },
   {
+    path: "/facultydashboard/facultyMycourse",
+    element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+  },
+  {
+    path: "/facultydashboard/facultyVideoLectures",
+    element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+  },
+  {
+    path: "/facultydashboard/facultyAssignments",
+    element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+  },
+  {
+    path: "/facultydashboard/facultyQuizzes",
+    element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+  },
+  {
+    path: "/facultydashboard/allStudents",
+    element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+  },
+  {
+    path: "/facultydashboard/attendance",
+    element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+  },
+  {
+    path: "/facultydashboard/gradeBook",
+    element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+  },
+  {
+    path: "/facultydashboard/questionBank",
+    element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+  },
+  {
+    path: "/facultydashboard/aiAssistant",
+    element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+  },
+  {
+    path: "/facultydashboard/reports",
+    element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+  },
+
+  // ──────── OTHER DASHBOARD ROUTES ────────
+  {
     path: "/placementdashboard",
     element: <RoleRoute allowedRoles={["placement_officer","admin"]}><div>Placement Dashboard — coming soon</div></RoleRoute>,
   },
@@ -46,6 +93,8 @@ const router = createBrowserRouter([
     path: "/admindashboard",
     element: <RoleRoute allowedRoles={["admin"]}><div>Admin Dashboard — coming soon</div></RoleRoute>,
   },
+
+  // ──────── FALLBACK ROUTE ────────
   { path: "*", element: <Navigate to="/" replace /> },
 ]);
 
