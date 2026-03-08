@@ -2,101 +2,48 @@
 // Student-specific analytics module — imported into StudentDashboard.jsx
 // Uses CSS variables from StudentDashboard.css + studentAnalytics.css
 
-import { useState, useEffect } from "react";
-import {
-  ChevronLeft, ChevronRight, TrendingUp, BarChart2,
-  Users, Clock, Award, Target, Flame, Download,
-  Filter, BookOpen, Star, Activity, Zap
-} from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import api from "../../../utils/api";
+// ─── ICONS ───────────────────────────────────────────────────────
+const IcoTrendingUp   = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18" /><polyline points="17 6 23 6 23 12" /></svg>;
+const IcoTrendingDown = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6" /><polyline points="17 18 23 18 23 12" /></svg>;
+const IcoMinus        = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12" /></svg>;
+const IcoUsers        = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>;
+const IcoBarChart     = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>;
+const IcoTarget       = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><circle cx="12" cy="12" r="6" /><circle cx="12" cy="12" r="2" /></svg>;
+const IcoClock        = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>;
+const IcoAward        = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="6" /><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11" /></svg>;
+const IcoFlame        = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.5 3.5 6.5 1 1.5 1 2.5 1 3.25a6.5 6.5 0 1 1-13 0c0-1.5 1-3 2.5-4 .5 1.5 1.5 3 1.5 5.25n0 0z"/></svg>;
+const IcoDownload     = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;
+const IcoFilter       = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>;
+const IcoBookOpen     = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>;
+const IcoStar         = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
+const IcoActivity     = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>;
+const IcoZap          = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>;
+const IcoChevronLeft  = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"/></svg>;
+const IcoChevronRight = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>;
 
-// ─── DATA ────────────────────────────────────────────────────────
-const WEEKS = ["W5", "W6", "W7", "W8", "W9", "W10", "W11"];
-
-const MY_SCORE_TREND = {
-  OS:     [65, 70, 72, 78, 82, 79, 84],
-  DBMS:   [58, 62, 65, 70, 73, 76, 78],
-  ML:     [50, 55, 58, 60, 63, 65, 68],
-  CN:     [70, 72, 74, 76, 78, 80, 82],
-  Crypto: [40, 44, 46, 50, 52, 55, 58],
-};
-
-const CLASS_SCORE_TREND = {
-  OS:     [62, 65, 68, 71, 72, 74, 74],
-  DBMS:   [55, 58, 60, 63, 65, 67, 68],
-  ML:     [48, 50, 52, 55, 57, 59, 61],
-  CN:     [65, 67, 70, 72, 74, 76, 77],
-  Crypto: [38, 40, 42, 45, 47, 49, 52],
-};
-
-const QUIZ_HISTORY = [
-  { name: "OS – Process Scheduling", score: 92, classAvg: 74, rank: 3,  total: 112, date: "Week 9" },
-  { name: "DBMS – Normalization",    score: 85, classAvg: 68, rank: 8,  total: 112, date: "Week 8" },
-  { name: "CN – OSI Layers",         score: 78, classAvg: 72, rank: 14, total: 112, date: "Week 8" },
-  { name: "ML – Linear Regression",  score: 71, classAvg: 65, rank: 22, total: 112, date: "Week 7" },
-  { name: "Crypto – Symmetric Keys", score: 58, classAvg: 55, rank: 51, total: 112, date: "Week 6" },
-  { name: "OS – Memory Management",  score: 76, classAvg: 70, rank: 18, total: 112, date: "Week 6" },
-  { name: "DBMS – Transactions",     score: 80, classAvg: 66, rank: 11, total: 112, date: "Week 5" },
-];
-
-const SKILL_TREND = [
-  { label: "DSA",             scores: [72, 74, 76, 78, 80, 81, 82], color: "var(--teal)"     },
-  { label: "Python",          scores: [65, 67, 68, 70, 72, 73, 74], color: "var(--indigo-l)" },
-  { label: "SQL",             scores: [58, 60, 62, 64, 65, 67, 68], color: "var(--violet)"   },
-  { label: "Machine Learning",scores: [44, 47, 49, 51, 53, 54, 55], color: "var(--amber)"    },
-  { label: "System Design",   scores: [30, 33, 35, 37, 39, 40, 41], color: "var(--rose)"     },
-];
-
-const ATTENDANCE_BY_COURSE = [
-  { course: "OS",     pct: 88, classes: 37, attended: 33, color: "var(--indigo-l)" },
-  { course: "DBMS",   pct: 76, classes: 28, attended: 21, color: "var(--teal)"     },
-  { course: "ML",     pct: 81, classes: 27, attended: 22, color: "var(--amber)"    },
-  { course: "CN",     pct: 84, classes: 30, attended: 25, color: "var(--violet)"   },
-  { course: "Crypto", pct: 71, classes: 24, attended: 17, color: "var(--rose)"     },
-];
-
-const PLACEMENT_BREAKDOWN = [
-  { label: "DSA & Algorithms",   score: 82, weight: 30, color: "var(--teal)"     },
-  { label: "Core CS Subjects",   score: 74, weight: 25, color: "var(--indigo-l)" },
-  { label: "Communication",      score: 77, weight: 20, color: "var(--violet)"   },
-  { label: "Projects",           score: 65, weight: 15, color: "var(--amber)"    },
-  { label: "Competitive Coding", score: 58, weight: 10, color: "var(--rose)"     },
-];
-
-const ACHIEVEMENTS = [
-  { icon: "🏆", label: "Top 3% in OS Quiz",    sub: "Process Scheduling · Week 9", color: "var(--amber)"    },
-  { icon: "⚡", label: "7-Day Study Streak",    sub: "Consistent daily activity",   color: "var(--teal)"     },
-  { icon: "🎯", label: "DBMS Full Marks",       sub: "ER Diagram Assignment",       color: "var(--indigo-ll)"},
-  { icon: "📈", label: "Most Improved",         sub: "Cryptography +18pts",         color: "var(--violet)"   },
-];
-
-const COLOR_MAP = {
-  OS:     "var(--indigo-l)",
-  DBMS:   "var(--teal)",
-  ML:     "var(--amber)",
-  CN:     "var(--violet)",
-  Crypto: "var(--rose)",
-};
-
-const ATT_HEAT    = [
-  [1, 1, 1, 0, 1, 1, 1, 1],
-  [1, 0, 1, 1, 1, 1, 0, 1],
-  [1, 1, 0, 1, 0, 1, 1, 1],
-  [1, 1, 1, 1, 1, 0, 1, 1],
-  [0, 1, 1, 0, 1, 1, 1, 0],
-];
-const ATT_COURSES = ["OS", "DBMS", "ML", "CN", "Crypto"];
-const ATT_WEEKS   = ["W4", "W5", "W6", "W7", "W8", "W9", "W10", "W11"];
-
+// ─── TABS ──────────────────────────────────────────────────────────
 const TABS = [
-  { id: "performance", label: "Performance", Icon: TrendingUp  },
-  { id: "attendance",  label: "Attendance",  Icon: Users       },
-  { id: "skills",      label: "Skills",      Icon: BarChart2   },
-  { id: "placement",   label: "Placement",   Icon: Target      },
+  { id: "performance", label: "Performance", Icon: IcoTrendingUp },
+  { id: "attendance", label: "Attendance", Icon: IcoUsers },
+  { id: "skills", label: "Skills", Icon: IcoBarChart },
+  { id: "placement", label: "Placement", Icon: IcoTarget },
 ];
 
 const PERIODS = ["This Week", "Last 30 Days", "Semester"];
 
+const COLOR_MAP = {
+  OS: "var(--indigo-l)",
+  DBMS: "var(--teal)",
+  ML: "var(--amber)",
+  CN: "var(--violet)",
+  Crypto: "var(--rose)",
+};
+
+
 // ─── SHARED HELPERS ───────────────────────────────────────────────
+
 function AnimBar({ pct, color, height = 4, delay = 400 }) {
   const [w, setW] = useState(0);
   useEffect(() => {
@@ -242,23 +189,23 @@ function SparkLine({ values, color, width = 60, height = 24 }) {
 }
 
 // ─── ATTENDANCE HEATMAP ───────────────────────────────────────────
-function AttendHeatmap() {
+function AttendHeatmap({ heatmap, courses, weeks }) {
   return (
     <div className="att-heatmap">
       <div className="att-hm-header">
         <span className="att-hm-corner" />
-        {ATT_WEEKS.map(w => <span key={w} className="att-hm-wlbl">{w}</span>)}
+        {weeks.map(w => <span key={w} className="att-hm-wlbl">{w}</span>)}
       </div>
-      {ATT_HEAT.map((row, ri) => (
+      {heatmap.map((row, ri) => (
         <div key={ri} className="att-hm-row">
-          <span className="att-hm-clbl" style={{ color: COLOR_MAP[ATT_COURSES[ri]] }}>
-            {ATT_COURSES[ri]}
+          <span className="att-hm-clbl" style={{ color: COLOR_MAP[courses[ri]] }}>
+            {courses[ri]}
           </span>
           {row.map((v, ci) => (
             <div key={ci}
               className={`att-hm-cell ${v ? "present" : "absent"}`}
-              style={v ? { background: COLOR_MAP[ATT_COURSES[ri]], opacity: 0.7 } : {}}
-              title={`${ATT_COURSES[ri]} ${ATT_WEEKS[ci]}: ${v ? "Present" : "Absent"}`}
+              style={v ? { background: COLOR_MAP[courses[ri]], opacity: 0.7 } : {}}
+              title={`${courses[ri]} ${weeks[ci]}: ${v ? "Present" : "Absent"}`}
             />
           ))}
         </div>
@@ -272,37 +219,33 @@ function AttendHeatmap() {
 }
 
 // ─── PERFORMANCE TAB ─────────────────────────────────────────────
-function TabPerformance({ activeCourse, setActiveCourse }) {
-  const courses = Object.keys(MY_SCORE_TREND);
+function TabPerformance({ activeCourse, setActiveCourse, performance }) {
+  const courses = Object.keys(performance.my_score_trend);
 
   return (
     <div className="san-tab-content">
       {/* KPI row */}
       <div className="san-kpi-grid">
-        {[
-          { cls: "sc-teal",   val: "8.4",    lbl: "Current CGPA",   delta: "+0.2 vs last sem",  up: true  },
-          { cls: "sc-indigo", val: "3rd",    lbl: "Class Rank (OS)", delta: "Up from 8th",       up: true  },
-          { cls: "sc-amber",  val: "74%",    lbl: "Avg Quiz Score",  delta: "+6% this month",    up: true  },
-          { cls: "sc-violet", val: "Top 15%",lbl: "Batch Standing",  delta: "Stable",            up: null  },
-        ].map(({ cls, val, lbl, delta, up }) => (
+        {performance.kpis.map(({ cls, val, lbl, delta, up }) => (
           <div key={lbl} className={`san-kpi-card ${cls}`}>
             <div className="san-kpi-val">{val}</div>
             <div className="san-kpi-lbl">{lbl}</div>
             <span className={`stat-delta ${up === true ? "delta-up" : up === false ? "delta-dn" : "delta-neu"}`}>
-              {up === true  && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="18 15 12 9 6 15"/></svg>}
-              {up === false && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="6 9 12 15 18 9"/></svg>}
-              {up === null  && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>}
+              {up === true && <IcoTrendingUp size={9} strokeWidth={2.5} />}
+              {up === false && <IcoTrendingDown size={9} strokeWidth={2.5} />}
+              {up === null && <IcoMinus size={9} strokeWidth={2.5} />}
               {delta}
             </span>
           </div>
         ))}
       </div>
 
+
       {/* Score vs Class chart */}
       <div className="panel" style={{ marginBottom: 16 }}>
         <div className="panel-hd">
           <div className="panel-ttl">
-            <TrendingUp size={14} style={{ color: "var(--indigo-ll)" }} />
+            <IcoTrendingUp size={14} style={{ color: "var(--indigo-ll)" }} />
             My Score vs Class Average
             <span>Weekly · All courses</span>
           </div>
@@ -329,10 +272,10 @@ function TabPerformance({ activeCourse, setActiveCourse }) {
           </div>
           <LineChart
             datasets={[
-              { label: "Me",        values: MY_SCORE_TREND[activeCourse],    color: COLOR_MAP[activeCourse], bold: true },
-              { label: "Class Avg", values: CLASS_SCORE_TREND[activeCourse], color: "rgba(255,255,255,.25)", dashed: true },
+              { label: "Me", values: performance.my_score_trend[activeCourse], color: COLOR_MAP[activeCourse], bold: true },
+              { label: "Class Avg", values: performance.class_score_trend[activeCourse], color: "rgba(255,255,255,.25)", dashed: true },
             ]}
-            labels={WEEKS} height={155}
+            labels={performance.weeks} height={155}
           />
         </div>
       </div>
@@ -342,7 +285,7 @@ function TabPerformance({ activeCourse, setActiveCourse }) {
         <div className="panel">
           <div className="panel-hd">
             <div className="panel-ttl">
-              <Clock size={14} style={{ color: "var(--indigo-ll)" }} />
+              <IcoClock size={14} style={{ color: "var(--indigo-ll)" }} />
               Quiz History
               <span>Last 7 quizzes</span>
             </div>
@@ -355,7 +298,7 @@ function TabPerformance({ activeCourse, setActiveCourse }) {
                 <span>Avg</span>
                 <span>Rank</span>
               </div>
-              {QUIZ_HISTORY.map((q, i) => (
+              {performance.quiz_history.map((q, i) => (
                 <div key={i} className="qh-row">
                   <span className="qh-name">
                     <span className="qh-name-text">{q.name}</span>
@@ -376,16 +319,16 @@ function TabPerformance({ activeCourse, setActiveCourse }) {
         <div className="panel">
           <div className="panel-hd">
             <div className="panel-ttl">
-              <BarChart2 size={14} style={{ color: "var(--indigo-ll)" }} />
+              <IcoBarChart size={14} style={{ color: "var(--indigo-ll)" }} />
               Score Trend — All Courses
             </div>
           </div>
           <div className="panel-body">
             <div className="all-course-trends">
-              {Object.entries(MY_SCORE_TREND).map(([course, vals]) => {
+              {Object.entries(performance.my_score_trend).map(([course, vals]) => {
                 const latest = vals[vals.length - 1];
-                const prev   = vals[vals.length - 2] ?? latest;
-                const delta  = latest - prev;
+                const prev = vals[vals.length - 2] ?? latest;
+                const delta = latest - prev;
                 return (
                   <div key={course} className="act-row">
                     <span className="act-course" style={{ color: COLOR_MAP[course] }}>{course}</span>
@@ -408,10 +351,8 @@ function TabPerformance({ activeCourse, setActiveCourse }) {
 }
 
 // ─── ATTENDANCE TAB ───────────────────────────────────────────────
-function TabAttendance() {
-  const total    = ATTENDANCE_BY_COURSE.reduce((a, c) => a + c.classes,  0);
-  const attended = ATTENDANCE_BY_COURSE.reduce((a, c) => a + c.attended, 0);
-  const overallPct = Math.round((attended / total) * 100);
+function TabAttendance({ attendance }) {
+  const { overall_pct, total_classes, attended_classes, breakdown, heatmap, weeks, courses } = attendance;
 
   return (
     <div className="san-tab-content">
@@ -419,58 +360,59 @@ function TabAttendance() {
         <div className="sah-donut">
           <Donut
             segments={[
-              { pct: overallPct,       color: "var(--teal)"    },
-              { pct: 100 - overallPct, color: "var(--surface3)" },
+              { pct: overall_pct, color: "var(--teal)" },
+              { pct: 100 - overall_pct, color: "var(--surface3)" },
             ]}
             size={110} stroke={14}
           />
           <div className="sah-donut-label">
-            <div className="sah-val">{overallPct}%</div>
+            <div className="sah-val">{overall_pct}%</div>
             <div className="sah-sub">Overall</div>
           </div>
         </div>
         <div className="sah-info">
           <div className="sah-title">Attendance Overview</div>
-          <div className="sah-meta">Semester 5 · {total} classes total</div>
+          <div className="sah-meta">Semester 5 · {total_classes} classes total</div>
           <div className="sah-stats">
             <div className="sah-stat">
-              <span className="sah-stat-val teal">{attended}</span>
+              <span className="sah-stat-val teal">{attended_classes}</span>
               <span className="sah-stat-lbl">Attended</span>
             </div>
             <div className="sah-stat">
-              <span className="sah-stat-val rose">{total - attended}</span>
+              <span className="sah-stat-val rose">{total_classes - attended_classes}</span>
               <span className="sah-stat-lbl">Missed</span>
             </div>
             <div className="sah-stat">
-              <span className={`sah-stat-val ${overallPct >= 75 ? "teal" : "rose"}`}>
-                {overallPct >= 75 ? "Safe" : "At Risk"}
+              <span className={`sah-stat-val ${overall_pct >= 75 ? "teal" : "rose"}`}>
+                {overall_pct >= 75 ? "Safe" : "At Risk"}
               </span>
               <span className="sah-stat-lbl">Status</span>
             </div>
           </div>
           <div className="sah-warn">
-            {overallPct < 75
+            {overall_pct < 75
               ? <span className="sah-warn-bad">
-                  ⚠️ Below 75% minimum — attend {Math.ceil((75 * total - attended * 100) / 25)} more classes
-                </span>
+                ⚠️ Below 75% minimum — attend {Math.ceil((75 * total_classes - attended_classes * 100) / 25)} more classes
+              </span>
               : <span className="sah-warn-ok">
-                  ✅ You can miss {Math.floor((attended * 100 / 75) - total)} more classes safely
-                </span>
+                ✅ You can miss {Math.floor((attended_classes * 100 / 75) - total_classes)} more classes safely
+              </span>
             }
           </div>
         </div>
       </div>
 
+
       <div className="panel" style={{ marginBottom: 16 }}>
         <div className="panel-hd">
           <div className="panel-ttl">
-            <Users size={14} style={{ color: "var(--indigo-ll)" }} />
+            <IcoUsers size={14} style={{ color: "var(--indigo-ll)" }} />
             Per-Course Breakdown
           </div>
         </div>
         <div className="panel-body">
           <div className="attend-list">
-            {ATTENDANCE_BY_COURSE.map((a, i) => (
+            {breakdown.map((a, i) => (
               <div key={i} className="attend-item">
                 <span className="att-course" style={{ color: a.color }}>{a.course}</span>
                 <div className="att-bar-wrap">
@@ -493,13 +435,13 @@ function TabAttendance() {
       <div className="panel">
         <div className="panel-hd">
           <div className="panel-ttl">
-            <Clock size={14} style={{ color: "var(--indigo-ll)" }} />
+            <IcoClock size={14} style={{ color: "var(--indigo-ll)" }} />
             Weekly Attendance Pattern
             <span>Last 8 weeks</span>
           </div>
         </div>
         <div className="panel-body">
-          <AttendHeatmap />
+          <AttendHeatmap heatmap={heatmap} courses={courses} weeks={weeks} />
         </div>
       </div>
     </div>
@@ -507,15 +449,9 @@ function TabAttendance() {
 }
 
 // ─── SKILLS TAB ───────────────────────────────────────────────────
-function TabSkills() {
-  const radarData = [
-    { label: "DSA",        pct: 82 },
-    { label: "Python",     pct: 74 },
-    { label: "SQL",        pct: 68 },
-    { label: "ML",         pct: 55 },
-    { label: "Sys Design", pct: 41 },
-    { label: "Comms",      pct: 77 },
-  ];
+function TabSkills({ skills, weeks }) {
+  const { radar, progression, achievements } = skills;
+
 
   return (
     <div className="san-tab-content">
@@ -523,12 +459,12 @@ function TabSkills() {
         <div className="panel">
           <div className="panel-hd">
             <div className="panel-ttl">
-              <Target size={14} style={{ color: "var(--indigo-ll)" }} />
+              <IcoTarget size={14} style={{ color: "var(--indigo-ll)" }} />
               Skill Radar
             </div>
           </div>
           <div className="panel-body" style={{ display: "flex", justifyContent: "center", paddingTop: 8 }}>
-            <RadarChart data={radarData} size={220} />
+            <RadarChart data={radar} size={220} />
           </div>
         </div>
 
@@ -541,10 +477,10 @@ function TabSkills() {
           </div>
           <div className="panel-body">
             <div className="skill-trend-list">
-              {SKILL_TREND.map((s, i) => {
+              {progression.map((s, i) => {
                 const start = s.scores[0];
-                const end   = s.scores[s.scores.length - 1];
-                const gain  = end - start;
+                const end = s.scores[s.scores.length - 1];
+                const gain = end - start;
                 return (
                   <div key={i} className="stl-item">
                     <div className="stl-top">
@@ -567,12 +503,12 @@ function TabSkills() {
       <div className="panel">
         <div className="panel-hd">
           <div className="panel-ttl">
-            <TrendingUp size={14} style={{ color: "var(--indigo-ll)" }} />
+            <IcoTrendingUp size={14} style={{ color: "var(--indigo-ll)" }} />
             Skill Progression — All Skills
-            <span>Weekly · Semester 5</span>
+            <span>Weekly · {data.semester}</span>
           </div>
           <div className="san-legend">
-            {SKILL_TREND.map(s => (
+            {progression.map(s => (
               <span key={s.label} className="san-legend-item">
                 <span className="san-legend-dot" style={{ background: s.color }} />{s.label}
               </span>
@@ -581,8 +517,8 @@ function TabSkills() {
         </div>
         <div className="panel-body">
           <LineChart
-            datasets={SKILL_TREND.map(s => ({ label: s.label, values: s.scores, color: s.color }))}
-            labels={WEEKS} height={155}
+            datasets={progression.map(s => ({ label: s.label, values: s.scores, color: s.color }))}
+            labels={weeks} height={155}
           />
         </div>
       </div>
@@ -590,14 +526,14 @@ function TabSkills() {
       <div className="panel">
         <div className="panel-hd">
           <div className="panel-ttl">
-            <Award size={14} style={{ color: "var(--indigo-ll)" }} />
+            <IcoAward size={14} style={{ color: "var(--indigo-ll)" }} />
             Achievements
-            <span>{ACHIEVEMENTS.length} unlocked</span>
+            <span>{achievements.length} unlocked</span>
           </div>
         </div>
         <div className="panel-body">
           <div className="achieve-grid">
-            {ACHIEVEMENTS.map((a, i) => (
+            {achievements.map((a, i) => (
               <div key={i} className="achieve-card" style={{ borderColor: `${a.color}22` }}>
                 <div className="achieve-icon"
                   style={{ background: `${a.color}14`, border: `1px solid ${a.color}33` }}>
@@ -617,12 +553,19 @@ function TabSkills() {
 }
 
 // ─── PLACEMENT TAB ────────────────────────────────────────────────
-function TabPlacement() {
-  const pri      = 72;
-  const target   = 85;
-  const weighted = PLACEMENT_BREAKDOWN
+function TabPlacement({ placement }) {
+  const { pri, target, breakdown, suggestions, eligibility } = placement;
+  const weighted = breakdown
     .reduce((a, c) => a + c.score * (c.weight / 100), 0)
     .toFixed(1);
+
+  const getPRIInfo = (p) => {
+    if (p >= 80) return { tier: "Excellent", msg: "Excellent Tier · Top readiness" };
+    if (p >= 60) return { tier: "Good",      msg: `Good Tier · ${80 - p} pts to Excellent` };
+    if (p >= 40) return { tier: "Developing",msg: `Developing · ${60 - p} pts to Good tier` };
+    return { tier: "Beginner", msg: `Beginner · ${40 - p} pts to Developing` };
+  };
+  const priInfo = getPRIInfo(pri);
 
   return (
     <div className="san-tab-content">
@@ -631,9 +574,9 @@ function TabPlacement() {
         <div className="pri-donut-wrap">
           <Donut
             segments={[
-              { pct: pri,            color: "var(--indigo-l)"          },
-              { pct: target - pri,   color: "rgba(91,78,248,.15)"       },
-              { pct: 100 - target,   color: "var(--surface3)"           },
+              { pct: pri, color: "var(--indigo-l)" },
+              { pct: target - pri, color: "rgba(91,78,248,.15)" },
+              { pct: 100 - target, color: "var(--surface3)" },
             ]}
             size={120} stroke={14}
           />
@@ -644,7 +587,7 @@ function TabPlacement() {
         </div>
         <div className="pri-info">
           <div className="pri-title">Placement Readiness Index</div>
-          <div className="pri-grade">Good Tier · <em>13 points to Excellent</em></div>
+          <div className="pri-grade">{priInfo.msg}</div>
           <div className="pri-target-row">
             <span>Current</span>
             <div className="pri-target-bar">
@@ -655,10 +598,10 @@ function TabPlacement() {
           </div>
           <div className="pri-tiers">
             {[
-              ["Beginner",   "0",   "rose"     ],
-              ["Developing", "40",  "amber"    ],
-              ["Good",       "60",  "indigo-ll"],
-              ["Excellent",  "80",  "teal"     ],
+              ["Beginner", "0", "rose"],
+              ["Developing", "40", "amber"],
+              ["Good", "60", "indigo-ll"],
+              ["Excellent", "80", "teal"],
             ].map(([t, min, c]) => (
               <span key={t}
                 className={`pri-tier ${pri >= Number(min) ? "active" : ""}`}
@@ -677,12 +620,12 @@ function TabPlacement() {
         <div className="panel">
           <div className="panel-hd">
             <div className="panel-ttl">
-              <Target size={14} style={{ color: "var(--indigo-ll)" }} />
+              <IcoTarget size={14} style={{ color: "var(--indigo-ll)" }} />
               PRI Component Breakdown
             </div>
           </div>
           <div className="panel-body">
-            {PLACEMENT_BREAKDOWN.map((b, i) => (
+            {breakdown.map((b, i) => (
               <div key={i} className="plc-item">
                 <div className="plc-top">
                   <span className="plc-label">{b.label}</span>
@@ -703,18 +646,13 @@ function TabPlacement() {
         <div className="panel">
           <div className="panel-hd">
             <div className="panel-ttl">
-              <Flame size={14} style={{ color: "var(--rose)" }} />
+              <IcoFlame size={14} style={{ color: "var(--rose)" }} />
               Improvement Suggestions
             </div>
           </div>
           <div className="panel-body">
             <div className="improve-list">
-              {[
-                { area: "Cryptography",  action: "Focus on RSA & AES algorithms",    impact: "+4 PRI", color: "var(--rose)"     },
-                { area: "System Design", action: "Complete 2 mock design problems",   impact: "+3 PRI", color: "var(--amber)"    },
-                { area: "Projects",      action: "Add 1 more DBMS project",           impact: "+2 PRI", color: "var(--violet)"   },
-                { area: "ML",            action: "Finish SVM & Clustering modules",   impact: "+2 PRI", color: "var(--indigo-l)" },
-              ].map((s, i) => (
+              {suggestions.map((s, i) => (
                 <div key={i} className="improve-item">
                   <div className="imp-dot" style={{ background: s.color }} />
                   <div className="imp-body">
@@ -727,7 +665,7 @@ function TabPlacement() {
             </div>
             <div className="improve-cta">
               <div className="icta-title">Estimated PRI after improvements</div>
-              <div className="icta-val">83 <span>→ Excellent Tier 🎯</span></div>
+              <div className="icta-val">{pri + suggestions.reduce((acc, s) => acc + parseInt(s.impact), 0)} <span>→ {pri + suggestions.reduce((acc, s) => acc + parseInt(s.impact), 0) >= 80 ? "Excellent" : "Advanced"} Tier 🎯</span></div>
             </div>
           </div>
         </div>
@@ -737,19 +675,14 @@ function TabPlacement() {
       <div className="panel">
         <div className="panel-hd">
           <div className="panel-ttl">
-            <Award size={14} style={{ color: "var(--indigo-ll)" }} />
+            <IcoAward size={14} style={{ color: "var(--indigo-ll)" }} />
             Eligibility by Company Tier
             <span>Based on current PRI</span>
           </div>
         </div>
         <div className="panel-body">
           <div className="tier-grid">
-            {[
-              { tier: "Tier 1 (FAANG+)",  minPRI: 90, minCGPA: 9.0, eligible: false },
-              { tier: "Tier 2 (Product)",  minPRI: 80, minCGPA: 8.5, eligible: false },
-              { tier: "Tier 3 (Service)",  minPRI: 70, minCGPA: 8.0, eligible: true  },
-              { tier: "Tier 4 (Startup)",  minPRI: 55, minCGPA: 7.5, eligible: true  },
-            ].map((t, i) => (
+            {eligibility.map((t, i) => (
               <div key={i} className={`tier-card ${t.eligible ? "eligible" : "locked"}`}>
                 <div className="tc-tier">{t.tier}</div>
                 <div className="tc-reqs">
@@ -773,9 +706,32 @@ function TabPlacement() {
 
 // ─── MAIN EXPORT ─────────────────────────────────────────────────
 export default function StudentAnalytics({ onBack }) {
-  const [tab,          setTab]          = useState("performance");
-  const [period,       setPeriod]       = useState("Semester");
+  const [tab, setTab] = useState("performance");
+  const [period, setPeriod] = useState("Semester");
   const [activeCourse, setActiveCourse] = useState("OS");
+
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await api.get("/student/analytics");
+      setData(res);
+    } catch (err) {
+      console.error("Failed to fetch analytics:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  if (loading) return <div className="san-root" style={{ padding: 40, textAlign: "center" }}>Loading Analytics...</div>;
+  if (!data) return <div className="san-root" style={{ padding: 40, textAlign: "center" }}>Failed to load analytics data.</div>;
+
 
   return (
     <div className="san-root">
@@ -784,11 +740,11 @@ export default function StudentAnalytics({ onBack }) {
       <div className="san-page-hd">
         <div className="san-back-row">
           <button className="san-back-btn" onClick={onBack}>
-            <ChevronLeft size={13} /> Dashboard
+            <IcoChevronLeft size={13} /> Dashboard
           </button>
           <div className="san-breadcrumb">
             <span>Dashboard</span>
-            <ChevronRight size={11} style={{ color: "var(--text3)" }} />
+            <IcoChevronRight size={11} style={{ color: "var(--text3)" }} />
             <span className="san-bc-active">Analytics</span>
           </div>
         </div>
@@ -797,7 +753,7 @@ export default function StudentAnalytics({ onBack }) {
           <div>
             <div className="greet-tag" style={{ marginBottom: 8 }}>
               <div className="greet-pip" />
-              <span className="greet-pip-txt">Semester 5 · Week 11 · Personal Analytics</span>
+              <span className="greet-pip-txt">{data.semester} · Week {data.current_week} · Personal Analytics</span>
             </div>
             <h1 className="greet-title">My <em>Analytics</em></h1>
             <p className="greet-sub">Your personal performance breakdown across courses, skills & placement readiness.</p>
@@ -812,8 +768,8 @@ export default function StudentAnalytics({ onBack }) {
                 </button>
               ))}
             </div>
-            <button className="an-icon-btn" title="Export"><Download size={13} /></button>
-            <button className="an-icon-btn" title="Filter"><Filter size={13} /></button>
+            <button className="an-icon-btn" title="Export"><IcoDownload size={14} /></button>
+            <button className="an-icon-btn" title="Filter"><IcoFilter size={14} /></button>
           </div>
         </div>
       </div>
@@ -832,11 +788,15 @@ export default function StudentAnalytics({ onBack }) {
 
       {/* ── Tab content ── */}
       {tab === "performance" && (
-        <TabPerformance activeCourse={activeCourse} setActiveCourse={setActiveCourse} />
+        <TabPerformance
+          activeCourse={activeCourse}
+          setActiveCourse={setActiveCourse}
+          performance={data.performance}
+        />
       )}
-      {tab === "attendance" && <TabAttendance />}
-      {tab === "skills"     && <TabSkills />}
-      {tab === "placement"  && <TabPlacement />}
+      {tab === "attendance" && <TabAttendance attendance={data.attendance} />}
+      {tab === "skills" && <TabSkills skills={data.skills} weeks={data.performance.weeks} />}
+      {tab === "placement" && <TabPlacement placement={data.placement} />}
     </div>
   );
 }

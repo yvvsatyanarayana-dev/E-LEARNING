@@ -1,5 +1,6 @@
 // studentMockInterviews.jsx
 import { useState, useEffect, useRef, useCallback } from "react";
+import api from "../../../utils/api";
 import "./studentMockInterview.css";
 
 // ─── ICONS ───────────────────────────────────────────────────────
@@ -20,54 +21,6 @@ const IcoCal     = (p) => <svg {...p} width="13" height="13" viewBox="0 0 24 24"
 const IcoBook    = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>;
 
 // ─── DATA ────────────────────────────────────────────────────────
-const SESSION_HISTORY = [
-  {
-    id: 1, company: "Flipkart", type: "DSA Round", date: "Mar 07", time: "03:00 PM",
-    score: 84, logo: "F", logoBg: "rgba(244,165,53,.15)", logoColor: "var(--amber)",
-    duration: "45 min", questions: 3, solved: 3,
-    feedback: { problemSolving: 88, codeQuality: 82, timeManagement: 76, communication: 71 },
-    summary: "Strong approach on all three problems. Clean transitions from brute-force to optimal. Talk through edge cases before coding.",
-    tags: ["Arrays", "Two Pointer", "Hash Map"],
-  },
-  {
-    id: 2, company: "Amazon", type: "System Design", date: "Mar 10", time: "11:00 AM",
-    score: 78, logo: "A", logoBg: "rgba(255,153,0,.15)", logoColor: "#FF9900",
-    duration: "60 min", questions: 2, solved: 2,
-    feedback: { problemSolving: 80, codeQuality: 74, timeManagement: 82, communication: 68 },
-    summary: "Good grasp of scalability concepts. Improve on deep-dives into trade-offs, especially CAP theorem applications.",
-    tags: ["System Design", "Scalability", "CAP Theorem"],
-  },
-  {
-    id: 3, company: "Razorpay", type: "Behavioural Round", date: "Feb 28", time: "02:00 PM",
-    score: 71, logo: "R", logoBg: "rgba(39,201,176,.12)", logoColor: "var(--teal)",
-    duration: "30 min", questions: 5, solved: 5,
-    feedback: { problemSolving: 70, codeQuality: 65, timeManagement: 78, communication: 80 },
-    summary: "Good storytelling. Use the STAR framework more consistently — especially for conflict resolution scenarios.",
-    tags: ["HR", "Behavioural", "STAR Method"],
-  },
-];
-
-const ROUND_TYPES = [
-  { id: "technical",    label: "Technical DSA",   icon: <IcoCode />,   color: "var(--teal)",     desc: "Data structures, algorithms, and problem solving. Adaptive difficulty based on your current skill level.", duration: "45–60 min", rounds: 3 },
-  { id: "system",       label: "System Design",    icon: <IcoLayout />, color: "var(--violet)",   desc: "Design scalable systems — URL shorteners, social feeds, payment gateways. Real interview scenarios.", duration: "60 min", rounds: 2 },
-  { id: "behavioural",  label: "Behavioural / HR", icon: <IcoMic />,    color: "var(--amber)",    desc: "STAR-format questions on teamwork, conflict, leadership, and past projects. AI evaluates clarity and structure.", duration: "30 min", rounds: 5 },
-  { id: "aptitude",     label: "Aptitude & Logic", icon: <IcoBrain />,  color: "var(--indigo-l)", desc: "Quantitative, logical reasoning, and verbal ability. Common in tier-1 mass recruiters like TCS, Infosys.", duration: "40 min", rounds: 25 },
-];
-
-const QUESTION_BANK_SAMPLE = [
-  { id: "q1", topic: "Arrays",         difficulty: "Medium", title: "Two Sum",                    asked: ["Google", "Amazon"],     times: 142 },
-  { id: "q2", topic: "Trees",          difficulty: "Hard",   title: "Serialize & Deserialize BST", asked: ["Microsoft", "Flipkart"], times: 98 },
-  { id: "q3", topic: "System Design",  difficulty: "Hard",   title: "Design Twitter Feed",         asked: ["Amazon", "Google"],     times: 87 },
-  { id: "q4", topic: "DP",             difficulty: "Hard",   title: "Longest Common Subsequence",  asked: ["Adobe", "Infosys"],     times: 114 },
-  { id: "q5", topic: "Behavioural",    difficulty: "Easy",   title: "Tell me about yourself",      asked: ["All Companies"],        times: 300 },
-  { id: "q6", topic: "Graphs",         difficulty: "Medium", title: "Number of Islands",           asked: ["Flipkart", "Swiggy"],   times: 76 },
-];
-
-const AI_INTERVIEW_MESSAGES = [
-  { role: "ai", text: "Hi Arjun! 👋 I'll be your interviewer today for the **Flipkart SDE-1 DSA Round**. We'll cover 2–3 problems over the next 45 minutes. Ready to begin?" },
-  { role: "user", text: "Yes, let's go!" },
-  { role: "ai", text: "Great! Here's your first problem:\n\n**Problem:** Given an array of integers and a target sum, return the indices of two numbers that add up to the target. Assume exactly one solution exists.\n\nExample: `nums = [2, 7, 11, 15], target = 9` → `[0, 1]`\n\nTake a moment to think aloud before coding." },
-];
 
 // ─── BAR COMPONENT ───────────────────────────────────────────────
 function Bar({ pct, color, delay = 400, height = 4 }) {
@@ -145,11 +98,12 @@ function RadarChart({ data }) {
 // ─── SESSION REVIEW MODAL ────────────────────────────────────────
 function SessionReview({ session, onClose }) {
   if (!session) return null;
+  const f = session.feedback || {};
   const radarData = [
-    { label: "Problem Solving",  value: session.feedback.problemSolving },
-    { label: "Code Quality",     value: session.feedback.codeQuality },
-    { label: "Communication",    value: session.feedback.communication },
-    { label: "Time Management",  value: session.feedback.timeManagement },
+    { label: "Problem Solving",  value: f.problemSolving || f.problem_solving || 0 },
+    { label: "Code Quality",     value: f.codeQuality || f.code_quality || 0 },
+    { label: "Communication",    value: f.communication || 0 },
+    { label: "Time Management",  value: f.timeManagement || f.time_management || 0 },
   ];
   return (
     <>
@@ -176,7 +130,7 @@ function SessionReview({ session, onClose }) {
           <div className="mi-modal-detail">
             <div className="mi-modal-section">
               <div className="mi-modal-section-ttl">Performance Breakdown</div>
-              {Object.entries(session.feedback).map(([key, val], i) => {
+              {Object.entries(session.feedback || {}).map(([key, val], i) => {
                 const label = key.replace(/([A-Z])/g, ' $1').trim();
                 const color = val >= 80 ? "var(--teal)" : val >= 70 ? "var(--indigo-l)" : val >= 60 ? "var(--amber)" : "var(--rose)";
                 return (
@@ -223,7 +177,9 @@ function SessionReview({ session, onClose }) {
 
 // ─── SIMULATOR SCREEN ────────────────────────────────────────────
 function SimulatorScreen({ type, onBack }) {
-  const [messages, setMessages] = useState(AI_INTERVIEW_MESSAGES);
+  const [messages, setMessages] = useState([
+    { role: "ai", text: `Hi! 👋 I'll be your interviewer today for the **${type}**. Ready to begin?` }
+  ]);
   const [input, setInput]       = useState("");
   const [typing, setTyping]     = useState(false);
   const [timer, setTimer]       = useState(0);
@@ -366,20 +322,35 @@ function SimulatorScreen({ type, onBack }) {
 }
 
 // ─── MAIN COMPONENT ──────────────────────────────────────────────
+const ICON_MAP = {
+  Code: <IcoCode />,
+  Layout: <IcoLayout />,
+  Mic: <IcoMic />,
+  Brain: <IcoBrain />
+};
+
 export default function StudentMockInterviews({ onBack }) {
   const [activeTab, setActiveTab]         = useState("home");
   const [simType, setSimType]             = useState(null);
   const [simActive, setSimActive]         = useState(false);
   const [reviewSession, setReviewSession] = useState(null);
+  const [data, setData]                   = useState(null);
+
+  useEffect(() => {
+    import("../../../utils/api").then(({ default: api }) => {
+      api.get("/student/mock-interviews").then(res => setData(res)).catch(console.error);
+    });
+  }, []);
+
+  if (!data) return <div className="mi-root" style={{ padding: 40, textAlign: "center" }}>Loading Interview Data...</div>;
+  const { session_history, round_types, question_bank, stats, insights } = data;
 
   const tabs = [
     { id: "home",     label: "Start Interview",  icon: <IcoPlay /> },
-    { id: "history",  label: "Session History",  icon: <IcoCal />,  badge: SESSION_HISTORY.length },
+    { id: "history",  label: "Session History",  icon: <IcoCal />,  badge: session_history.length },
     { id: "bank",     label: "Question Bank",    icon: <IcoBook /> },
     { id: "insights", label: "My Insights",      icon: <IcoTrend /> },
   ];
-
-  const avgScore = Math.round(SESSION_HISTORY.reduce((s, h) => s + h.score, 0) / SESSION_HISTORY.length);
 
   if (simActive) {
     return <SimulatorScreen type={simType} onBack={() => setSimActive(false)} />;
@@ -401,10 +372,10 @@ export default function StudentMockInterviews({ onBack }) {
         </div>
         <div className="mi-header-stats">
           {[
-            { val: SESSION_HISTORY.length, lbl: "Sessions Done",  color: "var(--indigo-ll)" },
-            { val: `${avgScore}%`,         lbl: "Avg Score",      color: "var(--teal)" },
-            { val: "7",                    lbl: "Streak Days 🔥", color: "var(--amber)" },
-            { val: "#14",                  lbl: "Class Rank",     color: "var(--violet)" },
+            { val: stats.sessions_done, lbl: "Sessions Done",  color: "var(--indigo-ll)" },
+            { val: `${stats.avg_score}%`, lbl: "Avg Score",      color: "var(--teal)" },
+            { val: stats.streak_days,    lbl: "Streak Days 🔥", color: "var(--amber)" },
+            { val: `#${stats.class_rank}`, lbl: "Class Rank",     color: "var(--violet)" },
           ].map(s => (
             <div key={s.lbl} className="mi-hs-item">
               <span className="mi-hs-val" style={{ color: s.color }}>{s.val}</span>
@@ -428,7 +399,7 @@ export default function StudentMockInterviews({ onBack }) {
       {activeTab === "home" && (
         <div className="mi-home-layout">
           <div className="mi-round-grid">
-            {ROUND_TYPES.map((rt, i) => (
+            {round_types.map((rt, i) => (
               <div
                 key={rt.id}
                 className={`mi-round-card ${simType === rt.id ? "selected" : ""}`}
@@ -437,7 +408,7 @@ export default function StudentMockInterviews({ onBack }) {
               >
                 <div className="mi-rc-top">
                   <div className="mi-rc-icon" style={{ color: rt.color, background: rt.color.replace("var(--", "rgba(").replace(")", ",.12)").replace("var(--teal)", "rgba(39,201,176,.12)").replace("var(--violet)", "rgba(159,122,234,.12)").replace("var(--amber)", "rgba(244,165,53,.12)").replace("var(--indigo-l)", "rgba(123,111,250,.12)") }}>
-                    {rt.icon}
+                    {ICON_MAP[rt.icon]}
                   </div>
                   {simType === rt.id && <div className="mi-rc-sel-dot"><IcoCheck /></div>}
                 </div>
@@ -471,7 +442,7 @@ export default function StudentMockInterviews({ onBack }) {
               onClick={() => simType && setSimActive(true)}
               disabled={!simType}
             >
-              <IcoPlay /> {simType ? `Start ${ROUND_TYPES.find(r => r.id === simType)?.label}` : "Select a round type above"}
+              <IcoPlay /> {simType ? `Start ${round_types.find(r => r.id === simType)?.label}` : "Select a round type above"}
             </button>
           </div>
         </div>
@@ -480,7 +451,7 @@ export default function StudentMockInterviews({ onBack }) {
       {/* ══════ HISTORY ══════ */}
       {activeTab === "history" && (
         <div className="mi-history-layout">
-          {SESSION_HISTORY.map((s, i) => (
+          {session_history.map((s, i) => (
             <div key={s.id} className="mi-history-card" style={{ animationDelay: `${i * .07}s` }}>
               <div className="mi-hc-left">
                 <div className="mi-hc-logo" style={{ background: s.logoBg, color: s.logoColor }}>{s.logo}</div>
@@ -520,7 +491,7 @@ export default function StudentMockInterviews({ onBack }) {
             <div className="mi-bt-header">
               <span>Problem</span><span>Topic</span><span>Difficulty</span><span>Asked By</span><span>Times Asked</span><span></span>
             </div>
-            {QUESTION_BANK_SAMPLE.map((q, i) => (
+            {question_bank.map((q, i) => (
               <div key={q.id} className="mi-bt-row" style={{ animationDelay: `${i * .05}s` }}>
                 <span className="mi-bt-title">{q.title}</span>
                 <span className="mi-bt-topic">{q.topic}</span>
@@ -541,7 +512,7 @@ export default function StudentMockInterviews({ onBack }) {
           <div className="mi-insight-card">
             <div className="mi-ic-hd"><span className="mi-ic-ttl"><IcoTrend style={{ color: "var(--indigo-ll)" }} /> Score Trend</span></div>
             <div className="mi-score-trend">
-              {[...SESSION_HISTORY].reverse().concat([{ type: "Next Goal", score: 90, logo: "?", logoBg: "rgba(91,78,248,.1)", logoColor: "var(--indigo-ll)" }]).map((s, i, arr) => (
+              {[...session_history].reverse().concat([{ type: "Next Goal", score: 90, logo: "?", logoBg: "rgba(91,78,248,.1)", logoColor: "var(--indigo-ll)" }]).map((s, i, arr) => (
                 <div key={i} className="mi-trend-col">
                   <div className="mi-trend-score" style={{ color: s.score >= 80 ? "var(--teal)" : s.score >= 70 ? "var(--amber)" : "var(--rose)" }}>{s.score}</div>
                   <div className="mi-trend-bar-wrap">
@@ -558,23 +529,14 @@ export default function StudentMockInterviews({ onBack }) {
             <div className="mi-insight-card">
               <div className="mi-ic-hd"><span className="mi-ic-ttl"><IcoStar style={{ color: "var(--amber)" }} /> Skill Radar</span></div>
               <div style={{ display: "flex", justifyContent: "center", padding: "10px 0" }}>
-                <RadarChart data={[
-                  { label: "Problem Solving", value: 79 },
-                  { label: "Code Quality",    value: 74 },
-                  { label: "Communication",   value: 73 },
-                  { label: "Time Mgmt",       value: 79 },
-                ]} />
+                <RadarChart data={insights?.radar || []} />
               </div>
             </div>
 
             <div className="mi-insight-card">
               <div className="mi-ic-hd"><span className="mi-ic-ttl"><IcoBrain style={{ color: "var(--indigo-ll)" }} /> Weak Areas</span></div>
               <div className="mi-weak-list">
-                {[
-                  { topic: "Dynamic Programming", sessions: 3, avgScore: 52, color: "var(--rose)" },
-                  { topic: "System Design",        sessions: 1, avgScore: 62, color: "var(--amber)" },
-                  { topic: "Communication Style",  sessions: 4, avgScore: 71, color: "var(--violet)" },
-                ].map((w, i) => (
+                {(insights?.weak_areas || []).map((w, i) => (
                   <div key={w.topic} className="mi-weak-item">
                     <div className="mi-weak-top">
                       <span className="mi-weak-topic">{w.topic}</span>

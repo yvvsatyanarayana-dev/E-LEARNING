@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text
+from sqlalchemy import Column, Integer, String, ForeignKey, DateTime, Text, JSON
 from sqlalchemy.orm import relationship
 from Core.Database import Base
 
@@ -42,10 +42,20 @@ class ForumPost(Base):
 class StudyGroup(Base):
     __tablename__ = "study_groups"
 
-    id         = Column(Integer, primary_key=True, index=True)
-    name       = Column(String(200), nullable=False)
-    course_id  = Column(Integer, ForeignKey("courses.id"), nullable=False)
-    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    id              = Column(Integer, primary_key=True, index=True)
+    name            = Column(String(200), nullable=False)
+    description     = Column(Text, nullable=True)
+    icon            = Column(String(50), nullable=True)
+    color           = Column(String(50), nullable=True) # CSS var name
+    color_rgb       = Column(String(50), nullable=True) # For translucent bgs
+    type            = Column(String(20), default="public") # public/private
+    tags            = Column(JSON, nullable=True)
+    streak          = Column(Integer, default=0)
+    resources_count = Column(Integer, default=0)
+    messages_count  = Column(Integer, default=0)
+    last_activity   = Column(String(50), nullable=True)
+    course_id       = Column(Integer, ForeignKey("courses.id"), nullable=False)
+    created_at      = Column(DateTime(timezone=True), default=datetime.utcnow)
 
     # Relationships
     course  = relationship("Course", back_populates="study_groups")

@@ -310,8 +310,8 @@ function VideoPlayer({ lecture, course, onClose }) {
 }
 
 // ─── COURSE SIDEBAR ───────────────────────────────────────────────
-function CourseSidebar({ activeCourseId, onSelect }) {
-  const allCount = Object.values(LECTURES_BY_COURSE).flat().length;
+function CourseSidebar({ courses, lecturesByCourse, activeCourseId, onSelect }) {
+  const allCount = Object.values(lecturesByCourse || {}).flat().length;
   return (
     <div className="vl-course-sidebar">
       <div className="vl-cs-title">Courses</div>
@@ -324,8 +324,8 @@ function CourseSidebar({ activeCourseId, onSelect }) {
           <span className="vl-cs-count">{allCount} lectures</span>
         </div>
       </button>
-      {COURSES.map(c=>{
-        const lecs=LECTURES_BY_COURSE[c.id]||[];
+      {(courses || []).map(c=>{
+        const lecs=lecturesByCourse[c.id]||[];
         const watched=lecs.filter(l=>l.watched).length;
         return (
           <button key={c.id}
@@ -351,8 +351,8 @@ function CourseSidebar({ activeCourseId, onSelect }) {
 }
 
 // ─── STATS STRIP ─────────────────────────────────────────────────
-function StatsStrip() {
-  const all=Object.values(LECTURES_BY_COURSE).flat();
+function StatsStrip({ lecturesByCourse }) {
+  const all=Object.values(lecturesByCourse || {}).flat();
   const total=all.length, watched=all.filter(l=>l.watched).length, inProg=all.filter(l=>l.watchPct>0&&l.watchPct<100).length;
   const totalMin=all.filter(l=>l.watched).reduce((a,l)=>{const[m,s]=l.duration.split(":").map(Number);return a+m+s/60;},0);
   const hrs=Math.floor(totalMin/60), min=Math.round(totalMin%60);
@@ -376,7 +376,7 @@ function StatsStrip() {
 }
 
 // ─── FEATURED STRIP ───────────────────────────────────────────────
-function FeaturedStrip({ onPlay }) {
+function FeaturedStrip({ courses, lecturesByCourse, onPlay }) {
   return (
     <div className="vl-featured-strip">
       <div className="panel-ttl" style={{marginBottom:12}}>
@@ -385,8 +385,8 @@ function FeaturedStrip({ onPlay }) {
       </div>
       <div className="vl-featured-list">
         {FEATURED_IDS.map(({courseId,lectureId})=>{
-          const course=COURSES.find(c=>c.id===courseId);
-          const lecture=(LECTURES_BY_COURSE[courseId]||[]).find(l=>l.id===lectureId);
+          const course=(courses || []).find(c=>c.id===courseId);
+          const lecture=(lecturesByCourse[courseId]||[]).find(l=>l.id===lectureId);
           if(!course||!lecture) return null;
           return (
             <div key={lectureId} className="vl-featured-card"
@@ -450,14 +450,53 @@ export default function StudentVideoLectures({ onBack }) {
   const [showSortDd,setShowSortDd] = useState(false);
   const [playingLecture, setPlayingLecture] = useState(null);
   const [playingCourse,  setPlayingCourse]  = useState(null);
+  
+  const [coursesState, setCoursesState]     = useState(COURSES);
+  const [lecturesState, setLecturesState]   = useState(LECTURES_BY_COURSE);
 
-  const activeCourse = COURSES.find(c=>c.id===activeCourseId)||null;
+  useEffect(() => {
+    import("../../../utils/api").then(({ default: api }) => {
+      Promise.all([
+        api.get("/student/courses"),
+        api.get("/student/lessons")
+      ]).then(([coursesData, lessonsData]) => {
+        const colors = ["var(--indigo-l)", "var(--teal)", "var(--amber)", "var(--violet)", "var(--rose)"];
+        const rgbs = ["91,78,248", "20,184,166", "245,158,11", "139,92,246", "244,63,94"];
+        
+        const mappedCourses = coursesData.map((c, i) => ({
+          id: "cs" + c.id, code: c.code, name: c.name, short: c.code.split(" ")[0] || c.code,
+          faculty: c.faculty_name || "Faculty", color: colors[i % colors.length], colorRgb: rgbs[i % rgbs.length],
+          totalLectures: c.total_lessons || 10, watchedLectures: Math.floor(c.progress || 0)
+        }));
+        setCoursesState(mappedCourses);
+
+        const byCourse = {};
+        mappedCourses.forEach(c => byCourse[c.id] = []);
+        lessonsData.forEach(l => {
+          const cid = "cs" + l.course_id;
+          if (!byCourse[cid]) byCourse[cid] = [];
+          byCourse[cid].push({
+            id: "l" + l.id, unit: l.unit_number || 1, unitName: l.unit_name || "General",
+            title: l.title, duration: l.duration ? `${l.duration}:00` : "40:00",
+            views: parseInt(l.views || 0), likes: 0, watched: l.is_completed,
+            watchPct: l.is_completed ? 100 : 0, date: l.created_at ? l.created_at.split("T")[0] : "TBD",
+            thumb: ["indigo", "teal", "amber", "violet", "rose"][byCourse[cid].length % 5], 
+            description: l.description, tags: ["Lecture"],
+            locked: false, isNext: false
+          });
+        });
+        setLecturesState(byCourse);
+      }).catch(console.error);
+    });
+  }, []);
+
+  const activeCourse = coursesState.find(c=>c.id===activeCourseId)||null;
 
   // Build flat lecture list with _course ref
   const lecturesFlat = activeCourseId
-    ? (LECTURES_BY_COURSE[activeCourseId]||[]).map(l=>({...l,_course:activeCourse}))
-    : Object.entries(LECTURES_BY_COURSE).flatMap(([cid,lecs])=>
-        lecs.map(l=>({...l,_course:COURSES.find(c=>c.id===cid)}))
+    ? (lecturesState[activeCourseId]||[]).map(l=>({...l,_course:activeCourse}))
+    : Object.entries(lecturesState).flatMap(([cid,lecs])=>
+        lecs.map(l=>({...l,_course:coursesState.find(c=>c.id===cid)}))
       );
 
   // Filter
@@ -516,7 +555,7 @@ export default function StudentVideoLectures({ onBack }) {
             <div>
               <div className="greet-tag" style={{marginBottom:8}}>
                 <div className="greet-pip"/>
-                <span className="greet-pip-txt">Semester 5 · Week 11 · {Object.values(LECTURES_BY_COURSE).flat().length} Lectures</span>
+                <span className="greet-pip-txt">Semester 5 · Week 11 · {Object.values(lecturesState).flat().length} Lectures</span>
               </div>
               <h1 className="greet-title">Video <em>Lectures</em></h1>
               <p className="greet-sub">Watch faculty recordings, track your progress, and ask Lucyna AI for help on any topic.</p>
@@ -524,18 +563,18 @@ export default function StudentVideoLectures({ onBack }) {
           </div>
         </div>
 
-        <StatsStrip/>
+        <StatsStrip lecturesByCourse={lecturesState}/>
 
         {/* Featured */}
         {!activeCourseId&&filterTab==="All"&&!search&&(
           <div className="panel" style={{marginBottom:20}}>
-            <div className="panel-body"><FeaturedStrip onPlay={(l,c)=>{setPlayingLecture(l);setPlayingCourse(c);}}/></div>
+            <div className="panel-body"><FeaturedStrip courses={coursesState} lecturesByCourse={lecturesState} onPlay={(l,c)=>{setPlayingLecture(l);setPlayingCourse(c);}}/></div>
           </div>
         )}
 
         {/* Main layout */}
         <div className="vl-main-layout">
-          <CourseSidebar activeCourseId={activeCourseId} onSelect={setActiveCourseId}/>
+          <CourseSidebar courses={coursesState} lecturesByCourse={lecturesState} activeCourseId={activeCourseId} onSelect={setActiveCourseId}/>
 
           <div className="vl-content-area">
             {/* Toolbar */}
@@ -618,8 +657,8 @@ export default function StudentVideoLectures({ onBack }) {
                                   <span style={{color:g.course?.color,fontWeight:700}}>{g.course?.short}</span>
                                   <span>{g.course?.name}</span>
                                   <span className="vl-ach-badge">
-                                    {(LECTURES_BY_COURSE[cid]||[]).filter(l=>l.watched).length}/
-                                    {(LECTURES_BY_COURSE[cid]||[]).length} done
+                                    {(lecturesState[cid]||[]).filter(l=>l.watched).length}/
+                                    {(lecturesState[cid]||[]).length} done
                                   </span>
                                 </div>
                               )}

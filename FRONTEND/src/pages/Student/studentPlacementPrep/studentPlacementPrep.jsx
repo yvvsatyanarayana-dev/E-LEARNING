@@ -19,56 +19,14 @@ const IcoAward   = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24"
 const IcoBack    = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>;
 const IcoZap     = (p) => <svg {...p} width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>;
 
-// ─── DATA ────────────────────────────────────────────────────────
-const PRI_BREAKDOWN = [
-  { label: "Coding Skills",      score: 82, max: 100, color: "var(--teal)",     icon: <IcoCode /> },
-  { label: "Communication",      score: 74, max: 100, color: "var(--indigo-l)", icon: <IcoMic /> },
-  { label: "Aptitude",           score: 68, max: 100, color: "var(--violet)",   icon: <IcoBrain /> },
-  { label: "Resume Quality",     score: 58, max: 100, color: "var(--amber)",    icon: <IcoFile /> },
-  { label: "Interview Readiness",score: 61, max: 100, color: "var(--rose)",     icon: <IcoMic /> },
-];
-
-const COMPANIES = [
-  { name: "Google",    role: "SWE Intern",       ctc: "₹2.4L/mo", difficulty: "Hard",   tag: "Open",     tagColor: "teal",   logo: "G",  logoBg: "rgba(66,133,244,.15)",  logoColor: "#4285F4", deadline: "Mar 22" },
-  { name: "Microsoft", role: "SWE FTE",           ctc: "₹45 LPA",  difficulty: "Hard",   tag: "Open",     tagColor: "teal",   logo: "M",  logoBg: "rgba(0,120,212,.15)",   logoColor: "#0078D4", deadline: "Apr 5" },
-  { name: "Flipkart",  role: "SDE-1",             ctc: "₹28 LPA",  difficulty: "Medium", tag: "Closing",  tagColor: "amber",  logo: "F",  logoBg: "rgba(244,165,53,.15)",  logoColor: "var(--amber)", deadline: "Mar 18" },
-  { name: "Amazon",    role: "SDE-1",             ctc: "₹32 LPA",  difficulty: "Hard",   tag: "Open",     tagColor: "teal",   logo: "A",  logoBg: "rgba(255,153,0,.15)",   logoColor: "#FF9900", deadline: "Apr 12" },
-  { name: "Infosys",   role: "Systems Engineer",  ctc: "₹6.5 LPA", difficulty: "Easy",   tag: "Applied",  tagColor: "violet", logo: "I",  logoBg: "rgba(159,122,234,.15)", logoColor: "var(--violet)", deadline: "Mar 30" },
-  { name: "TCS",       role: "Digital Associate", ctc: "₹7 LPA",   difficulty: "Easy",   tag: "Applied",  tagColor: "violet", logo: "T",  logoBg: "rgba(39,201,176,.15)",  logoColor: "var(--teal)", deadline: "Mar 28" },
-];
-
-const MOCK_SESSIONS = [
-  { company: "Google",   type: "Technical Round 1",  date: "Mar 14", time: "10:00 AM", interviewer: "AI Simulator",  score: null,  status: "upcoming" },
-  { company: "Microsoft",type: "HR + Behavioural",   date: "Mar 16", time: "02:30 PM", interviewer: "AI Simulator",  score: null,  status: "upcoming" },
-  { company: "Amazon",   type: "System Design",       date: "Mar 10", time: "11:00 AM", interviewer: "AI Simulator",  score: 78,    status: "done" },
-  { company: "Flipkart", type: "DSA Round",           date: "Mar 07", time: "03:00 PM", interviewer: "AI Simulator",  score: 84,    status: "done" },
-];
-
-const TOPICS = [
-  { label: "Arrays & Strings",      done: 32, total: 40, color: "var(--teal)" },
-  { label: "Trees & Graphs",        done: 18, total: 35, color: "var(--indigo-l)" },
-  { label: "Dynamic Programming",   done: 8,  total: 30, color: "var(--amber)" },
-  { label: "System Design",         done: 4,  total: 20, color: "var(--violet)" },
-  { label: "OS & Networking",       done: 12, total: 20, color: "var(--rose)" },
-  { label: "OOP & Design Patterns", done: 9,  total: 15, color: "var(--teal)" },
-];
-
-const RESUME_CHECKLIST = [
-  { label: "Contact & Summary",          done: true },
-  { label: "Education Details",          done: true },
-  { label: "Technical Skills Section",   done: true },
-  { label: "Projects (3+ with impact)",  done: true },
-  { label: "Internship / Work Exp.",     done: false },
-  { label: "Certifications & Courses",   done: false },
-  { label: "Achievements & Awards",      done: false },
-  { label: "GitHub / Portfolio link",    done: true },
-];
-
-const TIPS = [
-  { icon: <IcoZap />, color: "var(--amber)",   text: "Your DP success rate is 42% — spend 20 min daily on pattern recognition to jump +15 pts." },
-  { icon: <IcoTrend />, color: "var(--teal)", text: "Top-performing students who practiced 3+ mock interviews improved PRI by ~18 pts in 2 weeks." },
-  { icon: <IcoBrain />, color: "var(--violet)", text: "Infosys & TCS applications detected — add your 'Certifications' section to boost profile match." },
-];
+const ICON_MAP = {
+  Code: <IcoCode />,
+  Mic: <IcoMic />,
+  Brain: <IcoBrain />,
+  FileText: <IcoFile />,
+  Zap: <IcoZap />,
+  TrendingUp: <IcoTrend />
+};
 
 // ─── ANIMATED RING ───────────────────────────────────────────────
 function PRIRing({ score }) {
@@ -121,6 +79,13 @@ function Bar({ pct, color, delay = 400 }) {
 export default function StudentPlacementPrep({ onBack }) {
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedCompany, setSelectedCompany] = useState(null);
+  const [data, setData] = useState(null);
+
+  useEffect(() => {
+    import("../../../utils/api").then(({ default: api }) => {
+      api.get("/student/placement").then(res => setData(res)).catch(console.error);
+    });
+  }, []);
 
   const tabs = [
     { id: "overview",   label: "Overview",       icon: <IcoTrend /> },
@@ -130,8 +95,11 @@ export default function StudentPlacementPrep({ onBack }) {
     { id: "resume",     label: "Resume Check",   icon: <IcoFile /> },
   ];
 
-  const resumeDone = RESUME_CHECKLIST.filter(r => r.done).length;
-  const resumePct  = Math.round((resumeDone / RESUME_CHECKLIST.length) * 100);
+  if (!data) return <div className="pp-root" style={{ padding: 40, textAlign: "center" }}>Loading Placement Prep...</div>;
+
+  const pri = data.placement_readiness?.pri_score || 0;
+  const resumeDone = data.resume_checklist.filter(r => r.done).length;
+  const resumePct  = Math.round((resumeDone / data.resume_checklist.length) * 100);
 
   return (
     <div className="pp-root">
@@ -154,9 +122,9 @@ export default function StudentPlacementPrep({ onBack }) {
 
       {/* ── AI TIPS STRIP ── */}
       <div className="pp-tips-strip">
-        {TIPS.map((t, i) => (
+        {data.tips.map((t, i) => (
           <div key={i} className="pp-tip" style={{ animationDelay: `${i * .1}s` }}>
-            <span className="pp-tip-ico" style={{ color: t.color }}>{t.icon}</span>
+            <span className="pp-tip-ico" style={{ color: t.color }}>{ICON_MAP[t.icon]}</span>
             <span>{t.text}</span>
           </div>
         ))}
@@ -183,11 +151,11 @@ export default function StudentPlacementPrep({ onBack }) {
               <span className="pp-card-ttl"><IcoAward style={{ color: "var(--teal)" }}/> Placement Readiness Index</span>
             </div>
             <div className="pp-pri-body">
-              <PRIRing score={72} />
+              <PRIRing score={pri} />
               <div className="pp-pri-breakdown">
-                {PRI_BREAKDOWN.map((b, i) => (
+                {data.pri_breakdown.map((b, i) => (
                   <div key={b.label} className="pp-pri-row">
-                    <span className="pp-pri-ico" style={{ color: b.color }}>{b.icon}</span>
+                    <span className="pp-pri-ico" style={{ color: b.color }}>{ICON_MAP[b.icon]}</span>
                     <span className="pp-pri-lbl">{b.label}</span>
                     <Bar pct={b.score} color={b.color} delay={500 + i * 80}/>
                     <span className="pp-pri-val" style={{ color: b.color }}>{b.score}</span>
@@ -205,10 +173,10 @@ export default function StudentPlacementPrep({ onBack }) {
           <div className="pp-col-right">
             <div className="pp-stat-row">
               {[
-                { val: "6",  lbl: "Applied",         color: "var(--indigo-ll)", bg: "rgba(91,78,248,.1)" },
-                { val: "2",  lbl: "Shortlisted",      color: "var(--teal)",      bg: "rgba(39,201,176,.08)" },
-                { val: "4",  lbl: "Mocks Done",       color: "var(--violet)",    bg: "rgba(159,122,234,.1)" },
-                { val: "72", lbl: "PRI Score",        color: "var(--amber)",     bg: "rgba(244,165,53,.1)" },
+                { val: data.applications_count || "0",  lbl: "Applied",         color: "var(--indigo-ll)", bg: "rgba(91,78,248,.1)" },
+                { val: data.shortlisted_count || "0",  lbl: "Shortlisted",      color: "var(--teal)",      bg: "rgba(39,201,176,.08)" },
+                { val: data.placement_readiness?.mock_interviews_done || "0",  lbl: "Mocks Done",       color: "var(--violet)",    bg: "rgba(159,122,234,.1)" },
+                { val: pri, lbl: "PRI Score",        color: "var(--amber)",     bg: "rgba(244,165,53,.1)" },
               ].map(s => (
                 <div key={s.lbl} className="pp-mini-stat" style={{ background: s.bg, borderColor: s.bg.replace(".1)", ".3)").replace(".08)", ".2)") }}>
                   <div className="pp-ms-val" style={{ color: s.color }}>{s.val}</div>
@@ -224,7 +192,7 @@ export default function StudentPlacementPrep({ onBack }) {
                 <button className="pp-card-act" onClick={() => setActiveTab("companies")}>View all <IcoChevR /></button>
               </div>
               <div className="pp-drives-list">
-                {COMPANIES.filter(c => c.tag === "Open").map(c => (
+                {data.companies.filter(c => c.tag === "Open").map(c => (
                   <div key={c.name} className="pp-drive-item">
                     <div className="pp-drive-logo" style={{ background: c.logoBg, color: c.logoColor }}>{c.logo}</div>
                     <div className="pp-drive-info">
@@ -244,7 +212,7 @@ export default function StudentPlacementPrep({ onBack }) {
                 <button className="pp-card-act" onClick={() => setActiveTab("dsa")}>Full tracker <IcoChevR /></button>
               </div>
               <div className="pp-dsa-snap">
-                {TOPICS.slice(0, 3).map((t, i) => (
+                {data.topics.slice(0, 3).map((t, i) => (
                   <div key={t.label} className="pp-dsa-row">
                     <span className="pp-dsa-lbl">{t.label}</span>
                     <Bar pct={Math.round((t.done / t.total) * 100)} color={t.color} delay={600 + i * 100}/>
@@ -260,7 +228,7 @@ export default function StudentPlacementPrep({ onBack }) {
       {/* ════════ COMPANIES ════════ */}
       {activeTab === "companies" && (
         <div className="pp-companies-grid">
-          {COMPANIES.map((c, i) => (
+          {data.companies.map((c, i) => (
             <div key={c.name} className="pp-company-card" style={{ animationDelay: `${i * .06}s` }}>
               <div className="pp-cc-top">
                 <div className="pp-cc-logo" style={{ background: c.logoBg, color: c.logoColor }}>{c.logo}</div>
@@ -318,7 +286,7 @@ export default function StudentPlacementPrep({ onBack }) {
                 <span className="pp-card-ttl"><IcoCal style={{ color: "var(--indigo-ll)" }}/> Sessions</span>
               </div>
               <div className="pp-sessions-list">
-                {MOCK_SESSIONS.map((s, i) => (
+                {data.mock_sessions.map((s, i) => (
                   <div key={i} className={`pp-session-item ${s.status}`}>
                     <div className="pp-session-left">
                       <div className={`pp-session-dot ${s.status}`}/>
@@ -346,17 +314,12 @@ export default function StudentPlacementPrep({ onBack }) {
                 <span className="pp-card-ttl"><IcoStar style={{ color: "var(--amber)" }}/> Last Feedback</span>
               </div>
               <div className="pp-feedback-body">
-                <div className="pp-fb-session">Flipkart · DSA Round · Mar 07</div>
+                <div className="pp-fb-session">{data.last_feedback?.session}</div>
                 <div className="pp-fb-score-big">
-                  <span style={{ fontFamily: "'Fraunces',serif", fontSize: 42, color: "var(--teal)" }}>84</span>
+                  <span style={{ fontFamily: "'Fraunces',serif", fontSize: 42, color: "var(--teal)" }}>{data.last_feedback?.score}</span>
                   <span style={{ color: "var(--text3)", fontSize: 12 }}>/100</span>
                 </div>
-                {[
-                  { label: "Problem Solving", score: 88, color: "var(--teal)" },
-                  { label: "Code Quality",    score: 82, color: "var(--indigo-l)" },
-                  { label: "Time Management", score: 76, color: "var(--amber)" },
-                  { label: "Communication",   score: 71, color: "var(--violet)" },
-                ].map((f, i) => (
+                {(data.last_feedback?.metrics || []).map((f, i) => (
                   <div key={f.label} className="pp-fb-row">
                     <span className="pp-fb-lbl">{f.label}</span>
                     <Bar pct={f.score} color={f.color} delay={400 + i * 80}/>
@@ -364,8 +327,8 @@ export default function StudentPlacementPrep({ onBack }) {
                   </div>
                 ))}
                 <div className="pp-fb-remark">
-                  <strong style={{ color: "var(--teal)" }}>Strength:</strong> Clean brute-force → optimal transitions.<br/>
-                  <strong style={{ color: "var(--amber)" }}>Improve:</strong> Talk through edge cases before coding.
+                  <strong style={{ color: "var(--teal)" }}>Strength:</strong> {data.last_feedback?.strength}<br/>
+                  <strong style={{ color: "var(--amber)" }}>Improve:</strong> {data.last_feedback?.improve}
                 </div>
               </div>
             </div>
@@ -378,13 +341,17 @@ export default function StudentPlacementPrep({ onBack }) {
         <div className="pp-dsa-layout">
           <div className="pp-dsa-overview">
             <div className="pp-dsa-total">
-              <span style={{ fontFamily: "'Fraunces',serif", fontSize: 48, color: "var(--teal)", lineHeight: 1 }}>83</span>
-              <span style={{ color: "var(--text3)", fontSize: 13 }}>/ 160 solved</span>
+              <span style={{ fontFamily: "'Fraunces',serif", fontSize: 48, color: "var(--teal)", lineHeight: 1 }}>
+                {data.topics.reduce((acc, t) => acc + t.done, 0)}
+              </span>
+              <span style={{ color: "var(--text3)", fontSize: 13 }}>
+                / {data.topics.reduce((acc, t) => acc + t.total, 0)} solved
+              </span>
             </div>
             <div className="pp-dsa-streak"><IcoZap style={{ color: "var(--amber)" }}/> 7-day streak 🔥</div>
           </div>
           <div className="pp-dsa-topics">
-            {TOPICS.map((t, i) => {
+            {data.topics.map((t, i) => {
               const pct = Math.round((t.done / t.total) * 100);
               return (
                 <div key={t.label} className="pp-dsa-topic-card" style={{ animationDelay: `${i * .07}s` }}>
@@ -408,11 +375,7 @@ export default function StudentPlacementPrep({ onBack }) {
               <span className="pp-card-ttl"><IcoTrend style={{ color: "var(--indigo-ll)" }}/> Difficulty Breakdown</span>
             </div>
             <div className="pp-diff-grid">
-              {[
-                { level: "Easy",   solved: 42, total: 55, color: "var(--teal)" },
-                { level: "Medium", solved: 31, total: 70, color: "var(--amber)" },
-                { level: "Hard",   solved: 10, total: 35, color: "var(--rose)" },
-              ].map(d => (
+              {(data.difficulty_breakdown || []).map(d => (
                 <div key={d.level} className="pp-diff-card">
                   <div className="pp-diff-level" style={{ color: d.color }}>{d.level}</div>
                   <div className="pp-diff-count">
@@ -439,7 +402,7 @@ export default function StudentPlacementPrep({ onBack }) {
                 <Bar pct={resumePct} color={resumePct >= 80 ? "var(--teal)" : "var(--amber)"} delay={300}/>
               </div>
               <div className="pp-checklist">
-                {RESUME_CHECKLIST.map((item, i) => (
+                {data.resume_checklist.map((item, i) => (
                   <div key={item.label} className={`pp-check-item ${item.done ? "done" : "pending"}`} style={{ animationDelay: `${i * .05}s` }}>
                     <div className={`pp-check-ico ${item.done ? "done" : ""}`}>
                       {item.done ? <IcoCheck /> : <IcoLock />}
@@ -461,15 +424,10 @@ export default function StudentPlacementPrep({ onBack }) {
                 <span className="pp-card-ttl"><IcoStar style={{ color: "var(--amber)" }}/> ATS Score</span>
               </div>
               <div className="pp-ats-body">
-                <div style={{ fontFamily: "'Fraunces',serif", fontSize: 52, color: "var(--amber)", lineHeight: 1 }}>67</div>
+                <div style={{ fontFamily: "'Fraunces',serif", fontSize: 52, color: "var(--amber)", lineHeight: 1 }}>{data.ats_score}</div>
                 <div style={{ color: "var(--text3)", fontSize: 11, marginTop: 4 }}>ATS Compatibility Score</div>
                 <div className="pp-ats-issues">
-                  {[
-                    { issue: "Missing quantified achievements", severity: "high" },
-                    { issue: "Add more action verbs",           severity: "medium" },
-                    { issue: "Increase keyword density",        severity: "medium" },
-                    { issue: "Add certifications section",      severity: "low" },
-                  ].map(issue => (
+                  {(data.ats_issues || []).map(issue => (
                     <div key={issue.issue} className={`pp-ats-issue pp-ats-${issue.severity}`}>
                       <div className={`pp-ats-dot pp-ats-${issue.severity}`}/>
                       {issue.issue}
@@ -486,13 +444,8 @@ export default function StudentPlacementPrep({ onBack }) {
               <div className="pp-card-hd">
                 <span className="pp-card-ttl"><IcoTrend style={{ color: "var(--indigo-ll)" }}/> Profile Strength</span>
               </div>
-              <div className="pp-profile-strength">
-                {[
-                  { label: "GitHub Activity",   pct: 80, color: "var(--teal)" },
-                  { label: "Projects Quality",  pct: 70, color: "var(--indigo-l)" },
-                  { label: "Skills Listed",     pct: 65, color: "var(--violet)" },
-                  { label: "Certifications",    pct: 30, color: "var(--amber)" },
-                ].map((p, i) => (
+              <div className="pp-profile_strength">
+                {(data.profile_strength || []).map((p, i) => (
                   <div key={p.label} className="pp-ps-row">
                     <span className="pp-ps-lbl">{p.label}</span>
                     <Bar pct={p.pct} color={p.color} delay={400 + i * 80}/>

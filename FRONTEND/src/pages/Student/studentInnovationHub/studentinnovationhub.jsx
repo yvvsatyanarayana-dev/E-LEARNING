@@ -3,7 +3,8 @@ import "./studentinnovationhub.css";
 // Innovation Hub module — imported into StudentDashboard.jsx
 // Matches SmartCampus design system: Plus Jakarta Sans + Fraunces, CSS vars, same panel/card patterns
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+import api from "../../../utils/api";
 import {
   ChevronLeft, ChevronRight, Lightbulb, Rocket, Users, Trophy,
   Flame, Plus, Search, Filter, ExternalLink, Heart, MessageCircle,
@@ -43,236 +44,7 @@ const DOMAIN_COLORS = {
   "FinTech":         "var(--indigo-ll)",
 };
 
-const IDEAS = [
-  {
-    id: 1,
-    title: "AI-Powered Crop Disease Detector",
-    author: "Priya Menon",
-    avatar: "PM",
-    domain: "AI/ML",
-    tags: ["Deep Learning", "Agriculture", "Mobile"],
-    desc: "A mobile app that uses CNN models to detect crop diseases from leaf photos, providing farmers with instant diagnosis and treatment recommendations in regional languages.",
-    likes: 84,
-    comments: 21,
-    bookmarks: 15,
-    timeAgo: "2h ago",
-    stage: "Prototype",
-    stageColor: "var(--teal)",
-    looking: ["ML Engineer", "Mobile Dev"],
-    liked: false,
-    bookmarked: false,
-    featured: true,
-  },
-  {
-    id: 2,
-    title: "Campus Resource Sharing Platform",
-    author: "Ravi Shankar",
-    avatar: "RS",
-    domain: "Web Dev",
-    tags: ["React", "FastAPI", "Community"],
-    desc: "A peer-to-peer platform where students can lend/borrow textbooks, lab equipment, and study materials, reducing waste and saving costs across campus.",
-    likes: 62,
-    comments: 14,
-    bookmarks: 9,
-    timeAgo: "5h ago",
-    stage: "Idea",
-    stageColor: "var(--amber)",
-    looking: ["Backend Dev", "UI Designer"],
-    liked: true,
-    bookmarked: false,
-    featured: false,
-  },
-  {
-    id: 3,
-    title: "Smart Campus Energy Monitor",
-    author: "Ananya Iyer",
-    avatar: "AI",
-    domain: "IoT",
-    tags: ["Raspberry Pi", "Energy", "Dashboard"],
-    desc: "IoT sensors deployed across campus to monitor real-time energy consumption, with an analytics dashboard that helps administration cut power bills by 30%.",
-    likes: 97,
-    comments: 33,
-    bookmarks: 28,
-    timeAgo: "1d ago",
-    stage: "MVP",
-    stageColor: "var(--indigo-ll)",
-    looking: ["Hardware Engineer"],
-    liked: false,
-    bookmarked: true,
-    featured: true,
-  },
-  {
-    id: 4,
-    title: "Mental Wellness Chatbot for Students",
-    author: "Karan Bose",
-    avatar: "KB",
-    domain: "HealthTech",
-    tags: ["NLP", "Counseling", "Anonymity"],
-    desc: "An anonymous AI chatbot offering 24/7 emotional support, mood tracking, and escalation to college counselors, reducing stigma around mental health support.",
-    likes: 113,
-    comments: 47,
-    bookmarks: 41,
-    timeAgo: "2d ago",
-    stage: "Prototype",
-    stageColor: "var(--teal)",
-    looking: ["Psychologist Advisor", "Backend Dev"],
-    liked: false,
-    bookmarked: false,
-    featured: false,
-  },
-  {
-    id: 5,
-    title: "Blockchain-Based Academic Credentials",
-    author: "Sneha Rao",
-    avatar: "SR",
-    domain: "FinTech",
-    tags: ["Blockchain", "Verifiability", "Web3"],
-    desc: "Tamper-proof digital transcripts and certificates stored on a permissioned blockchain, enabling instant verification by employers without contacting the college.",
-    likes: 76,
-    comments: 19,
-    bookmarks: 22,
-    timeAgo: "3d ago",
-    stage: "Research",
-    stageColor: "var(--violet)",
-    looking: ["Smart Contract Dev", "UX Designer"],
-    liked: false,
-    bookmarked: false,
-    featured: false,
-  },
-];
-
-const MY_PROJECTS = [
-  {
-    id: "p1",
-    title: "SmartAttend — Face Recognition Attendance",
-    domain: "AI/ML",
-    stage: "MVP",
-    stageColor: "var(--indigo-ll)",
-    progress: 68,
-    color: "var(--indigo-l)",
-    colorRgb: "91,78,248",
-    team: ["AR", "PM", "KR"],
-    nextMilestone: "Deploy on college server",
-    dueIn: "5 days",
-    stars: 42,
-    desc: "Automated attendance using real-time face recognition, replacing manual roll calls and reducing proxy attendance.",
-    tasks: [
-      { label: "Train face recognition model",     done: true  },
-      { label: "Build Flask API endpoints",        done: true  },
-      { label: "Integrate React frontend",         done: true  },
-      { label: "Test with live webcam feed",       done: false },
-      { label: "Deploy & college integration",     done: false },
-    ],
-    updates: [
-      { text: "Achieved 96.4% accuracy on test set", when: "Yesterday" },
-      { text: "PR merged: attendance export as CSV",  when: "3 days ago" },
-    ],
-  },
-  {
-    id: "p2",
-    title: "StudySync — Collaborative Notes Platform",
-    domain: "EdTech",
-    stage: "Idea",
-    stageColor: "var(--amber)",
-    progress: 22,
-    color: "var(--amber)",
-    colorRgb: "244,165,53",
-    team: ["AR", "SN"],
-    nextMilestone: "Complete wireframes",
-    dueIn: "2 days",
-    stars: 18,
-    desc: "Real-time collaborative note-taking with AI-generated summaries and spaced repetition flashcards.",
-    tasks: [
-      { label: "Finalize feature scope",           done: true  },
-      { label: "Create Figma wireframes",          done: false },
-      { label: "Set up monorepo",                  done: false },
-      { label: "Build core editor",                done: false },
-    ],
-    updates: [
-      { text: "Feature scope doc approved by mentor", when: "Today" },
-    ],
-  },
-];
-
-const HACKATHONS = [
-  {
-    id: "h1",
-    name: "Smart India Hackathon 2025",
-    org: "Government of India",
-    prize: "₹1,00,000",
-    deadline: "Aug 15, 2025",
-    daysLeft: 42,
-    mode: "Online + Offline",
-    domain: "All Domains",
-    registered: true,
-    teamSize: "2–6",
-    color: "var(--teal)",
-    colorRgb: "39,201,176",
-    desc: "India's biggest hackathon. Build solutions for real government problem statements across 9 domains.",
-    status: "Registered",
-    statusColor: "var(--teal)",
-  },
-  {
-    id: "h2",
-    name: "HackVision — AI for Good",
-    org: "IIT Madras",
-    prize: "₹50,000",
-    deadline: "Jul 28, 2025",
-    daysLeft: 24,
-    mode: "Hybrid",
-    domain: "AI/ML",
-    registered: false,
-    teamSize: "3–4",
-    color: "var(--indigo-l)",
-    colorRgb: "91,78,248",
-    desc: "Build AI-powered solutions that tackle social problems. Mentors from Google and Microsoft.",
-    status: "Open",
-    statusColor: "var(--indigo-ll)",
-  },
-  {
-    id: "h3",
-    name: "GreenHack — Sustainability Sprint",
-    org: "TechFest BITS Pilani",
-    prize: "₹30,000",
-    deadline: "Sep 1, 2025",
-    daysLeft: 59,
-    mode: "Online",
-    domain: "Sustainability",
-    registered: false,
-    teamSize: "2–5",
-    color: "var(--amber)",
-    colorRgb: "244,165,53",
-    desc: "72-hour sprint to build solutions for climate change, waste management, and renewable energy.",
-    status: "Open",
-    statusColor: "var(--amber)",
-  },
-  {
-    id: "h4",
-    name: "HealthHack 2025",
-    org: "AIIMS Delhi × Microsoft",
-    prize: "₹75,000",
-    deadline: "Aug 5, 2025",
-    daysLeft: 31,
-    mode: "In-Person",
-    domain: "HealthTech",
-    registered: false,
-    teamSize: "3–5",
-    color: "var(--rose)",
-    colorRgb: "242,68,92",
-    desc: "Create the next breakthrough in digital health. Prizes for best mobile app, AI model, and hardware hack.",
-    status: "Open",
-    statusColor: "var(--rose)",
-  },
-];
-
-const COLLABORATORS = [
-  { name: "Priya Menon",   roll: "21CS031", skills: ["Python", "ML", "TensorFlow"], available: true,  avatar: "PM", match: 94, color: "var(--teal)"    },
-  { name: "Karan Bose",    roll: "21CS018", skills: ["React", "Node.js", "UI/UX"],  available: true,  avatar: "KB", match: 88, color: "var(--indigo-l)"},
-  { name: "Sneha Rao",     roll: "21CS052", skills: ["Java", "Spring", "Docker"],   available: false, avatar: "SR", match: 81, color: "var(--violet)"  },
-  { name: "Rohan Das",     roll: "21CS061", skills: ["Embedded", "Arduino", "C++"], available: true,  avatar: "RD", match: 76, color: "var(--amber)"   },
-  { name: "Divya Nair",    roll: "21CS009", skills: ["Data Analysis", "SQL", "R"],  available: false, avatar: "DN", match: 72, color: "var(--rose)"    },
-  { name: "Arjun Pillai",  roll: "21CS044", skills: ["Blockchain", "Solidity"],     available: true,  avatar: "AP", match: 69, color: "var(--teal)"    },
-];
+// Use API data (hubData) instead of hardcoded constants.
 
 const TRENDING_TAGS = ["#MachineLearning", "#OpenSource", "#ClimateAction", "#Web3", "#HealthTech", "#MobileFirst"];
 
@@ -372,9 +144,28 @@ function IdeaCard({ idea, onLike, onBookmark }) {
 }
 
 // ─── SUBMIT IDEA MODAL ────────────────────────────────────────────
-function SubmitIdeaModal({ onClose }) {
+function SubmitIdeaModal({ onClose, onSuccess }) {
   const [form, setForm] = useState({ title: "", domain: "AI/ML", desc: "", tags: "", looking: "" });
+  const [loading, setLoading] = useState(false);
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
+
+  const handleSubmit = async () => {
+    if (!form.title || !form.desc) return;
+    try {
+      setLoading(true);
+      await api.post("/student/innovation/idea", {
+        ...form,
+        tags: form.tags.split(",").map(t => t.trim()).filter(Boolean),
+        looking: form.looking.split(",").map(t => t.trim()).filter(Boolean)
+      });
+      if (onSuccess) onSuccess();
+      onClose();
+    } catch (err) {
+      console.error("Failed to submit idea:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="ih-modal-overlay" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -421,8 +212,8 @@ function SubmitIdeaModal({ onClose }) {
 
         <div className="ih-modal-footer">
           <button className="ih-modal-cancel" onClick={onClose}>Cancel</button>
-          <button className="ih-modal-submit">
-            <UploadCloud size={13} /> Submit Idea
+          <button className="ih-modal-submit" disabled={loading} onClick={handleSubmit}>
+            <UploadCloud size={13} /> {loading ? "Submitting..." : "Submit Idea"}
           </button>
         </div>
       </div>
@@ -431,23 +222,42 @@ function SubmitIdeaModal({ onClose }) {
 }
 
 // ─── IDEA FEED TAB ────────────────────────────────────────────────
-function TabFeed() {
-  const [ideas, setIdeas] = useState(IDEAS);
+function TabFeed({ initialIdeas, onRefresh }) {
+  const [ideas, setIdeas] = useState(initialIdeas);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
   const [showModal, setShowModal] = useState(false);
+
+  useEffect(() => {
+    setIdeas(initialIdeas);
+  }, [initialIdeas]);
 
   const filtered = ideas.filter(i =>
     (category === "All" || i.domain === category) &&
     (i.title.toLowerCase().includes(search.toLowerCase()) || i.desc.toLowerCase().includes(search.toLowerCase()))
   );
 
-  const toggleLike     = id => setIdeas(prev => prev.map(i => i.id === id ? { ...i, liked: !i.liked, likes: i.likes + (i.liked ? -1 : 1) } : i));
-  const toggleBookmark = id => setIdeas(prev => prev.map(i => i.id === id ? { ...i, bookmarked: !i.bookmarked, bookmarks: i.bookmarks + (i.bookmarked ? -1 : 1) } : i));
+  const toggleLike = async (id) => {
+    try {
+      await api.post(`/student/innovation/idea/${id}/like`);
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      console.error("Failed to like idea:", err);
+    }
+  };
+
+  const toggleBookmark = async (id) => {
+    try {
+      await api.post(`/student/innovation/idea/${id}/bookmark`);
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      console.error("Failed to bookmark idea:", err);
+    }
+  };
 
   return (
     <div className="ih-tab-content">
-      {showModal && <SubmitIdeaModal onClose={() => setShowModal(false)} />}
+      {showModal && <SubmitIdeaModal onClose={() => setShowModal(false)} onSuccess={onRefresh} />}
 
       {/* Hero banner */}
       <div className="ih-feed-hero">
@@ -469,10 +279,10 @@ function TabFeed() {
         </div>
         <div className="ih-hero-stats">
           {[
-            { val: "124", lbl: "Ideas Shared",   color: "var(--teal)"     },
-            { val: "38",  lbl: "Active Projects", color: "var(--indigo-ll)"},
-            { val: "6",   lbl: "Hackathons",      color: "var(--amber)"   },
-            { val: "312", lbl: "Collaborators",   color: "var(--violet)"  },
+            { val: initialIdeas.length,       lbl: "Ideas Shared",   color: "var(--teal)"     },
+            { val: "38",                      lbl: "Active Projects", color: "var(--indigo-ll)"},
+            { val: "6",                       lbl: "Hackathons",      color: "var(--amber)"   },
+            { val: "312",                     lbl: "Collaborators",   color: "var(--violet)"  },
           ].map(({ val, lbl, color }) => (
             <div key={lbl} className="ih-hero-stat">
               <div className="ih-hs-val" style={{ color }}>{val}</div>
@@ -527,7 +337,7 @@ function TabFeed() {
 }
 
 // ─── MY PROJECTS TAB ─────────────────────────────────────────────
-function TabProjects() {
+function TabProjects({ projects }) {
   const [expanded, setExpanded] = useState("p1");
   return (
     <div className="ih-tab-content">
@@ -555,7 +365,7 @@ function TabProjects() {
       </div>
 
       {/* Project cards */}
-      {MY_PROJECTS.map((proj, pi) => (
+      {projects.map((proj, pi) => (
         <div key={proj.id} className="ih-proj-card panel" style={{ marginBottom: 14 }}>
           <div className="ih-proj-card-header" onClick={() => setExpanded(expanded === proj.id ? null : proj.id)}>
             <div className="ih-pcl">
@@ -660,13 +470,13 @@ function TabProjects() {
 }
 
 // ─── HACKATHONS TAB ───────────────────────────────────────────────
-function TabHackathons() {
-  const [hacks, setHacks] = useState(HACKATHONS);
+function TabHackathons({ initialHacks }) {
+  const [hacks, setHacks] = useState(initialHacks);
   const [filterDomain, setFilterDomain] = useState("All");
   const register = id => setHacks(prev => prev.map(h =>
     h.id === id ? { ...h, registered: true, status: "Registered", statusColor: "var(--teal)" } : h
   ));
-  const domains = ["All", ...Array.from(new Set(HACKATHONS.map(h => h.domain)))];
+  const domains = ["All", ...Array.from(new Set(initialHacks.map(h => h.domain)))];
   const filtered = hacks.filter(h => filterDomain === "All" || h.domain === filterDomain);
 
   return (
@@ -765,11 +575,11 @@ function TabHackathons() {
 }
 
 // ─── COLLABORATE TAB ──────────────────────────────────────────────
-function TabCollaborate() {
+function TabCollaborate({ collaborators }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
 
-  const filtered = COLLABORATORS.filter(c =>
+  const filtered = collaborators.filter(c =>
     (filter === "All" || (filter === "Available" ? c.available : !c.available)) &&
     c.name.toLowerCase().includes(search.toLowerCase())
   );
@@ -874,6 +684,29 @@ function TabCollaborate() {
 // ─── MAIN EXPORT ─────────────────────────────────────────────────
 export default function StudentInnovationHub({ onBack }) {
   const [tab, setTab] = useState("feed");
+  const [hubData, setHubData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await api.get("/student/innovation");
+      setHubData(data || { ideas: [], projects: [], hackathons: [], collaborators: [] });
+    } catch (err) {
+      console.error("Failed to fetch innovation data:", err);
+      // Set empty data so page renders instead of staying stuck on loading
+      setHubData({ ideas: [], projects: [], hackathons: [], collaborators: [] });
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  if (loading) return <div className="ih-root" style={{ padding: 40, textAlign: "center", color: "var(--text3)" }}>Loading Innovation Hub...</div>;
+  if (!hubData) return <div className="ih-root" style={{ padding: 40, textAlign: "center", color: "var(--rose)" }}>Failed to load data. Please try again.</div>;
 
   return (
     <div className="ih-root">
@@ -908,22 +741,22 @@ export default function StudentInnovationHub({ onBack }) {
             </div>
             <div className="ih-page-title-right">
               <div className="ih-header-stat">
-                <div className="ih-hs-val" style={{ color: "var(--teal)" }}>124</div>
+                <div className="ih-hs-val" style={{ color: "var(--teal)" }}>{hubData.ideas.length}</div>
                 <div className="ih-hs-lbl">Ideas</div>
               </div>
               <div className="ih-header-stat-sep" />
               <div className="ih-header-stat">
-                <div className="ih-hs-val" style={{ color: "var(--indigo-ll)" }}>38</div>
+                <div className="ih-hs-val" style={{ color: "var(--indigo-ll)" }}>{hubData.projects.length}</div>
                 <div className="ih-hs-lbl">Projects</div>
               </div>
               <div className="ih-header-stat-sep" />
               <div className="ih-header-stat">
-                <div className="ih-hs-val" style={{ color: "var(--amber)" }}>6</div>
+                <div className="ih-hs-val" style={{ color: "var(--amber)" }}>{hubData.hackathons.length}</div>
                 <div className="ih-hs-lbl">Hackathons</div>
               </div>
               <div className="ih-header-stat-sep" />
               <div className="ih-header-stat">
-                <div className="ih-hs-val" style={{ color: "var(--violet)" }}>312</div>
+                <div className="ih-hs-val" style={{ color: "var(--violet)" }}>{hubData.collaborators.length}</div>
                 <div className="ih-hs-lbl">Members</div>
               </div>
             </div>
@@ -945,10 +778,10 @@ export default function StudentInnovationHub({ onBack }) {
         ))}
       </div>
 
-      {tab === "feed"        && <TabFeed />}
-      {tab === "projects"    && <TabProjects />}
-      {tab === "hackathons"  && <TabHackathons />}
-      {tab === "collaborate" && <TabCollaborate />}
+      {tab === "feed"        && <TabFeed initialIdeas={hubData.ideas} onRefresh={fetchData} />}
+      {tab === "projects"    && <TabProjects projects={hubData.projects} />}
+      {tab === "hackathons"  && <TabHackathons initialHacks={hubData.hackathons} />}
+      {tab === "collaborate" && <TabCollaborate collaborators={hubData.collaborators} />}
     </div>
   );
 }

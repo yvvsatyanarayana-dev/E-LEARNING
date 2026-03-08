@@ -12,6 +12,15 @@ class Assignment(Base):
     faculty_id  = Column(Integer, ForeignKey("users.id"), nullable=False)
     title       = Column(String(200), nullable=False)
     description = Column(Text, nullable=True)
+    type        = Column(String(50), default="Theory")
+    max_marks   = Column(Float, default=100.0)
+    weight      = Column(String(20), default="10%")
+    difficulty  = Column(String(20), default="Medium")
+    estimated_hours = Column(Integer, default=4)
+    tags        = Column(Text, nullable=True)  # JSON string or comma-separated
+    attachments = Column(Text, nullable=True)  # JSON string or comma-separated
+    instructions = Column(Text, nullable=True)  # JSON string
+    rubric      = Column(Text, nullable=True)  # JSON string
     due_date    = Column(DateTime(timezone=True), nullable=True)
     created_at  = Column(DateTime(timezone=True), default=datetime.utcnow)
 

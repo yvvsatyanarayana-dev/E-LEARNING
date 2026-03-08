@@ -29,20 +29,25 @@ export default function SmartCampus({ defaultModal }) {
   const [loginOpen, setLoginOpen] = useState(defaultModal === "login");
   const [signupOpen, setSignupOpen] = useState(defaultModal === "signup");
   const [forgotOpen, setForgotOpen] = useState(defaultModal === "forgot");
-  const [cursorPos, setCursorPos] = useState({ x: -100, y: -100 });
-  const [ringPos, setRingPos] = useState({ x: -100, y: -100 });
   const [cursorState, setCursorState] = useState("");
 
   const mx = useRef(0), my = useRef(0);
   const tx = useRef(0), ty = useRef(0);
   const rafRef = useRef(null);
+  
+  // Refs to interact with the DOM elements directly to skip React updates:
+  const cursorRef = useRef(null);
+  const ringRef = useRef(null);
 
   /* cursor animation */
   useEffect(() => {
     const onMove = (e) => {
       mx.current = e.clientX;
       my.current = e.clientY;
-      setCursorPos({ x: e.clientX, y: e.clientY });
+      if (cursorRef.current) {
+        cursorRef.current.style.left = `${e.clientX}px`;
+        cursorRef.current.style.top = `${e.clientY}px`;
+      }
     };
     const onDown = () => {
       setCursorState("cursor-click");
@@ -54,7 +59,10 @@ export default function SmartCampus({ defaultModal }) {
     const tick = () => {
       tx.current += (mx.current - tx.current) * 0.11;
       ty.current += (my.current - ty.current) * 0.11;
-      setRingPos({ x: tx.current, y: ty.current });
+      if (ringRef.current) {
+        ringRef.current.style.left = `${tx.current}px`;
+        ringRef.current.style.top = `${ty.current}px`;
+      }
       rafRef.current = requestAnimationFrame(tick);
     };
     rafRef.current = requestAnimationFrame(tick);
@@ -91,8 +99,8 @@ export default function SmartCampus({ defaultModal }) {
   return (
     <div className={`sc-root ${cursorState}`} ref={rootRef}>
       {/* ─── CURSORS ─── */}
-      <div className="sc-cursor" style={{ left: cursorPos.x, top: cursorPos.y }} />
-      <div className="sc-cursor-ring" style={{ left: ringPos.x, top: ringPos.y }} />
+      <div className="sc-cursor" ref={cursorRef} />
+      <div className="sc-cursor-ring" ref={ringRef} />
       <div className="sc-noise" />
 
       {/* ─── MODALS ─── */}

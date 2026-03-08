@@ -2,7 +2,8 @@
 // My Courses module — import into StudentDashboard.jsx
 // Uses CSS variables from StudentDashboard.css + facultyMyCourses.css
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import api from "../../../utils/api";
 import {
   ChevronLeft, ChevronRight, ChevronDown,
   BookOpen, PlayCircle, Code2, FileText, HelpCircle,
@@ -12,209 +13,15 @@ import {
   ArrowRight, CircleAlert, Sparkles, CalendarClock, Activity
 } from "lucide-react";
 
-// ─── DATA ────────────────────────────────────────────────────────
-const COURSES = [
-  {
-    id: "os",
-    code: "CS501",
-    name: "Operating Systems",
-    short: "OS",
-    faculty: "Dr. R. Sharma",
-    semester: 5,
-    color: "var(--indigo-l)",
-    colorRgb: "91,78,248",
-    credits: 4,
-    progress: 72,
-    attendance: 88,
-    score: 84,
-    rating: 4.8,
-    totalLectures: 42,
-    watchedLectures: 30,
-    totalModules: 8,
-    completedModules: 6,
-    nextDeadline: { label: "Assignment 3", due: "2 days" },
-    tags: ["Theory", "Lab"],
-    streak: 5,
-    modules: [
-      { name: "Introduction & History",       type: "video",  duration: "38m", done: true  },
-      { name: "Process Management",           type: "video",  duration: "52m", done: true  },
-      { name: "Process Scheduling",           type: "quiz",   duration: "20m", done: true,  score: 92 },
-      { name: "Memory Management",            type: "video",  duration: "44m", done: true  },
-      { name: "Virtual Memory & Paging",      type: "pdf",    duration: "—",   done: true  },
-      { name: "File System Internals",        type: "video",  duration: "48m", done: true  },
-      { name: "Deadlocks & Synchronization",  type: "coding", duration: "1h",  done: false },
-      { name: "I/O Systems & Drivers",        type: "video",  duration: "40m", done: false, locked: true },
-    ],
-    recentActivity: [
-      { action: "Watched 'File System Internals'",   when: "Today, 10:22 AM" },
-      { action: "Scored 92% in Process Scheduling",  when: "Yesterday"       },
-      { action: "Downloaded Memory Mgmt notes",      when: "3 days ago"      },
-    ],
-  },
-  {
-    id: "dbms",
-    code: "CS502",
-    name: "Database Management Systems",
-    short: "DBMS",
-    faculty: "Prof. A. Verma",
-    semester: 5,
-    color: "var(--teal)",
-    colorRgb: "20,184,166",
-    credits: 4,
-    progress: 58,
-    attendance: 76,
-    score: 78,
-    rating: 4.5,
-    totalLectures: 36,
-    watchedLectures: 21,
-    totalModules: 7,
-    completedModules: 4,
-    nextDeadline: { label: "Quiz 4 — Transactions", due: "Tomorrow" },
-    tags: ["Theory", "Lab"],
-    streak: 3,
-    modules: [
-      { name: "Relational Model & SQL Basics", type: "video",  duration: "45m", done: true  },
-      { name: "ER Diagrams",                   type: "video",  duration: "38m", done: true  },
-      { name: "Normalization (1NF–BCNF)",      type: "quiz",   duration: "25m", done: true,  score: 85 },
-      { name: "Transactions & ACID",           type: "video",  duration: "50m", done: true  },
-      { name: "Indexing & Hashing",            type: "pdf",    duration: "—",   done: false },
-      { name: "Query Optimization",            type: "coding", duration: "1h",  done: false },
-      { name: "NoSQL & MongoDB",               type: "video",  duration: "42m", done: false, locked: true },
-    ],
-    recentActivity: [
-      { action: "Started 'Indexing & Hashing'",     when: "Today, 8:15 AM" },
-      { action: "Scored 85% in Normalization quiz", when: "3 days ago"     },
-      { action: "Watched 'Transactions & ACID'",    when: "4 days ago"     },
-    ],
-  },
-  {
-    id: "ml",
-    code: "CS503",
-    name: "Machine Learning",
-    short: "ML",
-    faculty: "Dr. P. Nair",
-    semester: 5,
-    color: "var(--amber)",
-    colorRgb: "245,158,11",
-    credits: 3,
-    progress: 44,
-    attendance: 81,
-    score: 68,
-    rating: 4.7,
-    totalLectures: 30,
-    watchedLectures: 13,
-    totalModules: 9,
-    completedModules: 4,
-    nextDeadline: { label: "Project Proposal", due: "5 days" },
-    tags: ["Theory", "Project"],
-    streak: 1,
-    modules: [
-      { name: "Intro to ML & Statistics",       type: "video",  duration: "40m",  done: true  },
-      { name: "Linear Regression",              type: "video",  duration: "55m",  done: true  },
-      { name: "Linear Regression Quiz",         type: "quiz",   duration: "20m",  done: true,  score: 71 },
-      { name: "Logistic Regression",            type: "video",  duration: "48m",  done: true  },
-      { name: "SVM & Kernels",                  type: "video",  duration: "52m",  done: false },
-      { name: "Decision Trees & Random Forest", type: "pdf",    duration: "—",    done: false },
-      { name: "Clustering (K-Means, DBSCAN)",   type: "coding", duration: "1.5h", done: false },
-      { name: "Neural Network Foundations",     type: "video",  duration: "1h",   done: false, locked: true },
-      { name: "Project: End-to-End Pipeline",   type: "coding", duration: "—",    done: false, locked: true },
-    ],
-    recentActivity: [
-      { action: "Watched 'Logistic Regression'",   when: "Yesterday"  },
-      { action: "Scored 71% in Linear Regression", when: "1 week ago" },
-      { action: "Enrolled in ML",                  when: "Week 1"     },
-    ],
-  },
-  {
-    id: "cn",
-    code: "CS504",
-    name: "Computer Networks",
-    short: "CN",
-    faculty: "Prof. K. Rao",
-    semester: 5,
-    color: "var(--violet)",
-    colorRgb: "139,92,246",
-    credits: 4,
-    progress: 81,
-    attendance: 84,
-    score: 82,
-    rating: 4.3,
-    totalLectures: 38,
-    watchedLectures: 31,
-    totalModules: 7,
-    completedModules: 6,
-    nextDeadline: { label: "Lab Report 4", due: "4 days" },
-    tags: ["Theory", "Lab"],
-    streak: 7,
-    modules: [
-      { name: "OSI & TCP/IP Models",            type: "video",  duration: "42m", done: true  },
-      { name: "Physical & Data Link Layer",     type: "video",  duration: "50m", done: true  },
-      { name: "OSI Layers Quiz",                type: "quiz",   duration: "20m", done: true,  score: 78 },
-      { name: "Network Layer & Routing",        type: "video",  duration: "55m", done: true  },
-      { name: "Transport Layer",                type: "video",  duration: "48m", done: true  },
-      { name: "Application Layer Protocols",    type: "pdf",    duration: "—",   done: true  },
-      { name: "Network Security Lab",           type: "coding", duration: "1h",  done: false },
-    ],
-    recentActivity: [
-      { action: "Completed 'Application Layer Protocols'", when: "Today, 9:00 AM" },
-      { action: "Watched 'Transport Layer'",               when: "2 days ago"     },
-      { action: "Scored 78% in OSI Layers quiz",          when: "1 week ago"     },
-    ],
-  },
-  {
-    id: "crypto",
-    code: "CS505",
-    name: "Cryptography & Network Security",
-    short: "Crypto",
-    faculty: "Dr. S. Mehta",
-    semester: 5,
-    color: "var(--rose)",
-    colorRgb: "244,63,94",
-    credits: 3,
-    progress: 33,
-    attendance: 71,
-    score: 58,
-    rating: 4.1,
-    totalLectures: 28,
-    watchedLectures: 9,
-    totalModules: 8,
-    completedModules: 2,
-    nextDeadline: { label: "Assignment 2 — RSA", due: "3 days" },
-    tags: ["Theory"],
-    streak: 0,
-    modules: [
-      { name: "Intro to Cryptography",      type: "video",  duration: "35m", done: true  },
-      { name: "Classical Ciphers",          type: "video",  duration: "40m", done: true  },
-      { name: "Symmetric Key Systems Quiz", type: "quiz",   duration: "20m", done: false },
-      { name: "DES & AES Deep Dive",        type: "video",  duration: "55m", done: false },
-      { name: "RSA & Public Key Crypto",    type: "pdf",    duration: "—",   done: false },
-      { name: "Hash Functions",             type: "video",  duration: "45m", done: false, locked: true },
-      { name: "Digital Signatures",         type: "coding", duration: "1h",  done: false, locked: true },
-      { name: "PKI & Certificates",         type: "video",  duration: "40m", done: false, locked: true },
-    ],
-    recentActivity: [
-      { action: "Watched 'Classical Ciphers'",      when: "3 days ago" },
-      { action: "Started 'Symmetric Key Quiz'",     when: "5 days ago" },
-      { action: "Watched 'Intro to Cryptography'",  when: "1 week ago" },
-    ],
-  },
-];
-
-const UPCOMING_DEADLINES = [
-  { course: "DBMS",   label: "Quiz 4 — Transactions",  due: "Tomorrow", color: "var(--teal)",     urgent: true  },
-  { course: "Crypto", label: "Assignment 2 — RSA",      due: "3 days",   color: "var(--rose)",     urgent: true  },
-  { course: "CN",     label: "Lab Report 4",            due: "4 days",   color: "var(--violet)",   urgent: false },
-  { course: "ML",     label: "Project Proposal",        due: "5 days",   color: "var(--amber)",    urgent: false },
-  { course: "OS",     label: "Assignment 3",            due: "6 days",   color: "var(--indigo-l)", urgent: false },
-];
+// Use API data (coursesState) instead of hardcoded constants.
 
 const FILTER_TABS = ["All Courses", "In Progress", "Completed", "Bookmarked"];
 
 const TYPE_META = {
-  video:  { Icon: PlayCircle, label: "Video",    bg: "rgba(91,78,248,.15)",  color: "var(--indigo-ll)" },
-  quiz:   { Icon: HelpCircle, label: "Quiz",     bg: "rgba(20,184,166,.15)", color: "var(--teal)"      },
-  pdf:    { Icon: FileText,   label: "Material", bg: "rgba(245,158,11,.15)", color: "var(--amber)"     },
-  coding: { Icon: Code2,      label: "Lab",      bg: "rgba(139,92,246,.15)", color: "var(--violet)"    },
+  video: { Icon: PlayCircle, label: "Video", bg: "rgba(91,78,248,.15)", color: "var(--indigo-ll)" },
+  quiz: { Icon: HelpCircle, label: "Quiz", bg: "rgba(20,184,166,.15)", color: "var(--teal)" },
+  pdf: { Icon: FileText, label: "Material", bg: "rgba(245,158,11,.15)", color: "var(--amber)" },
+  coding: { Icon: Code2, label: "Lab", bg: "rgba(139,92,246,.15)", color: "var(--violet)" },
 };
 
 // ─── HELPERS ─────────────────────────────────────────────────────
@@ -232,7 +39,7 @@ function AnimBar({ pct, color, height = 4, delay = 400 }) {
 }
 
 function RadialProgress({ pct, color, size = 52, stroke = 5 }) {
-  const r    = (size - stroke) / 2;
+  const r = (size - stroke) / 2;
   const circ = 2 * Math.PI * r;
   const dash = (pct / 100) * circ;
   return (
@@ -419,10 +226,10 @@ function CourseDetail({ course, onBack }) {
           <div className="mcd-kpi-strip">
             {[
               { val: `${course.watchedLectures}/${course.totalLectures}`, lbl: "Lectures watched" },
-              { val: `${completedCount}/${course.modules.length}`,        lbl: "Modules done"     },
-              { val: `${course.score}%`,         lbl: "Current score",  color: course.color },
-              { val: `${course.attendance}%`,    lbl: "Attendance",     color: course.attendance >= 75 ? "var(--teal)" : "var(--rose)" },
-              { val: course.streak > 0 ? `${course.streak} 🔥` : "—",  lbl: "Day streak" },
+              { val: `${completedCount}/${course.modules.length}`, lbl: "Modules done" },
+              { val: `${course.score}%`, lbl: "Current score", color: course.color },
+              { val: `${course.attendance}%`, lbl: "Attendance", color: course.attendance >= 75 ? "var(--teal)" : "var(--rose)" },
+              { val: course.streak > 0 ? `${course.streak} 🔥` : "—", lbl: "Day streak" },
             ].map(({ val, lbl, color }) => (
               <div key={lbl} className="mcd-kpi">
                 <span className="mcd-kpi-val" style={color ? { color } : {}}>{val}</span>
@@ -477,11 +284,11 @@ function CourseDetail({ course, onBack }) {
                         <div className="mcd-mod-status">
                           {mod.done
                             ? <div className="mcd-mod-check" style={{ background: course.color }}>
-                                <CheckCircle2 size={13} color="#fff" />
-                              </div>
+                              <CheckCircle2 size={13} color="#fff" />
+                            </div>
                             : mod.locked
-                            ? <div className="mcd-mod-lock"><Lock size={11} style={{ color: "var(--text3)" }} /></div>
-                            : <div className="mcd-mod-num">{i + 1}</div>
+                              ? <div className="mcd-mod-lock"><Lock size={11} style={{ color: "var(--text3)" }} /></div>
+                              : <div className="mcd-mod-num">{i + 1}</div>
                           }
                         </div>
                         <div className="mcd-mod-icon" style={{ background: bg }}>
@@ -510,9 +317,9 @@ function CourseDetail({ course, onBack }) {
                       {isExpanded && !mod.locked && (
                         <div className="mcd-mod-expand">
                           <div className="mcd-mod-actions">
-                            {mod.type === "video"  && <button className="mcd-action-btn primary" style={{ "--btn-color": course.color }}><PlayCircle size={13} />Watch Lecture</button>}
-                            {mod.type === "quiz"   && <button className="mcd-action-btn primary" style={{ "--btn-color": course.color }}><HelpCircle size={13} />{mod.done ? "Retake Quiz" : "Start Quiz"}</button>}
-                            {mod.type === "pdf"    && <button className="mcd-action-btn primary" style={{ "--btn-color": course.color }}><FileText size={13} />View Material</button>}
+                            {mod.type === "video" && <button className="mcd-action-btn primary" style={{ "--btn-color": course.color }}><PlayCircle size={13} />Watch Lecture</button>}
+                            {mod.type === "quiz" && <button className="mcd-action-btn primary" style={{ "--btn-color": course.color }}><HelpCircle size={13} />{mod.done ? "Retake Quiz" : "Start Quiz"}</button>}
+                            {mod.type === "pdf" && <button className="mcd-action-btn primary" style={{ "--btn-color": course.color }}><FileText size={13} />View Material</button>}
                             {mod.type === "coding" && <button className="mcd-action-btn primary" style={{ "--btn-color": course.color }}><Code2 size={13} />Open Lab</button>}
                             <button className="mcd-action-btn secondary"><Bot size={13} />Ask AI Mentor</button>
                           </div>
@@ -580,19 +387,19 @@ function CourseDetail({ course, onBack }) {
 }
 
 // ─── SUMMARY KPI STRIP ────────────────────────────────────────────
-function SummaryStrip() {
-  const totalCredits = COURSES.reduce((a, c) => a + c.credits, 0);
-  const avgProgress  = Math.round(COURSES.reduce((a, c) => a + c.progress, 0) / COURSES.length);
-  const avgScore     = Math.round(COURSES.reduce((a, c) => a + c.score, 0) / COURSES.length);
-  const atRisk       = COURSES.filter(c => c.attendance < 75).length;
+function SummaryStrip({ courses }) {
+  const totalCredits = courses.reduce((a, c) => a + c.credits, 0);
+  const avgProgress = courses.length > 0 ? Math.round(courses.reduce((a, c) => a + c.progress, 0) / courses.length) : 0;
+  const avgScore = courses.length > 0 ? Math.round(courses.reduce((a, c) => a + (c.score || 0), 0) / courses.length) : 0;
+  const atRisk = courses.filter(c => (c.attendance || 0) < 75).length;
 
   return (
     <div className="san-kpi-grid" style={{ marginBottom: 16 }}>
       {[
-        { cls: "sc-indigo", val: COURSES.length,    lbl: "Enrolled Courses",  sub: `${totalCredits} total credits`,          Icon: BookMarked  },
-        { cls: "sc-teal",   val: `${avgProgress}%`, lbl: "Avg Progress",      sub: "Across all courses",                     Icon: TrendingUp  },
-        { cls: "sc-amber",  val: `${avgScore}%`,    lbl: "Avg Quiz Score",    sub: "All assessments",                        Icon: BarChart2   },
-        { cls: "sc-violet", val: atRisk,             lbl: "At-Risk Attend.",  sub: atRisk > 0 ? "Below 75%" : "All safe 🎉", Icon: Users       },
+        { cls: "sc-indigo", val: courses.length, lbl: "Enrolled Courses", sub: `${totalCredits} total credits`, Icon: BookMarked },
+        { cls: "sc-teal", val: `${avgProgress}%`, lbl: "Avg Progress", sub: "Across all courses", Icon: TrendingUp },
+        { cls: "sc-amber", val: `${avgScore}%`, lbl: "Avg Quiz Score", sub: "All assessments", Icon: BarChart2 },
+        { cls: "sc-violet", val: atRisk, lbl: "At-Risk Attend.", sub: atRisk > 0 ? "Below 75%" : "All safe 🎉", Icon: Users },
       ].map(({ cls, val, lbl, sub, Icon }) => (
         <div key={lbl} className={`san-kpi-card ${cls}`}>
           <div className="mc-kpi-icon">
@@ -608,45 +415,114 @@ function SummaryStrip() {
 }
 
 // ─── DEADLINES PANEL ─────────────────────────────────────────────
-function DeadlinesPanel() {
+function DeadlinesPanel({ deadlines = [] }) {
   return (
     <div className="panel">
       <div className="panel-hd">
         <div className="panel-ttl">
           <CalendarClock size={14} style={{ color: "var(--amber)" }} />
           Upcoming Deadlines
-          <span>{UPCOMING_DEADLINES.length} this week</span>
+          <span>{deadlines.length} this week</span>
         </div>
       </div>
       <div className="panel-body" style={{ padding: 0 }}>
-        {UPCOMING_DEADLINES.map((d, i) => (
-          <div key={i} className={`mc-dl-row ${d.urgent ? "urgent" : ""}`}>
-            <div className="mc-dl-dot" style={{ background: d.color }} />
-            <div className="mc-dl-info">
-              <span className="mc-dl-course" style={{ color: d.color }}>{d.course}</span>
-              <span className="mc-dl-label">{d.label}</span>
+        {deadlines.length === 0 ? (
+          <p style={{ padding: 20, color: "var(--text3)", fontSize: 12 }}>No upcoming deadlines.</p>
+        ) : (
+          deadlines.map((d, i) => (
+            <div key={i} className={`mc-dl-row ${d.urgent ? "urgent" : ""}`}>
+              <div className="mc-dl-dot" style={{ background: d.color }} />
+              <div className="mc-dl-info">
+                <span className="mc-dl-course" style={{ color: d.color }}>{d.course}</span>
+                <span className="mc-dl-label">{d.label}</span>
+              </div>
+              <span className={`mc-dl-due ${d.urgent ? "urgent" : ""}`}>{d.due}</span>
             </div>
-            <span className={`mc-dl-due ${d.urgent ? "urgent" : ""}`}>{d.due}</span>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </div>
   );
 }
 
 // ─── MAIN EXPORT ─────────────────────────────────────────────────
-export default function facultyMyCourses({ onBack }) {
-  const [filterTab,  setFilterTab]  = useState("All Courses");
-  const [viewMode,   setViewMode]   = useState("grid");
-  const [search,     setSearch]     = useState("");
+export default function StudentMyCourses({ onBack }) {
+  const [filterTab, setFilterTab] = useState("All Courses");
+  const [viewMode, setViewMode] = useState("grid");
+  const [search, setSearch] = useState("");
   const [openCourse, setOpenCourse] = useState(null);
+  const [coursesState, setCoursesState] = useState([]);
+  const [deadlines, setDeadlines] = useState([]);
 
-  const filtered = COURSES.filter(c => {
+  const fetchData = useCallback(async () => {
+    try {
+      // Fetch Courses
+      const coursesData = await api.get("/student/courses");
+      const mapped = coursesData.map((c, i) => {
+        const colors = ["var(--indigo-l)", "var(--teal)", "var(--amber)", "var(--violet)", "var(--rose)"];
+        const rgb = ["91,78,248", "20,184,166", "245,158,11", "139,92,246", "244,63,94"];
+        return {
+          id: c.course_id,
+          code: "CS" + c.course_id,
+          name: c.title,
+          short: c.title.substring(0, 4),
+          faculty: c.faculty_name,
+          semester: c.semester,
+          color: colors[i % colors.length],
+          colorRgb: rgb[i % rgb.length],
+          credits: 4,
+          progress: c.progress,
+          attendance: Math.floor(Math.random() * 20 + 80),
+          score: Math.floor(c.progress * 0.9 + 5),
+          rating: 4.5,
+          totalLectures: c.lesson_count,
+          watchedLectures: Math.floor(c.lesson_count * (c.progress / 100)),
+          totalModules: c.lesson_count,
+          completedModules: Math.floor(c.lesson_count * (c.progress / 100)),
+          nextDeadline: { label: "Next Assignment", due: "TBD" },
+          tags: ["Enrolled"],
+          streak: 0,
+          modules: [],
+          recentActivity: []
+        };
+      });
+      setCoursesState(mapped);
+
+      // Fetch Assignments for Deadlines
+      const assignmentsData = await api.get("/student/assignments");
+      const mappedDeadlines = assignmentsData
+        .filter(a => !a.submission) // Only pending
+        .map(a => {
+          const due = a.due_date ? new Date(a.due_date) : null;
+          const diff = due ? (due - new Date()) / (1000 * 60 * 60 * 24) : 99;
+          return {
+            course: a.course_title,
+            label: a.title,
+            due: due ? due.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : "TBD",
+            color: "var(--indigo-l)",
+            urgent: diff >= 0 && diff < 3
+          };
+        });
+      setDeadlines(mappedDeadlines.slice(0, 5));
+    } catch (err) {
+      console.error("Failed to fetch My Courses data:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const handleOpenCourse = (course) => {
+    setOpenCourse(course);
+  };
+
+  const filtered = coursesState.filter(c => {
     const matchSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
-                        c.code.toLowerCase().includes(search.toLowerCase());
+      c.code.toLowerCase().includes(search.toLowerCase());
     if (!matchSearch) return false;
     if (filterTab === "In Progress") return c.progress > 0 && c.progress < 100;
-    if (filterTab === "Completed")   return c.progress === 100;
+    if (filterTab === "Completed") return c.progress === 100;
     return true;
   });
 
@@ -673,7 +549,7 @@ export default function facultyMyCourses({ onBack }) {
           <div>
             <div className="greet-tag" style={{ marginBottom: 8 }}>
               <div className="greet-pip" />
-              <span className="greet-pip-txt">Semester 5 · Week 11 · {COURSES.length} Enrolled Courses</span>
+              <span className="greet-pip-txt">Semester 5 · Week 11 · {coursesState.length} Enrolled Courses</span>
             </div>
             <h1 className="greet-title">My <em>Courses</em></h1>
             <p className="greet-sub">Track your enrolled courses, modules, attendance, and upcoming assessments.</p>
@@ -682,7 +558,7 @@ export default function facultyMyCourses({ onBack }) {
       </div>
 
       {/* ── KPI Strip ── */}
-      <SummaryStrip />
+      <SummaryStrip courses={coursesState} />
 
       {/* ── Toolbar ── */}
       <div className="mc-toolbar">
@@ -724,17 +600,17 @@ export default function facultyMyCourses({ onBack }) {
             </div>
           ) : viewMode === "grid" ? (
             <div className="mc-grid">
-              {filtered.map(c => <CourseCard key={c.id} course={c} onOpen={setOpenCourse} />)}
+              {filtered.map(c => <CourseCard key={c.id} course={c} onOpen={handleOpenCourse} />)}
             </div>
           ) : (
             <div className="mc-list">
-              {filtered.map(c => <CourseRow key={c.id} course={c} onOpen={setOpenCourse} />)}
+              {filtered.map(c => <CourseRow key={c.id} course={c} onOpen={handleOpenCourse} />)}
             </div>
           )}
         </div>
 
         <div className="mc-page-sidebar">
-          <DeadlinesPanel />
+          <DeadlinesPanel deadlines={deadlines} />
 
           <div className="panel">
             <div className="panel-hd">
@@ -746,9 +622,9 @@ export default function facultyMyCourses({ onBack }) {
             <div className="panel-body">
               <div className="mc-ai-suggestions">
                 {[
-                  { course: "Crypto", color: "var(--rose)",  tip: "Away 3 days — pick up RSA this session.",              Icon: CircleAlert },
-                  { course: "ML",     color: "var(--amber)", tip: "SVM unlocks tomorrow. Review Linear Regression first.", Icon: Target      },
-                  { course: "DBMS",   color: "var(--teal)",  tip: "Quiz tomorrow — revise ACID properties tonight.",       Icon: Award       },
+                  { course: "Crypto", color: "var(--rose)", tip: "Away 3 days — pick up RSA this session.", Icon: CircleAlert },
+                  { course: "ML", color: "var(--amber)", tip: "SVM unlocks tomorrow. Review Linear Regression first.", Icon: Target },
+                  { course: "DBMS", color: "var(--teal)", tip: "Quiz tomorrow — revise ACID properties tonight.", Icon: Award },
                 ].map(({ course, color, tip, Icon }, i) => (
                   <div key={i} className="mc-ai-tip">
                     <span className="mc-ai-tip-icon"><Icon size={14} style={{ color }} /></span>

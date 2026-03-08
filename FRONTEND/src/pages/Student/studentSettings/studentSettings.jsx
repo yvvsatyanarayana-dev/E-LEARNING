@@ -1,5 +1,5 @@
 // studentSettings.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import "./studentSettings.css";
 
 const IcoBack    = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>;
@@ -48,6 +48,8 @@ function Row({ label, sub, children, danger }) {
 }
 
 export default function StudentSettings({ onBack }) {
+  const [user, setUser]         = useState(null);
+  const [formData, setFormData] = useState({});
   const [notif, setNotif]       = useState({ assignments: true, quizzes: true, announcements: true, placements: true, studyGroups: false, newsletter: false });
   const [privacy, setPrivacy]   = useState({ profileVisible: true, showCGPA: false, showAttendance: false });
   const [theme, setTheme]       = useState("dark");
@@ -56,7 +58,23 @@ export default function StudentSettings({ onBack }) {
   const [showPass, setShowPass] = useState(false);
   const [twoFa, setTwoFa]       = useState(false);
   const [saved, setSaved]       = useState(false);
+  const [passData, setPassData] = useState({ old_password: "", new_password: "", confirm: "" });
+  const [passError, setPassError] = useState("");
+  const [passSuccess, setPassSuccess] = useState(false);
   const [activeSection, setActiveSection] = useState("account");
+
+  useEffect(() => {
+    import("../../../utils/api").then(({ default: api }) => {
+      api.get("/auth/me").then(u => {
+        setUser(u);
+        setFormData({
+          full_name: u.full_name || "",
+          phone_number: u.phone_number || "",
+          bio: u.bio || ""
+        });
+      }).catch(console.error);
+    });
+  }, []);
 
   const SECTIONS = [
     { id: "account",       label: "Account",       icon: <IcoUser /> },
@@ -72,7 +90,38 @@ export default function StudentSettings({ onBack }) {
     { id: "violet", color: "#9f7aea" },
   ];
 
-  const handleSave = () => { setSaved(true); setTimeout(() => setSaved(false), 2200); };
+  const handleSave = async () => {
+    try {
+      const api = (await import("../../../utils/api")).default;
+      await api.patch("/student/profile", formData);
+      setSaved(true); 
+      setTimeout(() => setSaved(false), 2200);
+    } catch(err) {
+      console.error("Save failed", err);
+    }
+  };
+
+  const handlePasswordUpdate = async () => {
+    setPassError("");
+    setPassSuccess(false);
+    if (!passData.old_password || !passData.new_password) return setPassError("Fill all fields");
+    if (passData.new_password !== passData.confirm) return setPassError("Passwords don't match");
+    if (passData.new_password.length < 8) return setPassError("Min 8 characters required");
+
+    try {
+      const api = (await import("../../../utils/api")).default;
+      await api.patch("/auth/change-password", {
+        old_password: passData.old_password,
+        new_password: passData.new_password
+      });
+      setPassSuccess(true);
+      setPassData({ old_password: "", new_password: "", confirm: "" });
+    } catch (err) {
+      setPassError(err.response?.data?.detail || "Update failed");
+    }
+  };
+
+  const initials = user?.full_name ? user.full_name.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2) : "??";
 
   return (
     <div className="st-root">
@@ -95,27 +144,37 @@ export default function StudentSettings({ onBack }) {
             </button>
           ))}
           <div className="st-nav-divider" />
-          <button className="st-nav-item danger"><span className="st-nav-ico"><IcoLogout /></span>Sign Out</button>
+          <button className="st-nav-item danger" onClick={() => {
+            localStorage.removeItem("token");
+            window.location.href = "/login";
+          }}>
+            <span className="st-nav-ico"><IcoLogout /></span>Sign Out
+          </button>
         </nav>
 
         <div className="st-content">
           {activeSection === "account" && (<>
             <Section icon={<IcoUser />} title="Account Information">
               <div className="st-avatar-row">
-                <div className="st-avatar-big">AR</div>
+                <div className="st-avatar-big">{initials}</div>
                 <div className="st-avatar-info">
-                  <div className="st-avatar-name">Arjun Reddy</div>
-                  <div className="st-avatar-meta">CSE · Semester 5 · Roll 21CS047</div>
+                  <div className="st-avatar-name">{user?.full_name || "Student"}</div>
+                  <div className="st-avatar-meta">Student · {user?.email || ""}</div>
                   <button className="st-link-btn">Change photo</button>
                 </div>
               </div>
-              <Row label="Full Name" sub="Your display name across the platform"><input className="st-input" defaultValue="Arjun Reddy" /></Row>
-              <Row label="Email Address" sub="Used for login and notifications"><input className="st-input" defaultValue="arjun.reddy@college.edu" type="email" /></Row>
-              <Row label="Phone Number" sub="For placement officer contact"><input className="st-input" defaultValue="+91 98765 43210" /></Row>
-              <Row label="Roll Number" sub="Assigned by institution — read only"><input className="st-input" defaultValue="21CS047" readOnly style={{ opacity:.5, cursor:"not-allowed" }} /></Row>
-              <Row label="Department"><select className="st-select"><option>Computer Science Engineering</option><option>Electronics Engineering</option><option>Mechanical Engineering</option></select></Row>
-              <Row label="Semester"><select className="st-select">{[1,2,3,4,5,6,7,8].map(s=><option key={s} selected={s===5}>Semester {s}</option>)}</select></Row>
-              <Row label="Bio" sub="Shown on your public profile"><textarea className="st-textarea" defaultValue="CSE student passionate about distributed systems, ML, and competitive programming." rows={3} /></Row>
+              <Row label="Full Name" sub="Your display name across the platform">
+                <input className="st-input" value={formData.full_name || ""} onChange={e => setFormData({...formData, full_name: e.target.value})} />
+              </Row>
+              <Row label="Email Address" sub="Used for login and notifications">
+                <input className="st-input" value={user?.email || ""} readOnly style={{ opacity:.5, cursor:"not-allowed" }} />
+              </Row>
+              <Row label="Phone Number" sub="For placement officer contact">
+                <input className="st-input" value={formData.phone_number || ""} onChange={e => setFormData({...formData, phone_number: e.target.value})} placeholder="+91 98765 43210" />
+              </Row>
+              <Row label="Bio" sub="Shown on your public profile">
+                <textarea className="st-textarea" value={formData.bio || ""} onChange={e => setFormData({...formData, bio: e.target.value})} rows={3} placeholder="Tell us about yourself..." />
+              </Row>
             </Section>
             <Section icon={<IcoGlobe />} title="Language & Region">
               <Row label="Language"><select className="st-select"><option>English</option><option>Hindi</option><option>Telugu</option><option>Tamil</option></select></Row>
@@ -195,18 +254,22 @@ export default function StudentSettings({ onBack }) {
             <Section icon={<IcoLock />} title="Password">
               <Row label="Current Password">
                 <div className="st-pass-wrap">
-                  <input className="st-input" type={showPass?"text":"password"} defaultValue="••••••••••" />
+                  <input className="st-input" type={showPass?"text":"password"} value={passData.old_password} onChange={e=>setPassData({...passData, old_password:e.target.value})} placeholder="Master password" />
                   <button className="st-pass-eye" onClick={()=>setShowPass(v=>!v)}>{showPass?<IcoEyeOff/>:<IcoEye/>}</button>
                 </div>
               </Row>
-              <Row label="New Password"><input className="st-input" type="password" placeholder="Min 8 characters" /></Row>
-              <Row label="Confirm New Password"><input className="st-input" type="password" placeholder="Re-enter new password" /></Row>
+              <Row label="New Password"><input className="st-input" type="password" placeholder="Min 8 characters" value={passData.new_password} onChange={e=>setPassData({...passData, new_password:e.target.value})} /></Row>
+              <Row label="Confirm New Password"><input className="st-input" type="password" placeholder="Re-enter new password" value={passData.confirm} onChange={e=>setPassData({...passData, confirm:e.target.value})} /></Row>
+              
+              {passError && <div style={{color:"var(--rose)",fontSize:11,marginLeft:20,marginTop:8}}>⚠️ {passError}</div>}
+              {passSuccess && <div style={{color:"var(--teal)",fontSize:11,marginLeft:20,marginTop:8}}>✅ Password updated successfully!</div>}
+              
               <div className="st-pass-rules">
                 {["At least 8 characters","One uppercase letter","One number or symbol"].map(r=>(
                   <div key={r} className="st-pass-rule"><IcoCheck style={{color:"var(--teal)"}}/> {r}</div>
                 ))}
               </div>
-              <button className="st-btn-solid" style={{marginTop:14,marginLeft:20}}>Update Password</button>
+              <button className="st-btn-solid" style={{marginTop:14,marginLeft:20}} onClick={handlePasswordUpdate}>Update Password</button>
             </Section>
             <Section icon={<IcoShield />} title="Two-Factor Authentication">
               <Row label="Enable 2FA" sub="Adds a one-time code requirement on login"><Toggle value={twoFa} onChange={setTwoFa} /></Row>

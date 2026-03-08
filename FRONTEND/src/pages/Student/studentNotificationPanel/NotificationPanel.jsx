@@ -10,21 +10,16 @@ const IcoBrief   = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24"
 const IcoUsers   = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
 const IcoBook    = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>;
 
-const ALL_NOTIFS = [
-  { id:1,  type:"assignment", color:"rose",   icon:<IcoFile/>,  title:"Assignment Due Soon",       sub:"Operating Systems — Unit III due in 3 hours",         time:"2 min ago",  unread:true,  cat:"academic" },
-  { id:2,  type:"quiz",       color:"amber",  icon:<IcoClock/>, title:"Quiz Starting Today",       sub:"DBMS Normalization quiz opens at 2:00 PM",             time:"15 min ago", unread:true,  cat:"academic" },
-  { id:3,  type:"placement",  color:"teal",   icon:<IcoBrief/>, title:"New Placement Drive",       sub:"Google SWE Intern 2025 — Applications open now",      time:"1 hr ago",   unread:true,  cat:"career"  },
-  { id:4,  type:"placement",  color:"indigo", icon:<IcoAward/>, title:"PRI Milestone Reached",     sub:"Your Placement Readiness Index crossed 70 — Good tier",time:"3 hr ago",   unread:false, cat:"career"  },
-  { id:5,  type:"group",      color:"violet", icon:<IcoUsers/>, title:"Study Group Post",          sub:"Riya K. posted in OS Revision Group — 'Chapter 5...'", time:"5 hr ago",   unread:false, cat:"campus"  },
-  { id:6,  type:"course",     color:"teal",   icon:<IcoBook/>,  title:"New Lecture Uploaded",      sub:"Dr. Kumar added ML — SVM Classifiers lecture video",   time:"Yesterday",  unread:false, cat:"academic"},
-  { id:7,  type:"assignment", color:"rose",   icon:<IcoFile/>,  title:"Grade Published",           sub:"CN Lab Assignment — You scored 47/50 (Grade: A)",      time:"2 days ago", unread:false, cat:"academic"},
-  { id:8,  type:"placement",  color:"teal",   icon:<IcoBrief/>, title:"Interview Scheduled",       sub:"Microsoft mock interview confirmed for Friday 3 PM",    time:"2 days ago", unread:false, cat:"career"  },
-];
-
 export default function NotificationPanel({ open, onClose }) {
   const [activeTab, setActiveTab] = useState("all");
-  const [notifs, setNotifs]       = useState(ALL_NOTIFS);
+  const [notifs, setNotifs]       = useState([]);
   const ref = useRef();
+
+  useEffect(() => {
+    import("../../../utils/api").then(({ default: api }) => {
+      api.get("/student/notifications").then(res => setNotifs(res)).catch(console.error);
+    });
+  }, []);
 
   useEffect(() => {
     if (!open) return;

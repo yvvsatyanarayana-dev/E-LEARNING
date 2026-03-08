@@ -1,8 +1,8 @@
 // studentDashboard.jsx — with Settings, Profile, Resume, Notifications
-import StudentInternships from "../studentInterships/studentInterships";
+import StudentInternships from "../studentInternships/studentInternships";
 import StudentMockInterview from "../studentMockInterview/studentMockInterview";
-import StudentPlacementPrep from "../studdentPlacementPrep/studentPlacementPrep";
-import StudentInnovationHub from "../studentInnovationHub/studentinnovationhub";
+import StudentPlacementPrep from "../studentPlacementPrep/studentPlacementPrep";
+import StudentInnovationHub from "../studentInnovationHub/studentInnovationHub";
 import StudentSettings from "../studentSettings/studentSettings";
 import StudentProfile from "../studentProfile/studentProfile";
 import StudentResume from "../studentResume/studentResume";
@@ -18,8 +18,8 @@ import StudentAnalytics from "../studentAnalytics/studentAnalytics";
 import "../studentAnalytics/studentAnalytics.css";
 import StudentMyCourses from "../studentMycourse/studentMycourse";
 import "../studentMycourse/studentMycourse.css";
-import StudentVideoLectures from "../studnetVideoLectures/studentVideoLectures";
-import "../studnetVideoLectures/studentVideoLectures.css";
+import StudentVideoLectures from "../studentVideoLectures/studentVideoLectures";
+import "../studentVideoLectures/studentVideoLectures.css";
 import StudentAssignments from "../studentAssignments/studentAssignments";
 import "../studentAssignments/studentAssignments.css";
 import StudentQuizzes from "../studentQuizzes/studentQuizzes";
@@ -98,39 +98,70 @@ const PAGE_PARAM_MAP = {
 
 const ROUTABLE = new Set(Object.values(ROUTES));
 
-// ─── MOCK DATA ───────────────────────────────────────────────────
-const INITIAL_COURSES = [
-  { name:"Operating Systems",meta:"Dr. S. Prakash · 42 lectures",pct:78,color:"var(--indigo-l)",grade:"A",gradeStyle:{background:"rgba(39,201,176,.1)",color:"var(--teal)"},due:"Quiz · Today",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>,badgeStyle:{background:"rgba(91,78,248,.12)",color:"var(--indigo-ll)"},pctColor:"var(--indigo-ll)",next:"Next: Memory Mgmt"},
-  { name:"Database Management Systems",meta:"Prof. R. Nair · 38 lectures",pct:61,color:"var(--teal)",grade:"A−",gradeStyle:{background:"rgba(91,78,248,.1)",color:"var(--indigo-ll)"},due:"Asgmt · 2 days",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>,badgeStyle:{background:"rgba(39,201,176,.1)",color:"var(--teal)"},pctColor:"var(--teal)",next:"Next: Transactions"},
-  { name:"Machine Learning Fundamentals",meta:"Dr. A. Kumar · 36 lectures",pct:44,color:"var(--amber)",grade:"B+",gradeStyle:{background:"rgba(244,165,53,.1)",color:"var(--amber)"},due:"Project · 5 days",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>,badgeStyle:{background:"rgba(244,165,53,.1)",color:"var(--amber)"},pctColor:"var(--amber)",next:"Next: SVM Classifiers"},
-  { name:"Computer Networks",meta:"Prof. T. Mehta · 40 lectures",pct:55,color:"var(--violet)",grade:"A",gradeStyle:{background:"rgba(159,122,234,.1)",color:"var(--violet)"},due:"Lab · Tomorrow",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="2" width="20" height="8" rx="2"/><rect x="2" y="14" width="20" height="8" rx="2"/><line x1="6" y1="6" x2="6.01" y2="6"/><line x1="6" y1="18" x2="6.01" y2="18"/></svg>,badgeStyle:{background:"rgba(159,122,234,.1)",color:"var(--violet)"},pctColor:"var(--violet)",next:"Next: TCP/IP Stack"},
-  { name:"Cryptography & Network Security",meta:"Dr. P. Sharma · 34 lectures",pct:32,color:"var(--rose)",grade:"B",gradeStyle:{background:"rgba(242,68,92,.1)",color:"var(--rose)"},due:"Asgmt · Today",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>,badgeStyle:{background:"rgba(242,68,92,.1)",color:"var(--rose)"},pctColor:"var(--rose)",next:"Next: RSA Algorithm"},
+// ─── PALETTE for API courses ──────────────────────────────────────
+const PALETTE_COLORS = [
+  {color:"var(--indigo-l)",pctColor:"var(--indigo-ll)",badgeStyle:{background:"rgba(91,78,248,.12)",color:"var(--indigo-ll)"}},
+  {color:"var(--teal)",    pctColor:"var(--teal)",     badgeStyle:{background:"rgba(39,201,176,.1)",color:"var(--teal)"}},
+  {color:"var(--amber)",  pctColor:"var(--amber)",    badgeStyle:{background:"rgba(244,165,53,.1)",color:"var(--amber)"}},
+  {color:"var(--violet)", pctColor:"var(--violet)",   badgeStyle:{background:"rgba(159,122,234,.1)",color:"var(--violet)"}},
+  {color:"var(--rose)",   pctColor:"var(--rose)",     badgeStyle:{background:"rgba(242,68,92,.1)",color:"var(--rose)"}},
 ];
+const GRADE_STYLES = [
+  {background:"rgba(39,201,176,.1)",color:"var(--teal)"},
+  {background:"rgba(91,78,248,.1)",color:"var(--indigo-ll)"},
+  {background:"rgba(244,165,53,.1)",color:"var(--amber)"},
+  {background:"rgba(159,122,234,.1)",color:"var(--violet)"},
+  {background:"rgba(242,68,92,.1)",color:"var(--rose)"},
+];
+function mapApiCourse(c, i) {
+  const p = PALETTE_COLORS[i % PALETTE_COLORS.length];
+  const g = GRADE_STYLES[i % GRADE_STYLES.length];
+  return {
+    name: c.title,
+    meta: `${c.faculty_name} · ${c.lesson_count} lessons`,
+    pct: Math.round(c.progress),
+    color: p.color, pctColor: p.pctColor, badgeStyle: p.badgeStyle,
+    gradeStyle: g, grade: c.progress >= 90 ? "A+" : c.progress >= 80 ? "A" : c.progress >= 70 ? "A−" : c.progress >= 60 ? "B+" : "B",
+    due: c.assignment_count > 0 ? `${c.assignment_count} assignments` : "No pending",
+    next: `${c.quiz_count} quiz${c.quiz_count !== 1 ? "zes" : ""}`,
+    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
+  };
+}
+function mapApiSkill(s, i) {
+  const p = PALETTE_COLORS[i % PALETTE_COLORS.length];
+  return { label: s.skill_name, pct: Math.round(s.score), color: p.color, pctColor: p.pctColor };
+}
+function mapApiQuiz(a, i) {
+  const p = PALETTE_COLORS[i % PALETTE_COLORS.length];
+  const pct = Math.round(a.score);
+  return {
+    name: a.title,
+    score: `${pct}%`,
+    pct,
+    scoreStyle: { background: `rgba(${a.status === "excellent" ? "39,201,176" : a.status === "good" ? "91,78,248" : "244,165,53"}, .1)`, color: `var(--${a.status === "excellent" ? "teal" : a.status === "good" ? "indigo-ll" : "amber"})` },
+    bar: `var(--${a.status === "excellent" ? "teal" : a.status === "good" ? "indigo-ll" : "amber"})`,
+    answered: a.date,
+    rank: a.status.charAt(0).toUpperCase() + a.status.slice(1),
+  };
+}
 
-const INITIAL_SCHEDULE = [
-  {from:"09:00",to:"10:00",name:"Operating Systems",room:"Room 301 · Dr. Prakash",tag:"Lecture",color:"var(--teal)",tagStyle:{background:"rgba(39,201,176,.1)",color:"var(--teal)"}},
-  {from:"10:30",to:"11:30",name:"OS Quiz — Unit III",room:"Exam Hall B",tag:"Quiz Today",color:"var(--amber)",tagStyle:{background:"rgba(244,165,53,.12)",color:"var(--amber)"}},
-  {from:"13:00",to:"14:30",name:"DBMS Lab",room:"Lab 2 · Prof. Nair",tag:"Lab",color:"var(--indigo-l)",tagStyle:{background:"rgba(91,78,248,.1)",color:"var(--indigo-ll)"}},
-  {from:"15:00",to:"16:00",name:"ML — SVM Classifiers",room:"Room 204 · Dr. Kumar",tag:"Lecture",color:"var(--violet)",tagStyle:{background:"rgba(159,122,234,.1)",color:"var(--violet)"}},
-  {from:"16:30",to:"17:00",name:"Mock Interview",room:"Placement Cell · AI Sim",tag:"Career",color:"var(--rose)",tagStyle:{background:"rgba(242,68,92,.1)",color:"var(--rose)"}},
-];
-
-const INITIAL_QUIZZES = [
-  {name:"OS – Process Scheduling",score:"92%",pct:92,scoreStyle:{background:"rgba(39,201,176,.1)",color:"var(--teal)"},bar:"var(--teal)",answered:"20/20 answered",rank:"Rank 3rd / 112"},
-  {name:"DBMS – Normalization",score:"85%",pct:85,scoreStyle:{background:"rgba(91,78,248,.1)",color:"var(--indigo-ll)"},bar:"var(--indigo-l)",answered:"17/20 answered",rank:"Rank 8th / 112"},
-  {name:"CN – OSI Layers",score:"78%",pct:78,scoreStyle:{background:"rgba(159,122,234,.1)",color:"var(--violet)"},bar:"var(--violet)",answered:"15/20 answered",rank:"Rank 14th / 112"},
-  {name:"ML – Linear Regression",score:"71%",pct:71,scoreStyle:{background:"rgba(244,165,53,.1)",color:"var(--amber)"},bar:"var(--amber)",answered:"14/20 answered",rank:"Rank 22nd / 112"},
-  {name:"Crypto – Symmetric Keys",score:"58%",pct:58,scoreStyle:{background:"rgba(242,68,92,.1)",color:"var(--rose)"},bar:"var(--rose)",answered:"11/20 answered",rank:"Rank 51st / 112"},
-];
-
-const INITIAL_SKILLS = [
-  {label:"DSA",pct:82,color:"var(--teal)",pctColor:"var(--teal)"},
-  {label:"Python",pct:74,color:"var(--indigo-l)",pctColor:"var(--indigo-ll)"},
-  {label:"SQL",pct:68,color:"var(--violet)",pctColor:"var(--violet)"},
-  {label:"Machine Learning",pct:55,color:"var(--amber)",pctColor:"var(--amber)"},
-  {label:"System Design",pct:41,color:"var(--rose)",pctColor:"var(--rose)"},
-  {label:"Communication",pct:77,color:"linear-gradient(90deg,var(--indigo),var(--teal))",pctColor:"var(--indigo-ll)"},
-];
+function mapApiSchedule(s, i) {
+  const p = PALETTE_COLORS[i % PALETTE_COLORS.length];
+  const start = `${s.startH}:${s.startM.toString().padStart(2, "0")}`;
+  const endH = Math.floor((s.startH * 60 + s.startM + s.durationMin) / 60);
+  const endM = (s.startH * 60 + s.startM + s.durationMin) % 60;
+  const end = `${endH}:${endM.toString().padStart(2, "0")}`;
+  
+  return {
+    from: start,
+    to: end,
+    name: s.subject,
+    room: s.room || "Online",
+    tag: s.type.toUpperCase(),
+    color: p.color,
+    tagStyle: p.badgeStyle
+  };
+}
 
 const AI_RESPONSES = [
   "Great question! Process scheduling determines which process gets CPU time and for how long. 🎓",
@@ -228,15 +259,19 @@ function AnimatedProgressBar({pct,color,height=3,delay=500}){
 }
 
 // ─── SIDEBAR ─────────────────────────────────────────────────────
-function Sidebar({activePage,onNavigate,mobileOpen,onMobileClose,onNavigateSettings,onNavigateProfile}){
+function Sidebar({activePage,onNavigate,mobileOpen,onMobileClose,onNavigateSettings,onNavigateProfile,userName,priScore}){
   const logoutNavigate=useNavigate();
   const [priW,setPriW]=useState(0);
-  useEffect(()=>{const t=setTimeout(()=>setPriW(72),600);return()=>clearTimeout(t);},[]);
+  useEffect(()=>{const t=setTimeout(()=>setPriW(Math.round(priScore||0)),600);return()=>clearTimeout(t);},[priScore]);
 
   const handleLogout=()=>{
     localStorage.removeItem("token");localStorage.removeItem("user");
     logoutNavigate("/login",{replace:true});
   };
+
+  const initials = userName ? userName.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2) : "??";
+  const ptsToExcellent = Math.max(0, 85 - Math.round(priScore||0));
+  const priLabel = (priScore||0) >= 85 ? "Excellent" : (priScore||0) >= 70 ? "Good" : (priScore||0) >= 50 ? "Average" : "Needs Work";
 
   return(
     <>
@@ -250,10 +285,10 @@ function Sidebar({activePage,onNavigate,mobileOpen,onMobileClose,onNavigateSetti
         </div>
         {/* Clickable user card → Profile */}
         <div className="sb-user" style={{cursor:"pointer"}} onClick={()=>{onNavigateProfile();onMobileClose();}}>
-          <div className="sb-avatar">AR</div>
+          <div className="sb-avatar">{initials}</div>
           <div>
-            <div className="sb-uname">Arjun Reddy</div>
-            <div className="sb-urole">CSE · Sem 5 · Roll 21CS047</div>
+            <div className="sb-uname">{userName || "Loading…"}</div>
+            <div className="sb-urole">Student</div>
           </div>
         </div>
         <nav className="sb-nav">
@@ -274,8 +309,8 @@ function Sidebar({activePage,onNavigate,mobileOpen,onMobileClose,onNavigateSetti
         <div className="sb-bottom">
           <div className="sb-pri">
             <div className="sb-pri-lbl">Placement Readiness Index</div>
-            <div className="sb-pri-val">72</div>
-            <div className="sb-pri-sub">Good · 13 pts to Excellent</div>
+            <div className="sb-pri-val">{Math.round(priScore||0)}</div>
+            <div className="sb-pri-sub">{priLabel}{ptsToExcellent>0?` · ${ptsToExcellent} pts to Excellent`:" · Excellent tier!"}</div>
             <div className="sb-pri-bar"><div className="sb-pri-fill" style={{width:`${priW}%`}}/></div>
           </div>
           {/* Settings link */}
@@ -288,6 +323,8 @@ function Sidebar({activePage,onNavigate,mobileOpen,onMobileClose,onNavigateSetti
     </>
   );
 }
+
+
 
 // ─── TOPBAR ──────────────────────────────────────────────────────
 function Topbar({activePage,onHamburger,onNavigateProfile,onNavigateResume,notifCount,onToggleNotif,notifOpen}){
@@ -355,16 +392,19 @@ function LucynaPanel({open,onClose}){
 
   useEffect(()=>{if(msgRef.current)msgRef.current.scrollTop=msgRef.current.scrollHeight;},[messages,typing]);
 
-  const send=useCallback((text)=>{
+  const send=useCallback(async (text)=>{
     const val=text||input.trim();if(!val)return;
     setMessages(m=>[...m,{role:"user",html:val}]);
     setInput("");setShowChips(false);setTyping(true);
-    setTimeout(()=>{
+    try {
+      const resp = await api.post("/student/ai/chat", { message: val });
       setTyping(false);
-      setMessages(m=>[...m,{role:"ai",html:AI_RESPONSES[aiIdx%AI_RESPONSES.length]}]);
-      setAiIdx(i=>i+1);
-    },950);
-  },[input,aiIdx]);
+      setMessages(m=>[...m,{role:"ai",html:resp.reply}]);
+    } catch (err) {
+      setTyping(false);
+      setMessages(m=>[...m,{role:"ai",html: "I'm having trouble connecting to my brain right now. Please try again later!"}]);
+    }
+  },[input]);
 
   return(
     <div className={`lucyna-panel ${open?"open":""}`}>
@@ -424,13 +464,16 @@ function LucynaFab({onClick}){
 }
 
 // ─── DASHBOARD CONTENT ───────────────────────────────────────────
-function DashboardContent({stats,courses,schedule,quizzes,skills,onNavigateToAnalytics,onNavigateToMyCourses,onNavigateToVideoLectures,onNavigateToAssignments,onNavigateToQuizzes}){
+function DashboardContent({stats,courses,schedule,quizzes,skills,onNavigateToAnalytics,onNavigateToMyCourses,onNavigateToVideoLectures,onNavigateToAssignments,onNavigateToQuizzes,userName}){
+  const hour = new Date().getHours();
+  const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
+  const firstName = userName ? userName.split(" ")[0] : "…";
   return(
     <div className="content">
       <div className="greet-row">
-        <div className="greet-tag"><div className="greet-pip"/><span className="greet-pip-txt">Semester 5 · Week 11</span></div>
-        <h1 className="greet-title">Good morning, <em>Arjun</em></h1>
-        <p className="greet-sub">You have 3 pending assignments and 1 quiz due today. Let's get ahead.</p>
+        <div className="greet-tag"><div className="greet-pip"/><span className="greet-pip-txt">Student Portal</span></div>
+        <h1 className="greet-title">{greeting}, <em>{firstName}</em></h1>
+        <p className="greet-sub">{stats.pending_assignments > 0 ? `You have ${stats.pending_assignments} pending assignment${stats.pending_assignments!==1?"s":""} and ${stats.upcoming_quizzes} quiz${stats.upcoming_quizzes!==1?"zes":""} available. Let's get ahead.` : "You're all caught up! Great job staying on top of your work. 🎉"}</p>
         <div className="greet-actions">
           <Btn className="btn-solid" onClick={onNavigateToVideoLectures}><IcoPlay/> Continue Learning</Btn>
           <Btn className="btn-ghost" onClick={onNavigateToAssignments}><IcoFile width={12} height={12}/> Assignments</Btn>
@@ -441,10 +484,10 @@ function DashboardContent({stats,courses,schedule,quizzes,skills,onNavigateToAna
 
       <div className="stat-grid">
         {[
-          {cls:"sc-indigo",icon:<IcoBook width={18} height={18}/>,val:stats.activeCourses,lbl:"Active Courses",delta:<><IcoChevUp/>2 this semester</>,dc:"delta-up"},
-          {cls:"sc-teal",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,val:stats.cgpa,lbl:"Current CGPA",delta:<><IcoChevUp/>+0.2 vs last sem</>,dc:"delta-up"},
-          {cls:"sc-amber",icon:<IcoUsers width={18} height={18}/>,val:stats.attendance,lbl:"Attendance Rate",delta:<><IcoChevDn/>Min 75% required</>,dc:"delta-dn"},
-          {cls:"sc-violet",icon:<IcoAward width={18} height={18}/>,val:stats.placementIndex,lbl:"Placement Readiness",delta:<><IcoMinus/>Improving steadily</>,dc:"delta-neu"},
+          {cls:"sc-indigo",icon:<IcoBook width={18} height={18}/>,val:stats.active_courses||stats.activeCourses||0,lbl:"Active Courses",delta:<><IcoChevUp/>Enrolled courses</>,dc:"delta-up"},
+          {cls:"sc-teal",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,val:stats.completed_lessons||0,lbl:"Completed Lessons",delta:<><IcoChevUp/>Lessons watched</>,dc:"delta-up"},
+          {cls:"sc-amber",icon:<IcoUsers width={18} height={18}/>,val:stats.pending_assignments||0,lbl:"Pending Assignments",delta:<><IcoChevDn/>Submit on time</>,dc:"delta-dn"},
+          {cls:"sc-violet",icon:<IcoAward width={18} height={18}/>,val:Math.round(stats.pri_score||0),lbl:"Placement Readiness",delta:<><IcoMinus/>PRI Score</>,dc:"delta-neu"},
         ].map(({cls,icon,val,lbl,delta,dc},i)=>(
           <Hoverable key={lbl} className={`stat-card ${cls}`} style={{animationDelay:`${(i+1)*.07}s`}}>
             <div className="stat-ic">{icon}</div>
@@ -544,10 +587,12 @@ function DashboardContent({stats,courses,schedule,quizzes,skills,onNavigateToAna
             <div className="skill-summary">
               <div className="ss-ttl">Placement Readiness Index</div>
               <div className="ss-pri">
-                <div className="ss-pri-val">{stats.placementIndex}</div>
+                <div className="ss-pri-val">{Math.round(stats.pri_score||0)}</div>
                 <div className="ss-pri-info">
-                  <div className="ss-pri-bar"><AnimatedProgressBar pct={stats.placementIndex} color="linear-gradient(90deg,var(--indigo),var(--teal))" height={4} delay={700}/></div>
-                  <div className="ss-pri-lbl">Good · Target 85 for excellent tier</div>
+                  <div className="ss-pri-bar"><AnimatedProgressBar pct={stats.pri_score||0} color="linear-gradient(90deg,var(--indigo),var(--teal))" height={4} delay={700}/></div>
+                  <div className="ss-pri-lbl">
+                    {stats.pri_score >= 85 ? "Excellent tier!" : `Target 85 for excellent tier`}
+                  </div>
                 </div>
               </div>
             </div>
@@ -573,11 +618,21 @@ export default function StudentDashboard() {
   const [notifOpen,   setNotifOpen]   = useState(false);
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState(null);
-  const [stats,       setStats]       = useState({ activeCourses:"0", cgpa:"0.0", attendance:"0%", placementIndex:0 });
-  const [courses,     setCourses]     = useState(INITIAL_COURSES);
-  const [schedule,    setSchedule]    = useState(INITIAL_SCHEDULE);
-  const [quizzes,     setQuizzes]     = useState(INITIAL_QUIZZES);
-  const [skills,      setSkills]      = useState(INITIAL_SKILLS);
+  const [userName,    setUserName]    = useState("");
+  const [stats,       setStats]       = useState({ active_courses:0, completed_lessons:0, pending_assignments:0, upcoming_quizzes:0, pri_score:0 });
+  const [courses,     setCourses]     = useState([]);
+  const [schedule,    setSchedule]    = useState([]);
+  const [quizzes,     setQuizzes]     = useState([]);
+  const [skills,      setSkills]      = useState([]);
+
+  useEffect(() => {
+    if (page) {
+      const p = PAGE_PARAM_MAP[page.toLowerCase()];
+      if (p) setActivePage(p);
+    } else {
+      setActivePage(ROUTES.DASHBOARD);
+    }
+  }, [page]);
 
   useCursor();
 
@@ -585,17 +640,23 @@ export default function StudentDashboard() {
     const fetchData=async()=>{
       try{
         setLoading(true);
-        const data=await api.get("/student/dashboard").catch(()=>null);
-        if(data){
-          setStats(data.stats||stats);
-          if(data.courses)  setCourses(data.courses);
-          if(data.schedule) setSchedule(data.schedule);
-          if(data.quizzes)  setQuizzes(data.quizzes);
-          if(data.skills)   setSkills(data.skills);
+        const [meData, dashData] = await Promise.allSettled([
+          api.get("/auth/me"),
+          api.get("/student/dashboard"),
+        ]);
+        if(meData.status==="fulfilled") setUserName(meData.value.full_name||meData.value.email||"");
+        if(dashData.status==="fulfilled"){
+          const d = dashData.value;
+          if(d.stats)           setStats(d.stats);
+          if(d.enrolled_courses) setCourses(d.enrolled_courses.map(mapApiCourse));
+          if(d.skill_scores)    setSkills(d.skill_scores.map(mapApiSkill));
+          if(d.schedule_today)  setSchedule(d.schedule_today.map(mapApiSchedule));
+          if(d.recent_quizzes)  setQuizzes(d.recent_quizzes.map(mapApiQuiz));
+          if(d.full_name && !userName) setUserName(d.full_name);
         }
       }catch(err){
         console.error("Dashboard fetch failed:",err);
-        setError("Could not load dashboard data. Using offline fallbacks.");
+        setError("Could not load dashboard data.");
       }finally{ setLoading(false); }
     };
     fetchData();
@@ -650,6 +711,8 @@ export default function StudentDashboard() {
           onMobileClose={()=>setMobileOpen(false)}
           onNavigateSettings={()=>navigate(ROUTES.SETTINGS)}
           onNavigateProfile={()=>navigate(ROUTES.PROFILE)}
+          userName={userName}
+          priScore={stats.pri_score||0}
         />
         <main className="main">
           <Topbar
@@ -676,6 +739,7 @@ export default function StudentDashboard() {
               onNavigateToVideoLectures={()=>navigate(ROUTES.VIDEO_LECTURES)}
               onNavigateToAssignments={()=>navigate(ROUTES.ASSIGNMENTS)}
               onNavigateToQuizzes={()=>navigate(ROUTES.QUIZZES)}
+              userName={userName}
             />
           )}
           {activePage === ROUTES.ANALYTICS      && <StudentAnalytics    onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
