@@ -135,17 +135,20 @@ function LectureThumbnail({ lecture, course, size="normal" }) {
 }
 
 // ─── LECTURE CARD ─────────────────────────────────────────────────
-function LectureCard({ lecture, course, onPlay }) {
+function LectureCard({ lecture, course = {}, onPlay }) {
+  // provide safe defaults for missing course information
   const [hov,setHov]=useState(false);
+  const col = course?.color || "var(--indigo-l)";
+  const rgb = course?.colorRgb || "91,78,248";
   return (
     <div className={`vl-card${hov?" vl-card--hov":""}${lecture.locked?" vl-card--locked":""}`}
-      style={{"--card-color":course.color,"--card-rgb":course.colorRgb}}
+      style={{"--card-color":col,"--card-rgb":rgb}}
       onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
       onClick={()=>!lecture.locked&&onPlay(lecture,course)}>
       <LectureThumbnail lecture={lecture} course={course}/>
       <div className="vl-card-body">
         <div className="vl-card-meta-top">
-          <span className="vl-card-unit" style={{color:course.color}}>Unit {lecture.unit} · {lecture.unitName}</span>
+          <span className="vl-card-unit" style={{color:col}}>Unit {lecture.unit} · {lecture.unitName}</span>
           <span className="vl-card-dur"><Clock size={10}/>{lecture.duration}</span>
         </div>
         <div className="vl-card-title">{lecture.title}</div>
@@ -163,13 +166,13 @@ function LectureCard({ lecture, course, onPlay }) {
             : lecture.locked
             ? <span className="vl-badge vl-badge--locked"><Lock size={10}/>Locked</span>
             : lecture.isNext
-            ? <span className="vl-badge vl-badge--next" style={{background:`rgba(${course.colorRgb},.15)`,color:course.color}}><Play size={10} fill={course.color}/>Continue</span>
+            ? <span className="vl-badge vl-badge--next" style={{background:`rgba(${rgb},.15)`,color:col}}><Play size={10} fill={col}/>Continue</span>
             : <span className="vl-badge vl-badge--new">New</span>
           }
         </div>
         {lecture.watchPct>0&&lecture.watchPct<100&&(
           <div style={{marginTop:8}}>
-            <AnimBar pct={lecture.watchPct} color={course.color} height={3} delay={400}/>
+            <AnimBar pct={lecture.watchPct} color={col} height={3} delay={400}/>
             <div style={{fontSize:10,color:"var(--text3)",marginTop:3}}>{lecture.watchPct}% watched</div>
           </div>
         )}
@@ -464,7 +467,7 @@ export default function StudentVideoLectures({ onBack }) {
         const rgbs = ["91,78,248", "20,184,166", "245,158,11", "139,92,246", "244,63,94"];
         
         const mappedCourses = coursesData.map((c, i) => ({
-          id: "cs" + c.id, code: c.code, name: c.name, short: c.code.split(" ")[0] || c.code,
+          id: "cs" + c.id, code: c.code, name: c.name, short: (c.code || "").split(" ")[0] || c.code || "Course",
           faculty: c.faculty_name || "Faculty", color: colors[i % colors.length], colorRgb: rgbs[i % rgbs.length],
           totalLectures: c.total_lessons || 10, watchedLectures: Math.floor(c.progress || 0)
         }));
@@ -479,7 +482,7 @@ export default function StudentVideoLectures({ onBack }) {
             id: "l" + l.id, unit: l.unit_number || 1, unitName: l.unit_name || "General",
             title: l.title, duration: l.duration ? `${l.duration}:00` : "40:00",
             views: parseInt(l.views || 0), likes: 0, watched: l.is_completed,
-            watchPct: l.is_completed ? 100 : 0, date: l.created_at ? l.created_at.split("T")[0] : "TBD",
+            watchPct: l.is_completed ? 100 : 0, date: l.created_at ? (l.created_at.split("T")[0]) : "TBD",
             thumb: ["indigo", "teal", "amber", "violet", "rose"][byCourse[cid].length % 5], 
             description: l.description, tags: ["Lecture"],
             locked: false, isNext: false
@@ -493,10 +496,18 @@ export default function StudentVideoLectures({ onBack }) {
   const activeCourse = coursesState.find(c=>c.id===activeCourseId)||null;
 
   // Build flat lecture list with _course ref
+  // build a flat list of lectures, always attaching a valid course object; drop any orphaned entries
   const lecturesFlat = activeCourseId
-    ? (lecturesState[activeCourseId]||[]).map(l=>({...l,_course:activeCourse}))
+    ? (lecturesState[activeCourseId]||[])
+        .map(l=>({...l,_course:activeCourse}))
+        .filter(l=>l._course)
     : Object.entries(lecturesState).flatMap(([cid,lecs])=>
-        lecs.map(l=>({...l,_course:coursesState.find(c=>c.id===cid)}))
+        lecs
+          .map(l=>{
+            const courseObj = coursesState.find(c=>c.id===cid) || null;
+            return {...l,_course:courseObj};
+          })
+          .filter(l=>l._course)
       );
 
   // Filter
@@ -516,8 +527,9 @@ export default function StudentVideoLectures({ onBack }) {
 
   // Group by unit
   const byUnit=sorted.reduce((acc,l)=>{
-    const key=`${l._course?.id}|||${l.unit}|||${l.unitName}`;
-    if(!acc[key]) acc[key]={unit:l.unit,unitName:l.unitName,course:l._course,lectures:[]};
+    const courseObj = l._course || {};
+    const key=`${courseObj.id||""}|||${l.unit}|||${l.unitName}`;
+    if(!acc[key]) acc[key]={unit:l.unit,unitName:l.unitName,course:courseObj,lectures:[]};
     acc[key].lectures.push(l);
     return acc;
   },{});

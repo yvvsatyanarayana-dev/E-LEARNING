@@ -12,6 +12,7 @@ from Models.Lesson import Lesson, WatchHistory
 from Models.Quiz import Quiz, Question, QuizAttempt, QuestionType, DifficultyLevel
 from Models.Project import Project, ProjectReview, ProjectStatus
 from Models.Community import Forum, ForumPost, StudyGroup, StudyGroupMember
+from Models.Innovation import InnovationIdea, InnovationProject, InnovationHackathon
 #ROUTES
 from Routes.AuthRoute import router as auth_router
 from Routes.StudentRoute import router as student_router

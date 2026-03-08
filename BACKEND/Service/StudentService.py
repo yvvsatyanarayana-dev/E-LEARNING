@@ -564,7 +564,7 @@ class StudentService:
             roll="21CSXXX", # Ideally in User model
             skills=u.skills or [],
             available=True,
-            avatar=u.avatar or u.full_name[0],
+            avatar=u.avatar or (u.full_name[0] if u.full_name else "?"),
             match=85, # Logic to calculate skill match
             color="var(--teal)"
         ) for u in other_students]
