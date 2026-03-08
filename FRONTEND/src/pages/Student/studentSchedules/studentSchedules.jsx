@@ -3,6 +3,7 @@
 // Inherits CSS variables from StudentDashboard.css
 
 import { useState, useEffect, useRef } from "react";
+import api from "../../../utils/api";
 import {
     ChevronLeft, ChevronRight, Calendar, Clock, MapPin,
     BookOpen, FlaskConical, Award, FileText,
@@ -41,50 +42,6 @@ const EVENT_TYPES = {
     exam: { label: "Exam", Icon: Award, color: "var(--rose)", rgb: "244,63,94" },
 };
 
-// ─── TIMETABLE DATA ───────────────────────────────────────────────
-const TIMETABLE = [
-    // ─── MONDAY ───
-    { id: "e1", day: 0, startH: 9, startM: 0, durationMin: 60, subject: "Operating Systems", code: "CS501", type: "lecture", faculty: "Dr. R. Sharma", room: "Room 301", batch: "CSE-5A", courseKey: "OS" },
-    { id: "e2", day: 0, startH: 10, startM: 30, durationMin: 60, subject: "Database Management Systems", code: "CS502", type: "lecture", faculty: "Prof. A. Verma", room: "Room 205", batch: "CSE-5A", courseKey: "DBMS" },
-    { id: "e3", day: 0, startH: 13, startM: 0, durationMin: 90, subject: "DBMS Lab", code: "CS502L", type: "lab", faculty: "Prof. A. Verma", room: "Lab 2", batch: "CSE-5A", courseKey: "DBMS" },
-    { id: "e4", day: 0, startH: 15, startM: 0, durationMin: 60, subject: "Machine Learning", code: "CS503", type: "lecture", faculty: "Dr. P. Nair", room: "Room 204", batch: "CSE-5A", courseKey: "ML" },
-    // ─── TUESDAY ───
-    { id: "e5", day: 1, startH: 9, startM: 0, durationMin: 60, subject: "Computer Networks", code: "CS504", type: "lecture", faculty: "Prof. K. Rao", room: "Room 302", batch: "CSE-5A", courseKey: "CN" },
-    { id: "e6", day: 1, startH: 10, startM: 30, durationMin: 60, subject: "Cryptography & Network Security", code: "CS505", type: "lecture", faculty: "Dr. S. Mehta", room: "Room 101", batch: "CSE-5A", courseKey: "Crypto" },
-    { id: "e7", day: 1, startH: 14, startM: 0, durationMin: 120, subject: "OS Lab", code: "CS501L", type: "lab", faculty: "Dr. R. Sharma", room: "Lab 3", batch: "CSE-5A", courseKey: "OS" },
-    // ─── WEDNESDAY ───
-    { id: "e8", day: 2, startH: 9, startM: 0, durationMin: 60, subject: "Machine Learning", code: "CS503", type: "lecture", faculty: "Dr. P. Nair", room: "Room 204", batch: "CSE-5A", courseKey: "ML" },
-    { id: "e9", day: 2, startH: 10, startM: 30, durationMin: 60, subject: "Operating Systems", code: "CS501", type: "lecture", faculty: "Dr. R. Sharma", room: "Room 301", batch: "CSE-5A", courseKey: "OS" },
-    { id: "e10", day: 2, startH: 11, startM: 30, durationMin: 30, subject: "OS Quiz — Unit III", code: "CS501", type: "quiz", faculty: "Dr. R. Sharma", room: "Exam Hall B", batch: "CSE-5A", courseKey: "OS" },
-    { id: "e11", day: 2, startH: 13, startM: 0, durationMin: 90, subject: "CN Lab", code: "CS504L", type: "lab", faculty: "Prof. K. Rao", room: "Lab 1", batch: "CSE-5A", courseKey: "CN" },
-    { id: "e12", day: 2, startH: 15, startM: 30, durationMin: 60, subject: "Cryptography & Network Security", code: "CS505", type: "lecture", faculty: "Dr. S. Mehta", room: "Room 101", batch: "CSE-5A", courseKey: "Crypto" },
-    // ─── THURSDAY ───
-    { id: "e13", day: 3, startH: 9, startM: 0, durationMin: 60, subject: "Database Management Systems", code: "CS502", type: "lecture", faculty: "Prof. A. Verma", room: "Room 205", batch: "CSE-5A", courseKey: "DBMS" },
-    { id: "e14", day: 3, startH: 10, startM: 30, durationMin: 60, subject: "Computer Networks", code: "CS504", type: "lecture", faculty: "Prof. K. Rao", room: "Room 302", batch: "CSE-5A", courseKey: "CN" },
-    { id: "e15", day: 3, startH: 14, startM: 0, durationMin: 120, subject: "ML Lab", code: "CS503L", type: "lab", faculty: "Dr. P. Nair", room: "Lab 4", batch: "CSE-5A", courseKey: "ML" },
-    { id: "e16", day: 3, startH: 16, startM: 30, durationMin: 60, subject: "Technical Seminar", code: "", type: "seminar", faculty: "Industry Expert", room: "Seminar Hall", batch: "CSE-5", courseKey: "Event" },
-    // ─── FRIDAY ───
-    { id: "e17", day: 4, startH: 9, startM: 0, durationMin: 60, subject: "Operating Systems", code: "CS501", type: "lecture", faculty: "Dr. R. Sharma", room: "Room 301", batch: "CSE-5A", courseKey: "OS" },
-    { id: "e18", day: 4, startH: 10, startM: 30, durationMin: 60, subject: "Machine Learning", code: "CS503", type: "lecture", faculty: "Dr. P. Nair", room: "Room 204", batch: "CSE-5A", courseKey: "ML" },
-    { id: "e19", day: 4, startH: 13, startM: 0, durationMin: 90, subject: "Crypto Lab", code: "CS505L", type: "lab", faculty: "Dr. S. Mehta", room: "Lab 2", batch: "CSE-5A", courseKey: "Crypto" },
-    { id: "e20", day: 4, startH: 15, startM: 0, durationMin: 60, subject: "DBMS Assignment Due", code: "CS502", type: "assignment", faculty: "Prof. A. Verma", room: "Online", batch: "CSE-5A", courseKey: "DBMS" },
-    { id: "e21", day: 4, startH: 16, startM: 30, durationMin: 60, subject: "Placement Prep Session", code: "", type: "event", faculty: "Placement Cell", room: "Seminar Hall", batch: "CSE-5", courseKey: "Event" },
-    // ─── SATURDAY ───
-    { id: "e22", day: 5, startH: 10, startM: 0, durationMin: 60, subject: "Computer Networks", code: "CS504", type: "lecture", faculty: "Prof. K. Rao", room: "Room 302", batch: "CSE-5A", courseKey: "CN" },
-    { id: "e23", day: 5, startH: 11, startM: 30, durationMin: 30, subject: "DBMS Quiz", code: "CS502", type: "quiz", faculty: "Prof. A. Verma", room: "Exam Hall A", batch: "CSE-5A", courseKey: "DBMS" },
-    { id: "e24", day: 5, startH: 13, startM: 0, durationMin: 60, subject: "Open Elective / Self Study", code: "", type: "break", faculty: "—", room: "Library", batch: "CSE-5A", courseKey: "Break" },
-];
-
-const REMINDERS = [
-    { id: "r1", title: "DBMS Assignment Due", date: "Mar 7", time: "11:59 PM", type: "assignment", courseKey: "DBMS", urgent: true },
-    { id: "r2", title: "OS Quiz — Unit III", date: "Mar 5", time: "11:30 AM", type: "quiz", courseKey: "OS", urgent: true },
-    { id: "r3", title: "ML Mini Project Submission", date: "Mar 12", time: "11:59 PM", type: "assignment", courseKey: "ML", urgent: false },
-    { id: "r4", title: "CN Lab Report", date: "Mar 10", time: "5:00 PM", type: "assignment", courseKey: "CN", urgent: false },
-    { id: "r5", title: "Crypto Mid-Semester Exam", date: "Mar 18", time: "10:00 AM", type: "exam", courseKey: "Crypto", urgent: false },
-    { id: "r6", title: "DBMS Quiz — Transactions", date: "Mar 12", time: "11:00 AM", type: "quiz", courseKey: "DBMS", urgent: false },
-];
-
-const WEEK_DATES = [3, 4, 5, 6, 7, 8]; // March 3–8, 2026
 
 // ─── HELPERS ─────────────────────────────────────────────────────
 function timeStr(h, m = 0) {
@@ -108,11 +65,11 @@ function AnimBar({ pct, color, height = 4, delay = 300 }) {
 }
 
 // ─── STATS STRIP ─────────────────────────────────────────────────
-function StatsStrip() {
-    const totalClasses = TIMETABLE.filter(e => e.type === "lecture" || e.type === "lab").length;
-    const totalLabs = TIMETABLE.filter(e => e.type === "lab").length;
-    const quizzesWeek = TIMETABLE.filter(e => e.type === "quiz").length;
-    const totalMins = TIMETABLE.reduce((s, e) => s + e.durationMin, 0);
+function StatsStrip({ timetable }) {
+    const totalClasses = timetable.filter(e => e.type === "lecture" || e.type === "lab").length;
+    const totalLabs = timetable.filter(e => e.type === "lab").length;
+    const quizzesWeek = timetable.filter(e => e.type === "quiz").length;
+    const totalMins = timetable.reduce((s, e) => s + (e.durationMin||0), 0);
     return (
         <div className="san-kpi-grid" style={{ marginBottom: 20 }}>
             {[
@@ -249,7 +206,7 @@ function EventDrawer({ event, onClose }) {
 }
 
 // ─── WEEK VIEW ────────────────────────────────────────────────────
-function WeekView({ activeDay, onEventClick }) {
+function WeekView({ activeDay, onEventClick, timetable, weekDates = [] }) {
     const gridRef = useRef(null);
     useEffect(() => { if (gridRef.current) gridRef.current.scrollTop = (8 - 7) * 64; }, []);
     const TOTAL_H = 14;
@@ -263,7 +220,7 @@ function WeekView({ activeDay, onEventClick }) {
                     <div key={d} className={`sch-day-header${i === activeDay ? " sch-day-header--today" : ""}`}>
                         <div className="sch-day-short">{DAY_SHORT[i]}</div>
                         <div className="sch-day-num" style={i === activeDay ? { background: "var(--indigo-l)", color: "#fff", borderRadius: "50%", width: 26, height: 26, display: "flex", alignItems: "center", justifyContent: "center" } : {}}>
-                            {WEEK_DATES[i]}
+                            {weekDates[i] || "--"}
                         </div>
                     </div>
                 ))}
@@ -278,7 +235,7 @@ function WeekView({ activeDay, onEventClick }) {
                         ))}
                     </div>
                     {DAYS.map((d, di) => {
-                        const dayEvents = TIMETABLE.filter(e => e.day === di);
+                        const dayEvents = timetable.filter(e => e.day === di);
                         return (
                             <div key={d} className={`sch-day-col${di === activeDay ? " sch-day-col--today" : ""}`}>
                                 {HOURS.map(h => <div key={h} className="sch-hour-line" style={{ top: (h - 7) * 64 }} />)}
@@ -299,14 +256,14 @@ function WeekView({ activeDay, onEventClick }) {
 }
 
 // ─── DAY VIEW ─────────────────────────────────────────────────────
-function DayView({ dayIdx, onEventClick }) {
-    const dayEvents = TIMETABLE.filter(e => e.day === dayIdx).sort((a, b) => (a.startH * 60 + a.startM) - (b.startH * 60 + b.startM));
+function DayView({ dayIdx, onEventClick, timetable, weekDates = [] }) {
+    const dayEvents = timetable.filter(e => e.day === dayIdx).sort((a, b) => (a.startH * 60 + a.startM) - (b.startH * 60 + b.startM));
 
     return (
         <div className="sch-day-view">
             <div className="sch-day-view-header">
                 <div className="sch-dvh-day">{DAYS[dayIdx]}</div>
-                <div className="sch-dvh-date">March {WEEK_DATES[dayIdx]}, 2026</div>
+                <div className="sch-dvh-date">March {weekDates[dayIdx] || "--"}, 2026</div>
                 <div className="sch-dvh-count">{dayEvents.length} session{dayEvents.length !== 1 ? "s" : ""}</div>
             </div>
 
@@ -370,17 +327,17 @@ function DayView({ dayIdx, onEventClick }) {
 }
 
 // ─── LIST VIEW ────────────────────────────────────────────────────
-function ListView({ onEventClick }) {
+function ListView({ onEventClick, timetable, weekDates = [] }) {
     return (
         <div className="sch-list-view">
             {DAYS.map((day, di) => {
-                const dayEvents = TIMETABLE.filter(e => e.day === di).sort((a, b) => (a.startH * 60 + a.startM) - (b.startH * 60 + b.startM));
+                const dayEvents = timetable.filter(e => e.day === di).sort((a, b) => (a.startH * 60 + a.startM) - (b.startH * 60 + b.startM));
                 return (
                     <div key={day} className="sch-lv-day">
                         <div className="sch-lv-day-header">
                             <div className={`sch-lv-day-num${di === TODAY_IDX ? " active" : ""}`}
                                 style={di === TODAY_IDX ? { background: "var(--indigo-l)", color: "#fff" } : {}}>
-                                {DAY_SHORT[di]} {WEEK_DATES[di]}
+                                {DAY_SHORT[di]} {weekDates[di] || ""}
                             </div>
                             <span style={{ fontSize: 11, color: "var(--text3)" }}>{dayEvents.length} sessions</span>
                         </div>
@@ -423,8 +380,8 @@ function ListView({ onEventClick }) {
 }
 
 // ─── RIGHT SIDEBAR ────────────────────────────────────────────────
-function WeeklySummary() {
-    const perDay = DAYS.map((_, i) => TIMETABLE.filter(e => e.day === i).reduce((s, e) => s + e.durationMin, 0));
+function WeeklySummary({ timetable }) {
+    const perDay = DAYS.map((_, i) => timetable.filter(e => e.day === i).reduce((s, e) => s + (e.durationMin||0), 0));
     const maxMin = Math.max(...perDay);
     return (
         <div className="panel">
@@ -456,14 +413,14 @@ function WeeklySummary() {
     );
 }
 
-function RemindersPanel() {
+function RemindersPanel({ reminders }) {
     return (
         <div className="panel">
             <div className="panel-hd">
                 <div className="panel-ttl"><AlertTriangle size={13} style={{ color: "var(--amber)" }} />Upcoming Deadlines</div>
             </div>
             <div className="panel-body" style={{ padding: "0 0 8px" }}>
-                {REMINDERS.map(r => {
+                {reminders.map(r => {
                     const cc = COURSE_COLORS[r.courseKey] || COURSE_COLORS["Event"];
                     const et = EVENT_TYPES[r.type] || EVENT_TYPES.assignment;
                     const EIcon = et.Icon;
@@ -531,6 +488,30 @@ export default function StudentSchedule({ onBack }) {
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [filterType, setFilterType] = useState("All");
     const [showFilterDd, setShowFilterDd] = useState(false);
+    
+    const [timetableState, setTimetableState] = useState([]);
+    const [remindersState, setRemindersState] = useState([]);
+    const [weekDates, setWeekDates] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        api.get('/student/schedule').then(data => {
+            if (data.timetable) setTimetableState(data.timetable);
+            if (data.reminders) setRemindersState(data.reminders);
+            
+            // Derive dates for the current week (starting Monday)
+            const now = new Date();
+            const day = now.getDay();
+            const diff = now.getDate() - day + (day === 0 ? -6 : 1);
+            const start = new Date(now.setDate(diff));
+            const dates = Array.from({ length: 6 }, (_, i) => {
+                const d = new Date(start);
+                d.setDate(start.getDate() + i);
+                return d.getDate();
+            });
+            setWeekDates(dates);
+        }).catch(console.error).finally(() => setLoading(false));
+    }, []);
 
     const TYPE_FILTERS = ["All", "Lecture", "Lab", "Quiz", "Assignment", "Seminar", "Event"];
 
@@ -545,7 +526,16 @@ export default function StudentSchedule({ onBack }) {
         setSelectedEvent(ev);
     };
 
-    const todayEvents = TIMETABLE
+    if (loading) {
+        return (
+            <div className="mc-loading" style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",gap:16}}>
+                <div className="mc-loading-spinner"/>
+                <p style={{color:"var(--text3)",fontSize:14}}>Loading schedules...</p>
+            </div>
+        );
+    }
+
+    const todayEvents = timetableState
         .filter(e => e.day === TODAY_IDX)
         .sort((a, b) => (a.startH * 60 + a.startM) - (b.startH * 60 + b.startM));
 
@@ -571,7 +561,7 @@ export default function StudentSchedule({ onBack }) {
                         <div>
                             <div className="greet-tag" style={{ marginBottom: 8 }}>
                                 <div className="greet-pip" />
-                                <span className="greet-pip-txt">Semester 5 · Week 11 · Mar 3–8, 2026 · {TIMETABLE.length} Sessions</span>
+                                <span className="greet-pip-txt">Semester 5 · Week 11 · Mar 3–8, 2026 · {timetableState.length} Sessions</span>
                             </div>
                             <h1 className="greet-title">My <em>Schedule</em></h1>
                             <p className="greet-sub">View your weekly timetable, track upcoming classes, labs, and quizzes.</p>
@@ -590,13 +580,13 @@ export default function StudentSchedule({ onBack }) {
                     </div>
                 </div>
 
-                <StatsStrip />
+                <StatsStrip timetable={timetableState} />
 
                 {/* ── Toolbar ── */}
                 <div className="mc-toolbar" style={{ marginBottom: 16 }}>
                     <div className="sch-day-pills">
                         {DAYS.map((d, i) => {
-                            const cnt = TIMETABLE.filter(e => e.day === i).length;
+                            const cnt = timetableState.filter(e => e.day === i).length;
                             return (
                                 <button key={d}
                                     className={`sch-day-pill${i === activeDay ? " active" : ""}`}
@@ -637,13 +627,13 @@ export default function StudentSchedule({ onBack }) {
                 {/* ── Main layout ── */}
                 <div className="sch-main-layout">
                     <div className="sch-calendar-area">
-                        {viewMode === "week" && <WeekView activeDay={activeDay} onEventClick={handleEventClick} />}
-                        {viewMode === "day" && <DayView dayIdx={activeDay} onEventClick={handleEventClick} />}
-                        {viewMode === "list" && <ListView onEventClick={handleEventClick} />}
+                        {viewMode === "week" && <WeekView activeDay={activeDay} onEventClick={handleEventClick} timetable={timetableState} weekDates={weekDates} />}
+                        {viewMode === "day" && <DayView dayIdx={activeDay} onEventClick={handleEventClick} timetable={timetableState} weekDates={weekDates} />}
+                        {viewMode === "list" && <ListView onEventClick={handleEventClick} timetable={timetableState} weekDates={weekDates} />}
                     </div>
                     <div className="sch-sidebar">
-                        <WeeklySummary />
-                        <RemindersPanel />
+                        <WeeklySummary timetable={timetableState} />
+                        <RemindersPanel reminders={remindersState} />
                         <AIStudyPlan />
                     </div>
                 </div>

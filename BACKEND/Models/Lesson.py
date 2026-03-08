@@ -12,6 +12,8 @@ class Lesson(Base):
     title       = Column(String(200), nullable=False)
     video_url   = Column(String(500), nullable=True)
     pdf_url     = Column(String(500), nullable=True)
+    duration    = Column(String(50), nullable=True) # e.g. "45m"
+    is_completed = Column(Boolean, default=False)
     order       = Column(Integer, default=1)
     created_at  = Column(DateTime(timezone=True), default=datetime.utcnow)
 

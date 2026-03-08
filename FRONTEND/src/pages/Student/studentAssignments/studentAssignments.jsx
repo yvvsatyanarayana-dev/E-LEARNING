@@ -13,158 +13,8 @@ import {
 } from "lucide-react";
 
 // ─── DATA ─────────────────────────────────────────────────────────
-const COURSES = [
-  { id:"os",    code:"CS501", name:"Operating Systems",               short:"OS",     faculty:"Dr. R. Sharma",  color:"var(--indigo-l)", rgb:"91,78,248"   },
-  { id:"dbms",  code:"CS502", name:"Database Management Systems",     short:"DBMS",   faculty:"Prof. A. Verma", color:"var(--teal)",     rgb:"20,184,166"  },
-  { id:"ml",    code:"CS503", name:"Machine Learning",                short:"ML",     faculty:"Dr. P. Nair",    color:"var(--amber)",    rgb:"245,158,11"  },
-  { id:"cn",    code:"CS504", name:"Computer Networks",               short:"CN",     faculty:"Prof. K. Rao",   color:"var(--violet)",   rgb:"139,92,246"  },
-  { id:"crypto",code:"CS505", name:"Cryptography & Network Security", short:"Crypto", faculty:"Dr. S. Mehta",   color:"var(--rose)",     rgb:"244,63,94"   },
-];
-
 const STATUS = { PENDING:"pending", SUBMITTED:"submitted", GRADED:"graded", LATE:"late", MISSING:"missing", RESUBMIT:"resubmit" };
 const TYPE   = { THEORY:"Theory", CODING:"Coding", LAB:"Lab Report", PROJECT:"Project", CASE:"Case Study", MCQ:"MCQ" };
-
-const ASSIGNMENTS = [
-  // ── OS ──
-  {
-    id:"a1",  courseId:"os",    title:"Process Scheduling Simulation",
-    type:TYPE.CODING,  dueDate:"2026-03-05", dueTime:"11:59 PM",
-    status:STATUS.PENDING,  marks:null,  maxMarks:50,  weight:"15%",
-    desc:"Implement FCFS, SJF, Round Robin and Priority scheduling algorithms in C/Python. Compare turnaround times using Gantt chart visualisations.",
-    tags:["C","Scheduling","OS"],  attachments:["problem_statement.pdf","starter_code.zip"],
-    submissions:0,  classAvg:null,  difficulty:"Medium",  estimatedHours:6,
-    instructions:["Use the provided starter code skeleton","Submit .zip with source + report PDF","Gantt charts are mandatory","Comment every function"],
-    rubric:[{item:"Correct Implementation",pts:20},{item:"Gantt Charts",pts:10},{item:"Comparison Report",pts:10},{item:"Code Quality",pts:10}],
-    urgent: true,
-  },
-  {
-    id:"a2",  courseId:"os",    title:"Memory Management — Paging Report",
-    type:TYPE.THEORY,  dueDate:"2026-03-10", dueTime:"11:59 PM",
-    status:STATUS.SUBMITTED, marks:null,  maxMarks:30,  weight:"10%",
-    desc:"Write a detailed report on virtual memory, paging mechanisms, TLB functioning, and page replacement algorithms with worked examples.",
-    tags:["Virtual Memory","Paging","TLB"],  attachments:["report_template.docx"],
-    submissions:1,  classAvg:null,  difficulty:"Easy",  estimatedHours:3,
-    submittedFile:"memory_report_arjun.pdf", submittedAt:"Mar 8, 2026 · 10:24 PM",
-    instructions:["Min 8 pages with diagrams","Include worked examples for LRU & FIFO","Harvard referencing format"],
-    rubric:[{item:"Content Depth",pts:15},{item:"Diagrams",pts:8},{item:"References",pts:7}],
-  },
-  {
-    id:"a3",  courseId:"os",    title:"Deadlock Detection Lab",
-    type:TYPE.LAB,  dueDate:"2026-02-20", dueTime:"11:59 PM",
-    status:STATUS.GRADED,  marks:44,  maxMarks:50,  weight:"15%",
-    desc:"Implement the Banker's algorithm and resource allocation graph to detect and avoid deadlocks.",
-    tags:["Deadlock","Banker's Algorithm"],  attachments:["lab_sheet.pdf"],
-    submissions:1,  classAvg:38,  difficulty:"Hard",  estimatedHours:8,
-    feedback:"Excellent implementation! Minor issue with the circular wait detection. Well-commented code.",
-    grade:"A",  submittedFile:"deadlock_lab_arjun.zip", submittedAt:"Feb 19, 2026 · 9:00 PM",
-    instructions:["Implement RAG detection","Test with provided input cases","Include screenshots"],
-    rubric:[{item:"Algorithm",pts:25},{item:"Testing",pts:15},{item:"Documentation",pts:10}],
-  },
-  // ── DBMS ──
-  {
-    id:"a4",  courseId:"dbms",  title:"ER Diagram & Schema Design",
-    type:TYPE.THEORY,  dueDate:"2026-03-12", dueTime:"11:59 PM",
-    status:STATUS.PENDING,  marks:null,  maxMarks:40,  weight:"12%",
-    desc:"Design an ER diagram for a college management system covering students, faculty, courses, enrollments, and examination modules. Convert to relational schema.",
-    tags:["ER Diagram","Schema","DBMS"],  attachments:["requirements.pdf"],
-    submissions:0,  classAvg:null,  difficulty:"Medium",  estimatedHours:5,
-    instructions:["Use crow's foot notation","Include all entity attributes","Show all relationship cardinalities","Convert to 3NF"],
-    rubric:[{item:"ER Diagram",pts:20},{item:"Schema Conversion",pts:12},{item:"Normalization",pts:8}],
-  },
-  {
-    id:"a5",  courseId:"dbms",  title:"SQL Advanced Queries",
-    type:TYPE.CODING,  dueDate:"2026-03-07", dueTime:"11:59 PM",
-    status:STATUS.PENDING,  marks:null,  maxMarks:50,  weight:"15%",
-    desc:"Solve 20 advanced SQL problems covering joins, subqueries, window functions, CTEs, and stored procedures on the provided university database.",
-    tags:["SQL","Joins","Window Functions"],  attachments:["university_db.sql","questions.pdf"],
-    submissions:0,  classAvg:null,  difficulty:"Hard",  estimatedHours:7,
-    urgent: true,
-    instructions:["Use provided DB schema only","No ORM — raw SQL only","Output screenshots for each query","Explain query logic in comments"],
-    rubric:[{item:"Correct Queries (20×2)",pts:40},{item:"Optimisation",pts:10}],
-  },
-  {
-    id:"a6",  courseId:"dbms",  title:"Normalisation Case Study",
-    type:TYPE.CASE,  dueDate:"2026-02-14", dueTime:"11:59 PM",
-    status:STATUS.GRADED,  marks:31,  maxMarks:40,  weight:"12%",
-    desc:"Analyse the given denormalized hospital database. Apply 1NF, 2NF, 3NF and BCNF transformations with justification at each step.",
-    tags:["Normalization","BCNF","FD"],  attachments:["hospital_schema.pdf"],
-    submissions:1,  classAvg:28,  difficulty:"Medium",  estimatedHours:4,
-    feedback:"Good understanding of 3NF. BCNF decomposition needs more explanation around the lossless join property.",
-    grade:"B+",  submittedFile:"normalisation_casestudy.pdf", submittedAt:"Feb 13, 2026 · 6:45 PM",
-    instructions:["Show FD for each step","Prove lossless decomposition","Use table format"],
-    rubric:[{item:"FD Analysis",pts:15},{item:"Normalization Steps",pts:15},{item:"Presentation",pts:10}],
-  },
-  // ── ML ──
-  {
-    id:"a7",  courseId:"ml",    title:"Linear Regression from Scratch",
-    type:TYPE.CODING,  dueDate:"2026-03-14", dueTime:"11:59 PM",
-    status:STATUS.PENDING,  marks:null,  maxMarks:60,  weight:"20%",
-    desc:"Implement linear and polynomial regression without sklearn. Use gradient descent, plot cost curves, and evaluate on the provided housing dataset.",
-    tags:["Python","Regression","NumPy"],  attachments:["housing_dataset.csv","rubric.pdf"],
-    submissions:0,  classAvg:null,  difficulty:"Hard",  estimatedHours:10,
-    instructions:["No sklearn for core algorithm","Use NumPy only","Include cost curve plots","Compare with sklearn baseline"],
-    rubric:[{item:"Implementation",pts:30},{item:"Plots & Analysis",pts:15},{item:"Report",pts:15}],
-  },
-  {
-    id:"a8",  courseId:"ml",    title:"ML Mid-Semester Project Proposal",
-    type:TYPE.PROJECT,  dueDate:"2026-02-28", dueTime:"11:59 PM",
-    status:STATUS.RESUBMIT,  marks:null,  maxMarks:20,  weight:"5%",
-    desc:"Submit a 2-page project proposal for your ML semester project. Include problem statement, dataset, proposed model, evaluation metrics, and timeline.",
-    tags:["Proposal","Project","ML"],  attachments:["proposal_format.pdf"],
-    submissions:1,  classAvg:null,  difficulty:"Easy",  estimatedHours:3,
-    feedback:"Problem statement is weak. Specify the dataset source and justify model choice. Resubmit by Mar 5.",
-    submittedFile:"ml_proposal_v1.pdf", submittedAt:"Feb 27, 2026 · 11:50 PM",
-    instructions:["Strictly 2 pages","Include dataset link","Timeline must be Gantt chart"],
-    rubric:[{item:"Problem Statement",pts:8},{item:"Methodology",pts:7},{item:"Timeline",pts:5}],
-    resubmitDeadline:"2026-03-05",
-  },
-  // ── CN ──
-  {
-    id:"a9",  courseId:"cn",    title:"Subnet Design & IP Addressing",
-    type:TYPE.THEORY,  dueDate:"2026-03-08", dueTime:"11:59 PM",
-    status:STATUS.SUBMITTED,  marks:null,  maxMarks:35,  weight:"10%",
-    desc:"Design subnets for a given organisation with 5 departments. Assign IP ranges, subnet masks, broadcast addresses, and CIDR notation for each subnet.",
-    tags:["IPv4","Subnetting","CIDR"],  attachments:["org_requirements.pdf"],
-    submissions:1,  classAvg:null,  difficulty:"Medium",  estimatedHours:4,
-    submittedFile:"subnet_design_arjun.pdf", submittedAt:"Mar 7, 2026 · 8:30 AM",
-    instructions:["Show all workings","Use table format","Include network diagram"],
-    rubric:[{item:"Subnet Calculation",pts:20},{item:"Diagram",pts:10},{item:"CIDR Notation",pts:5}],
-  },
-  {
-    id:"a10", courseId:"cn",    title:"Socket Programming — Chat App",
-    type:TYPE.CODING,  dueDate:"2026-02-25", dueTime:"11:59 PM",
-    status:STATUS.GRADED,  marks:47,  maxMarks:50,  weight:"15%",
-    desc:"Build a multi-client TCP chat application using Python sockets. Server handles concurrent clients with threading. Implement private messaging and broadcast.",
-    tags:["Python","TCP","Sockets"],  attachments:["spec.pdf"],
-    submissions:1,  classAvg:41,  difficulty:"Hard",  estimatedHours:9,
-    feedback:"Outstanding work! Clean code and well-handled edge cases. Minor: add timeout for idle clients.",
-    grade:"A+",  submittedFile:"chat_app_arjun.zip", submittedAt:"Feb 24, 2026 · 4:15 PM",
-    instructions:["Server must handle 10+ clients","Implement /broadcast and /pm commands","Include README"],
-    rubric:[{item:"TCP Implementation",pts:25},{item:"Threading",pts:15},{item:"Code Quality",pts:10}],
-  },
-  {
-    id:"a11", courseId:"cn",    title:"Wireshark Packet Analysis Report",
-    type:TYPE.LAB,  dueDate:"2026-03-02", dueTime:"11:59 PM",
-    status:STATUS.LATE,  marks:null,  maxMarks:30,  weight:"8%",
-    desc:"Capture and analyse HTTP, DNS, TCP and ARP packets using Wireshark. Document the capture process, filter usage, and packet-level explanations.",
-    tags:["Wireshark","Packet Analysis","DNS"],  attachments:["lab_instructions.pdf"],
-    submissions:0,  classAvg:null,  difficulty:"Easy",  estimatedHours:4,
-    lateNote:"Deadline passed. Late submissions accepted with 20% penalty until Mar 10.",
-    instructions:["Capture at least 50 packets per protocol","Annotate screenshots","Show filter syntax used"],
-    rubric:[{item:"Captures",pts:15},{item:"Analysis",pts:10},{item:"Report",pts:5}],
-  },
-  // ── Crypto ──
-  {
-    id:"a12", courseId:"crypto",title:"Classical Cipher Implementation",
-    type:TYPE.CODING,  dueDate:"2026-03-15", dueTime:"11:59 PM",
-    status:STATUS.PENDING,  marks:null,  maxMarks:40,  weight:"12%",
-    desc:"Implement Caesar, Vigenère, Rail-Fence, and Playfair ciphers in any language. Include both encrypt and decrypt functions. Perform frequency analysis attack.",
-    tags:["Python","Cipher","Cryptanalysis"],  attachments:["cipher_specs.pdf"],
-    submissions:0,  classAvg:null,  difficulty:"Medium",  estimatedHours:6,
-    instructions:["All 4 ciphers required","Include frequency analysis for Caesar crack","Unit tests mandatory"],
-    rubric:[{item:"Implementations",pts:24},{item:"Attack",pts:10},{item:"Tests",pts:6}],
-  },
-];
 
 const FILTER_TABS  = ["All","Pending","Submitted","Graded","Late/Missing"];
 const SORT_OPTIONS = ["Due Date","Course","Marks","Status"];
@@ -186,7 +36,6 @@ const TYPE_CFG = {
   [TYPE.LAB]:     { color:"var(--violet)",   bg:"rgba(139,92,246,.1)"  },
   [TYPE.PROJECT]: { color:"var(--amber)",    bg:"rgba(245,158,11,.1)"  },
   [TYPE.CASE]:    { color:"var(--rose)",     bg:"rgba(244,63,94,.1)"   },
-  [TYPE.MCQ]:     { color:"var(--teal)",     bg:"rgba(20,184,166,.1)"  },
 };
 
 // ─── HELPERS ──────────────────────────────────────────────────────
@@ -230,15 +79,15 @@ function RadialProgress({ pct, color, size=44, stroke=4 }) {
 }
 
 // ─── STATS STRIP ─────────────────────────────────────────────────
-function StatsStrip() {
-  const total     = ASSIGNMENTS.length;
-  const pending   = ASSIGNMENTS.filter(a=>a.status===STATUS.PENDING).length;
-  const submitted = ASSIGNMENTS.filter(a=>a.status===STATUS.SUBMITTED).length;
-  const graded    = ASSIGNMENTS.filter(a=>a.status===STATUS.GRADED).length;
-  const late      = ASSIGNMENTS.filter(a=>a.status===STATUS.LATE||a.status===STATUS.MISSING).length;
-  const resubmit  = ASSIGNMENTS.filter(a=>a.status===STATUS.RESUBMIT).length;
+function StatsStrip({ assignments }) {
+  const total     = assignments.length;
+  const pending   = assignments.filter(a=>a.status===STATUS.PENDING).length;
+  const submitted = assignments.filter(a=>a.status===STATUS.SUBMITTED).length;
+  const graded    = assignments.filter(a=>a.status===STATUS.GRADED).length;
+  const late      = assignments.filter(a=>a.status===STATUS.LATE||a.status===STATUS.MISSING).length;
+  const resubmit  = assignments.filter(a=>a.status===STATUS.RESUBMIT).length;
 
-  const gradedAsgmts = ASSIGNMENTS.filter(a=>a.status===STATUS.GRADED&&a.marks!=null);
+  const gradedAsgmts = assignments.filter(a=>a.status===STATUS.GRADED&&a.marks!=null);
   const avgScore = gradedAsgmts.length
     ? Math.round(gradedAsgmts.reduce((s,a)=>s+(a.marks/a.maxMarks)*100,0)/gradedAsgmts.length)
     : 0;
@@ -263,7 +112,7 @@ function StatsStrip() {
 }
 
 // ─── COURSE SIDEBAR ───────────────────────────────────────────────
-function CourseSidebar({ activeCourseId, onSelect }) {
+function CourseSidebar({ activeCourseId, onSelect, courses, assignments }) {
   return (
     <div className="vl-course-sidebar">
       <div className="vl-cs-title">Courses</div>
@@ -273,27 +122,29 @@ function CourseSidebar({ activeCourseId, onSelect }) {
         </div>
         <div className="vl-cs-info">
           <span className="vl-cs-name">All Courses</span>
-          <span className="vl-cs-count">{ASSIGNMENTS.length} assignments</span>
+          <span className="vl-cs-count">{assignments.length} assignments</span>
         </div>
       </button>
-      {COURSES.map(c=>{
-        const asgmts  = ASSIGNMENTS.filter(a=>a.courseId===c.id);
+      {courses.map(c=>{
+        const asgmts  = assignments.filter(a=>a.courseId===c.id);
         const pending = asgmts.filter(a=>a.status===STATUS.PENDING||a.status===STATUS.RESUBMIT).length;
+        const color = c.color || "var(--indigo-l)";
+        const rgb = c.rgb || "91,78,248";
         return (
           <button key={c.id}
             className={`vl-cs-item${activeCourseId===c.id?" active":""}`}
-            style={{"--cs-color":c.color,"--cs-rgb":c.rgb}}
+            style={{"--cs-color":color,"--cs-rgb":rgb}}
             onClick={()=>onSelect(c.id)}>
             <div className="vl-cs-icon"
-              style={{background:`rgba(${c.rgb},.12)`,border:`1px solid rgba(${c.rgb},.2)`}}>
-              <BookOpen size={14} style={{color:c.color}}/>
+              style={{background:`rgba(${rgb},.12)`,border:`1px solid rgba(${rgb},.2)`}}>
+              <BookOpen size={14} style={{color:color}}/>
             </div>
             <div className="vl-cs-info">
-              <span className="vl-cs-name">{c.short}</span>
+              <span className="vl-cs-name">{c.short || c.name}</span>
               <span className="vl-cs-count">{asgmts.length} total</span>
             </div>
             {pending>0&&(
-              <span className="as-sidebar-badge" style={{background:`rgba(${c.rgb},.15)`,color:c.color}}>{pending}</span>
+              <span className="as-sidebar-badge" style={{background:`rgba(${rgb},.15)`,color:color}}>{pending}</span>
             )}
           </button>
         );
@@ -823,8 +674,8 @@ function DetailDrawer({ asgmt, course, onClose, onSubmit }) {
 }
 
 // ─── TIMELINE SIDEBAR ─────────────────────────────────────────────
-function TimelineSidebar() {
-  const upcoming = ASSIGNMENTS
+function TimelineSidebar({ assignments, courses }) {
+  const upcoming = assignments
     .filter(a=>a.status===STATUS.PENDING||a.status===STATUS.RESUBMIT||a.status===STATUS.LATE)
     .sort((a,b)=>new Date(a.dueDate)-new Date(b.dueDate))
     .slice(0,6);
@@ -841,7 +692,7 @@ function TimelineSidebar() {
         </div>
         <div className="panel-body" style={{padding:"0 0 8px"}}>
           {upcoming.map(a=>{
-            const c   = COURSES.find(c=>c.id===a.courseId);
+            const c   = courses.find(cx=>cx.id===a.courseId) || { short:"??", color:"var(--indigo-l)" };
             const d   = daysUntil(a.dueDate);
             const col = d<0?"var(--rose)":d===0?"var(--rose)":d<=2?"var(--amber)":c.color;
             return (
@@ -869,8 +720,8 @@ function TimelineSidebar() {
           </div>
         </div>
         <div className="panel-body">
-          {COURSES.map(c=>{
-            const graded = ASSIGNMENTS.filter(a=>a.courseId===c.id&&a.status===STATUS.GRADED&&a.marks!=null);
+          {courses.map(c=>{
+            const graded = assignments.filter(a=>a.courseId===c.id&&a.status===STATUS.GRADED&&a.marks!=null);
             if(!graded.length) return null;
             const avg = Math.round(graded.reduce((s,a)=>s+(a.marks/a.maxMarks)*100,0)/graded.length);
             return (
@@ -884,18 +735,6 @@ function TimelineSidebar() {
             );
           })}
         </div>
-      </div>
-
-      {/* AI Reminder */}
-      <div className="as-ai-tip-card">
-        <div className="as-ai-tip-header">
-          <Bot size={14} style={{color:"var(--indigo-ll)"}}/>
-          <span>Lucyna Reminder</span>
-        </div>
-        <div className="as-ai-tip-body">
-          You have <strong style={{color:"var(--rose)"}}>2 submissions due today</strong>. OS Scheduling and SQL Queries. Start with the one that has the most marks!
-        </div>
-        <button className="as-ai-tip-btn">Open AI Mentor →</button>
       </div>
     </div>
   );
@@ -913,6 +752,62 @@ export default function StudentAssignments({ onBack }) {
   const [showTypeDd, setShowTypeDd]  = useState(false);
   const [detailAsgmt, setDetailAsgmt]= useState(null);
   const [uploadAsgmt, setUploadAsgmt]= useState(null);
+  const [assignmentsState, setAssignmentsState] = useState([]);
+  const [coursesState, setCoursesState]         = useState([]);
+
+  useEffect(() => {
+    import("../../../utils/api").then(({ default: api }) => {
+      // 1. Fetch Courses
+      api.get("/student/courses").then(data => {
+        const colors = ["var(--indigo-l)", "var(--teal)", "var(--amber)", "var(--violet)", "var(--rose)"];
+        const rgbs = ["91,78,248", "20,184,166", "245,158,11", "139,92,246", "244,63,94"];
+        const mapped = data.map((c, i) => ({
+          id: c.course_id,
+          code: c.semester || "CS500",
+          name: c.title,
+          short: c.title.split(" ").map(w=>w[0]).join("").toUpperCase(),
+          faculty: c.faculty_name,
+          color: colors[i % colors.length],
+          rgb: rgbs[i % rgbs.length],
+        }));
+        setCoursesState(mapped);
+      });
+
+      // 2. Fetch Assignments
+      api.get("/student/assignments").then(data => {
+        const mapped = data.map(a => {
+          let st = STATUS.PENDING;
+          if (a.submission) st = STATUS.SUBMITTED;
+          if (a.submission && a.submission.grade) st = STATUS.GRADED;
+          else if (!a.submission && new Date(a.due_date) < new Date()) st = STATUS.LATE;
+          
+          return {
+            id: a.id,
+            courseId: a.course_id,
+            title: a.title,
+            type: a.type || TYPE.THEORY,
+            dueDate: a.due_date ? a.due_date.split("T")[0] : "TBD",
+            dueTime: "11:59 PM",
+            status: st,
+            marks: a.submission ? a.submission.grade : null,
+            maxMarks: a.max_marks || 100,
+            weight: a.weight || "10%",
+            desc: a.description,
+            tags: a.tags && a.tags.length ? a.tags : ["Assignment"],
+            attachments: a.attachments || [],
+            submissions: a.submission ? 1 : 0,
+            classAvg: null,
+            difficulty: a.difficulty || "Medium",
+            estimatedHours: a.estimated_hours || 4,
+            instructions: a.instructions && a.instructions.length ? a.instructions : [a.description],
+            rubric: a.rubric || [],
+            urgent: st === STATUS.PENDING && new Date(a.due_date) < new Date(Date.now() + 3*24*60*60*1000)
+          };
+        });
+        setAssignmentsState(mapped);
+      }).catch(console.error);
+    });
+  }, []);
 
   // Close dropdowns on outside click
   useEffect(()=>{
@@ -921,10 +816,10 @@ export default function StudentAssignments({ onBack }) {
     return ()=>document.removeEventListener("click",h);
   },[]);
 
-  const activeCourse = COURSES.find(c=>c.id===activeCourseId)||null;
+  const activeCourse = coursesState.find(c=>c.id===activeCourseId)||null;
 
   // Filter
-  const filtered = ASSIGNMENTS.filter(a=>{
+  const filtered = assignmentsState.filter(a=>{
     const byCourse = !activeCourseId || a.courseId===activeCourseId;
     const byTab =
       filterTab==="All"          ? true :
@@ -943,7 +838,7 @@ export default function StudentAssignments({ onBack }) {
   // Sort
   const sorted = [...filtered].sort((a,b)=>{
     if(sortBy==="Due Date") return new Date(a.dueDate)-new Date(b.dueDate);
-    if(sortBy==="Course")   return a.courseId.localeCompare(b.courseId);
+    if(sortBy==="Course")   return String(a.courseId).localeCompare(String(b.courseId));
     if(sortBy==="Marks")    return b.maxMarks-a.maxMarks;
     if(sortBy==="Status")   return a.status.localeCompare(b.status);
     return 0;
@@ -957,13 +852,13 @@ export default function StudentAssignments({ onBack }) {
     <>
       {/* Detail Drawer */}
       {detailAsgmt&&(()=>{
-        const c=COURSES.find(x=>x.id===detailAsgmt.courseId);
+        const c=coursesState.find(x=>x.id===detailAsgmt.courseId) || { color:"var(--indigo-l)", rgb:"91,78,248" };
         return <DetailDrawer asgmt={detailAsgmt} course={c} onClose={handleClose} onSubmit={handleSubmit}/>;
       })()}
 
       {/* Upload Modal */}
       {uploadAsgmt&&(()=>{
-        const c=COURSES.find(x=>x.id===uploadAsgmt.courseId);
+        const c=coursesState.find(x=>x.id===uploadAsgmt.courseId) || { color:"var(--indigo-l)", rgb:"91,78,248" };
         return <UploadModal asgmt={uploadAsgmt} course={c} onClose={handleClose}/>;
       })()}
 
@@ -984,7 +879,7 @@ export default function StudentAssignments({ onBack }) {
             <div>
               <div className="greet-tag" style={{marginBottom:8}}>
                 <div className="greet-pip"/>
-                <span className="greet-pip-txt">Semester 5 · Week 11 · {ASSIGNMENTS.length} Assignments</span>
+                <span className="greet-pip-txt">Semester 5 · Week 11 · {assignmentsState.length} Assignments</span>
               </div>
               <h1 className="greet-title">My <em>Assignments</em></h1>
               <p className="greet-sub">Track submissions, deadlines, grades and faculty feedback across all your courses.</p>
@@ -992,12 +887,11 @@ export default function StudentAssignments({ onBack }) {
           </div>
         </div>
 
-        <StatsStrip/>
+        <StatsStrip assignments={assignmentsState}/>
 
         {/* ── Main layout ── */}
         <div className="as-main-layout">
-          {/* Left sidebar */}
-          <CourseSidebar activeCourseId={activeCourseId} onSelect={setActiveCourseId}/>
+          <CourseSidebar activeCourseId={activeCourseId} onSelect={setActiveCourseId} courses={coursesState} assignments={assignmentsState}/>
 
           {/* Content */}
           <div className="as-content-area">
@@ -1014,14 +908,14 @@ export default function StudentAssignments({ onBack }) {
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:12,flexShrink:0}}>
                   {(()=>{
-                    const all=ASSIGNMENTS.filter(a=>a.courseId===activeCourse.id);
+                    const all=assignmentsState.filter(a=>a.courseId===activeCourse.id);
                     const done=all.filter(a=>a.status===STATUS.GRADED||a.status===STATUS.SUBMITTED).length;
                     return (
                       <>
-                        <RadialProgress pct={Math.round((done/all.length)*100)} color={activeCourse.color} size={44} stroke={4}/>
+                        <RadialProgress pct={all.length > 0 ? Math.round((done/all.length)*100) : 0} color={activeCourse.color} size={44} stroke={4}/>
                         <div>
                           <div style={{fontSize:13,fontWeight:700,color:activeCourse.color}}>
-                            {Math.round((done/all.length)*100)}%
+                            {all.length > 0 ? Math.round((done/all.length)*100) : 0}%
                           </div>
                           <div style={{fontSize:10,color:"var(--text3)"}}>{done}/{all.length} submitted</div>
                         </div>
@@ -1039,8 +933,8 @@ export default function StudentAssignments({ onBack }) {
                   <button key={t} className={`mc-filter-tab${filterTab===t?" active":""}`}
                     onClick={()=>setFilterTab(t)}>
                     {t}
-                    {t==="Pending"&&(()=>{const n=ASSIGNMENTS.filter(a=>a.status===STATUS.PENDING||a.status===STATUS.RESUBMIT).length;return n>0?<span className="as-tab-badge">{n}</span>:null;})()}
-                    {t==="Late/Missing"&&(()=>{const n=ASSIGNMENTS.filter(a=>a.status===STATUS.LATE||a.status===STATUS.MISSING).length;return n>0?<span className="as-tab-badge as-tab-badge--rose">{n}</span>:null;})()}
+                    {t==="Pending"&&(()=>{const n=assignmentsState.filter(a=>a.status===STATUS.PENDING||a.status===STATUS.RESUBMIT).length;return n>0?<span className="as-tab-badge">{n}</span>:null;})()}
+                    {t==="Late/Missing"&&(()=>{const n=assignmentsState.filter(a=>a.status===STATUS.LATE||a.status===STATUS.MISSING).length;return n>0?<span className="as-tab-badge as-tab-badge--rose">{n}</span>:null;})()}
                   </button>
                 ))}
               </div>
@@ -1110,14 +1004,14 @@ export default function StudentAssignments({ onBack }) {
             ) : viewMode==="grid" ? (
               <div className="as-grid">
                 {sorted.map(a=>{
-                  const c=COURSES.find(x=>x.id===a.courseId);
+                  const c=coursesState.find(x=>x.id===a.courseId) || { color:"var(--indigo-l)", rgb:"91,78,248" };
                   return <AssignmentCard key={a.id} asgmt={a} course={c} onOpen={handleOpen}/>;
                 })}
               </div>
             ) : (
               <div className="as-list">
                 {sorted.map(a=>{
-                  const c=COURSES.find(x=>x.id===a.courseId);
+                  const c=coursesState.find(x=>x.id===a.courseId) || { color:"var(--indigo-l)", rgb:"91,78,248" };
                   return <AssignmentRow key={a.id} asgmt={a} course={c} onOpen={handleOpen}/>;
                 })}
               </div>
@@ -1125,7 +1019,7 @@ export default function StudentAssignments({ onBack }) {
           </div>
 
           {/* Right timeline sidebar */}
-          <TimelineSidebar/>
+          <TimelineSidebar assignments={assignmentsState} courses={coursesState}/>
         </div>
       </div>
     </>

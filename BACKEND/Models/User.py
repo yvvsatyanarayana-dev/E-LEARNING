@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Boolean, Enum, DateTime
+from sqlalchemy import Column, Integer, String, Boolean, Enum, DateTime, JSON
 from sqlalchemy.orm import relationship
 from Core.Database import Base
 import enum
@@ -21,6 +21,11 @@ class User(Base):
     password = Column(String(255), nullable=False)
     role = Column(Enum(UserRole), default=UserRole.student, nullable=False)
     is_active = Column(Boolean, default=True)
+    phone = Column(String(20), nullable=True)
+    bio = Column(String(500), nullable=True)
+    avatar = Column(String(10), nullable=True)
+    roll_number = Column(String(20), nullable=True)
+    skills = Column(JSON, nullable=True) # ["Python", "React"]
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), onupdate=datetime.utcnow)
 
@@ -38,6 +43,10 @@ class User(Base):
     internship_applications= relationship("InternshipApplication", back_populates="student")
     forum_posts            = relationship("ForumPost", back_populates="posted_by_user")
     study_group_members    = relationship("StudyGroupMember", back_populates="student")
+    schedules              = relationship("Schedule", back_populates="student")
+    mock_interviews        = relationship("MockInterview", back_populates="student")
+    innovation_ideas       = relationship("InnovationIdea", back_populates="author")
+    innovation_projects    = relationship("InnovationProject", back_populates="student")
 
     def __repr__(self):
         return f"<User {self.email} | {self.role}>"

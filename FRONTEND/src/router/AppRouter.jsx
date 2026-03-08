@@ -16,25 +16,8 @@ const router = createBrowserRouter([
   { path: "/login",           element: <SmartCampus defaultModal="login" /> },
   { path: "/register",        element: <SmartCampus defaultModal="signup" /> },
   { path: "/forgot-password", element: <SmartCampus defaultModal="forgot" /> },
-
-  // ──────── STUDENT DASHBOARD ROUTES ────────
-  { path: "/studentdashboard",                           element: SD },
-  { path: "/studentdashboard/studentAnalytics",          element: SD },
-  { path: "/studentdashboard/studentMycourses",          element: SD },
-  { path: "/studentdashboard/studentVideoLectures",      element: SD },
-  { path: "/studentdashboard/studentAssignments",        element: SD },
-  { path: "/studentdashboard/studentQuizzes",            element: SD },
-  { path: "/studentdashboard/studentStudyGroups",        element: SD },
-  { path: "/studentdashboard/studentSchedule",           element: SD },
-  { path: "/studentdashboard/studentInnovationHub",      element: SD },
-  { path: "/studentdashboard/studentPlacementPrep",      element: SD },
-  { path: "/studentdashboard/studentInternships",        element: SD },
-  { path: "/studentdashboard/studentMockInterview",      element: SD },
-  { path: "/studentdashboard/studentSettings",           element: SD },
-  { path: "/studentdashboard/studentProfile",            element: SD },
-  { path: "/studentdashboard/studentResume",             element: SD },
-
-  // ──────── FACULTY DASHBOARD ROUTES ────────
+  { path: "/studentdashboard",          element: SD },
+  { path: "/studentdashboard/:page",    element: SD },
   {
     path: "/facultydashboard",
     element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
