@@ -48,7 +48,7 @@ class EnrolledCourseResponse(BaseModel):
     semester: Optional[str] = None
     faculty_name: str
     progress: float
-    enrolled_at: datetime
+    enrolled_at: Optional[datetime] = None
     lesson_count: int
     assignment_count: int
     quiz_count: int
@@ -204,16 +204,13 @@ class QuizAttemptRequest(BaseModel):
 class StudyGroupResponse(BaseModel):
     id: int
     name: str
+    subject: Optional[str] = None
     description: Optional[str] = None
-    icon: Optional[str] = None
-    color: Optional[str] = None
-    color_rgb: Optional[str] = None
-    type: str
     tags: List[str] = []
-    streak: int
-    resources_count: int
-    messages_count: int
-    last_activity: Optional[str] = None
+    member_count: int = 0
+    is_member: bool = False
+    is_public: bool = True
+    streak: int = 0
     course_id: int
     course_title: str
     created_at: datetime

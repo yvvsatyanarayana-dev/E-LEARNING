@@ -97,22 +97,7 @@ function CourseCard({ course, onOpen }) {
       <div className="mc-card-faculty">{course.faculty}</div>
 
       <div className="mc-card-tags">
-        {course.tags.map(t => <span key={t} className="mc-tag">{t}</span>)}
-        <span className="mc-tag mc-tag--credit">{course.credits} cr</span>
-      </div>
-
-      <div className="mc-card-stats">
-        <div className="mc-cs-item">
-          <span className="mc-cs-val" style={{ color: course.color }}>{course.score}%</span>
-          <span className="mc-cs-lbl">Score</span>
-        </div>
-        <div className="mc-cs-sep" />
-        <div className="mc-cs-item">
-          <span className="mc-cs-val" style={{ color: course.attendance >= 85 ? "var(--teal)" : course.attendance >= 75 ? "var(--amber)" : "var(--rose)" }}>
-            {course.attendance}%
-          </span>
-          <span className="mc-cs-lbl">Attend.</span>
-        </div>
+        {course.tags.map(t => <span key={t} className={`mc-tag ${t === "Available" ? "sc-rose" : ""}`}>{t}</span>)}
         <div className="mc-cs-sep" />
         <div className="mc-cs-item">
           <span className="mc-cs-val">{course.completedModules}/{course.totalModules}</span>
@@ -124,23 +109,54 @@ function CourseCard({ course, onOpen }) {
         <AnimBar pct={course.progress} color={course.color} height={4} delay={600} />
       </div>
 
-      {course.nextDeadline && (
-        <div className="mc-card-deadline">
-          <AlertTriangle size={12} style={{ color: "var(--amber)", flexShrink: 0 }} />
-          <span>{course.nextDeadline.label} · <em>{course.nextDeadline.due}</em></span>
-        </div>
-      )}
+      {!course.isEnrolled ? (
+        <button
+          className="mc-enroll-btn"
+          onClick={(e) => {
+            e.stopPropagation();
+            course.onEnroll(course.id);
+          }}
+          style={{
+            marginTop: "12px",
+            width: "100%",
+            padding: "10px",
+            background: "var(--indigo)",
+            color: "#fff",
+            border: "none",
+            borderRadius: "8px",
+            fontWeight: "700",
+            cursor: "pointer",
+            fontSize: "12px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: "6px",
+            boxShadow: "0 4px 12px rgba(91,78,248,.3)"
+          }}
+        >
+          <Sparkles size={14} /> Enroll Now
+        </button>
+      ) : (
+        <>
+          {course.nextDeadline && (
+            <div className="mc-card-deadline">
+              <AlertTriangle size={12} style={{ color: "var(--amber)", flexShrink: 0 }} />
+              <span>{course.nextDeadline.label} · <em>{course.nextDeadline.due}</em></span>
+            </div>
+          )}
 
-      {course.streak > 0 && (
-        <div className="mc-card-streak">
-          <Flame size={12} style={{ color: "var(--amber)" }} />
-          <span>{course.streak}-day streak</span>
-        </div>
-      )}
+          {course.streak > 0 && (
+            <div className="mc-card-streak">
+              <Flame size={12} style={{ color: "var(--amber)" }} />
+              <span>{course.streak}-day streak</span>
+            </div>
+          )}
 
-      <button className="mc-card-cta" style={{ background: course.color }}>
-        Continue <ArrowRight size={12} />
-      </button>
+          <button className="mc-card-cta" style={{ background: course.color }}>
+            Continue <ArrowRight size={12} />
+          </button>
+        </>
+      )}
     </div>
   );
 }
@@ -454,6 +470,15 @@ export default function StudentMyCourses({ onBack }) {
   const [coursesState, setCoursesState] = useState([]);
   const [deadlines, setDeadlines] = useState([]);
 
+  const handleEnroll = async (courseId) => {
+    try {
+      await api.post(`/student/courses/${courseId}/enroll`);
+      window.location.reload(); 
+    } catch (err) {
+      console.error("Enrollment failed:", err);
+    }
+  };
+
   const fetchData = useCallback(async () => {
     try {
       // Fetch Courses
@@ -480,10 +505,12 @@ export default function StudentMyCourses({ onBack }) {
           totalModules: c.lesson_count,
           completedModules: Math.floor(c.lesson_count * (c.progress / 100)),
           nextDeadline: { label: "Next Assignment", due: "TBD" },
-          tags: ["Enrolled"],
+          isEnrolled: c.enrollment_id > 0,
+          tags: c.enrollment_id > 0 ? ["Enrolled"] : ["Available"],
           streak: 0,
           modules: [],
-          recentActivity: []
+          recentActivity: [],
+          onEnroll: handleEnroll
         };
       });
       setCoursesState(mapped);

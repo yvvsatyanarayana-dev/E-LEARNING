@@ -117,12 +117,14 @@ function mapApiCourse(c, i) {
   const p = PALETTE_COLORS[i % PALETTE_COLORS.length];
   const g = GRADE_STYLES[i % GRADE_STYLES.length];
   return {
+    id: c.course_id,
+    enrollment_id: c.enrollment_id,
     name: c.title,
     meta: `${c.faculty_name} · ${c.lesson_count} lessons`,
     pct: Math.round(c.progress),
     color: p.color, pctColor: p.pctColor, badgeStyle: p.badgeStyle,
-    gradeStyle: g, grade: c.progress >= 90 ? "A+" : c.progress >= 80 ? "A" : c.progress >= 70 ? "A−" : c.progress >= 60 ? "B+" : "B",
-    due: c.assignment_count > 0 ? `${c.assignment_count} assignments` : "No pending",
+    gradeStyle: g, grade: c.enrollment_id > 0 ? (c.progress >= 90 ? "A+" : c.progress >= 80 ? "A" : c.progress >= 70 ? "A−" : c.progress >= 60 ? "B+" : "B") : "New",
+    due: c.enrollment_id > 0 ? (c.assignment_count > 0 ? `${c.assignment_count} assignments` : "No pending") : "Available now",
     next: `${c.quiz_count} quiz${c.quiz_count !== 1 ? "zes" : ""}`,
     icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
   };
@@ -463,60 +465,89 @@ function LucynaFab({onClick}){
   );
 }
 
-// ─── DASHBOARD CONTENT ───────────────────────────────────────────
-function DashboardContent({stats,courses,schedule,quizzes,skills,onNavigateToAnalytics,onNavigateToMyCourses,onNavigateToVideoLectures,onNavigateToAssignments,onNavigateToQuizzes,userName}){
+// ─── DASHBOARD CONTENT ──────────────────────────────────────────
+function DashboardContent({ stats, courses, schedule, quizzes, skills, onNavigateToAnalytics, onNavigateToMyCourses, onNavigateToVideoLectures, onNavigateToAssignments, onNavigateToQuizzes, userName, onEnroll }) {
+  const enrolledCount = courses.filter(c => c.enrollment_id > 0).length;
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
   const firstName = userName ? userName.split(" ")[0] : "…";
-  return(
+
+  return (
     <div className="content">
       <div className="greet-row">
-        <div className="greet-tag"><div className="greet-pip"/><span className="greet-pip-txt">Student Portal</span></div>
-        <h1 className="greet-title">{greeting}, <em>{firstName}</em></h1>
-        <p className="greet-sub">{stats.pending_assignments > 0 ? `You have ${stats.pending_assignments} pending assignment${stats.pending_assignments!==1?"s":""} and ${stats.upcoming_quizzes} quiz${stats.upcoming_quizzes!==1?"zes":""} available. Let's get ahead.` : "You're all caught up! Great job staying on top of your work. 🎉"}</p>
-        <div className="greet-actions">
-          <Btn className="btn-solid" onClick={onNavigateToVideoLectures}><IcoPlay/> Continue Learning</Btn>
-          <Btn className="btn-ghost" onClick={onNavigateToAssignments}><IcoFile width={12} height={12}/> Assignments</Btn>
-          <Btn className="btn-ghost" onClick={onNavigateToQuizzes}><IcoClock width={12} height={12}/> Quizzes</Btn>
-          <Btn className="btn-ghost" onClick={onNavigateToAnalytics}><IcoBar width={12} height={12}/> Analytics</Btn>
+        <div>
+          <div className="greet-tag">
+            <div className="greet-pip" />
+            <span className="greet-pip-txt">Semester 5 · Week 11 · Fri, 28 Feb</span>
+          </div>
+          <h1 className="greet-title">{greeting}, <em>{firstName}</em></h1>
+          <p className="greet-sub">You have {stats.pending_assignments} pending assignments and {stats.upcoming_quizzes} quizzes scheduled this week.</p>
+          <div className="greet-actions">
+            <Hoverable className="btn btn-solid" onClick={onNavigateToVideoLectures} style={{display:"flex",alignItems:"center",gap:8}}><IcoPlay /> Continue Learning</Hoverable>
+            <Hoverable className="btn btn-ghost btn-assignments" onClick={onNavigateToAssignments} style={{display:"flex",alignItems:"center",gap:8}}><IcoFile width={12} height={12} /> Assignments</Hoverable>
+            <Hoverable className="btn btn-ghost btn-quizzes" onClick={onNavigateToQuizzes} style={{display:"flex",alignItems:"center",gap:8}}><IcoClock width={12} height={12} /> Quizzes</Hoverable>
+            <Hoverable className="btn btn-ghost btn-analytics" onClick={onNavigateToAnalytics} style={{display:"flex",alignItems:"center",gap:8}}><IcoBar width={12} height={12} /> Analytics</Hoverable>
+          </div>
         </div>
       </div>
 
       <div className="stat-grid">
         {[
-          {cls:"sc-indigo",icon:<IcoBook width={18} height={18}/>,val:stats.active_courses||stats.activeCourses||0,lbl:"Active Courses",delta:<><IcoChevUp/>Enrolled courses</>,dc:"delta-up"},
-          {cls:"sc-teal",icon:<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>,val:stats.completed_lessons||0,lbl:"Completed Lessons",delta:<><IcoChevUp/>Lessons watched</>,dc:"delta-up"},
-          {cls:"sc-amber",icon:<IcoUsers width={18} height={18}/>,val:stats.pending_assignments||0,lbl:"Pending Assignments",delta:<><IcoChevDn/>Submit on time</>,dc:"delta-dn"},
-          {cls:"sc-violet",icon:<IcoAward width={18} height={18}/>,val:Math.round(stats.pri_score||0),lbl:"Placement Readiness",delta:<><IcoMinus/>PRI Score</>,dc:"delta-neu"},
-        ].map(({cls,icon,val,lbl,delta,dc},i)=>(
-          <Hoverable key={lbl} className={`stat-card ${cls}`} style={{animationDelay:`${(i+1)*.07}s`}}>
-            <div className="stat-ic">{icon}</div>
+          { cls: "sc-indigo", val: stats.active_courses, lbl: "Active Courses", delta: `${enrolledCount} enrolled`, Icon: IcoBook, onClick: onNavigateToMyCourses },
+          { cls: "sc-teal", val: stats.completed_lessons, lbl: "Completed", delta: "Total lessons", Icon: IcoVideo, onClick: onNavigateToVideoLectures },
+          { cls: "sc-amber", val: stats.pending_assignments, lbl: "Assignments", delta: "Need attention", Icon: IcoFile, onClick: onNavigateToAssignments },
+          { cls: "sc-violet", val: stats.upcoming_quizzes, lbl: "Quizzes", delta: "Scheduled", Icon: IcoClock, onClick: onNavigateToQuizzes },
+        ].map(({ cls, val, lbl, delta, Icon, onClick }, i) => (
+          <Hoverable key={lbl} className={`stat-card ${cls}`} onClick={onClick} style={{ animationDelay: `${(i + 1) * .07}s` }}>
+            <div className="stat-ic"><Icon width={18} height={18} /></div>
             <div className="stat-val">{val}</div>
             <div className="stat-lbl">{lbl}</div>
-            <span className={`stat-delta ${dc}`}>{delta}</span>
+            <span className="stat-delta">{delta}</span>
           </Hoverable>
         ))}
       </div>
 
-      <div className="panel" style={{animationDelay:"0.07s"}}>
+      <div className="panel" style={{ animationDelay: "0.07s" }}>
         <div className="panel-hd">
-          <div className="panel-ttl"><IcoBook width={14} height={14} style={{color:"var(--indigo-ll)"}}/> Active Courses <span>{courses.length} enrolled</span></div>
-          <a href="#" className="panel-act" onClick={e=>{e.preventDefault();onNavigateToMyCourses();}}>View all <IcoChevR/></a>
+          <div className="panel-ttl"><IcoBook width={14} height={14} style={{ color: "var(--indigo-ll)" }} /> Courses <span>{enrolledCount} enrolled</span></div>
+          <a href="#" className="panel-act" onClick={e => { e.preventDefault(); onNavigateToMyCourses(); }}>View all <IcoChevR /></a>
         </div>
         <div className="panel-body">
           <div className="course-list">
-            {courses.map(c=>(
+            {courses.map(c => (
               <Hoverable key={c.name} className="course-item">
                 <div className="ci-badge" style={c.badgeStyle}>{c.icon}</div>
                 <div className="ci-info">
                   <div className="ci-name">{c.name}</div>
                   <div className="ci-meta">{c.meta}</div>
                   <div className="ci-prog">
-                    <AnimatedProgressBar pct={c.pct} color={c.color}/>
-                    <div className="ci-prog-lbl">
-                      <span className="ci-prog-pct" style={{color:c.pctColor}}>{c.pct}%</span>
-                      <span className="ci-prog-next">{c.next}</span>
-                    </div>
+                    {c.enrollment_id > 0 ? (
+                      <>
+                        <AnimatedProgressBar pct={c.pct} color={c.color} />
+                        <div className="ci-prog-lbl">
+                          <span className="ci-prog-pct" style={{ color: c.pctColor }}>{c.pct}%</span>
+                          <span className="ci-prog-next">{c.next}</span>
+                        </div>
+                      </>
+                    ) : (
+                      <button
+                        className="btn-enroll-dash"
+                        onClick={(e) => { e.preventDefault(); onEnroll(c.id); }}
+                        style={{
+                          background: "var(--indigo)",
+                          color: "#fff",
+                          border: "none",
+                          padding: "6px 16px",
+                          borderRadius: "6px",
+                          fontSize: "11px",
+                          fontWeight: "600",
+                          cursor: "pointer",
+                          marginTop: "4px"
+                        }}
+                      >
+                        Enroll Now
+                      </button>
+                    )}
                   </div>
                 </div>
                 <div className="ci-right">
@@ -530,17 +561,17 @@ function DashboardContent({stats,courses,schedule,quizzes,skills,onNavigateToAna
       </div>
 
       <div className="bottom-grid">
-        <div className="panel" style={{animationDelay:"0.07s"}}>
+        <div className="panel" style={{ animationDelay: "0.07s" }}>
           <div className="panel-hd">
-            <div className="panel-ttl"><IcoCal width={14} height={14} style={{color:"var(--indigo-ll)"}}/> Today's Schedule <span>Fri, 28 Feb</span></div>
-            <a href="#" className="panel-act" onClick={e=>e.preventDefault()}>Full week <IcoChevR/></a>
+            <div className="panel-ttl"><IcoCal width={14} height={14} style={{ color: "var(--indigo-ll)" }} /> Today's Schedule <span>Fri, 28 Feb</span></div>
+            <a href="#" className="panel-act" onClick={e => e.preventDefault()}>Full week <IcoChevR /></a>
           </div>
           <div className="panel-body">
             <div className="sched-list">
-              {schedule.map(s=>(
+              {schedule.map(s => (
                 <Hoverable key={s.from} className="sched-item">
-                  <div className="sched-time"><div className="st-from" style={{color:s.color}}>{s.from}</div><div className="st-to">{s.to}</div></div>
-                  <div className="sched-div" style={{background:s.color}}/>
+                  <div className="sched-time"><div className="st-from" style={{ color: s.color }}>{s.from}</div><div className="st-to">{s.to}</div></div>
+                  <div className="sched-div" style={{ background: s.color }} />
                   <div className="sched-info">
                     <div className="si-name">{s.name}</div><div className="si-room">{s.room}</div>
                     <span className="si-tag" style={s.tagStyle}>{s.tag}</span>
@@ -551,17 +582,17 @@ function DashboardContent({stats,courses,schedule,quizzes,skills,onNavigateToAna
           </div>
         </div>
 
-        <div className="panel" style={{animationDelay:"0.12s"}}>
+        <div className="panel" style={{ animationDelay: "0.12s" }}>
           <div className="panel-hd">
-            <div className="panel-ttl"><IcoClock width={14} height={14} style={{color:"var(--indigo-ll)"}}/> Quiz Performance <span>Last 30 days</span></div>
-            <a href="#" className="panel-act" onClick={e=>{e.preventDefault();onNavigateToAnalytics();}}>Full Analytics <IcoChevR/></a>
+            <div className="panel-ttl"><IcoClock width={14} height={14} style={{ color: "var(--indigo-ll)" }} /> Quiz Performance <span>Last 30 days</span></div>
+            <a href="#" className="panel-act" onClick={e => { e.preventDefault(); onNavigateToAnalytics(); }}>Full Analytics <IcoChevR /></a>
           </div>
           <div className="panel-body">
             <div className="quiz-list">
-              {quizzes.map(q=>(
+              {quizzes.map(q => (
                 <Hoverable key={q.name} className="quiz-item">
                   <div className="qi-top"><span className="qi-name">{q.name}</span><span className="qi-score" style={q.scoreStyle}>{q.score}</span></div>
-                  <div className="qi-bar"><div className="qi-fill" style={{width:`${q.pct}%`,background:q.bar}}/></div>
+                  <div className="qi-bar"><div className="qi-fill" style={{ width: `${q.pct}%`, background: q.bar }} /></div>
                   <div className="qi-meta"><span>{q.answered}</span><span>{q.rank}</span></div>
                 </Hoverable>
               ))}
@@ -569,18 +600,18 @@ function DashboardContent({stats,courses,schedule,quizzes,skills,onNavigateToAna
           </div>
         </div>
 
-        <div className="panel" style={{animationDelay:"0.18s"}}>
+        <div className="panel" style={{ animationDelay: "0.18s" }}>
           <div className="panel-hd">
-            <div className="panel-ttl"><IcoBar width={14} height={14} style={{color:"var(--indigo-ll)"}}/> Skill Tracker</div>
-            <a href="#" className="panel-act" onClick={e=>{e.preventDefault();onNavigateToAnalytics();}}>Full report <IcoChevR/></a>
+            <div className="panel-ttl"><IcoBar width={14} height={14} style={{ color: "var(--indigo-ll)" }} /> Skill Tracker</div>
+            <a href="#" className="panel-act" onClick={e => { e.preventDefault(); onNavigateToAnalytics(); }}>Full report <IcoChevR /></a>
           </div>
           <div className="panel-body">
             <div className="skill-list">
-              {skills.map(s=>(
+              {skills.map(s => (
                 <Hoverable key={s.label} className="skill-item">
                   <span className="sk-label">{s.label}</span>
-                  <AnimatedProgressBar pct={s.pct} color={s.color} height={5} delay={600}/>
-                  <span className="sk-pct" style={{color:s.pctColor}}>{s.pct}%</span>
+                  <AnimatedProgressBar pct={s.pct} color={s.color} height={5} delay={600} />
+                  <span className="sk-pct" style={{ color: s.pctColor }}>{s.pct}%</span>
                 </Hoverable>
               ))}
             </div>
@@ -636,31 +667,40 @@ export default function StudentDashboard() {
 
   useCursor();
 
-  useEffect(()=>{
-    const fetchData=async()=>{
-      try{
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
         setLoading(true);
         const [meData, dashData] = await Promise.allSettled([
           api.get("/auth/me"),
           api.get("/student/dashboard"),
         ]);
-        if(meData.status==="fulfilled") setUserName(meData.value.full_name||meData.value.email||"");
-        if(dashData.status==="fulfilled"){
+        if (meData.status === "fulfilled") setUserName(meData.value.full_name || meData.value.email || "");
+        if (dashData.status === "fulfilled") {
           const d = dashData.value;
-          if(d.stats)           setStats(d.stats);
-          if(d.enrolled_courses) setCourses(d.enrolled_courses.map(mapApiCourse));
-          if(d.skill_scores)    setSkills(d.skill_scores.map(mapApiSkill));
-          if(d.schedule_today)  setSchedule(d.schedule_today.map(mapApiSchedule));
-          if(d.recent_quizzes)  setQuizzes(d.recent_quizzes.map(mapApiQuiz));
-          if(d.full_name && !userName) setUserName(d.full_name);
+          if (d.stats) setStats(d.stats);
+          if (d.enrolled_courses) setCourses(d.enrolled_courses.map(mapApiCourse));
+          if (d.skill_scores) setSkills(d.skill_scores.map(mapApiSkill));
+          if (d.schedule_today) setSchedule(d.schedule_today.map(mapApiSchedule));
+          if (d.recent_quizzes) setQuizzes(d.recent_quizzes.map(mapApiQuiz));
+          if (d.full_name && !userName) setUserName(d.full_name);
         }
-      }catch(err){
-        console.error("Dashboard fetch failed:",err);
+      } catch (err) {
+        console.error("Dashboard fetch failed:", err);
         setError("Could not load dashboard data.");
-      }finally{ setLoading(false); }
+      } finally { setLoading(false); }
     };
     fetchData();
-  },[]);
+  }, []);
+
+  const handleEnroll = async (courseId) => {
+    try {
+      await api.post(`/student/courses/${courseId}/enroll`);
+      window.location.reload();
+    } catch (err) {
+      console.error("Dashboard enrollment failed:", err);
+    }
+  };
 
   useEffect(()=>{
     const h=e=>{if(e.key==="Escape"){setAiOpen(false);setMobileOpen(false);setNotifOpen(false);}};
@@ -740,6 +780,7 @@ export default function StudentDashboard() {
               onNavigateToAssignments={()=>navigate(ROUTES.ASSIGNMENTS)}
               onNavigateToQuizzes={()=>navigate(ROUTES.QUIZZES)}
               userName={userName}
+              onEnroll={handleEnroll}
             />
           )}
           {activePage === ROUTES.ANALYTICS      && <StudentAnalytics    onBack={()=>navigate(ROUTES.DASHBOARD)}/>}

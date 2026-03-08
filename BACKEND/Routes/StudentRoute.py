@@ -59,6 +59,15 @@ def get_course_detail(
     return student_service.get_course_detail(course_id, current_user, db)
 
 
+@router.post("/courses/{course_id}/enroll")
+def enroll_in_course(
+    course_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return student_service.enroll_course(course_id, current_user, db)
+
+
 # ─── Lessons ─────────────────────────────────────────────────────────────────
 
 @router.get("/lessons", response_model=List[LessonResponse])

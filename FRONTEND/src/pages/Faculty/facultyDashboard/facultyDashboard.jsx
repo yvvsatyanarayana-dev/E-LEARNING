@@ -4,6 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import "./FacultyDashboard.css";
 import FacultyAnalytics from "../facultyAnalytics/facultyAnalytics";
 import FacultyMyCourses from "../../Student/studentMycourse/studentMycourse";
+import api from "../../../utils/api";
 
 // ─── ICONS ───────────────────────────────────────────────────────
 const IcoDashboard = (p) => <svg {...p} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>;
@@ -58,68 +59,7 @@ const ROUTE_TO_URL = {
 };
 
 // ─── DATA ────────────────────────────────────────────────────────
-const MY_COURSES = [
-  {
-    name: "Operating Systems", code: "CS501", sem: "Sem 5", students: 112,
-    lectures: { done: 33, total: 42 }, avgAttendance: 81, avgScore: 74,
-    color: "var(--indigo-l)", badgeStyle: { background: "rgba(91,78,248,.12)", color: "var(--indigo-ll)" },
-    pctColor: "var(--indigo-ll)", pendingGrade: 8,
-    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>,
-  },
-  {
-    name: "Database Management Systems", code: "CS502", sem: "Sem 5", students: 108,
-    lectures: { done: 23, total: 38 }, avgAttendance: 76, avgScore: 68,
-    color: "var(--teal)", badgeStyle: { background: "rgba(39,201,176,.1)", color: "var(--teal)" },
-    pctColor: "var(--teal)", pendingGrade: 14,
-    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>,
-  },
-  {
-    name: "Computer Architecture", code: "CS503", sem: "Sem 3", students: 96,
-    lectures: { done: 28, total: 36 }, avgAttendance: 88, avgScore: 79,
-    color: "var(--violet)", badgeStyle: { background: "rgba(159,122,234,.12)", color: "var(--violet)" },
-    pctColor: "var(--violet)", pendingGrade: 3,
-    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>,
-  },
-];
-
-const WEAK_TOPICS = [
-  { course: "OS", topic: "Deadlock Detection", students: 34, pct: 30, color: "var(--rose)", bar: "var(--rose)" },
-  { course: "DBMS", topic: "Transaction Isolation Levels", students: 41, pct: 38, color: "var(--amber)", bar: "var(--amber)" },
-  { course: "OS", topic: "Page Replacement Algorithms", students: 28, pct: 25, color: "var(--rose)", bar: "var(--rose)" },
-  { course: "DBMS", topic: "B+ Tree Indexing", students: 22, pct: 20, color: "var(--amber)", bar: "var(--amber)" },
-  { course: "CA", topic: "Cache Coherence Protocols", students: 19, pct: 20, color: "var(--violet)", bar: "var(--violet)" },
-];
-
-const PENDING_TASKS = [
-  { label: "Grade OS Assignment #4", course: "CS501", due: "Today",   urgent: true,  type: "grade" },
-  { label: "Upload DBMS Lecture 24 Notes", course: "CS502", due: "Today",   urgent: true,  type: "upload" },
-  { label: "Review 14 DBMS Quiz Submissions", course: "CS502", due: "Tomorrow", urgent: false, type: "quiz" },
-  { label: "Generate Unit IV Question Paper",  course: "CS501", due: "3 days",  urgent: false, type: "qpaper" },
-  { label: "Approve 6 Student Projects",       course: "CS503", due: "4 days",  urgent: false, type: "approve" },
-];
-
-const SCHEDULE = [
-  { from: "09:00", to: "10:00", name: "Operating Systems — Lecture 34", room: "Room 301 · Sem 5 A", tag: "Lecture", color: "var(--teal)",      tagStyle: { background: "rgba(39,201,176,.1)", color: "var(--teal)" } },
-  { from: "10:30", to: "11:30", name: "OS Quiz Evaluation Review",      room: "Faculty Office",      tag: "Review",  color: "var(--amber)",     tagStyle: { background: "rgba(244,165,53,.12)", color: "var(--amber)" } },
-  { from: "13:00", to: "14:30", name: "DBMS Lab — Batch B",             room: "Lab 2",               tag: "Lab",     color: "var(--indigo-l)",  tagStyle: { background: "rgba(91,78,248,.1)", color: "var(--indigo-ll)" } },
-  { from: "15:00", to: "16:00", name: "Computer Architecture — Lecture 29", room: "Room 102 · Sem 3",tag: "Lecture", color: "var(--violet)",    tagStyle: { background: "rgba(159,122,234,.1)", color: "var(--violet)" } },
-  { from: "16:30", to: "17:00", name: "Department Faculty Meeting",      room: "Conference Room A",   tag: "Meeting", color: "var(--rose)",      tagStyle: { background: "rgba(242,68,92,.1)", color: "var(--rose)" } },
-];
-
-const TOP_STUDENTS = [
-  { name: "Arjun Reddy",   roll: "21CS047", cgpa: 8.9, attendance: 92, course: "OS",   badge: "Top Performer", badgeStyle: { background: "rgba(39,201,176,.1)", color: "var(--teal)" } },
-  { name: "Priya Nair",    roll: "21CS031", cgpa: 8.7, attendance: 88, course: "DBMS", badge: "Consistent",    badgeStyle: { background: "rgba(91,78,248,.1)",  color: "var(--indigo-ll)" } },
-  { name: "Rohan Mehta",   roll: "21CS019", cgpa: 8.5, attendance: 85, course: "CA",   badge: "Improving",     badgeStyle: { background: "rgba(244,165,53,.1)", color: "var(--amber)" } },
-  { name: "Sneha Sharma",  roll: "21CS062", cgpa: 8.3, attendance: 94, course: "OS",   badge: "Top Attendance", badgeStyle: { background: "rgba(159,122,234,.1)", color: "var(--violet)" } },
-  { name: "Dev Iyer",      roll: "21CS008", cgpa: 8.1, attendance: 79, course: "DBMS", badge: "At Risk",        badgeStyle: { background: "rgba(242,68,92,.1)", color: "var(--rose)" } },
-];
-
-const QUIZ_STATS = [
-  { name: "OS – Process Scheduling",  avg: 74, highest: 98, lowest: 32, submitted: 108, total: 112, color: "var(--indigo-l)" },
-  { name: "DBMS – Normalization",     avg: 68, highest: 95, lowest: 28, submitted: 102, total: 108, color: "var(--teal)" },
-  { name: "CA – Instruction Set",     avg: 79, highest: 100, lowest: 44, submitted: 94,  total: 96,  color: "var(--violet)" },
-];
-
+// Data is now fetched dynamically from the API
 const AI_RESPONSES_FAC = [
   "Based on quiz results, <strong style='color:var(--rose)'>34 students</strong> scored below 40% on Deadlock Detection. Want me to generate a remedial quiz set? 🎯",
   "Average attendance in DBMS dropped by <strong style='color:var(--amber)'>6%</strong> this week. Students with &lt;75% include Ravi Kumar, Meena S., and 3 others.",
@@ -150,6 +90,44 @@ const NAV_ITEMS = [
     { label: "Reports",         icon: <IcoTrend/> },
   ]},
 ];
+
+// ─── MAPPERS ─────────────────────────────────────────────────────
+const mapApiCourse = (c) => ({
+  ...c,
+  lectures: { done: c.lectures_done, total: c.lectures_total },
+  badgeStyle: { background: "rgba(91,78,248,.12)", color: "var(--indigo-ll)" }, // Default styles
+  pctColor: c.color || "var(--indigo-ll)",
+  pendingGrade: c.pending_grades,
+  icon: <IcoBook width={18} height={18} />
+});
+
+const mapApiSchedule = (s) => ({
+  from: s.from_time,
+  to: s.to_time,
+  name: s.name,
+  room: s.room,
+  tag: s.tag,
+  color: s.color,
+  tagStyle: { background: "rgba(39,201,176,.1)", color: s.color }
+});
+
+const mapApiTask = (t) => ({
+  label: t.label,
+  course: t.course,
+  due: t.due,
+  urgent: t.urgent,
+  type: t.type
+});
+
+const mapApiQuiz = (q) => ({
+  name: q.name,
+  avg: q.avg_score,
+  highest: q.highest_score,
+  lowest: q.lowest_score,
+  submitted: q.submitted_count,
+  total: q.total_count,
+  color: q.color
+});
 
 // ─── HELPERS ─────────────────────────────────────────────────────
 function addRipple(e, el) {
@@ -246,10 +224,10 @@ function Sidebar({ open, onClose, activePage, onNavigate }) {
           </button>
         </div>
         <div className="sb-user">
-          <div className="sb-avatar">SP</div>
+          <div className="sb-avatar">{userName ? userName.split(" ").map(x=>x[0]).join("") : "FP"}</div>
           <div>
-            <div className="sb-uname">Dr. S. Prakash</div>
-            <div className="sb-urole">Faculty · CSE Dept · 3 Courses</div>
+            <div className="sb-uname">{userName || "Faculty Member"}</div>
+            <div className="sb-urole">Faculty · {stats.active_courses} Courses</div>
           </div>
         </div>
         <nav className="sb-nav">
@@ -276,17 +254,17 @@ function Sidebar({ open, onClose, activePage, onNavigate }) {
         <div className="sb-bottom">
           <div className="sb-stat-row">
             <div className="sb-mini-stat">
-              <div className="sb-mini-val teal">316</div>
+              <div className="sb-mini-val teal">{stats.total_students}</div>
               <div className="sb-mini-lbl">Students</div>
             </div>
             <div className="sb-mini-sep" />
             <div className="sb-mini-stat">
-              <div className="sb-mini-val indigo">82%</div>
+              <div className="sb-mini-val indigo">{stats.avg_attendance}%</div>
               <div className="sb-mini-lbl">Avg Attendance</div>
             </div>
             <div className="sb-mini-sep" />
             <div className="sb-mini-stat">
-              <div className="sb-mini-val amber">25</div>
+              <div className="sb-mini-val amber">{tasks.length}</div>
               <div className="sb-mini-lbl">Pending</div>
             </div>
           </div>
@@ -444,6 +422,43 @@ export default function FacultyDashboard() {
   const [aiOpen, setAiOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [checkedTasks, setCheckedTasks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [userName, setUserName] = useState("");
+  const [stats, setStats] = useState({ total_students: 0, active_courses: 0, avg_attendance: 0, avg_class_score: 0 });
+  const [courses, setCourses] = useState([]);
+  const [schedule, setSchedule] = useState([]);
+  const [tasks, setTasks] = useState([]);
+  const [quizStats, setQuizStats] = useState([]);
+  const [weakTopics, setWeakTopics] = useState([]);
+  const [topStudents, setTopStudents] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [meData, dashData] = await Promise.allSettled([
+          api.get("/auth/me"),
+          api.get("/faculty/dashboard"),
+        ]);
+        if (meData.status === "fulfilled") setUserName(meData.value.full_name || "");
+        if (dashData.status === "fulfilled") {
+          const d = dashData.value;
+          setStats(d.stats);
+          setCourses(d.courses.map(mapApiCourse));
+          setSchedule(d.schedule.map(mapApiSchedule));
+          setTasks(d.tasks.map(mapApiTask));
+          setQuizStats(d.quiz_stats.map(mapApiQuiz));
+          setWeakTopics(d.weak_topics);
+          setTopStudents(d.top_students);
+        }
+      } catch (err) {
+        console.error("Faculty dashboard fetch failed:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   useCursor();
 
@@ -503,11 +518,11 @@ export default function FacultyDashboard() {
                   <div className="greet-pip" />
                   <span className="greet-pip-txt">Academic Year 2024–25 · Semester 5 · Week 11</span>
                 </div>
-                <h1 className="greet-title">Good morning, <em>Dr. Prakash</em></h1>
-                <p className="greet-sub">You have 22 pending submissions to grade and an OS lecture at 9:00 AM today.</p>
+                <h1 className="greet-title">Good morning, <em>{userName ? userName.split(" ")[0] : "Faculty"}</em></h1>
+                <p className="greet-sub">You have {tasks.length} pending submissions to grade. Let's get ahead.</p>
                 <div className="greet-actions">
                   <Btn className="btn-solid"><IcoPen /> Grade Submissions</Btn>
-                  <Btn className="btn-ghost"><IcoPlus /> Create Quiz</Btn>
+                  <Btn className="btn-ghost" onClick={() => navigate(ROUTES.MY_COURSES)}><IcoPlus /> Create Quiz</Btn>
                   <Btn className="btn-ghost"><IcoUpload /> Upload Lecture</Btn>
                 </div>
               </div>
@@ -515,10 +530,10 @@ export default function FacultyDashboard() {
               {/* ── STAT CARDS ── */}
               <div className="stat-grid">
                 {[
-                  { cls: "sc-teal",   icon: <IcoUsers width={18} height={18}/>,  val: "316",  lbl: "Total Students",     delta: <><IcoChevUp/>+12 this semester</>,  dc: "delta-up" },
-                  { cls: "sc-indigo", icon: <IcoBook width={18} height={18}/>,   val: "3",    lbl: "Active Courses",     delta: <><IcoMinus/>Same as last sem</>,    dc: "delta-neu" },
-                  { cls: "sc-amber",  icon: <IcoCal width={18} height={18}/>,    val: "82%",  lbl: "Avg Attendance",     delta: <><IcoChevDn/>−3% vs last week</>,   dc: "delta-dn" },
-                  { cls: "sc-violet", icon: <IcoTrend width={18} height={18}/>,  val: "73%",  lbl: "Avg Class Score",    delta: <><IcoChevUp/>+2% vs last quiz</>,   dc: "delta-up" },
+                  { cls: "sc-teal",   icon: <IcoUsers width={18} height={18}/>,  val: stats.total_students,  lbl: "Total Students",     delta: <><IcoChevUp/>Enrolled students</>,  dc: "delta-up" },
+                  { cls: "sc-indigo", icon: <IcoBook width={18} height={18}/>,   val: stats.active_courses,    lbl: "Active Courses",     delta: <><IcoMinus/>Assigned</>,    dc: "delta-neu" },
+                  { cls: "sc-amber",  icon: <IcoCal width={18} height={18}/>,    val: `${stats.avg_attendance}%`,  lbl: "Avg Attendance",     delta: <><IcoMinus/>Across sections</>,   dc: "delta-neu" },
+                  { cls: "sc-violet", icon: <IcoTrend width={18} height={18}/>,  val: `${stats.avg_class_score}%`,  lbl: "Avg Class Score",    delta: <><IcoChevUp/>Overall performance</>,   dc: "delta-up" },
                 ].map(({ cls, icon, val, lbl, delta, dc }, i) => (
                   <Hoverable key={lbl} className={`stat-card ${cls}`} style={{ animationDelay: `${(i + 1) * 0.07}s` }}>
                     <div className="stat-ic">{icon}</div>
@@ -540,12 +555,12 @@ export default function FacultyDashboard() {
                 </div>
                 <div className="panel-body">
                   <div className="course-faculty-grid">
-                    {MY_COURSES.map((c) => (
+                    {courses.map((c) => (
                       <Hoverable key={c.name} className="course-faculty-card">
                         <div className="cfc-top">
                           <div className="ci-badge" style={c.badgeStyle}>{c.icon}</div>
                           <div className="cfc-meta">
-                            <div className="cfc-code">{c.code} · {c.sem}</div>
+                            <div className="cfc-code">{c.code} · {c.semester}</div>
                             <div className="cfc-name">{c.name}</div>
                           </div>
                           {c.pendingGrade > 0 && (
@@ -554,17 +569,17 @@ export default function FacultyDashboard() {
                         </div>
                         <div className="cfc-stats">
                           <div className="cfc-stat-item">
-                            <div className="cfc-stat-val" style={{ color: c.pctColor }}>{c.students}</div>
+                            <div className="cfc-stat-val" style={{ color: c.pctColor }}>{c.student_count}</div>
                             <div className="cfc-stat-lbl">Students</div>
                           </div>
                           <div className="cfc-stat-sep" />
                           <div className="cfc-stat-item">
-                            <div className="cfc-stat-val" style={{ color: c.avgAttendance >= 85 ? "var(--teal)" : c.avgAttendance >= 75 ? "var(--amber)" : "var(--rose)" }}>{c.avgAttendance}%</div>
+                            <div className="cfc-stat-val" style={{ color: c.avg_attendance >= 85 ? "var(--teal)" : c.avg_attendance >= 75 ? "var(--amber)" : "var(--rose)" }}>{c.avg_attendance}%</div>
                             <div className="cfc-stat-lbl">Attendance</div>
                           </div>
                           <div className="cfc-stat-sep" />
                           <div className="cfc-stat-item">
-                            <div className="cfc-stat-val" style={{ color: "var(--violet)" }}>{c.avgScore}%</div>
+                            <div className="cfc-stat-val" style={{ color: "var(--violet)" }}>{c.avg_score}%</div>
                             <div className="cfc-stat-lbl">Avg Score</div>
                           </div>
                         </div>
@@ -598,7 +613,7 @@ export default function FacultyDashboard() {
                   </div>
                   <div className="panel-body">
                     <div className="sched-list">
-                      {SCHEDULE.map((s) => (
+                      {schedule.map((s) => (
                         <Hoverable key={s.from} className="sched-item">
                           <div className="sched-time">
                             <div className="st-from" style={{ color: s.color }}>{s.from}</div>
@@ -627,7 +642,7 @@ export default function FacultyDashboard() {
                   </div>
                   <div className="panel-body">
                     <div className="task-list">
-                      {PENDING_TASKS.map((t, i) => (
+                      {tasks.map((t, i) => (
                         <Hoverable key={i} className={`task-item ${checkedTasks.includes(i) ? "done" : ""}`}
                           onClick={() => toggleTask(i)}>
                           <div className={`task-check ${checkedTasks.includes(i) ? "checked" : ""}`}>
@@ -657,7 +672,7 @@ export default function FacultyDashboard() {
                   </div>
                   <div className="panel-body">
                     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                      {QUIZ_STATS.map((q) => (
+                      {quizStats.map((q) => (
                         <Hoverable key={q.name} className="quiz-faculty-item">
                           <div className="qfi-top">
                             <span className="qfi-name">{q.name}</span>
@@ -696,14 +711,14 @@ export default function FacultyDashboard() {
                   </div>
                   <div className="panel-body">
                     <div className="weak-list">
-                      {WEAK_TOPICS.map((w, i) => (
+                      {weakTopics.map((w, i) => (
                         <Hoverable key={i} className="weak-item">
                           <div className="wi-top">
                             <span className="wi-course" style={{ color: w.color }}>{w.course}</span>
                             <span className="wi-name">{w.topic}</span>
-                            <span className="wi-count">{w.students} students</span>
+                            <span className="wi-count">{w.student_count} students</span>
                           </div>
-                          <AnimatedProgressBar pct={w.pct} color={w.bar} height={3} delay={700 + i * 100} />
+                          <AnimatedProgressBar pct={w.percentage} color={w.color} height={3} delay={700 + i * 100} />
                           <div className="wi-hint">Below 40% — needs attention</div>
                         </Hoverable>
                       ))}
@@ -727,17 +742,17 @@ export default function FacultyDashboard() {
                   </div>
                   <div className="panel-body">
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      {TOP_STUDENTS.map((s, i) => (
+                      {topStudents.map((s, i) => (
                         <Hoverable key={i} className="student-item">
                           <div className="sti-rank">{i + 1}</div>
-                          <div className="sti-avatar">{s.name.split(" ").map(x => x[0]).join("")}</div>
+                          <div className="sti-avatar">{s.name ? s.name.split(" ").map(x => x[0]).join("") : "S"}</div>
                           <div className="sti-info">
                             <div className="sti-name">{s.name}</div>
                             <div className="sti-roll">{s.roll} · {s.course}</div>
                           </div>
                           <div className="sti-right">
                             <div className="sti-cgpa">{s.cgpa}</div>
-                            <span className="sti-badge" style={s.badgeStyle}>{s.badge}</span>
+                            <span className="sti-badge" style={{ background: s.badge_color + "1a", color: s.badge_color }}>{s.badge}</span>
                           </div>
                         </Hoverable>
                       ))}

@@ -67,8 +67,9 @@ function MemberAvatar({ member, size = 32, showStatus = false }) {
 }
 
 function AvatarStack({ memberCount, size = 26 }) {
-  const displayCount = Math.min(memberCount, 3);
-  const extra = memberCount - displayCount;
+  const count = parseInt(memberCount) || 0;
+  const displayCount = Math.max(0, Math.min(count, 3));
+  const extra = Math.max(0, count - displayCount);
   return (
     <div style={{ display: "flex", alignItems: "center" }}>
       {[...Array(displayCount)].map((_, i) => (
@@ -692,7 +693,7 @@ export default function StudentStudyGroups({ onBack }) {
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState("grid");
   const [showCreate, setShowCreate] = useState(false);
-  const [joinedIds, setJoinedIds] = useState(new Set(["g1", "g2", "g4"])); // groups already joined
+  const [joinedIds, setJoinedIds] = useState(new Set());
   const [groupsState, setGroupsState] = useState([]);
 
   const [loading, setLoading] = useState(true);
@@ -724,14 +725,15 @@ export default function StudentStudyGroups({ onBack }) {
             messages: 0,
             lastActivity: "Recently",
             pinned: false,
-            isMember: true,
+            isMember: g.is_member,        // Use API field
             channels: [{ id: "c1", name: "general", type: "text", unread: 0 }],
             sessions: [],
             messages_data: []
           };
         });
         setGroupsState(mapped);
-        setJoinedIds(new Set(mapped.map(m => m.id)));
+        // Only mark groups the student is actually a member of
+        setJoinedIds(new Set(mapped.filter(m => m.isMember).map(m => m.id)));
       } catch (err) {
         console.error("Failed to fetch study groups:", err);
       } finally {

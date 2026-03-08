@@ -70,6 +70,8 @@ def _enrollment_courses(student: User, db: Session) -> List[EnrolledCourseRespon
     result = []
     for en in enrollments:
         course = en.course
+        if not course:
+            continue
         result.append(EnrolledCourseResponse(
             enrollment_id=en.id,
             course_id=course.id,
@@ -85,6 +87,31 @@ def _enrollment_courses(student: User, db: Session) -> List[EnrolledCourseRespon
         ))
     return result
 
+def _all_courses_for_student(student: User, db: Session):
+    """Return all active courses with enrollment info for this student."""
+    enrolled_map = {
+        en.course_id: en
+        for en in db.query(Enrollment).filter(Enrollment.student_id == student.id).all()
+    }
+    all_courses = db.query(Course).filter(Course.is_active == True).all()
+    result = []
+    for course in all_courses:
+        en = enrolled_map.get(course.id)
+        result.append(EnrolledCourseResponse(
+            enrollment_id=en.id if en else 0,
+            course_id=course.id,
+            title=course.title,
+            description=course.description,
+            semester=course.semester,
+            faculty_name=course.faculty.full_name if course.faculty else "Unknown",
+            progress=en.progress if en else 0.0,
+            enrolled_at=en.enrolled_at if en else None,
+            lesson_count=len(course.lessons),
+            assignment_count=len(course.assignments),
+            quiz_count=len(course.quizzes),
+        ))
+    return result
+
 
 class StudentService:
 
@@ -92,7 +119,7 @@ class StudentService:
 
     def get_dashboard(self, student: User, db: Session) -> DashboardResponse:
         _require_student(student)
-        courses = _enrollment_courses(student, db)
+        courses = _all_courses_for_student(student, db)
 
         # Count completed lessons via WatchHistory
         completed_lessons = db.query(WatchHistory).filter(
@@ -553,7 +580,25 @@ class StudentService:
 
     def get_courses(self, student: User, db: Session) -> List[EnrolledCourseResponse]:
         _require_student(student)
-        return _enrollment_courses(student, db)
+        # Return ALL active courses (enrolled + unenrolled) so new students see what's available
+        return _all_courses_for_student(student, db)
+
+    def enroll_course(self, course_id: int, student: User, db: Session):
+        """Self-enroll a student in a course."""
+        _require_student(student)
+        course = db.query(Course).filter(Course.id == course_id, Course.is_active == True).first()
+        if not course:
+            raise HTTPException(status_code=404, detail="Course not found")
+        existing = db.query(Enrollment).filter(
+            Enrollment.student_id == student.id,
+            Enrollment.course_id == course_id
+        ).first()
+        if existing:
+            return {"message": "Already enrolled", "course_id": course_id}
+        enrollment = Enrollment(student_id=student.id, course_id=course_id, progress=0.0)
+        db.add(enrollment)
+        db.commit()
+        return {"message": "Enrolled successfully", "course_id": course_id}
 
     def get_course_detail(self, course_id: int, student: User, db: Session) -> CourseDetailResponse:
         _require_student(student)
@@ -565,24 +610,58 @@ class StudentService:
         enrollment = db.query(Enrollment).filter(Enrollment.student_id == student.id, Enrollment.course_id == course_id).first()
         progress = int(enrollment.progress) if enrollment else 0
 
-        # Mock modules for now (In real app, fetch from Lesson objects grouped by section)
-        modules = [
-            CourseModule(id="m1", title="Introduction & Fundamentals", lessons=4, duration="2.5h", completed=True),
-            CourseModule(id="m2", title="Intermediate Concepts", lessons=6, duration="4h", completed=progress > 30),
-            CourseModule(id="m3", title="Advanced Applications", lessons=5, duration="3.5h", completed=progress > 70)
-        ]
+        # Build real modules from DB lessons grouped by order
+        all_lessons = db.query(Lesson).filter(Lesson.course_id == course_id).order_by(Lesson.order).all()
+        watched_lesson_ids = {
+            wh.lesson_id for wh in
+            db.query(WatchHistory).filter(
+                WatchHistory.student_id == student.id,
+                WatchHistory.completed == True
+            ).all()
+        }
+        # Group lessons into modules of ~4
+        modules = []
+        chunk_size = 4
+        for i in range(0, max(len(all_lessons), 1), chunk_size):
+            chunk = all_lessons[i:i+chunk_size]
+            completed_in_chunk = sum(1 for l in chunk if l.id in watched_lesson_ids)
+            modules.append(CourseModule(
+                id=f"m{i//chunk_size+1}",
+                title=f"Module {i//chunk_size+1}: {chunk[0].title[:30] if chunk else 'Lessons'}...",
+                lessons=len(chunk),
+                duration=f"{len(chunk)*0.75:.1f}h",
+                completed=(len(chunk) > 0 and completed_in_chunk == len(chunk))
+            ))
+        if not modules:
+            modules = [CourseModule(id="m1", title="No lessons yet", lessons=0, duration="0h", completed=False)]
 
-        # Mock deadlines
+        # Real deadlines from assignments table
+        assignments = db.query(Assignment).filter(
+            Assignment.course_id == course_id,
+            Assignment.due_date != None
+        ).order_by(Assignment.due_date.asc()).limit(5).all()
+        submitted_ids = {s.assignment_id for s in db.query(AssignmentSubmission).filter(AssignmentSubmission.student_id == student.id).all()}
         deadlines = [
-            CourseDeadline(id="d1", title="Assignment 3: Optimization", date="Mar 18", type="assignment"),
-            CourseDeadline(id="d2", title="Quiz 2: Data Structures", date="Mar 22", type="quiz")
+            CourseDeadline(id=f"d{a.id}", title=a.title, date=a.due_date.strftime("%b %d") if a.due_date else "TBD", type="assignment")
+            for a in assignments if a.id not in submitted_ids
         ]
+        # Add quiz deadlines
+        quizzes = db.query(Quiz).filter(Quiz.course_id == course_id).limit(3).all()
+        attempted = {qa.quiz_id for qa in db.query(QuizAttempt).filter(QuizAttempt.student_id == student.id).all()}
+        for q in quizzes:
+            if q.id not in attempted:
+                deadlines.append(CourseDeadline(id=f"q{q.id}", title=q.title, date="Upcoming", type="quiz"))
 
-        # Mock suggestions
-        suggestions = [
-            CourseSuggestion(id="s1", title="Review Recursion", reason="Based on your Quiz 1 score (72/100)", icon="Repeat"),
-            CourseSuggestion(id="s2", title="Try 'Two Sum'", reason="Related to current module", icon="ExternalLink")
-        ]
+        # Suggestions based on watched progress
+        watched_count = len(watched_lesson_ids)
+        total_lessons = len(all_lessons)
+        suggestions = []
+        if total_lessons > 0 and watched_count < total_lessons:
+            next_lesson = next((l for l in all_lessons if l.id not in watched_lesson_ids), None)
+            if next_lesson:
+                suggestions.append(CourseSuggestion(id="s1", title=f"Watch: {next_lesson.title[:40]}", reason="Continue your progress", icon="Play"))
+        if watched_count == 0:
+            suggestions.append(CourseSuggestion(id="s2", title="Start your first lesson", reason="Begin learning today!", icon="Rocket"))
 
         return CourseDetailResponse(
             course_id=course.id,
@@ -598,11 +677,8 @@ class StudentService:
 
     def get_lessons(self, student: User, db: Session, course_id: Optional[int] = None) -> List[LessonResponse]:
         _require_student(student)
-        enrolled_ids = [
-            en.course_id for en in
-            db.query(Enrollment).filter(Enrollment.student_id == student.id).all()
-        ]
-        query = db.query(Lesson).filter(Lesson.course_id.in_(enrolled_ids))
+        # Show lessons from ALL courses (new students can browse even without enrollment)
+        query = db.query(Lesson)
         if course_id:
             query = query.filter(Lesson.course_id == course_id)
         lessons = query.order_by(Lesson.course_id, Lesson.order).all()
@@ -840,16 +916,15 @@ class StudentService:
 
     def get_study_groups(self, student: User, db: Session) -> List[StudyGroupResponse]:
         _require_student(student)
-        enrolled_ids = [
-            en.course_id for en in
-            db.query(Enrollment).filter(Enrollment.student_id == student.id).all()
-        ]
-        groups = db.query(StudyGroup).filter(StudyGroup.course_id.in_(enrolled_ids)).all() if enrolled_ids else []
-
+        # Get groups the student is a member of
         member_group_ids = {
             m.group_id
             for m in db.query(StudyGroupMember).filter(StudyGroupMember.student_id == student.id).all()
         }
+        # Return: all public groups + private groups where student is a member
+        groups = db.query(StudyGroup).filter(
+            (StudyGroup.type == "public") | (StudyGroup.id.in_(member_group_ids))
+        ).all()
 
         return [
             StudyGroupResponse(
@@ -857,9 +932,14 @@ class StudentService:
                 name=g.name,
                 course_id=g.course_id,
                 course_title=g.course.title if g.course else "Unknown",
-                created_at=g.created_at,
+                subject=g.course.title if g.course else g.name,
+                description=g.description or "",
+                tags=g.tags or [],
                 member_count=len(g.members),
                 is_member=g.id in member_group_ids,
+                is_public=(g.type == "public"),
+                streak=g.streak or 0,
+                created_at=g.created_at,
             )
             for g in groups
         ]
