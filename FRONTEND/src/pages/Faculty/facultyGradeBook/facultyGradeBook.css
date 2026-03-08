@@ -1,0 +1,59 @@
+/* gradeBook.css — place at: src/pages/Faculty/gradeBook/gradeBook.css */
+.gb-root { padding:26px 30px 100px; flex:1; animation:reveal-in .45s ease both; }
+.gb-page-hd { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:22px; flex-wrap:wrap; }
+.gb-back-btn { display:inline-flex; align-items:center; gap:5px; background:none; border:none; color:var(--text2); font-size:13px; cursor:pointer; margin-bottom:4px; padding:0; transition:color .18s; font-family:'Plus Jakarta Sans',sans-serif; }
+.gb-back-btn:hover { color:var(--text); }
+.gb-hd-right { display:flex; align-items:center; gap:8px; padding-top:8px; flex-wrap:wrap; }
+.gb-stat-strip { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:20px; }
+.gb-stat-strip .stat-card { margin-bottom:0; }
+
+.gb-course-tabs { display:flex; gap:7px; margin-bottom:16px; flex-wrap:wrap; }
+.gb-ctab { display:inline-flex; align-items:center; gap:6px; padding:6px 14px; border-radius:20px; border:1px solid var(--border); background:var(--surface2); color:var(--text2); font-size:12px; font-weight:600; cursor:pointer; transition:all .18s; font-family:'Plus Jakarta Sans',sans-serif; }
+.gb-ctab:hover { border-color:var(--border2); color:var(--text); }
+.gb-ctab--active { font-weight:700; }
+.gb-ctab-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+
+.gb-toolbar { display:flex; align-items:center; gap:10px; margin-bottom:14px; flex-wrap:wrap; }
+.gb-search { display:flex; align-items:center; gap:8px; padding:0 12px; background:var(--surface2); border:1px solid var(--border); border-radius:9px; height:36px; flex:0 0 240px; transition:border-color .2s; }
+.gb-search:focus-within { border-color:rgba(91,78,248,.4); }
+.gb-search-inp { background:none; border:none; outline:none; font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; color:var(--text); flex:1; }
+.gb-search-inp::placeholder { color:var(--text3); }
+.gb-search-clear { background:none; border:none; color:var(--text3); cursor:pointer; display:flex; align-items:center; padding:2px; border-radius:4px; transition:color .18s; }
+.gb-search-clear:hover { color:var(--rose); }
+
+/* Table */
+.gb-table-wrap { overflow-x:auto; }
+.gb-table-head { display:grid; grid-template-columns:28px 1.4fr repeat(6,0.65fr) 0.6fr 0.5fr; gap:8px; align-items:center; padding:10px 16px; border-bottom:1px solid var(--border); font-size:9.5px; font-weight:700; color:var(--text3); text-transform:uppercase; letter-spacing:.07em; min-width:700px; }
+.gb-max-lbl { font-size:8.5px; font-weight:500; color:var(--text3); opacity:.6; text-transform:none; letter-spacing:0; }
+.gb-table-row { display:grid; grid-template-columns:28px 1.4fr repeat(6,0.65fr) 0.6fr 0.5fr; gap:8px; align-items:center; padding:10px 16px; border-bottom:1px solid var(--border); transition:background .18s; min-width:700px; }
+.gb-table-row:last-child { border-bottom:none; }
+.gb-table-row:hover { background:rgba(255,255,255,.022); }
+.gb-row-num { font-size:10px; color:var(--text3); text-align:center; font-weight:600; }
+.gb-row-student { display:flex; align-items:center; gap:8px; min-width:0; }
+.gb-row-avatar { width:26px; height:26px; border-radius:50%; border:1px solid; display:flex; align-items:center; justify-content:center; font-size:8px; font-weight:700; flex-shrink:0; }
+.gb-row-name { font-size:12px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.gb-row-roll { font-size:9px; color:var(--text3); margin-top:1px; }
+
+/* Cells */
+.gb-cell { display:flex; align-items:center; justify-content:center; height:30px; border-radius:6px; cursor:pointer; background:var(--surface2); border:1px solid var(--border); transition:border-color .18s,background .18s; }
+.gb-cell:hover { border-color:rgba(91,78,248,.3); background:rgba(91,78,248,.06); }
+.gb-cell--empty { background:rgba(255,255,255,.02); border-style:dashed; }
+.gb-cell-val { font-size:12px; font-weight:700; }
+.gb-pending { font-size:11px; color:var(--text3); }
+.gb-cell-input { width:100%; text-align:center; background:none; border:none; outline:none; font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:700; color:var(--indigo-ll); padding:0 4px; }
+.gb-total-cell { text-align:center; }
+.gb-grade-cell { text-align:center; }
+.gb-grade-badge { font-family:'Fraunces',serif; font-size:18px; font-weight:400; }
+
+/* Distribution */
+.gb-dist-row { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-top:16px; }
+.gb-dist-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px; display:flex; flex-direction:column; gap:6px; transition:border-color .2s,transform .2s; cursor:default; }
+.gb-dist-card:hover { border-color:var(--border2); transform:translateY(-2px); }
+.gb-dist-grade { font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+.gb-dist-count { font-family:'Fraunces',serif; font-size:28px; font-weight:400; line-height:1; }
+.gb-dist-range { font-size:9.5px; color:var(--text3); }
+.gb-dist-bar   { height:4px; background:rgba(255,255,255,.06); border-radius:4px; overflow:hidden; margin-top:4px; }
+
+@media(max-width:900px){ .gb-dist-row{grid-template-columns:1fr 1fr;} }
+@media(max-width:768px){ .gb-root{padding:18px 14px 100px;} .gb-stat-strip{grid-template-columns:1fr 1fr;} }
+@media(min-width:1400px){ .gb-root{padding:30px 40px 100px;} }
