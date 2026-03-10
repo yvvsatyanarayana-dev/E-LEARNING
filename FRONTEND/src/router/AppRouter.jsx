@@ -3,6 +3,7 @@ import SmartCampus from "../App";
 import StudentDashboard from "../pages/Student/studentDashboard/studentDashboard";
 import FacultyDashboard from "../pages/Faculty/facultyDashboard/facultyDashboard";
 import RoleRoute from "./RoleRoute";
+import ErrorBoundary from "./ErrorBoundary";
 
 const SD = (
   <RoleRoute allowedRoles={["student", "admin"]}>
@@ -12,15 +13,16 @@ const SD = (
 
 const router = createBrowserRouter([
   // ──────── AUTH ROUTES ────────
-  { path: "/",                element: <SmartCampus /> },
-  { path: "/login",           element: <SmartCampus defaultModal="login" /> },
+  { path: "/",                element: <SmartCampus />, errorElement: <ErrorBoundary /> },
+  { path: "/login",           element: <SmartCampus defaultModal="login" />, errorElement: <ErrorBoundary /> },
   { path: "/register",        element: <SmartCampus defaultModal="signup" /> },
   { path: "/forgot-password", element: <SmartCampus defaultModal="forgot" /> },
-  { path: "/studentdashboard",          element: SD },
-  { path: "/studentdashboard/:page",    element: SD },
+  { path: "/studentdashboard",          element: SD, errorElement: <ErrorBoundary /> },
+  { path: "/studentdashboard/:page",    element: SD, errorElement: <ErrorBoundary /> },
   {
     path: "/facultydashboard",
     element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+    errorElement: <ErrorBoundary />
   },
   {
     path: "/facultydashboard/facultyAnalytics",

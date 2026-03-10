@@ -95,8 +95,8 @@ function InternshipDrawer({ item, onClose, onApply }) {
         <div className="int-drawer-section">
           <div className="int-drawer-section-ttl">AI Profile Match</div>
           <div className="int-match-row">
-            <div className="int-match-val" style={{ color: (item.match || 75) >= 85 ? "var(--teal)" : (item.match || 75) >= 70 ? "var(--amber)" : "var(--rose)" }}>{item.match || 75}%</div>
-            <Bar pct={item.match || 75} color={(item.match || 75) >= 85 ? "var(--teal)" : "var(--amber)"} delay={200} />
+            <div className="int-match-val" style={{ color: (item.match || 0) >= 85 ? "var(--teal)" : (item.match || 0) >= 70 ? "var(--amber)" : "var(--rose)" }}>{item.match || 0}%</div>
+            <Bar pct={item.match || 0} color={(item.match || 0) >= 85 ? "var(--teal)" : "var(--amber)"} delay={200} />
           </div>
           <p className="int-match-hint">Based on your resume, skills, and CGPA. Add certifications to improve match score.</p>
         </div>
@@ -275,8 +275,8 @@ export default function StudentInternships({ onBack }) {
                 <div className="int-card-footer">
                   <div className="int-card-stipend">{item.stipend}</div>
                   <div className="int-card-match">
-                    <IcoZap style={{ color: (item.match || 75) >= 85 ? "var(--teal)" : "var(--amber)" }} />
-                    <span style={{ color: (item.match || 75) >= 85 ? "var(--teal)" : "var(--amber)", fontWeight: 700 }}>{item.match || 75}% match</span>
+                    <IcoZap style={{ color: (item.match || 0) >= 85 ? "var(--teal)" : "var(--amber)" }} />
+                    <span style={{ color: (item.match || 0) >= 85 ? "var(--teal)" : "var(--amber)", fontWeight: 700 }}>{item.match || 0}% match</span>
                   </div>
                 </div>
 

@@ -65,13 +65,16 @@ function LineChart({ datasets, labels, height = 150, showGrid = true }) {
   const W = 560, H = height;
   const PAD = { t: 16, r: 12, b: 28, l: 36 };
   const inner = { w: W - PAD.l - PAD.r, h: H - PAD.t - PAD.b };
-  const allVals = datasets.flatMap(d => d.values);
-  const minV = Math.min(...allVals) - 5;
-  const maxV = Math.max(...allVals) + 5;
-  const cx = (i) => PAD.l + (i / (labels.length - 1)) * inner.w;
-  const cy = (v) => PAD.t + inner.h - ((v - minV) / (maxV - minV)) * inner.h;
-  const pathD = (vals) => vals.map((v, i) => `${i === 0 ? "M" : "L"}${cx(i).toFixed(1)},${cy(v).toFixed(1)}`).join(" ");
-  const areaD = (vals) => `${pathD(vals)} L${cx(vals.length - 1)},${(PAD.t + inner.h).toFixed(1)} L${PAD.l},${(PAD.t + inner.h).toFixed(1)} Z`;
+  
+  const safeDatasets = datasets.map(d => ({...d, values: d.values || []}));
+  const allVals = safeDatasets.flatMap(d => d.values);
+  const minV = allVals.length ? Math.min(...allVals) - 5 : 0;
+  const maxV = allVals.length ? Math.max(...allVals) + 5 : 100;
+  
+  const cx = (i) => PAD.l + (i / (Math.max(1, labels.length - 1))) * inner.w;
+  const cy = (v) => PAD.t + inner.h - ((v - minV) / (Math.max(1, maxV - minV))) * inner.h;
+  const pathD = (vals) => vals.length ? vals.map((v, i) => `${i === 0 ? "M" : "L"}${cx(i).toFixed(1)},${cy(v).toFixed(1)}`).join(" ") : "";
+  const areaD = (vals) => vals.length ? `${pathD(vals)} L${cx(vals.length - 1)},${(PAD.t + inner.h).toFixed(1)} L${PAD.l},${(PAD.t + inner.h).toFixed(1)} Z` : "";
   const gridVals = [minV, minV + (maxV - minV) * 0.33, minV + (maxV - minV) * 0.66, maxV].map(Math.round);
 
   return (
@@ -88,18 +91,18 @@ function LineChart({ datasets, labels, height = 150, showGrid = true }) {
         <text key={i} x={cx(i)} y={H - 6} fill="rgba(255,255,255,.3)"
           fontSize="9" textAnchor="middle">{l}</text>
       ))}
-      {datasets.map((d, di) => (
-        <path key={`a${di}`} d={areaD(d.values)} fill={d.color} opacity="0.07" />
+      {safeDatasets.map((d, di) => (
+        <path key={`a${di}`} d={areaD(d.values)} fill={d.color || "var(--indigo-l)"} opacity="0.07" />
       ))}
-      {datasets.map((d, di) => (
-        <path key={`l${di}`} d={pathD(d.values)} fill="none" stroke={d.color}
+      {safeDatasets.map((d, di) => (
+        <path key={`l${di}`} d={pathD(d.values)} fill="none" stroke={d.color || "var(--indigo-l)"}
           strokeWidth={d.bold ? 2.4 : 1.8} strokeLinecap="round" strokeLinejoin="round"
           strokeDasharray={d.dashed ? "5 3" : undefined} />
       ))}
-      {datasets.map((d, di) =>
+      {safeDatasets.map((d, di) =>
         d.values.map((v, i) => (
           <circle key={`${di}-${i}`} cx={cx(i)} cy={cy(v)}
-            r={d.bold ? 3.5 : 2.5} fill={d.color}
+            r={d.bold ? 3.5 : 2.5} fill={d.color || "var(--indigo-l)"}
             stroke="var(--surface)" strokeWidth="1.5" />
         ))
       )}
@@ -173,9 +176,10 @@ function RadarChart({ data, size = 200 }) {
 }
 
 // ─── SPARK LINE ───────────────────────────────────────────────────
-function SparkLine({ values, color, width = 60, height = 24 }) {
+function SparkLine({ values = [], color, width = 60, height = 24 }) {
+  if (!values || !values.length) return null;
   const min = Math.min(...values), max = Math.max(...values);
-  const cx = (i) => (i / (values.length - 1)) * (width - 6) + 3;
+  const cx = (i) => (i / (Math.max(1, values.length - 1))) * (width - 6) + 3;
   const cy = (v) => height - 4 - ((v - min) / (max - min || 1)) * (height - 8);
   const d = values.map((v, i) => `${i === 0 ? "M" : "L"}${cx(i).toFixed(1)},${cy(v).toFixed(1)}`).join(" ");
   return (
@@ -263,16 +267,16 @@ function TabPerformance({ activeCourse, setActiveCourse, performance }) {
             {courses.map(c => (
               <button key={c}
                 className={`san-course-pill ${activeCourse === c ? "active" : ""}`}
-                style={activeCourse === c ? { borderColor: COLOR_MAP[c], color: COLOR_MAP[c] } : {}}
+                style={activeCourse === c ? { borderColor: COLOR_MAP[c] || "var(--indigo-l)", color: COLOR_MAP[c] || "var(--indigo-l)" } : {}}
                 onClick={() => setActiveCourse(c)}>
-                <span className="san-cp-dot" style={{ background: COLOR_MAP[c] }} />
+                <span className="san-cp-dot" style={{ background: COLOR_MAP[c] || "var(--indigo-l)" }} />
                 {c}
               </button>
             ))}
           </div>
           <LineChart
             datasets={[
-              { label: "Me", values: performance.my_score_trend[activeCourse], color: COLOR_MAP[activeCourse], bold: true },
+              { label: "Me", values: performance.my_score_trend[activeCourse], color: COLOR_MAP[activeCourse] || "var(--indigo-l)", bold: true },
               { label: "Class Avg", values: performance.class_score_trend[activeCourse], color: "rgba(255,255,255,.25)", dashed: true },
             ]}
             labels={performance.weeks} height={155}
@@ -325,17 +329,19 @@ function TabPerformance({ activeCourse, setActiveCourse, performance }) {
           </div>
           <div className="panel-body">
             <div className="all-course-trends">
-              {Object.entries(performance.my_score_trend).map(([course, vals]) => {
-                const latest = vals[vals.length - 1];
+              {Object.entries(performance.my_score_trend).map(([course, valsArr]) => {
+                const vals = valsArr || [];
+                const latest = vals[vals.length - 1] || 0;
                 const prev = vals[vals.length - 2] ?? latest;
                 const delta = latest - prev;
+                const cColor = COLOR_MAP[course] || "var(--indigo-l)";
                 return (
                   <div key={course} className="act-row">
-                    <span className="act-course" style={{ color: COLOR_MAP[course] }}>{course}</span>
+                    <span className="act-course" style={{ color: cColor }}>{course}</span>
                     <div className="act-sparkline">
-                      <SparkLine values={vals} color={COLOR_MAP[course]} width={72} height={28} />
+                      <SparkLine values={vals} color={cColor} width={72} height={28} />
                     </div>
-                    <span className="act-score" style={{ color: COLOR_MAP[course] }}>{latest}%</span>
+                    <span className="act-score" style={{ color: cColor }}>{latest}%</span>
                     <span className={`act-delta ${delta > 0 ? "up" : delta < 0 ? "dn" : "neu"}`}>
                       {delta > 0 ? "+" : ""}{delta}
                     </span>
@@ -449,7 +455,7 @@ function TabAttendance({ attendance }) {
 }
 
 // ─── SKILLS TAB ───────────────────────────────────────────────────
-function TabSkills({ skills, weeks }) {
+function TabSkills({ skills, weeks, semester }) {
   const { radar, progression, achievements } = skills;
 
 
@@ -471,7 +477,7 @@ function TabSkills({ skills, weeks }) {
         <div className="panel">
           <div className="panel-hd">
             <div className="panel-ttl">
-              <TrendingUp size={14} style={{ color: "var(--indigo-ll)" }} />
+              <IcoTrendingUp size={14} style={{ color: "var(--indigo-ll)" }} />
               Skill Growth — Semester
             </div>
           </div>
@@ -505,7 +511,7 @@ function TabSkills({ skills, weeks }) {
           <div className="panel-ttl">
             <IcoTrendingUp size={14} style={{ color: "var(--indigo-ll)" }} />
             Skill Progression — All Skills
-            <span>Weekly · {data.semester}</span>
+            <span>Weekly · {semester}</span>
           </div>
           <div className="san-legend">
             {progression.map(s => (
@@ -708,7 +714,7 @@ function TabPlacement({ placement }) {
 export default function StudentAnalytics({ onBack }) {
   const [tab, setTab] = useState("performance");
   const [period, setPeriod] = useState("Semester");
-  const [activeCourse, setActiveCourse] = useState("OS");
+  const [activeCourse, setActiveCourse] = useState(null);
 
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -789,13 +795,13 @@ export default function StudentAnalytics({ onBack }) {
       {/* ── Tab content ── */}
       {tab === "performance" && (
         <TabPerformance
-          activeCourse={activeCourse}
+          activeCourse={activeCourse || Object.keys(data.performance.my_score_trend || {})[0]}
           setActiveCourse={setActiveCourse}
           performance={data.performance}
         />
       )}
       {tab === "attendance" && <TabAttendance attendance={data.attendance} />}
-      {tab === "skills" && <TabSkills skills={data.skills} weeks={data.performance.weeks} />}
+      {tab === "skills" && <TabSkills skills={data.skills} weeks={data.performance.weeks} semester={data.semester} />}
       {tab === "placement" && <TabPlacement placement={data.placement} />}
     </div>
   );
