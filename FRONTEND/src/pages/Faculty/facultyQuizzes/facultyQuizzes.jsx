@@ -347,7 +347,8 @@ export default function FacultyQuizzes({ onBack }) {
     setTimeout(() => setToast(""), 3000);
   }, []);
 
-  const filtered = quizzes.filter(q => {
+  const safeQuizzes = Array.isArray(quizzes) ? quizzes : [];
+  const filtered = safeQuizzes.filter(q => {
     const c = COURSES_META[q.courseId] || { code: "UNK" };
     if (courseFilter !== "All" && c.code !== courseFilter) return false;
     if (statusFilter !== "all" && q.status !== statusFilter) return false;

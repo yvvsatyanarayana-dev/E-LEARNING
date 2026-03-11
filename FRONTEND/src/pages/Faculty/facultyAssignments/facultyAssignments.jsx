@@ -633,12 +633,13 @@ export default function FacultyAssignments({ onBack }) {
   }, []);
 
   // AGGREGATE STATS
-  const TOTAL_PENDING_GRADE = assignments.filter(a => a.status === "grading").length;
-  const TOTAL_LIVE          = assignments.filter(a => ["live","grading","upcoming"].includes(a.status)).length;
-  const TOTAL_DONE          = assignments.filter(a => a.status === "done").length;
-  const TOTAL_SUBMISSIONS   = assignments.reduce((a, x) => a + (x.submissions || 0), 0);
+  const safeAssig = Array.isArray(assignments) ? assignments : [];
+  const TOTAL_PENDING_GRADE = safeAssig.filter(a => a.status === "grading").length;
+  const TOTAL_LIVE          = safeAssig.filter(a => ["live","grading","upcoming"].includes(a.status)).length;
+  const TOTAL_DONE          = safeAssig.filter(a => a.status === "done").length;
+  const TOTAL_SUBMISSIONS   = safeAssig.reduce((a, x) => a + (x.submissions || 0), 0);
 
-  const filtered = assignments.filter(a => {
+  const filtered = safeAssig.filter(a => {
     const q = search.toLowerCase();
     const titleMatch = (a.title || "").toLowerCase().includes(q) || (a.type || "").toLowerCase().includes(q);
     const courseMatch = activeCourse === "all" || String(a.courseId) === String(activeCourse);
@@ -704,7 +705,7 @@ export default function FacultyAssignments({ onBack }) {
           onClick={() => setActiveCourse("all")}>
           <span className="as-ctab-dot" style={{ background:"var(--indigo-l)" }}/>
           All Courses
-          <span className="as-ctab-count">{assignments.length}</span>
+          <span className="as-ctab-count">{safeAssig.length}</span>
         </button>
         {Object.entries(COURSES_META).map(([id, cm]) => (
           <button key={id}
@@ -713,7 +714,7 @@ export default function FacultyAssignments({ onBack }) {
             onClick={() => setActiveCourse(id)}>
             <span className="as-ctab-dot" style={{ background:cm.color }}/>
             {cm.code}
-            <span className="as-ctab-count">{assignments.filter(a => String(a.courseId) === String(id)).length}</span>
+            <span className="as-ctab-count">{safeAssig.filter(a => String(a.courseId) === String(id)).length}</span>
           </button>
         ))}
       </div>

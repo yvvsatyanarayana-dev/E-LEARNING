@@ -169,3 +169,51 @@ class FacultyCourseDetail(BaseModel):
     lessons: List[FacultyLessonSummary]
     students: List[FacultyStudentListItem]
     weak_topics: List[FacultyWeakTopic]
+
+
+# --- Remaining Pages Models ---
+class FacultyStudentDetail(BaseModel):
+    roll: str
+    name: str
+    course: str # e.g. CS501
+    sem: int
+    batch: str # "A" or "B"
+    cgpa: float
+    attendance: int
+    score: int
+    status: str # "good", "average", "at-risk"
+    email: str
+
+class FacultyGradeBookEntry(BaseModel):
+    id: int # Submission id
+    student_name: str
+    student_roll: str
+    assignment_id: int
+    assignment_title: str
+    course_code: str
+    submitted_on: str
+    status: str # "graded", "pending", "late"
+    score: Optional[int] = None
+    max_score: int
+
+class FacultyScoreDist(BaseModel):
+    range: str
+    count: int
+
+class FacultyEngagementMetric(BaseModel):
+    week: str
+    views: int
+    participation: int
+    completion: int
+
+class FacultyWeakTopicTrend(BaseModel):
+    week: str
+    score: int
+
+class FacultyAnalyticsData(BaseModel):
+    score_dist: List[FacultyScoreDist]
+    engagement: List[FacultyEngagementMetric]
+    weak_topic_trend: List[FacultyWeakTopicTrend]
+    total_students: int
+    avg_attendance: float
+    avg_score: float
