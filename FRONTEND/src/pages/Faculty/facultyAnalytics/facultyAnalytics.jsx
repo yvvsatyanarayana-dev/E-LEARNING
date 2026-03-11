@@ -58,19 +58,22 @@ function AnimBar({ pct, color, height = 4, delay = 400, animate = true }) {
 }
 
 // ── SVG line-chart (pure, no library) ──
-function LineChart({ datasets, labels, height = 140 }) {
+function LineChart({ datasets = [], labels = [], height = 140 }) {
   const W = 560, H = height, PAD = { t: 16, r: 12, b: 28, l: 36 };
   const inner = { w: W - PAD.l - PAD.r, h: H - PAD.t - PAD.b };
 
-  const allVals = datasets.flatMap(d => d.values);
-  const minV = Math.min(...allVals) - 4;
-  const maxV = Math.max(...allVals) + 4;
+  const safeDatasets = Array.isArray(datasets) ? datasets : [];
+  const safeLabels = Array.isArray(labels) ? labels : [];
+  
+  const allVals = safeDatasets.flatMap(d => Array.isArray(d.values) ? d.values : []);
+  const minV = allVals.length ? Math.min(...allVals) - 4 : 0;
+  const maxV = allVals.length ? Math.max(...allVals) + 4 : 100;
 
-  const cx = (i) => PAD.l + (i / (labels.length - 1)) * inner.w;
-  const cy = (v) => PAD.t + inner.h - ((v - minV) / (maxV - minV)) * inner.h;
+  const cx = (i) => PAD.l + (i / (Math.max(1, safeLabels.length - 1))) * inner.w;
+  const cy = (v) => PAD.t + inner.h - ((v - minV) / (maxV - minV || 1)) * inner.h;
 
-  const pathD = (vals) => vals.map((v, i) => `${i === 0 ? "M" : "L"}${cx(i).toFixed(1)},${cy(v).toFixed(1)}`).join(" ");
-  const areaD = (vals) => `${pathD(vals)} L${cx(vals.length - 1)},${(PAD.t + inner.h).toFixed(1)} L${PAD.l},${(PAD.t + inner.h).toFixed(1)} Z`;
+  const pathD = (vals) => Array.isArray(vals) && vals.length ? vals.map((v, i) => `${i === 0 ? "M" : "L"}${cx(i).toFixed(1)},${cy(v).toFixed(1)}`).join(" ") : "";
+  const areaD = (vals) => Array.isArray(vals) && vals.length ? `${pathD(vals)} L${cx(vals.length - 1)},${(PAD.t + inner.h).toFixed(1)} L${PAD.l},${(PAD.t + inner.h).toFixed(1)} Z` : "";
 
   const gridVals = [minV, minV + (maxV - minV) * 0.33, minV + (maxV - minV) * 0.66, maxV].map(Math.round);
 
@@ -86,22 +89,22 @@ function LineChart({ datasets, labels, height = 140 }) {
         </g>
       ))}
       {/* X labels */}
-      {labels.map((l, i) => (
+      {safeLabels.map((l, i) => (
         <text key={i} x={cx(i)} y={H - 6} fill="rgba(255,255,255,.3)"
           fontSize="9" textAnchor="middle">{l}</text>
       ))}
       {/* Area fills */}
-      {datasets.map((d, di) => (
-        <path key={`a${di}`} d={areaD(d.values)} fill={d.color} opacity="0.07" />
+      {safeDatasets.map((d, di) => (
+        <path key={`a${di}`} d={areaD(d.values)} fill={d.color || "#fff"} opacity="0.07" />
       ))}
       {/* Lines */}
-      {datasets.map((d, di) => (
+      {safeDatasets.map((d, di) => (
         <path key={`l${di}`} d={pathD(d.values)} fill="none"
-          stroke={d.color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          stroke={d.color || "#fff"} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
       ))}
       {/* Dots */}
-      {datasets.map((d, di) =>
-        d.values.map((v, i) => (
+      {safeDatasets.map((d, di) =>
+        Array.isArray(d.values) && d.values.map((v, i) => (
           <circle key={`${di}-${i}`} cx={cx(i)} cy={cy(v)} r="3"
             fill={d.color} stroke="var(--surface)" strokeWidth="1.5" />
         ))
@@ -111,11 +114,13 @@ function LineChart({ datasets, labels, height = 140 }) {
 }
 
 // ── SVG horizontal bar chart ──
-function HBarChart({ data }) {
-  const max = Math.max(...data.map(d => d.count));
+function HBarChart({ data = [] }) {
+  const safeData = Array.isArray(data) ? data : [];
+  const max = safeData.length ? Math.max(...safeData.map(d => d.count || 0)) : 100;
+
   return (
     <div className="hbar-list">
-      {data.map((d, i) => (
+      {safeData.map((d, i) => (
         <div key={i} className="hbar-row">
           <span className="hbar-label">{d.range}</span>
           <div className="hbar-track">
@@ -134,17 +139,18 @@ function HBarChart({ data }) {
 }
 
 // ── SVG donut chart ──
-function Donut({ segments, size = 88, stroke = 14 }) {
+function Donut({ segments = [], size = 88, stroke = 14 }) {
+  const safeSegments = Array.isArray(segments) ? segments : [];
   const r = (size - stroke) / 2;
   const circ = 2 * Math.PI * r;
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ transform: "rotate(-90deg)" }}>
       <circle cx={size / 2} cy={size / 2} r={r} fill="none"
         stroke="var(--surface3)" strokeWidth={stroke} />
-      {segments.map((s, i) => {
-        const dash = (s.pct / 100) * circ;
+      {safeSegments.map((s, i) => {
+        const dash = ((s.pct || 0) / 100) * circ;
         const gap  = circ - dash;
-        const offset = segments.slice(0, i).reduce((acc, seg) => acc + (seg.pct / 100) * circ, 0);
+        const offset = safeSegments.slice(0, i).reduce((acc, seg) => acc + ((seg.pct || 0) / 100) * circ, 0);
         return (
           <circle key={i} cx={size / 2} cy={size / 2} r={r} fill="none"
             stroke={s.color} strokeWidth={stroke}
@@ -202,14 +208,14 @@ function GroupedBar({ data, keys, colors, height = 130 }) {
 // ─── OVERVIEW TAB ─────────────────────────────────────────────────
 function TabOverview() {
   const scoreDatasets = [
-    { label: "CS501", values: WEEKLY_SCORES["CS501"], color: "var(--indigo-l)" },
-    { label: "CS502", values: WEEKLY_SCORES["CS502"], color: "var(--teal)" },
-    { label: "CS503", values: WEEKLY_SCORES["CS503"], color: "var(--violet)" },
+    { label: "CS501", values: WEEKLY_SCORES["CS501"] || [0,0,0,0,0,0,0], color: "var(--indigo-l)" },
+    { label: "CS502", values: WEEKLY_SCORES["CS502"] || [0,0,0,0,0,0,0], color: "var(--teal)" },
+    { label: "CS503", values: WEEKLY_SCORES["CS503"] || [0,0,0,0,0,0,0], color: "var(--violet)" },
   ];
   const attendDatasets = [
-    { label: "CS501", values: ATTENDANCE_WEEKLY["CS501"], color: "var(--indigo-l)" },
-    { label: "CS502", values: ATTENDANCE_WEEKLY["CS502"], color: "var(--teal)" },
-    { label: "CS503", values: ATTENDANCE_WEEKLY["CS503"], color: "var(--violet)" },
+    { label: "CS501", values: ATTENDANCE_WEEKLY["CS501"] || [0,0,0,0,0,0,0], color: "var(--indigo-l)" },
+    { label: "CS502", values: ATTENDANCE_WEEKLY["CS502"] || [0,0,0,0,0,0,0], color: "var(--teal)" },
+    { label: "CS503", values: ATTENDANCE_WEEKLY["CS503"] || [0,0,0,0,0,0,0], color: "var(--violet)" },
   ];
 
   return (
