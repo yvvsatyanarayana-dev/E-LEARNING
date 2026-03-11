@@ -8,11 +8,16 @@ import FacultyVideoLectures  from "../facultyVideoLectures/facultyVideoLectures"
 import FacultyAssignments    from "../facultyAssignments/facultyAssignments";
 import FacultyQuizzes        from "../facultyQuizzes/facultyQuizzes";
 import AllStudents           from "../facultyAllStudents/Allstudents";
-import Attendance            from "../Attendance/Attendance";
+import Attendance            from "../attendance/attendance";
 import GradeBook             from "../facultyGradeBook/facultyGradeBook";
 import QuestionBank          from "../facultyQuetionBank/facultyQuestionBank";
 import AiAssistant           from "../facultyAiAssistence/facultyAiAssistence";
 import Reports               from "../facultyReport/facultyReport";
+import FacultyProfile  from "../facultyProfile/facultyProfile";
+import FacultySettings from "../facultySettings/facultySettings";
+import FacultyQuickaction from "../facultyQuickaction/facultyQuickaction";
+import FacultyNotification from "../facultyNotification/facultyNotification";
+import api from "../../../utils/api";
 
 // ─── ICONS ───────────────────────────────────────────────────────
 const IcoDashboard  = (p) => <svg {...p} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>;
@@ -59,6 +64,10 @@ const ROUTES = {
   QUESTION_BANK:  "Question Bank",
   AI_ASSISTANT:   "AI Assistant",
   REPORTS:        "Reports",
+  PROFILE:        "Profile",
+  SETTINGS:       "Settings",
+  QUICKACTIONS:   "Quick Actions",
+  NOTIFICATIONS:  "Notifications",
 };
 
 const PAGE_PARAM_MAP = {
@@ -73,6 +82,8 @@ const PAGE_PARAM_MAP = {
   "questionbank":       ROUTES.QUESTION_BANK,
   "aiassistant":        ROUTES.AI_ASSISTANT,
   "reports":            ROUTES.REPORTS,
+  "profile":            ROUTES.PROFILE,
+  "settings":           ROUTES.SETTINGS,
 };
 
 const ROUTE_TO_URL = {
@@ -88,6 +99,10 @@ const ROUTE_TO_URL = {
   [ROUTES.QUESTION_BANK]:  "/facultydashboard/questionBank",
   [ROUTES.AI_ASSISTANT]:   "/facultydashboard/aiAssistant",
   [ROUTES.REPORTS]:        "/facultydashboard/reports",
+  [ROUTES.PROFILE]:        "/facultydashboard/profile",
+  [ROUTES.SETTINGS]:       "/facultydashboard/settings",
+  [ROUTES.QUICKACTIONS]:   "/facultydashboard/quickactions",
+  [ROUTES.NOTIFICATIONS]:  "/facultydashboard/notifications",
 };
 
 // ─── DATA ────────────────────────────────────────────────────────
@@ -106,11 +121,11 @@ const WEAK_TOPICS = [
 ];
 
 const PENDING_TASKS = [
-  { label:"Grade OS Assignment #4",           course:"CS501", due:"Today",    urgent:true  },
-  { label:"Upload DBMS Lecture 24 Notes",      course:"CS502", due:"Today",    urgent:true  },
-  { label:"Review 14 DBMS Quiz Submissions",   course:"CS502", due:"Tomorrow", urgent:false },
-  { label:"Generate Unit IV Question Paper",   course:"CS501", due:"3 days",   urgent:false },
-  { label:"Approve 6 Student Projects",        course:"CS503", due:"4 days",   urgent:false },
+  { label:"Grade OS Assignment #4",           course:"CS501", due:"Today",    urgent:true,  type:"grade"  },
+  { label:"Upload DBMS Lecture 24 Notes",      course:"CS502", due:"Today",    urgent:true,  type:"upload" },
+  { label:"Review 14 DBMS Quiz Submissions",   course:"CS502", due:"Tomorrow", urgent:false, type:"quiz"   },
+  { label:"Generate Unit IV Question Paper",   course:"CS501", due:"3 days",   urgent:false, type:"qpaper" },
+  { label:"Approve 6 Student Projects",        course:"CS503", due:"4 days",   urgent:false, type:"grade"  },
 ];
 
 const SCHEDULE = [
@@ -163,6 +178,9 @@ const NAV_ITEMS = [
     { label:ROUTES.QUESTION_BANK,  icon:<IcoAward/> },
     { label:ROUTES.AI_ASSISTANT,   icon:<IcoBrain width={16} height={16}/> },
     { label:ROUTES.REPORTS,        icon:<IcoTrend/> },
+  ]},
+  { section:"Account", links:[
+    { label:ROUTES.SETTINGS,       icon:<IcoSettings/> },
   ]},
 ];
 
@@ -262,7 +280,7 @@ function AnimatedProgressBar({pct,color,height=3,delay=500}){
 }
 
 // ─── SIDEBAR ─────────────────────────────────────────────────────
-function Sidebar({open,onClose,activePage,onNavigate}){
+function Sidebar({open,onClose,activePage,onNavigate,userName,stats,tasks}){
   const logoutNavigate=useNavigate();
   const handleLogout=()=>{ localStorage.removeItem("token");localStorage.removeItem("user");logoutNavigate("/login",{replace:true}); };
 
@@ -286,24 +304,26 @@ function Sidebar({open,onClose,activePage,onNavigate}){
             <div className="sb-urole">Faculty · {stats.active_courses} Courses</div>
           </div>
         </div>
-        <nav className="sb-nav">
-          {NAV_ITEMS.map(({section,links})=>(
-            <div key={section}>
-              <div className="sb-sec-label">{section}</div>
-              {links.map(({label,icon,badge,badgeClass})=>{
-                const isActive = activePage===label;
-                return(
-                  <a key={label} href="#" className={`sb-link ${isActive?"active":""}`}
-                    onClick={e=>{ e.preventDefault(); if(ROUTABLE.has(label)){onNavigate(label);onClose();} }}>
-                    {icon}{label}
-                    {badge&&<span className={`sb-badge ${badgeClass||""}`}>{badge}</span>}
-                  </a>
-                );
-              })}
-            </div>
-          ))}
-        </nav>
-        <div className="sb-bottom">
+        <div className="sb-scrollable">
+          <nav className="sb-nav">
+            {NAV_ITEMS.map(({section,links})=>(
+              <div key={section}>
+                <div className="sb-sec-label">{section}</div>
+                {links.map(({label,icon,badge,badgeClass})=>{
+                  const isActive = activePage===label;
+                  return(
+                    <a key={label} href="#" className={`sb-link ${isActive?"active":""}`}
+                      onClick={e=>{ e.preventDefault(); if(ROUTABLE.has(label)){onNavigate(label);onClose();} }}>
+                      {icon}{label}
+                      {badge&&<span className={`sb-badge ${badgeClass||""}`}>{badge}</span>}
+                    </a>
+                  );
+                })}
+              </div>
+            ))}
+          </nav>
+        </div>
+        <div className="sb-bottom-fixed">
           <div className="sb-stat-row">
             <div className="sb-mini-stat">
               <div className="sb-mini-val teal">{stats.total_students}</div>
@@ -320,7 +340,6 @@ function Sidebar({open,onClose,activePage,onNavigate}){
               <div className="sb-mini-lbl">Pending</div>
             </div>
           </div>
-          <a href="#" className="sb-link" onClick={e=>e.preventDefault()}><IcoSettings/> Settings</a>
           <button className="sb-logout" onClick={handleLogout}><IcoLogout/> Sign Out</button>
         </div>
       </aside>
@@ -329,7 +348,7 @@ function Sidebar({open,onClose,activePage,onNavigate}){
 }
 
 // ─── TOPBAR ──────────────────────────────────────────────────────
-function Topbar({onHamburger}){
+function Topbar({onHamburger, onQuickActions, onNotifications}){
   const date=new Date().toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"});
   return(
     <div className="topbar">
@@ -342,9 +361,9 @@ function Topbar({onHamburger}){
       </div>
       <div className="tb-right">
         <span className="tb-date">{date}</span>
-        <div className="tb-icon-btn"><IcoBell/><div className="notif-dot"/></div>
-        <div className="tb-icon-btn"><IcoUser/></div>
-        <Btn className="btn-solid" style={{padding:"7px 16px",fontSize:11,gap:5}}><IcoFlash/> Quick Actions</Btn>
+        <div className="tb-icon-btn" onClick={onNotifications}><IcoBell/><div className="notif-dot"/></div>
+        <div className="tb-icon-btn" onClick={() => window.dispatchEvent(new CustomEvent('open-profile-page'))}><IcoUser/></div>
+        <Btn className="btn-solid" style={{padding:"7px 16px",fontSize:11,gap:5}} onClick={onQuickActions}><IcoFlash/> Quick Actions</Btn>
       </div>
     </div>
   );
@@ -408,26 +427,24 @@ function AiFab({onClick}){
 }
 
 // ─── MAIN ────────────────────────────────────────────────────────
-export default function FacultyDashboard() {
-  const navigateRouter = useNavigate();
-  const { page } = useParams();
+export default function FacultyDashboard(){
+  const navigateRouter=useNavigate();
+  const {page}=useParams();
+  const [activePage,setActivePage]=useState(()=>{ if(!page) return ROUTES.DASHBOARD; return PAGE_PARAM_MAP[page.toLowerCase()]||ROUTES.DASHBOARD; });
+  const [aiOpen,setAiOpen]=useState(false);
+  const [sidebarOpen,setSidebarOpen]=useState(false);
+  const [checkedTasks,setCheckedTasks]=useState([]);
+  const [profileOpen,setProfileOpen]=useState(false);
 
-  const [activePage, setActivePage] = useState(() => {
-    if (!page) return ROUTES.DASHBOARD;
-    const mapped = PAGE_PARAM_MAP[page.toLowerCase()];
-    return mapped || ROUTES.DASHBOARD;
-  });
-  const [aiOpen, setAiOpen] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [checkedTasks, setCheckedTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [userName, setUserName] = useState("");
-  const [stats, setStats] = useState({ total_students: 0, active_courses: 0, avg_attendance: 0, avg_class_score: 0 });
-  const [courses, setCourses] = useState([]);
-  const [schedule, setSchedule] = useState([]);
-  const [tasks, setTasks] = useState([]);
-  const [quizStats, setQuizStats] = useState([]);
-  const [weakTopics, setWeakTopics] = useState([]);
+  const [loading,     setLoading]     = useState(true);
+  const [error,       setError]       = useState(null);
+  const [userName,    setUserName]    = useState("");
+  const [stats,       setStats]       = useState({ total_students: 0, active_courses: 0, avg_attendance: 0, avg_class_score: 0 });
+  const [courses,     setCourses]     = useState([]);
+  const [tasks,       setTasks]       = useState([]);
+  const [schedule,    setSchedule]    = useState([]);
+  const [quizStats,   setQuizStats]   = useState([]);
+  const [weakTopics,  setWeakTopics]  = useState([]);
   const [topStudents, setTopStudents] = useState([]);
 
   useEffect(() => {
@@ -438,22 +455,21 @@ export default function FacultyDashboard() {
           api.get("/auth/me"),
           api.get("/faculty/dashboard"),
         ]);
-        if (meData.status === "fulfilled") setUserName(meData.value.full_name || "");
+        if (meData.status === "fulfilled") setUserName(meData.value.full_name || meData.value.email || "");
         if (dashData.status === "fulfilled") {
           const d = dashData.value;
-          setStats(d.stats);
-          setCourses(d.courses.map(mapApiCourse));
-          setSchedule(d.schedule.map(mapApiSchedule));
-          setTasks(d.tasks.map(mapApiTask));
-          setQuizStats(d.quiz_stats.map(mapApiQuiz));
-          setWeakTopics(d.weak_topics);
-          setTopStudents(d.top_students);
+          if (d.stats) setStats(d.stats);
+          if (d.courses) setCourses(d.courses.map(mapApiCourse));
+          if (d.tasks) setTasks(d.tasks.map(mapApiTask));
+          if (d.schedule) setSchedule(d.schedule.map(mapApiSchedule));
+          if (d.quiz_stats) setQuizStats(d.quiz_stats.map(mapApiQuiz));
+          if (d.weak_topics) setWeakTopics(d.weak_topics);
+          if (d.top_students) setTopStudents(d.top_students);
         }
       } catch (err) {
-        console.error("Faculty dashboard fetch failed:", err);
-      } finally {
-        setLoading(false);
-      }
+        console.error("Dashboard fetch failed:", err);
+        setError("Could not load dashboard data.");
+      } finally { setLoading(false); }
     };
     fetchData();
   }, []);
@@ -471,6 +487,9 @@ export default function FacultyDashboard() {
     navigateRouter(url);
   },[navigateRouter]);
 
+  // Quick Actions Modal state
+  const [quickActionsOpen, setQuickActionsOpen] = useState(false);
+
   useEffect(()=>{
     const h=e=>{ if(e.key==="Escape"){setAiOpen(false);setSidebarOpen(false);} };
     document.addEventListener("keydown",h);
@@ -480,6 +499,7 @@ export default function FacultyDashboard() {
   const toggleTask=i=>setCheckedTasks(p=>p.includes(i)?p.filter(x=>x!==i):[...p,i]);
 
   const renderContent = () => {
+    if (profileOpen) return <FacultyProfile onBack={() => setProfileOpen(false)} />;
     switch(activePage) {
       case ROUTES.ANALYTICS:      return <FacultyAnalytics     onBack={()=>navigate(ROUTES.DASHBOARD)}/>;
       case ROUTES.MY_COURSES:     return <FacultyMyCourses      onBack={()=>navigate(ROUTES.DASHBOARD)}/>;
@@ -492,6 +512,8 @@ export default function FacultyDashboard() {
       case ROUTES.QUESTION_BANK:  return <QuestionBank          onBack={()=>navigate(ROUTES.DASHBOARD)}/>;
       case ROUTES.AI_ASSISTANT:   return <AiAssistant           onBack={()=>navigate(ROUTES.DASHBOARD)}/>;
       case ROUTES.REPORTS:        return <Reports               onBack={()=>navigate(ROUTES.DASHBOARD)}/>;
+      case ROUTES.SETTINGS:       return <FacultySettings       onBack={()=>navigate(ROUTES.DASHBOARD)}/>;
+      case ROUTES.PROFILE:        return <FacultyProfile        onBack={()=>navigate(ROUTES.DASHBOARD)}/>;
       default: return null; // falls through to dashboard content below
     }
   };
@@ -505,10 +527,23 @@ export default function FacultyDashboard() {
       <div className="sc-noise"/>
       <AiFab onClick={()=>setAiOpen(o=>!o)}/>
       <AiPanel open={aiOpen} onClose={()=>setAiOpen(false)}/>
+      {/* Remove modal, use routing instead */}
       <div className="app">
-        <Sidebar open={sidebarOpen} onClose={()=>setSidebarOpen(false)} activePage={activePage} onNavigate={navigate}/>
+        <Sidebar 
+          open={sidebarOpen} 
+          onClose={()=>setSidebarOpen(false)} 
+          activePage={activePage} 
+          onNavigate={navigate}
+          userName={userName}
+          stats={stats}
+          tasks={tasks}
+        />
         <main className="main">
-          <Topbar onHamburger={()=>setSidebarOpen(o=>!o)}/>
+          <Topbar 
+            onHamburger={()=>setSidebarOpen(o=>!o)}
+            onQuickActions={()=>navigate(ROUTES.QUICKACTIONS)}
+            onNotifications={()=>navigate(ROUTES.NOTIFICATIONS)}
+          />
 
           {!isDashboard && renderContent()}
 
@@ -523,21 +558,21 @@ export default function FacultyDashboard() {
                 <h1 className="greet-title">Good morning, <em>{userName ? userName.split(" ")[0] : "Faculty"}</em></h1>
                 <p className="greet-sub">You have {tasks.length} pending submissions to grade. Let's get ahead.</p>
                 <div className="greet-actions">
-                  <Btn className="btn-solid"><IcoPen /> Grade Submissions</Btn>
-                  <Btn className="btn-ghost" onClick={() => navigate(ROUTES.MY_COURSES)}><IcoPlus /> Create Quiz</Btn>
-                  <Btn className="btn-ghost"><IcoUpload /> Upload Lecture</Btn>
+                  <Btn className="btn-solid"><IcoPen/> Grade Submissions</Btn>
+                  <Btn className="btn-ghost"><IcoPlus/> Create Quiz</Btn>
+                  <Btn className="btn-ghost"><IcoUpload/> Upload Lecture</Btn>
                 </div>
               </div>
 
               {/* STAT CARDS */}
               <div className="stat-grid">
                 {[
-                  { cls: "sc-teal",   icon: <IcoUsers width={18} height={18}/>,  val: stats.total_students,  lbl: "Total Students",     delta: <><IcoChevUp/>Enrolled students</>,  dc: "delta-up" },
-                  { cls: "sc-indigo", icon: <IcoBook width={18} height={18}/>,   val: stats.active_courses,    lbl: "Active Courses",     delta: <><IcoMinus/>Assigned</>,    dc: "delta-neu" },
-                  { cls: "sc-amber",  icon: <IcoCal width={18} height={18}/>,    val: `${stats.avg_attendance}%`,  lbl: "Avg Attendance",     delta: <><IcoMinus/>Across sections</>,   dc: "delta-neu" },
-                  { cls: "sc-violet", icon: <IcoTrend width={18} height={18}/>,  val: `${stats.avg_class_score}%`,  lbl: "Avg Class Score",    delta: <><IcoChevUp/>Overall performance</>,   dc: "delta-up" },
-                ].map(({ cls, icon, val, lbl, delta, dc }, i) => (
-                  <Hoverable key={lbl} className={`stat-card ${cls}`} style={{ animationDelay: `${(i + 1) * 0.07}s` }}>
+                  {cls:"sc-teal",  icon:<IcoUsers width={18} height={18}/>, val:stats.total_students.toString(), lbl:"Total Students",  delta:<><IcoChevUp/>+12 this semester</>, dc:"delta-up"  },
+                  {cls:"sc-indigo",icon:<IcoBook  width={18} height={18}/>, val:stats.active_courses.toString(),   lbl:"Active Courses",  delta:<><IcoMinus/>Same as last sem</>,   dc:"delta-neu" },
+                  {cls:"sc-amber", icon:<IcoCal   width={18} height={18}/>, val:`${Math.round(stats.avg_attendance)}%`, lbl:"Avg Attendance",  delta:<><IcoChevDn/>−3% vs last week</>,  dc:"delta-dn"  },
+                  {cls:"sc-violet",icon:<IcoTrend width={18} height={18}/>, val:`${Math.round(stats.avg_class_score)}%`, lbl:"Avg Class Score", delta:<><IcoChevUp/>+2% vs last quiz</>,  dc:"delta-up"  },
+                ].map(({cls,icon,val,lbl,delta,dc},i)=>(
+                  <Hoverable key={lbl} className={`stat-card ${cls}`} style={{animationDelay:`${(i+1)*.07}s`}}>
                     <div className="stat-ic">{icon}</div>
                     <div className="stat-val">{val}</div>
                     <div className="stat-lbl">{lbl}</div>
@@ -549,22 +584,17 @@ export default function FacultyDashboard() {
               {/* MY COURSES */}
               <div className="panel" style={{animationDelay:"0.07s"}}>
                 <div className="panel-hd">
-                  <div className="panel-ttl"><IcoBook width={14} height={14} style={{color:"var(--indigo-ll)"}}/> My Courses <span>3 active this semester</span></div>
+                  <div className="panel-ttl"><IcoBook width={14} height={14} style={{color:"var(--indigo-ll)"}}/> My Courses <span>{courses.length} active this semester</span></div>
                   <a href="#" className="panel-act" onClick={e=>{e.preventDefault();navigate(ROUTES.MY_COURSES);}}>Manage <IcoChevR/></a>
                 </div>
                 <div className="panel-body">
                   <div className="course-faculty-grid">
-                    {courses.map((c) => (
+                    {courses.map(c=>(
                       <Hoverable key={c.name} className="course-faculty-card">
                         <div className="cfc-top">
                           <div className="ci-badge" style={c.badgeStyle}>{c.icon}</div>
-                          <div className="cfc-meta">
-                            <div className="cfc-code">{c.code} · {c.semester}</div>
-                            <div className="cfc-name">{c.name}</div>
-                          </div>
-                          {c.pendingGrade > 0 && (
-                            <div className="cfc-pending">{c.pendingGrade} to grade</div>
-                          )}
+                          <div className="cfc-meta"><div className="cfc-code">{c.code} · {c.sem}</div><div className="cfc-name">{c.name}</div></div>
+                          {c.pendingGrade>0&&<div className="cfc-pending">{c.pendingGrade} to grade</div>}
                         </div>
                         <div className="cfc-stats">
                           <div className="cfc-stat-item">
@@ -587,8 +617,8 @@ export default function FacultyDashboard() {
                           <AnimatedProgressBar pct={Math.round((c.lectures.done/c.lectures.total)*100)} color={c.color} height={4} delay={600}/>
                         </div>
                         <div className="cfc-actions">
-                          <Btn className="btn-ghost" style={{fontSize:10,padding:"5px 10px",gap:4}}><IcoPen width={10} height={10}/>Grade</Btn>
-                          <Btn className="btn-ghost" style={{fontSize:10,padding:"5px 10px",gap:4}}><IcoUpload width={10} height={10}/>Upload</Btn>
+                          <Btn className="btn-ghost" style={{fontSize:10,padding:"5px 10px",gap:4}} onClick={()=>navigate(ROUTES.GRADE_BOOK)}><IcoPen width={10} height={10}/>Grade</Btn>
+                          <Btn className="btn-ghost" style={{fontSize:10,padding:"5px 10px",gap:4}} onClick={()=>navigate(ROUTES.VIDEO_LECTURES)}><IcoUpload width={10} height={10}/>Upload</Btn>
                           <Btn className="btn-solid" onClick={()=>navigate(ROUTES.ANALYTICS)} style={{fontSize:10,padding:"5px 10px",gap:4,marginLeft:"auto"}}><IcoBar width={10} height={10}/>Analytics</Btn>
                         </div>
                       </Hoverable>
@@ -600,7 +630,7 @@ export default function FacultyDashboard() {
               {/* SCHEDULE + PENDING */}
               <div className="two-col-grid">
                 <div className="panel">
-                  <div className="panel-hd"><div className="panel-ttl"><IcoCal width={14} height={14} style={{color:"var(--indigo-ll)"}}/> Today's Schedule <span>Fri, 28 Feb</span></div><a href="#" className="panel-act" onClick={e=>e.preventDefault()}>Full week <IcoChevR/></a></div>
+                  <div className="panel-hd"><div className="panel-ttl"><IcoCal width={14} height={14} style={{color:"var(--indigo-ll)"}}/> Today's Schedule <span>Fri, 28 Feb</span></div><a href="#" className="panel-act" onClick={e=>{e.preventDefault();navigate(ROUTES.ATTENDANCE);}}>Full week <IcoChevR/></a></div>
                   <div className="panel-body">
                     <div className="sched-list">
                       {schedule.map((s) => (
@@ -614,20 +644,14 @@ export default function FacultyDashboard() {
                   </div>
                 </div>
                 <div className="panel">
-                  <div className="panel-hd"><div className="panel-ttl"><IcoAlert width={14} height={14} style={{color:"var(--rose)"}}/> Pending Tasks <span style={{color:"var(--rose)"}}>{PENDING_TASKS.length-checkedTasks.length} remaining</span></div><a href="#" className="panel-act" onClick={e=>e.preventDefault()}>All tasks <IcoChevR/></a></div>
+                  <div className="panel-hd"><div className="panel-ttl"><IcoAlert width={14} height={14} style={{color:"var(--rose)"}}/> Pending Tasks <span style={{color:"var(--rose)"}}>{tasks.length-checkedTasks.length} remaining</span></div><a href="#" className="panel-act" onClick={e=>{e.preventDefault();navigate(ROUTES.ASSIGNMENTS);}}>All tasks <IcoChevR/></a></div>
                   <div className="panel-body">
                     <div className="task-list">
-                      {tasks.map((t, i) => (
-                        <Hoverable key={i} className={`task-item ${checkedTasks.includes(i) ? "done" : ""}`}
-                          onClick={() => toggleTask(i)}>
-                          <div className={`task-check ${checkedTasks.includes(i) ? "checked" : ""}`}>
-                            {checkedTasks.includes(i) && <IcoCheck />}
-                          </div>
-                          <div className="task-body">
-                            <div className="task-label">{t.label}</div>
-                            <div className="task-sub">{t.course}</div>
-                          </div>
-                          <div className={`task-due ${t.urgent ? "urgent" : ""}`}>{t.due}</div>
+                      {tasks.map((t,i)=>(
+                        <Hoverable key={i} className={`task-item ${checkedTasks.includes(i)?"done":""}`} onClick={()=>toggleTask(i)}>
+                          <div className={`task-check ${checkedTasks.includes(i)?"checked":""}`}>{checkedTasks.includes(i)&&<IcoCheck/>}</div>
+                          <div className="task-body"><div className="task-label">{t.label}</div><div className="task-sub">{t.course}</div></div>
+                          <div className={`task-due ${t.urgent?"urgent":""}`}>{t.due}</div>
                         </Hoverable>
                       ))}
                     </div>
@@ -659,7 +683,7 @@ export default function FacultyDashboard() {
                   </div>
                 </div>
                 <div className="panel">
-                  <div className="panel-hd"><div className="panel-ttl"><IcoAlert width={14} height={14} style={{color:"var(--amber)"}}/> Weak Topics Detected</div><a href="#" className="panel-act" onClick={e=>e.preventDefault()}>Generate remedials <IcoChevR/></a></div>
+                  <div className="panel-hd"><div className="panel-ttl"><IcoAlert width={14} height={14} style={{color:"var(--amber)"}}/> Weak Topics Detected</div><a href="#" className="panel-act" onClick={e=>{e.preventDefault();navigate(ROUTES.QUESTION_BANK);}}>Generate remedials <IcoChevR/></a></div>
                   <div className="panel-body">
                     <div className="weak-list">
                       {weakTopics.map((w, i) => (
@@ -675,7 +699,7 @@ export default function FacultyDashboard() {
                       ))}
                     </div>
                     <div className="weak-footer">
-                      <Btn className="btn-solid" style={{width:"100%",justifyContent:"center",fontSize:11,padding:"8px 12px"}}>
+                      <Btn className="btn-solid" onClick={()=>navigate(ROUTES.AI_ASSISTANT)} style={{width:"100%",justifyContent:"center",fontSize:11,padding:"8px 12px"}}>
                         <IcoBrain width={12} height={12} style={{stroke:"#fff"}}/> Auto-generate Remedial Quiz
                       </Btn>
                     </div>
@@ -684,19 +708,13 @@ export default function FacultyDashboard() {
                 <div className="panel">
                   <div className="panel-hd"><div className="panel-ttl"><IcoUsers width={14} height={14} style={{color:"var(--indigo-ll)"}}/> Student Spotlight</div><a href="#" className="panel-act" onClick={e=>{e.preventDefault();navigate(ROUTES.ALL_STUDENTS);}}>All students <IcoChevR/></a></div>
                   <div className="panel-body">
-                    <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      {topStudents.map((s, i) => (
+                    <div style={{display:"flex",flexDirection:"column",gap:8}}>
+                      {topStudents.map((s,i)=>(
                         <Hoverable key={i} className="student-item">
-                          <div className="sti-rank">{i + 1}</div>
-                          <div className="sti-avatar">{s.name ? s.name.split(" ").map(x => x[0]).join("") : "S"}</div>
-                          <div className="sti-info">
-                            <div className="sti-name">{s.name}</div>
-                            <div className="sti-roll">{s.roll} · {s.course}</div>
-                          </div>
-                          <div className="sti-right">
-                            <div className="sti-cgpa">{s.cgpa}</div>
-                            <span className="sti-badge" style={{ background: s.badge_color + "1a", color: s.badge_color }}>{s.badge}</span>
-                          </div>
+                          <div className="sti-rank">{i+1}</div>
+                          <div className="sti-avatar">{s.name ? s.name.split(" ").map(x=>x[0]).join("") : "S"}</div>
+                          <div className="sti-info"><div className="sti-name">{s.name}</div><div className="sti-roll">{s.roll} · {s.course}</div></div>
+                          <div className="sti-right"><div className="sti-cgpa">{s.cgpa}</div><span className="sti-badge" style={{background: s.badge_color ? `rgba(${s.badge_color.replace('var(--','').replace(')','')},.1)` : "rgba(39,201,176,.1)", color: s.badge_color || "var(--teal)"}}>{s.badge}</span></div>
                         </Hoverable>
                       ))}
                     </div>

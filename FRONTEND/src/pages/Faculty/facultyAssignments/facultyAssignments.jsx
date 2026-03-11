@@ -3,6 +3,7 @@
 // Place at: src/pages/Faculty/facultyAssignments/facultyAssignments.jsx
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import api from "../../../utils/api";
 import "./facultyAssignments.css";
 
 // ─── ICONS ────────────────────────────────────────────────────────
@@ -55,227 +56,6 @@ const STATUS_META = {
   done:     { label: "Graded",   color: "var(--teal)",      bg: "rgba(39,201,176,.1)",  border: "rgba(39,201,176,.2)"   },
   live:     { label: "Live",     color: "var(--indigo-ll)", bg: "rgba(91,78,248,.1)",   border: "rgba(91,78,248,.2)"    },
 };
-
-// ─── ASSIGNMENT DATA ──────────────────────────────────────────────
-const ASSIGNMENTS_RAW = [
-  // ── CS501 Operating Systems ──────────────────────────────────────
-  {
-    id: 1, courseId: "cs501", title: "Process Scheduling Simulation",
-    type: "Lab", due: "Today", dueDate: "Oct 26", marks: 20,
-    submissions: 98, avgScore: 72, highest: 95, lowest: 28,
-    status: "grading", week: "W9", unit: "Unit II",
-    desc: "Simulate FCFS, SJF, Round Robin, and Priority CPU scheduling algorithms using C or Python. Submit source code + Gantt chart output with analysis report.",
-    rubric: [
-      { item: "FCFS implementation",     marks: 5 },
-      { item: "SJF implementation",      marks: 5 },
-      { item: "Round Robin & Priority",  marks: 6 },
-      { item: "Report & documentation",  marks: 4 },
-    ],
-    submissions_list: [
-      { roll: "21CS047", name: "Arjun Reddy",  score: 95, trend: "up",  submitted: "Oct 24", status: "graded"  },
-      { roll: "21CS031", name: "Priya Nair",   score: 88, trend: "up",  submitted: "Oct 25", status: "graded"  },
-      { roll: "21CS019", name: "Rohan Mehta",  score: 76, trend: "up",  submitted: "Oct 25", status: "graded"  },
-      { roll: "21CS062", name: "Sneha Sharma", score: 0,  trend: "neu", submitted: "Oct 26", status: "pending" },
-      { roll: "21CS008", name: "Dev Iyer",     score: 52, trend: "dn",  submitted: "Oct 24", status: "graded"  },
-      { roll: "21CS015", name: "Aisha Khan",   score: 82, trend: "up",  submitted: "Oct 25", status: "graded"  },
-      { roll: "21CS033", name: "Kiran Rao",    score: 0,  trend: "dn",  submitted: null,     status: "missing" },
-    ],
-    created: "Oct 20", posted: true,
-  },
-  {
-    id: 2, courseId: "cs501", title: "Memory Allocation Algorithms",
-    type: "Theory", due: "3 days", dueDate: "Oct 29", marks: 15,
-    submissions: 0, avgScore: null, highest: null, lowest: null,
-    status: "live", week: "W10", unit: "Unit III",
-    desc: "Write detailed notes comparing First Fit, Best Fit, and Worst Fit memory allocation strategies. Include fragmentation analysis with worked numerical examples.",
-    rubric: [
-      { item: "First Fit explanation",  marks: 4 },
-      { item: "Best Fit explanation",   marks: 4 },
-      { item: "Worst Fit explanation",  marks: 4 },
-      { item: "Comparative analysis",   marks: 3 },
-    ],
-    submissions_list: [],
-    created: "Oct 23", posted: true,
-  },
-  {
-    id: 3, courseId: "cs501", title: "File System Implementation",
-    type: "Project", due: "10 days", dueDate: "Nov 5", marks: 30,
-    submissions: 0, avgScore: null, highest: null, lowest: null,
-    status: "upcoming", week: "W12", unit: "Unit IV",
-    desc: "Design and implement a simple FAT-based file system in C. Must support: create, read, write, delete, and directory listing operations.",
-    rubric: [
-      { item: "FAT table design",      marks: 8  },
-      { item: "CRUD operations",       marks: 10 },
-      { item: "Directory management",  marks: 8  },
-      { item: "Testing & report",      marks: 4  },
-    ],
-    submissions_list: [],
-    created: "Oct 22", posted: false,
-  },
-  {
-    id: 4, courseId: "cs501", title: "Deadlock Detection Report",
-    type: "Theory", due: "Completed", dueDate: "Oct 10", marks: 15,
-    submissions: 112, avgScore: 68, highest: 90, lowest: 20,
-    status: "done", week: "W6", unit: "Unit II",
-    desc: "Write a detailed report on deadlock detection and prevention techniques. Include Banker's algorithm with worked numerical examples.",
-    rubric: [
-      { item: "Deadlock conditions",  marks: 4 },
-      { item: "Detection algorithm",  marks: 5 },
-      { item: "Prevention methods",   marks: 4 },
-      { item: "Numerical examples",   marks: 2 },
-    ],
-    submissions_list: [
-      { roll: "21CS047", name: "Arjun Reddy", score: 90, trend: "up",  submitted: "Oct 9",  status: "graded" },
-      { roll: "21CS031", name: "Priya Nair",  score: 78, trend: "up",  submitted: "Oct 10", status: "graded" },
-      { roll: "21CS008", name: "Dev Iyer",    score: 48, trend: "dn",  submitted: "Oct 10", status: "graded" },
-    ],
-    created: "Oct 3", posted: true,
-  },
-  {
-    id: 5, courseId: "cs501", title: "CPU Scheduling Algorithms",
-    type: "Coding", due: "Completed", dueDate: "Sep 28", marks: 20,
-    submissions: 109, avgScore: 81, highest: 100, lowest: 40,
-    status: "done", week: "W4", unit: "Unit II",
-    desc: "Implement all four major CPU scheduling algorithms (FCFS, SJF, RR, Priority) in Python. Include performance comparison charts.",
-    rubric: [
-      { item: "FCFS & SJF code",    marks: 6 },
-      { item: "RR & Priority code", marks: 6 },
-      { item: "Output & Gantt",     marks: 5 },
-      { item: "Performance report", marks: 3 },
-    ],
-    submissions_list: [
-      { roll: "21CS047", name: "Arjun Reddy", score: 100, trend: "up", submitted: "Sep 27", status: "graded" },
-      { roll: "21CS019", name: "Rohan Mehta", score: 82,  trend: "up", submitted: "Sep 28", status: "graded" },
-    ],
-    created: "Sep 22", posted: true,
-  },
-  // ── CS502 Database Management Systems ────────────────────────────
-  {
-    id: 6, courseId: "cs502", title: "ER Diagram Design",
-    type: "Theory", due: "Completed", dueDate: "Oct 8", marks: 15,
-    submissions: 108, avgScore: 75, highest: 98, lowest: 32,
-    status: "done", week: "W3", unit: "Unit I",
-    desc: "Design complete ER diagrams for a Hospital Management System. Show all entities, relationships, cardinality, and key constraints.",
-    rubric: [
-      { item: "Entities & attributes",  marks: 4 },
-      { item: "Relationships",          marks: 4 },
-      { item: "Cardinality notation",   marks: 4 },
-      { item: "Completeness & neatness",marks: 3 },
-    ],
-    submissions_list: [
-      { roll: "21CS031", name: "Priya Nair",  score: 98, trend: "up", submitted: "Oct 7", status: "graded" },
-      { roll: "21CS047", name: "Arjun Reddy", score: 85, trend: "up", submitted: "Oct 8", status: "graded" },
-    ],
-    created: "Oct 1", posted: true,
-  },
-  {
-    id: 7, courseId: "cs502", title: "SQL Query Optimization",
-    type: "Coding", due: "Tomorrow", dueDate: "Oct 27", marks: 20,
-    submissions: 72, avgScore: null, highest: null, lowest: null,
-    status: "grading", week: "W8", unit: "Unit II",
-    desc: "Write optimized SQL queries for a provided schema. Focus on joins, subqueries, indexing strategies, and EXPLAIN plan analysis.",
-    rubric: [
-      { item: "Query correctness", marks: 8 },
-      { item: "Optimization use",  marks: 6 },
-      { item: "EXPLAIN analysis",  marks: 4 },
-      { item: "Documentation",     marks: 2 },
-    ],
-    submissions_list: [
-      { roll: "21CS031", name: "Priya Nair",   score: 0, trend: "up",  submitted: "Oct 26", status: "pending" },
-      { roll: "21CS047", name: "Arjun Reddy",  score: 0, trend: "up",  submitted: "Oct 25", status: "pending" },
-      { roll: "21CS008", name: "Dev Iyer",     score: 0, trend: "dn",  submitted: "Oct 24", status: "pending" },
-      { roll: "21CS055", name: "Meena Pillai", score: 0, trend: "neu", submitted: null,     status: "missing" },
-    ],
-    created: "Oct 18", posted: true,
-  },
-  {
-    id: 8, courseId: "cs502", title: "Normalization to 3NF",
-    type: "Theory", due: "5 days", dueDate: "Oct 31", marks: 15,
-    submissions: 0, avgScore: null, highest: null, lowest: null,
-    status: "live", week: "W9", unit: "Unit III",
-    desc: "Normalize a given un-normalized relation to 3NF. Show all intermediate normal forms with complete functional dependency analysis.",
-    rubric: [
-      { item: "1NF conversion", marks: 4 },
-      { item: "2NF conversion", marks: 4 },
-      { item: "3NF conversion", marks: 5 },
-      { item: "FD analysis",    marks: 2 },
-    ],
-    submissions_list: [],
-    created: "Oct 22", posted: true,
-  },
-  {
-    id: 9, courseId: "cs502", title: "Transaction Management Report",
-    type: "Report", due: "8 days", dueDate: "Nov 3", marks: 15,
-    submissions: 0, avgScore: null, highest: null, lowest: null,
-    status: "upcoming", week: "W10", unit: "Unit III",
-    desc: "Write a comprehensive report on ACID properties, transaction states, and concurrency control mechanisms in DBMS.",
-    rubric: [
-      { item: "ACID properties",     marks: 4 },
-      { item: "Transaction states",  marks: 4 },
-      { item: "Concurrency methods", marks: 5 },
-      { item: "Real-world examples", marks: 2 },
-    ],
-    submissions_list: [],
-    created: "Oct 22", posted: false,
-  },
-  // ── CS503 Computer Architecture ──────────────────────────────────
-  {
-    id: 10, courseId: "cs503", title: "Pipeline Hazard Analysis",
-    type: "Theory", due: "Completed", dueDate: "Oct 5", marks: 20,
-    submissions: 96, avgScore: 82, highest: 100, lowest: 44,
-    status: "done", week: "W5", unit: "Unit III",
-    desc: "Analyze data, control, and structural hazards in a 5-stage MIPS pipeline. Propose forwarding paths and stall-based solutions.",
-    rubric: [
-      { item: "Data hazard analysis",    marks: 5 },
-      { item: "Control hazard analysis", marks: 5 },
-      { item: "Structural hazards",      marks: 5 },
-      { item: "Forwarding & stalls",     marks: 5 },
-    ],
-    submissions_list: [
-      { roll: "20CS012", name: "Sneha Sharma", score: 100, trend: "up",  submitted: "Oct 4", status: "graded" },
-      { roll: "20CS028", name: "Arun Kumar",   score: 88,  trend: "up",  submitted: "Oct 5", status: "graded" },
-    ],
-    created: "Sep 29", posted: true,
-  },
-  {
-    id: 11, courseId: "cs503", title: "Cache Coherence Report",
-    type: "Report", due: "4 days", dueDate: "Oct 30", marks: 20,
-    submissions: 21, avgScore: null, highest: null, lowest: null,
-    status: "grading", week: "W8", unit: "Unit IV",
-    desc: "Write an in-depth report on cache coherence protocols: MESI and MOESI. Include timing diagrams and cache state transition examples.",
-    rubric: [
-      { item: "MESI protocol",     marks: 7 },
-      { item: "MOESI protocol",    marks: 7 },
-      { item: "Timing diagrams",   marks: 4 },
-      { item: "Comparative study", marks: 2 },
-    ],
-    submissions_list: [
-      { roll: "20CS012", name: "Sneha Sharma", score: 0, trend: "up",  submitted: "Oct 26", status: "pending" },
-      { roll: "20CS028", name: "Arun Kumar",   score: 0, trend: "up",  submitted: "Oct 25", status: "pending" },
-    ],
-    created: "Oct 20", posted: true,
-  },
-  {
-    id: 12, courseId: "cs503", title: "ISA Design Project",
-    type: "Project", due: "12 days", dueDate: "Nov 7", marks: 30,
-    submissions: 0, avgScore: null, highest: null, lowest: null,
-    status: "upcoming", week: "W12", unit: "Unit V",
-    desc: "Design a minimal ISA for a hypothetical 16-bit RISC processor. Define instruction formats, addressing modes, and write sample assembly programs.",
-    rubric: [
-      { item: "ISA specification",   marks: 8 },
-      { item: "Instruction formats", marks: 8 },
-      { item: "Addressing modes",    marks: 7 },
-      { item: "Sample programs",     marks: 7 },
-    ],
-    submissions_list: [],
-    created: "Oct 22", posted: false,
-  },
-];
-
-const TOTAL_PENDING_GRADE = ASSIGNMENTS_RAW.filter(a => a.status === "grading").length;
-const TOTAL_LIVE          = ASSIGNMENTS_RAW.filter(a => ["live","grading","upcoming"].includes(a.status)).length;
-const TOTAL_DONE          = ASSIGNMENTS_RAW.filter(a => a.status === "done").length;
-const TOTAL_SUBMISSIONS   = ASSIGNMENTS_RAW.reduce((a, x) => a + x.submissions, 0);
 
 // ─── ANIMATED BAR ─────────────────────────────────────────────────
 function AnimBar({ pct, color, height = 4, delay = 300 }) {
@@ -519,7 +299,7 @@ function DetailDrawer({ assignment, onClose }) {
   const [tab, setTab]           = useState("overview");
   const [subSearch, setSubSearch] = useState("");
   const [subFilter, setSubFilter] = useState("all");
-  const [grading, setGrading]   = useState(null);
+  const [activeGrader, setActiveGrader] = useState(null);
 
   if (!assignment) return null;
   const cm = COURSES_META[assignment.courseId];
@@ -527,10 +307,11 @@ function DetailDrawer({ assignment, onClose }) {
   const sm = STATUS_META[assignment.status];
   const subPct = cm ? Math.round((assignment.submissions / cm.total) * 100) : 0;
 
-  const filteredSubs = assignment.submissions_list.filter(s => {
+  const filteredSubs = (assignment.submissions_list || []).filter(s => {
     const q = subSearch.toLowerCase();
-    return (s.name.toLowerCase().includes(q) || s.roll.toLowerCase().includes(q)) &&
-           (subFilter === "all" || s.status === subFilter);
+    const nameMatch = (s.name || "").toLowerCase().includes(q) || (s.roll || "").toLowerCase().includes(q);
+    const statusMatch = subFilter === "all" || s.status === subFilter;
+    return nameMatch && statusMatch;
   });
 
   return (
@@ -611,7 +392,7 @@ function DetailDrawer({ assignment, onClose }) {
               )}
 
               <div className="as-drawer-meta-grid">
-                <div className="as-meta-item"><IcoCal  width={12} height={12}/><span>Due: <strong>{assignment.dueDate}</strong></span></div>
+                <div className="as-meta-item"><IcoCal  width={12} height={12}/><span>Due: <strong>{assignment.dueDate || assignment.due}</strong></span></div>
                 <div className="as-meta-item"><IcoBook width={12} height={12}/><span>Week: <strong>{assignment.week}</strong></span></div>
                 <div className="as-meta-item"><IcoStar width={12} height={12}/><span>Marks: <strong>{assignment.marks}</strong></span></div>
                 <div className="as-meta-item"><IcoClock width={12} height={12}/><span>Created: <strong>{assignment.created}</strong></span></div>
@@ -649,14 +430,13 @@ function DetailDrawer({ assignment, onClose }) {
               {filteredSubs.length === 0 ? (
                 <div className="as-empty" style={{ minHeight: 180 }}>
                   <div style={{ fontSize: 34 }}>📭</div>
-                  <div style={{ fontSize: 13, fontWeight: 600, marginTop: 10 }}>No submissions yet</div>
-                  <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 4 }}>Due: {assignment.dueDate}</div>
+                  <div style={{ fontSize: 13, fontWeight: 600, marginTop: 10 }}>No matching submissions</div>
                 </div>
               ) : (
                 <div className="as-sub-list">
                   {filteredSubs.map((s, i) => (
                     <div key={i} className="as-sub-row">
-                      <div className="as-sub-avatar">{s.name.split(" ").map(x=>x[0]).join("")}</div>
+                      <div className="as-sub-avatar">{(s.name || "S").split(" ").map(x=>x[0]).join("")}</div>
                       <div className="as-sub-info">
                         <div className="as-sub-name">{s.name}</div>
                         <div className="as-sub-roll">{s.roll} {s.submitted ? `· Submitted ${s.submitted}` : "· Not submitted"}</div>
@@ -666,32 +446,22 @@ function DetailDrawer({ assignment, onClose }) {
                          s.status === "pending" ? <><IcoClock width={10} height={10}/> Pending</> :
                                                   <><IcoAlert width={10} height={10}/> Missing</>}
                       </div>
-                      {s.status === "graded" && s.score > 0 ? (
-                        <span style={{ fontFamily:"'Fraunces',serif", fontSize:16, color: s.score/assignment.marks>=.8?"var(--teal)":s.score/assignment.marks>=.6?"var(--indigo-ll)":"var(--amber)", fontWeight:700, whiteSpace:"nowrap" }}>
-                          {s.score}/{assignment.marks}
-                        </span>
-                      ) : s.status === "pending" ? (
-                        <button className="btn btn-solid" style={{ padding:"4px 12px", fontSize:10, gap:4 }}
-                          onClick={() => setGrading(s)}>
-                          <IcoPen width={10} height={10}/> Grade
-                        </button>
-                      ) : (
-                        <button className="btn btn-ghost" style={{ padding:"4px 10px", fontSize:10, color:"var(--rose)", borderColor:"rgba(242,68,92,.2)" }}>
-                          <IcoAlert width={10} height={10}/> Nudge
-                        </button>
-                      )}
+                      <button className="btn btn-solid" style={{ padding:"4px 12px", fontSize:10, gap:4 }}
+                        onClick={() => setActiveGrader(s)}>
+                        <IcoPen width={10} height={10}/> Grade
+                      </button>
                     </div>
                   ))}
                 </div>
               )}
 
-              {grading && (
+              {activeGrader && (
                 <div className="as-grader-panel">
                   <div className="as-grader-hd">
-                    <span>Grading: <strong style={{ color: cm?.color }}>{grading.name}</strong></span>
-                    <button className="as-grader-close" onClick={() => setGrading(null)}><IcoClose width={10} height={10}/></button>
+                    <span>Grading: <strong style={{ color: cm?.color }}>{activeGrader.name}</strong></span>
+                    <button className="as-grader-close" onClick={() => setActiveGrader(null)}><IcoClose width={10} height={10}/></button>
                   </div>
-                  {assignment.rubric.map((r, i) => (
+                  {(assignment.rubric || []).map((r, i) => (
                     <div key={i} className="as-grader-row">
                       <span className="as-grader-criterion">{r.item || `Criterion ${i+1}`}</span>
                       <div className="as-grader-input-wrap">
@@ -702,8 +472,8 @@ function DetailDrawer({ assignment, onClose }) {
                   ))}
                   <textarea className="as-input as-textarea" rows={2} style={{ marginTop:10 }} placeholder="Feedback comments (optional)…" />
                   <div style={{ display:"flex", gap:8, marginTop:10 }}>
-                    <button className="btn btn-ghost" style={{ flex:1, justifyContent:"center", fontSize:11 }} onClick={() => setGrading(null)}>Cancel</button>
-                    <button className="btn btn-solid as-btn-teal" style={{ flex:2, justifyContent:"center", fontSize:11 }} onClick={() => setGrading(null)}>
+                    <button className="btn btn-ghost" style={{ flex:1, justifyContent:"center", fontSize:11 }} onClick={() => setActiveGrader(null)}>Cancel</button>
+                    <button className="btn btn-solid as-btn-teal" style={{ flex:2, justifyContent:"center", fontSize:11 }} onClick={() => setActiveGrader(null)}>
                       <IcoCheck width={11} height={11}/> Submit Grade
                     </button>
                   </div>
@@ -715,7 +485,7 @@ function DetailDrawer({ assignment, onClose }) {
           {tab === "rubric" && (
             <div className="as-rubric-view">
               <div className="as-rv-header"><span>Criterion</span><span>Marks</span></div>
-              {assignment.rubric.map((r, i) => (
+              {(assignment.rubric || []).map((r, i) => (
                 <div key={i} className="as-rv-row">
                   <div className="as-rv-num">{i+1}</div>
                   <div className="as-rv-name">{r.item}</div>
@@ -745,7 +515,7 @@ function AssignmentCard({ assignment, onSelect }) {
   const tm = TYPE_META[assignment.type] || TYPE_META.Theory;
   const sm = STATUS_META[assignment.status];
   const subPct = cm ? Math.round((assignment.submissions / cm.total) * 100) : 0;
-  const isDraft = assignment.status === "upcoming" && !assignment.posted;
+  const isDraft = assignment.status === "upcoming";
 
   return (
     <div
@@ -768,47 +538,29 @@ function AssignmentCard({ assignment, onSelect }) {
       </div>
 
       <div className="as-card-title">{assignment.title}</div>
-
-      {assignment.unit && <div className="as-card-unit">{assignment.unit}</div>}
+      {assignment.unit && <div className="as-card-unit">{assignment.unit || assignment.week}</div>}
 
       <div className="as-card-due-row">
         <div className="as-card-due-info">
           <IcoCal width={9} height={9} style={{ color:"var(--text3)" }} />
-          <span>{assignment.status === "done" ? `Due ${assignment.dueDate}` : `Due: ${assignment.due}`}</span>
+          <span>Due: {assignment.dueDate || assignment.due}</span>
         </div>
         <span className="as-status-badge" style={{ background:sm?.bg, color:sm?.color, borderColor:sm?.border }}>{sm?.label}</span>
       </div>
 
       {["grading","done"].includes(assignment.status) && (
-        <>
+        <div style={{ marginTop: 12 }}>
           <div className="as-card-sub-row">
             <span>{assignment.submissions}/{cm?.total} submitted</span>
             <span style={{ color:cm?.color, fontWeight:700 }}>{subPct}%</span>
           </div>
           <AnimBar pct={subPct} color={cm?.color||"var(--indigo-l)"} height={3} delay={500} />
-        </>
-      )}
-
-      {assignment.status === "live" && (
-        <div className="as-card-live-hint">
-          <IcoEye width={10} height={10} style={{ color:"var(--indigo-ll)" }} />
-          <span>{assignment.submissions > 0 ? `${assignment.submissions} early submissions` : `Open to ${cm?.total} students`}</span>
-        </div>
-      )}
-
-      {assignment.avgScore != null && (
-        <div className="as-card-avg">
-          <IcoBar width={10} height={10} style={{ color:"var(--text3)" }} />
-          Avg: <span style={{ color: assignment.avgScore>=75?"var(--teal)":assignment.avgScore>=60?"var(--amber)":"var(--rose)", fontWeight:700 }}>
-            {assignment.avgScore}%
-          </span>
         </div>
       )}
 
       {assignment.status === "grading" && (
         <button className="as-card-grade-btn" onClick={e => { e.stopPropagation(); onSelect(assignment); }}>
           <IcoPen width={10} height={10} /> Grade Now
-          <span className="as-card-grade-count">{cm?.total - assignment.submissions} pending</span>
         </button>
       )}
     </div>
@@ -830,7 +582,7 @@ function AssignmentRow({ assignment, idx, onSelect }) {
         <div className="as-row-meta">
           <span style={{ color:cm?.color, fontWeight:700 }}>{cm?.code}</span>
           <span>·</span><span>{assignment.unit || assignment.week}</span>
-          <span>·</span><span>Due {assignment.dueDate}</span>
+          <span>·</span><span>Due {assignment.dueDate || assignment.due}</span>
         </div>
       </div>
       <span className="as-type-badge" style={{ background:tm.bg, color:tm.color, flexShrink:0 }}>{tm.icon} {assignment.type}</span>
@@ -839,14 +591,9 @@ function AssignmentRow({ assignment, idx, onSelect }) {
         <AnimBar pct={subPct} color={cm?.color||"var(--indigo-l)"} height={4} delay={300} />
         <span style={{ fontSize:9.5, color:"var(--text3)", marginTop:2 }}>{assignment.submissions}/{cm?.total}</span>
       </div>
-      {assignment.avgScore != null
-        ? <span className="as-row-avg" style={{ color:assignment.avgScore>=75?"var(--teal)":assignment.avgScore>=60?"var(--amber)":"var(--rose)" }}>{assignment.avgScore}%</span>
-        : <span className="as-row-avg" style={{ color:"var(--text3)" }}>—</span>
-      }
       <span className="as-status-badge" style={{ background:sm?.bg, color:sm?.color, borderColor:sm?.border, flexShrink:0 }}>{sm?.label}</span>
       <div className="as-row-acts" onClick={e => e.stopPropagation()}>
-        <button className="as-icon-btn" title="Edit"><IcoPen width={11} height={11}/></button>
-        <button className="as-icon-btn" title="Download"><IcoDownload width={11} height={11}/></button>
+        <button className="as-icon-btn"><IcoPen width={11} height={11}/></button>
       </div>
     </div>
   );
@@ -854,55 +601,70 @@ function AssignmentRow({ assignment, idx, onSelect }) {
 
 // ─── MAIN ─────────────────────────────────────────────────────────
 export default function FacultyAssignments({ onBack }) {
+  const [assignments, setAssignments] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [activeCourse, setActiveCourse] = useState("all");
   const [activeStatus, setActiveStatus] = useState("all");
-  const [activeType,   setActiveType]   = useState("all");
-  const [viewMode,     setViewMode]     = useState("grid");
-  const [search,       setSearch]       = useState("");
-  const [sortBy,       setSortBy]       = useState("due");
-  const [showCreate,   setShowCreate]   = useState(false);
-  const [selected,     setSelected]     = useState(null);
-  const [toast,        setToast]        = useState(null);
+  const [activeType, setActiveType] = useState("all");
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState("due");
+  const [viewMode, setViewMode] = useState("grid"); // "grid" | "list"
+  const [selected, setSelected] = useState(null);
+  const [showCreate, setShowCreate] = useState(false);
+  const [toast, setToast] = useState(null);
+
+  useEffect(() => {
+    const fetchAssignments = async () => {
+      try {
+        const res = await api.get("/faculty/assignments");
+        setAssignments(res.data);
+      } catch (err) {
+        console.error("Failed to fetch assignments:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAssignments();
+  }, []);
 
   const showToast = useCallback((msg) => {
     setToast(msg);
     setTimeout(() => setToast(null), 2800);
   }, []);
 
-  const filtered = ASSIGNMENTS_RAW
-    .filter(a => activeCourse === "all" || a.courseId === activeCourse)
-    .filter(a => activeStatus === "all"  || a.status === activeStatus)
-    .filter(a => activeType   === "all"  || a.type   === activeType)
-    .filter(a =>
-      a.title.toLowerCase().includes(search.toLowerCase()) ||
-      (COURSES_META[a.courseId]?.name || "").toLowerCase().includes(search.toLowerCase()) ||
-      a.type.toLowerCase().includes(search.toLowerCase())
-    )
-    .sort((a, b) => {
-      if (sortBy === "marks") return b.marks - a.marks;
-      if (sortBy === "sub")   return b.submissions - a.submissions;
-      if (sortBy === "score") return (b.avgScore || 0) - (a.avgScore || 0);
-      return a.id - b.id;
-    });
+  // AGGREGATE STATS
+  const TOTAL_PENDING_GRADE = assignments.filter(a => a.status === "grading").length;
+  const TOTAL_LIVE          = assignments.filter(a => ["live","grading","upcoming"].includes(a.status)).length;
+  const TOTAL_DONE          = assignments.filter(a => a.status === "done").length;
+  const TOTAL_SUBMISSIONS   = assignments.reduce((a, x) => a + (x.submissions || 0), 0);
+
+  const filtered = assignments.filter(a => {
+    const q = search.toLowerCase();
+    const titleMatch = (a.title || "").toLowerCase().includes(q) || (a.type || "").toLowerCase().includes(q);
+    const courseMatch = activeCourse === "all" || String(a.courseId) === String(activeCourse);
+    const statusMatch = activeStatus === "all" || a.status === activeStatus;
+    const typeMatch = activeType === "all" || a.type === activeType;
+    return titleMatch && courseMatch && statusMatch && typeMatch;
+  }).sort((a, b) => {
+    if (sortBy === "marks") return b.marks - a.marks;
+    if (sortBy === "sub")   return (b.submissions||0) - (a.submissions||0);
+    if (sortBy === "score") return (b.avgScore||0) - (a.avgScore||0);
+    return 0;
+  });
 
   const grading  = filtered.filter(a => a.status === "grading");
   const live     = filtered.filter(a => a.status === "live");
   const upcoming = filtered.filter(a => a.status === "upcoming");
   const done     = filtered.filter(a => a.status === "done");
 
-  useEffect(() => {
-    const fn = (e) => { if (e.key === "Escape") { setShowCreate(false); setSelected(null); } };
-    document.addEventListener("keydown", fn);
-    return () => document.removeEventListener("keydown", fn);
-  }, []);
+  if (loading) return <div className="loading-state">Loading assignments...</div>;
 
   return (
     <div className="as-root">
-      {showCreate && <CreateModal onClose={() => setShowCreate(false)} onCreated={() => showToast("✅ Assignment created successfully!")} />}
       {selected   && <DetailDrawer assignment={selected} onClose={() => setSelected(null)} />}
+      {showCreate && <CreateModal onClose={() => setShowCreate(false)} onCreated={() => showToast("✅ Created!")} />}
       {toast      && <div className="as-toast">{toast}</div>}
 
-      {/* PAGE HEADER */}
       <div className="as-page-hd">
         <div>
           <button className="as-back-btn" onClick={onBack}><IcoChevL width={11} height={11}/> Dashboard</button>
@@ -911,25 +673,21 @@ export default function FacultyAssignments({ onBack }) {
             <span className="greet-pip-txt">Semester 5 · Week 11 · {TOTAL_PENDING_GRADE} Pending to Grade</span>
           </div>
           <h1 className="greet-title">Assignments <em>&amp; Grading</em></h1>
-          <p className="greet-sub">Create, distribute, and evaluate assignments across all your courses.</p>
+          <p className="greet-sub">Evaluate submissions and manage curriculum work.</p>
         </div>
         <div className="as-hd-right">
-          <button className="btn btn-ghost" style={{ gap:6, fontSize:11 }}><IcoDownload width={12} height={12}/> Export</button>
-          <button className="btn btn-ghost" style={{ gap:6, fontSize:11 }}><IcoBrain width={12} height={12}/> AI Generate</button>
           <button className="btn btn-solid" style={{ gap:6 }} onClick={() => setShowCreate(true)}>
             <IcoPlus width={12} height={12}/> New Assignment
           </button>
         </div>
       </div>
 
-      {/* STAT STRIP */}
       <div className="as-stat-strip">
         {[
           { cls:"sc-rose",   icon:<IcoPen   width={17} height={17}/>, val:TOTAL_PENDING_GRADE, lbl:"Pending Grading"  },
           { cls:"sc-indigo", icon:<IcoFile  width={17} height={17}/>, val:TOTAL_LIVE,          lbl:"Active/Upcoming"  },
           { cls:"sc-teal",   icon:<IcoCheck width={17} height={17}/>, val:TOTAL_DONE,          lbl:"Fully Graded"     },
           { cls:"sc-violet", icon:<IcoUsers width={17} height={17}/>, val:TOTAL_SUBMISSIONS,   lbl:"Total Submitted"  },
-          { cls:"sc-amber",  icon:<IcoBar   width={17} height={17}/>, val:"74%",               lbl:"Avg Class Score"  },
         ].map((s, i) => (
           <div key={i} className={`stat-card ${s.cls}`} style={{ cursor:"default" }}>
             <div className="stat-ic">{s.icon}</div>
@@ -939,7 +697,6 @@ export default function FacultyAssignments({ onBack }) {
         ))}
       </div>
 
-      {/* COURSE TABS */}
       <div className="as-course-tabs">
         <button
           className={`as-ctab ${activeCourse === "all" ? "as-ctab--active" : ""}`}
@@ -947,7 +704,7 @@ export default function FacultyAssignments({ onBack }) {
           onClick={() => setActiveCourse("all")}>
           <span className="as-ctab-dot" style={{ background:"var(--indigo-l)" }}/>
           All Courses
-          <span className="as-ctab-count">{ASSIGNMENTS_RAW.length}</span>
+          <span className="as-ctab-count">{assignments.length}</span>
         </button>
         {Object.entries(COURSES_META).map(([id, cm]) => (
           <button key={id}
@@ -956,126 +713,41 @@ export default function FacultyAssignments({ onBack }) {
             onClick={() => setActiveCourse(id)}>
             <span className="as-ctab-dot" style={{ background:cm.color }}/>
             {cm.code}
-            <span className="as-ctab-count">{ASSIGNMENTS_RAW.filter(a => a.courseId === id).length}</span>
+            <span className="as-ctab-count">{assignments.filter(a => String(a.courseId) === String(id)).length}</span>
           </button>
         ))}
       </div>
 
-      {/* TOOLBAR */}
       <div className="as-toolbar">
         <div className="as-search">
-          <IcoSearch width={12} height={12} style={{ color:"var(--text3)", flexShrink:0 }}/>
-          <input className="as-search-inp" value={search} placeholder="Search assignments, type, course…"
-            onChange={e => setSearch(e.target.value)} />
-          {search && <button className="as-search-clear" onClick={() => setSearch("")}><IcoClose width={9} height={9}/></button>}
+          <IcoSearch width={12} height={12} />
+          <input className="as-search-inp" value={search} placeholder="Search assignments…" onChange={e => setSearch(e.target.value)} />
         </div>
         <div className="as-toolbar-right">
           <select className="as-select" value={activeStatus} onChange={e => setActiveStatus(e.target.value)}>
             <option value="all">All Status</option>
             {Object.entries(STATUS_META).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
           </select>
-          <select className="as-select" value={activeType} onChange={e => setActiveType(e.target.value)}>
-            <option value="all">All Types</option>
-            {Object.keys(TYPE_META).map(t => <option key={t}>{t}</option>)}
-          </select>
-          <select className="as-select" value={sortBy} onChange={e => setSortBy(e.target.value)}>
-            <option value="due">Due Date</option>
-            <option value="marks">Marks ↓</option>
-            <option value="sub">Submissions ↓</option>
-            <option value="score">Avg Score ↓</option>
-          </select>
           <div className="as-view-toggle">
-            <button className={`as-vbtn ${viewMode==="grid"?"as-vbtn--active":""}`} onClick={() => setViewMode("grid")} title="Grid"><IcoGrid width={12} height={12}/></button>
-            <button className={`as-vbtn ${viewMode==="list"?"as-vbtn--active":""}`} onClick={() => setViewMode("list")} title="List"><IcoList width={12} height={12}/></button>
+            <button className={`as-vbtn ${viewMode==="grid"?"as-vbtn--active":""}`} onClick={() => setViewMode("grid")}><IcoGrid width={12} height={12}/></button>
+            <button className={`as-vbtn ${viewMode==="list"?"as-vbtn--active":""}`} onClick={() => setViewMode("list")}><IcoList width={12} height={12}/></button>
           </div>
         </div>
       </div>
 
-      {/* RESULTS BAR */}
       <div className="as-results-bar">
-        <span style={{ color:"var(--rose)", fontWeight:700 }}>{grading.length}</span> grading ·{" "}
-        <span style={{ color:"var(--indigo-ll)", fontWeight:700 }}>{live.length + upcoming.length}</span> active ·{" "}
-        <span style={{ color:"var(--teal)", fontWeight:700 }}>{done.length}</span> done ·{" "}
-        {filtered.length} total
+        {filtered.length} total assignments found
       </div>
 
-      {/* EMPTY */}
-      {filtered.length === 0 && (
-        <div className="as-empty">
-          <div style={{ fontSize:44 }}>📂</div>
-          <div style={{ fontSize:16, fontWeight:600, marginTop:14 }}>No assignments found</div>
-          <div style={{ fontSize:12, color:"var(--text3)", marginTop:6 }}>Try a different filter or search term</div>
-          <button className="btn btn-solid" style={{ marginTop:16, gap:6 }} onClick={() => setShowCreate(true)}>
-            <IcoPlus width={12} height={12}/> Create Assignment
-          </button>
+      {viewMode === "grid" && (
+        <div className="as-grid">
+          {filtered.map(a => <AssignmentCard key={a.id} assignment={a} onSelect={setSelected}/>)}
         </div>
       )}
 
-      {/* GRID VIEW */}
-      {viewMode === "grid" && filtered.length > 0 && (
-        <>
-          {grading.length > 0 && (
-            <>
-              <div className="as-section-lbl">
-                <IcoPen width={13} height={13} style={{ color:"var(--rose)" }}/> Needs Grading
-                <span className="as-sec-count as-sec-count--rose">{grading.length}</span>
-              </div>
-              <div className="as-grid">{grading.map(a => <AssignmentCard key={a.id} assignment={a} onSelect={setSelected}/>)}</div>
-            </>
-          )}
-          {live.length > 0 && (
-            <>
-              <div className="as-section-lbl" style={{ marginTop:22 }}>
-                <IcoEye width={13} height={13} style={{ color:"var(--indigo-ll)" }}/> Live — Open for Submission
-                <span className="as-sec-count">{live.length}</span>
-              </div>
-              <div className="as-grid">{live.map(a => <AssignmentCard key={a.id} assignment={a} onSelect={setSelected}/>)}</div>
-            </>
-          )}
-          {upcoming.length > 0 && (
-            <>
-              <div className="as-section-lbl" style={{ marginTop:22 }}>
-                <IcoCal width={13} height={13} style={{ color:"var(--amber)" }}/> Upcoming / Draft
-                <span className="as-sec-count as-sec-count--amber">{upcoming.length}</span>
-              </div>
-              <div className="as-grid">{upcoming.map(a => <AssignmentCard key={a.id} assignment={a} onSelect={setSelected}/>)}</div>
-            </>
-          )}
-          {done.length > 0 && (
-            <>
-              <div className="as-section-lbl" style={{ marginTop:22 }}>
-                <IcoCheck width={13} height={13} style={{ color:"var(--teal)" }}/> Completed
-                <span className="as-sec-count as-sec-count--teal">{done.length}</span>
-              </div>
-              <div className="as-grid">{done.map(a => <AssignmentCard key={a.id} assignment={a} onSelect={setSelected}/>)}</div>
-            </>
-          )}
-        </>
-      )}
-
-      {/* LIST VIEW */}
-      {viewMode === "list" && filtered.length > 0 && (
+      {viewMode === "list" && (
         <div className="panel as-list-panel">
-          <div className="as-list-head">
-            <span>#</span><span>Assignment</span><span>Type</span>
-            <span>Marks</span><span>Submissions</span><span>Avg Score</span>
-            <span>Status</span><span></span>
-          </div>
           {filtered.map((a, i) => <AssignmentRow key={a.id} assignment={a} idx={i} onSelect={setSelected}/>)}
-        </div>
-      )}
-
-      {/* CTA BANNER */}
-      {TOTAL_PENDING_GRADE > 0 && (
-        <div className="as-cta-banner">
-          <IcoPen width={16} height={16} style={{ color:"var(--rose)", flexShrink:0 }}/>
-          <div>
-            <div className="as-cta-title">{TOTAL_PENDING_GRADE} assignment{TOTAL_PENDING_GRADE > 1 ? "s" : ""} are waiting to be graded</div>
-            <div className="as-cta-sub">Grade submissions and share feedback with students.</div>
-          </div>
-          <button className="btn btn-solid" style={{ marginLeft:"auto", flexShrink:0, gap:6, background:"var(--rose)", boxShadow:"0 0 18px rgba(242,68,92,.3)" }}>
-            <IcoPen width={12} height={12}/> Grade Now
-          </button>
         </div>
       )}
     </div>

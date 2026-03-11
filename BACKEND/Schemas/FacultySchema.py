@@ -1,5 +1,5 @@
 from pydantic import BaseModel
-from typing import Optional, List, Dict
+from typing import Optional, List, Dict, Any
 from datetime import datetime
 
 class FacultyStatsResponse(BaseModel):
@@ -73,3 +73,99 @@ class FacultyDashboardResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+# ─── New Detailed Schemas ───
+
+class FacultyLessonSummary(BaseModel):
+    id: int
+    title: str
+    duration: str
+    views: int
+    week: str
+    type: str
+
+class FacultyAssignmentSubmission(BaseModel):
+    roll: str
+    name: str
+    score: Optional[float]
+    trend: str
+    submitted: Optional[str]
+    status: str
+
+class FacultyAssignmentDetail(BaseModel):
+    id: int
+    course_id: int
+    course_code: str
+    title: str
+    type: str
+    due_label: str
+    due_date: str
+    marks: int
+    submissions_count: int
+    avg_score: Optional[float]
+    highest: Optional[float]
+    lowest: Optional[float]
+    status: str
+    week: str
+    unit: str
+    description: str
+    rubric: List[Dict[str, Any]]
+    submissions: List[FacultyAssignmentSubmission]
+
+class FacultyQuizQuestion(BaseModel):
+    q: str
+    options: Optional[List[str]]
+    ans: Any
+
+class FacultyQuizResult(BaseModel):
+    roll: str
+    name: str
+    score: float
+    total: int
+    time: str
+    status: str
+
+class FacultyQuizDetail(BaseModel):
+    id: int
+    course_id: int
+    course_code: str
+    title: str
+    type: str
+    status: str
+    questions_count: int
+    marks: int
+    duration: int
+    week: str
+    unit: str
+    start_date: str
+    end_date: str
+    attempts_count: int
+    avg_score: Optional[float]
+    highest: Optional[float]
+    lowest: Optional[float]
+    pass_pct: Optional[float]
+    description: str
+    shuffle: bool
+    show_result: bool
+    neg_mark: bool
+    questions: List[FacultyQuizQuestion]
+    results: List[FacultyQuizResult]
+
+class FacultyStudentListItem(BaseModel):
+    roll: str
+    name: str
+    attendance: int
+    score: int
+    grade: str
+    trend: str
+    status: str
+
+class FacultyCourseDetail(BaseModel):
+    info: FacultyCourseSummary
+    description: str
+    last_updated: str
+    assignments: List[FacultyAssignmentDetail]
+    quizzes: List[FacultyQuizDetail]
+    lessons: List[FacultyLessonSummary]
+    students: List[FacultyStudentListItem]
+    weak_topics: List[FacultyWeakTopic]

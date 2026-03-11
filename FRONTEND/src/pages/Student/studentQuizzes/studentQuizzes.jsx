@@ -842,10 +842,6 @@ function UpcomingCard({ quizzes = [], courses = [], onAttempt }) {
   );
 }
 
-const FALLBACK_QUESTIONS = [
-  { id: 1, text: "Which TCP flag is used to initiate a connection?", options: ["ACK", "SYN", "FIN", "RST"], correct: 1, explanation: "SYN initiates 3-way handshake." },
-  { id: 2, text: "DNS primarily uses which transport protocol?", options: ["TCP", "UDP", "ICMP", "SCTP"], correct: 1, explanation: "UDP port 53 is typical." }
-];
 
 export default function StudentQuizzes({ onBack }) {
   const [coursesState, setCoursesState] = useState([]);
@@ -992,11 +988,11 @@ export default function StudentQuizzes({ onBack }) {
     <>
       {reviewQuiz&&(()=>{
         const c=coursesState.find(x=>x.id===reviewQuiz.courseId) || { color: "var(--indigo-ll)", rgb: "91,78,248", short: "?", code: "?" };
-        return <ReviewDrawer quiz={reviewQuiz} course={c} onClose={handleClose} onAttempt={handleAttempt} practiceQuestions={FALLBACK_QUESTIONS}/>;
+        return <ReviewDrawer quiz={reviewQuiz} course={c} onClose={handleClose} onAttempt={handleAttempt}/>;
       })()}
       {attemptQuiz&&(()=>{
         const c=coursesState.find(x=>x.id===attemptQuiz.courseId) || { color: "var(--indigo-ll)", rgb: "91,78,248", short: "?", code: "?" };
-        return <QuizAttemptScreen quiz={attemptQuiz} course={c} onClose={handleClose} onSubmit={handleClose} practiceQuestions={FALLBACK_QUESTIONS}/>;
+        return <QuizAttemptScreen quiz={attemptQuiz} course={c} onClose={handleClose} onSubmit={handleClose}/>;
       })()}
 
       <div className="qz-root">
