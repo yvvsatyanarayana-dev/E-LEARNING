@@ -84,6 +84,21 @@ class FacultyLessonSummary(BaseModel):
     week: str
     type: str
 
+class FacultyLectureDetail(BaseModel):
+    id: int
+    courseId: str
+    title: str
+    week: str
+    unit: str
+    dur: str
+    views: int
+    watchPct: int
+    rating: float
+    tags: List[str]
+    status: str
+    date: Optional[str]
+    desc: str
+
 class FacultyAssignmentSubmission(BaseModel):
     roll: str
     name: str
@@ -116,6 +131,7 @@ class FacultyQuizQuestion(BaseModel):
     q: str
     options: Optional[List[str]]
     ans: Any
+    marks: Optional[int] = 1
 
 class FacultyQuizResult(BaseModel):
     roll: str
@@ -169,6 +185,7 @@ class FacultyCourseDetail(BaseModel):
     lessons: List[FacultyLessonSummary]
     students: List[FacultyStudentListItem]
     weak_topics: List[FacultyWeakTopic]
+    lectures: List[FacultyLectureDetail]
 
 
 # --- Remaining Pages Models ---
@@ -217,3 +234,42 @@ class FacultyAnalyticsData(BaseModel):
     total_students: int
     avg_attendance: float
     avg_score: float
+
+# ─── Profile ───────────────────────────────────────────────────────
+class FacultyProfileCourse(BaseModel):
+    code: str
+    name: str
+    semester: str
+    student_count: int
+    color: str
+    bg: str
+
+class FacultyProfileResponse(BaseModel):
+    id: int
+    full_name: str
+    email: str
+    phone: Optional[str]
+    bio: Optional[str]
+    role: str
+    avatar: Optional[str]
+    skills: Optional[List[str]]
+    active_courses: int
+    total_students: int
+    courses: List[FacultyProfileCourse]
+
+# ─── Attendance ────────────────────────────────────────────────────
+class FacultyAttendanceStudent(BaseModel):
+    roll: str
+    name: str
+    present: int
+    total: int
+
+class FacultyAttendanceCourse(BaseModel):
+    id: str           # e.g. "cs501"
+    code: str
+    name: str
+    color: str
+    bg: str
+    border: str
+    total: int
+    students: List[FacultyAttendanceStudent]

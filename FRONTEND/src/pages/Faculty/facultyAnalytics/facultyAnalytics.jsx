@@ -842,6 +842,8 @@ export default function FacultyAnalytics({ onBack }) {
         setDataLoaded(true);
       } catch (err) {
         console.error("Failed to load analytics data:", err);
+        // Ensure the UI doesn't hang in "Loading..." forever on error
+        setDataLoaded(true); 
       }
     };
     fetchData();

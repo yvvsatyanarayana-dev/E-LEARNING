@@ -3,6 +3,7 @@
 // Place at: src/pages/Faculty/facultyVideoLectures/facultyVideoLectures.jsx
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import api from "../../../utils/api";
 import "./facultyVideoLectures.css";
 
 // ─── ICONS (same style as FacultyDashboard) ───────────────────────
@@ -43,57 +44,12 @@ const COURSES = [
   { id: "cs503", code: "CS503", name: "Computer Architecture",
     color: "var(--violet)",   bg: "rgba(159,122,234,.1)", border: "rgba(159,122,234,.2)" },
 ];
-
-const LECTURES = [
-  // ── CS501 Operating Systems ──────────────────────────────────
-  { id:1,  courseId:"cs501", title:"Introduction to OS Concepts",           week:"W1",  unit:"Unit I",   dur:"48m", views:112, watchPct:91, rating:4.8, tags:["Intro","Concepts"],  status:"live",    date:"Aug 10", desc:"Overview of operating systems, types, kernel, shell, and system calls." },
-  { id:2,  courseId:"cs501", title:"Process States & PCB",                  week:"W2",  unit:"Unit I",   dur:"52m", views:110, watchPct:88, rating:4.7, tags:["Process","PCB"],     status:"live",    date:"Aug 17", desc:"Process lifecycle, PCB structure, and context switching." },
-  { id:3,  courseId:"cs501", title:"CPU Scheduling – FCFS & SJF",           week:"W3",  unit:"Unit II",  dur:"55m", views:109, watchPct:85, rating:4.6, tags:["Scheduling","CPU"],  status:"live",    date:"Aug 24", desc:"FCFS and SJF algorithms with Gantt chart walkthroughs." },
-  { id:4,  courseId:"cs501", title:"CPU Scheduling – Round Robin & Priority",week:"W4",  unit:"Unit II",  dur:"47m", views:108, watchPct:82, rating:4.5, tags:["Scheduling","RR"],   status:"live",    date:"Aug 31", desc:"Round Robin and Priority scheduling with preemptive variants." },
-  { id:5,  courseId:"cs501", title:"Process Synchronization",               week:"W5",  unit:"Unit II",  dur:"61m", views:105, watchPct:79, rating:4.9, tags:["Sync","Mutex"],      status:"live",    date:"Sep 7",  desc:"Critical section, Peterson's solution, semaphores." },
-  { id:6,  courseId:"cs501", title:"Deadlock – Detection & Prevention",     week:"W6",  unit:"Unit III", dur:"58m", views:98,  watchPct:72, rating:4.4, tags:["Deadlock","Safety"], status:"live",    date:"Sep 14", desc:"Deadlock conditions, Banker's algorithm, and recovery." },
-  { id:7,  courseId:"cs501", title:"Memory Management – Paging",            week:"W7",  unit:"Unit III", dur:"53m", views:102, watchPct:76, rating:4.6, tags:["Memory","Paging"],   status:"live",    date:"Sep 21", desc:"Page tables, TLB, and multi-level paging." },
-  { id:8,  courseId:"cs501", title:"Memory Management – Segmentation",      week:"W8",  unit:"Unit III", dur:"49m", views:99,  watchPct:74, rating:4.3, tags:["Memory","Segment"],  status:"live",    date:"Sep 28", desc:"Segmentation concepts and comparison with paging." },
-  { id:9,  courseId:"cs501", title:"Virtual Memory & Page Replacement",     week:"W9",  unit:"Unit IV",  dur:"64m", views:96,  watchPct:70, rating:4.7, tags:["VM","PageFault"],    status:"live",    date:"Oct 5",  desc:"Demand paging, FIFO, LRU, Optimal algorithms." },
-  { id:10, courseId:"cs501", title:"File Systems – Structure & Operations", week:"W10", unit:"Unit IV",  dur:"56m", views:94,  watchPct:68, rating:4.5, tags:["FileSystem","I/O"],  status:"live",    date:"Oct 12", desc:"File allocation methods and disk scheduling." },
-  { id:11, courseId:"cs501", title:"I/O Systems & Device Management",       week:"W11", unit:"Unit IV",  dur:"51m", views:88,  watchPct:64, rating:4.4, tags:["I/O","Drivers"],     status:"live",    date:"Oct 19", desc:"I/O hardware, kernel I/O subsystem and performance." },
-  { id:12, courseId:"cs501", title:"Disk Scheduling & RAID",                week:"W12", unit:"Unit V",   dur:"—",   views:0,   watchPct:0,  rating:0,   tags:["Disk","RAID"],       status:"pending", date:null,     desc:"Disk scheduling algorithms and RAID configurations." },
-  // ── CS502 Database Management Systems ────────────────────────
-  { id:13, courseId:"cs502", title:"Introduction to DBMS",                  week:"W1",  unit:"Unit I",   dur:"44m", views:108, watchPct:94, rating:4.9, tags:["Intro","DBMS"],      status:"live",    date:"Aug 10", desc:"Database concepts, file vs DBMS, architecture." },
-  { id:14, courseId:"cs502", title:"Entity Relationship Model",             week:"W2",  unit:"Unit I",   dur:"58m", views:105, watchPct:88, rating:4.7, tags:["ER","Diagram"],      status:"live",    date:"Aug 17", desc:"ER notation, entity sets, relationships, attributes." },
-  { id:15, courseId:"cs502", title:"Relational Model & Keys",               week:"W3",  unit:"Unit I",   dur:"51m", views:103, watchPct:85, rating:4.6, tags:["Relational","Keys"], status:"live",    date:"Aug 24", desc:"Relational algebra, primary/foreign keys, constraints." },
-  { id:16, courseId:"cs502", title:"SQL – DDL & DML",                       week:"W4",  unit:"Unit II",  dur:"62m", views:102, watchPct:82, rating:4.8, tags:["SQL","DDL"],         status:"live",    date:"Aug 31", desc:"CREATE, ALTER, INSERT, UPDATE, DELETE with examples." },
-  { id:17, courseId:"cs502", title:"SQL – Joins & Subqueries",              week:"W5",  unit:"Unit II",  dur:"55m", views:99,  watchPct:79, rating:4.9, tags:["SQL","Joins"],       status:"live",    date:"Sep 7",  desc:"INNER, OUTER, SELF joins and correlated subqueries." },
-  { id:18, courseId:"cs502", title:"Normalization – 1NF to BCNF",           week:"W6",  unit:"Unit III", dur:"67m", views:97,  watchPct:74, rating:4.5, tags:["Normal","BCNF"],     status:"live",    date:"Sep 14", desc:"FDs, 1NF, 2NF, 3NF, BCNF decomposition." },
-  { id:19, courseId:"cs502", title:"Transactions & ACID Properties",        week:"W7",  unit:"Unit III", dur:"53m", views:94,  watchPct:70, rating:4.6, tags:["ACID","Transaction"],status:"live",    date:"Sep 21", desc:"ACID, serializability, conflict serializable schedules." },
-  { id:20, courseId:"cs502", title:"Concurrency Control",                   week:"W8",  unit:"Unit IV",  dur:"—",   views:0,   watchPct:0,  rating:0,   tags:["Lock","2PL"],        status:"pending", date:null,     desc:"Locking, two-phase locking, deadlock in DBMS." },
-  // ── CS503 Computer Architecture ──────────────────────────────
-  { id:21, courseId:"cs503", title:"Von Neumann Architecture",              week:"W1",  unit:"Unit I",   dur:"46m", views:96,  watchPct:96, rating:4.9, tags:["VonNeumann","CPU"],  status:"live",    date:"Aug 10", desc:"Von Neumann model, buses, stored-program concept." },
-  { id:22, courseId:"cs503", title:"Instruction Set Architecture",          week:"W2",  unit:"Unit I",   dur:"54m", views:94,  watchPct:92, rating:4.8, tags:["ISA","RISC"],        status:"live",    date:"Aug 17", desc:"RISC vs CISC, addressing modes, instruction formats." },
-  { id:23, courseId:"cs503", title:"ALU Design & Data Path",                week:"W3",  unit:"Unit II",  dur:"58m", views:93,  watchPct:88, rating:4.7, tags:["ALU","DataPath"],    status:"live",    date:"Aug 24", desc:"ALU combinational design and data path components." },
-  { id:24, courseId:"cs503", title:"Control Unit Design",                   week:"W4",  unit:"Unit II",  dur:"52m", views:92,  watchPct:86, rating:4.6, tags:["Control","MicroOp"], status:"live",    date:"Aug 31", desc:"Hardwired vs micro-programmed control, micro-ops." },
-  { id:25, courseId:"cs503", title:"Pipelining – Fundamentals",             week:"W5",  unit:"Unit III", dur:"60m", views:91,  watchPct:83, rating:4.8, tags:["Pipeline","MIPS"],   status:"live",    date:"Sep 7",  desc:"Pipeline stages, speedup, throughput, MIPS." },
-  { id:26, courseId:"cs503", title:"Pipeline Hazards & Solutions",          week:"W6",  unit:"Unit III", dur:"55m", views:89,  watchPct:80, rating:4.7, tags:["Hazards","Stall"],   status:"live",    date:"Sep 14", desc:"Data, control, structural hazards, forwarding." },
-  { id:27, courseId:"cs503", title:"Cache Memory Hierarchy",                week:"W7",  unit:"Unit IV",  dur:"63m", views:88,  watchPct:77, rating:4.9, tags:["Cache","Locality"],  status:"live",    date:"Sep 21", desc:"Cache mapping, direct/set/full associative, miss penalty." },
-  { id:28, courseId:"cs503", title:"Cache Replacement Policies",            week:"W8",  unit:"Unit IV",  dur:"48m", views:86,  watchPct:74, rating:4.6, tags:["LRU","FIFO"],        status:"live",    date:"Sep 28", desc:"LRU, FIFO, LFU, Random replacement with examples." },
-  { id:29, courseId:"cs503", title:"Virtual Memory (Architecture View)",    week:"W9",  unit:"Unit IV",  dur:"—",   views:0,   watchPct:0,  rating:0,   tags:["VM","TLB"],          status:"pending", date:null,     desc:"TLB, page tables from architecture perspective." },
-];
-
 // thumbnail gradient per course
 const THUMB = {
   cs501: { grad: "linear-gradient(135deg,#130f2e,#2d1b69)", emoji: "🖥️" },
   cs502: { grad: "linear-gradient(135deg,#0a2828,#0d4a42)", emoji: "🗄️" },
   cs503: { grad: "linear-gradient(135deg,#1a0a32,#3c1a6e)", emoji: "⚙️" },
 };
-
-// derived totals
-const TOTAL_LIVE    = LECTURES.filter(l => l.status === "live").length;
-const TOTAL_PENDING = LECTURES.filter(l => l.status === "pending").length;
-const TOTAL_VIEWS   = LECTURES.reduce((a, l) => a + l.views, 0);
-const AVG_RATING    = (
-  LECTURES.filter(l => l.rating > 0).reduce((a, l) => a + l.rating, 0) /
-  LECTURES.filter(l => l.rating > 0).length
-).toFixed(1);
 
 // ─── SHARED HELPERS ───────────────────────────────────────────────
 function AnimBar({ pct, color, height = 4, delay = 300 }) {
@@ -537,21 +493,39 @@ export default function FacultyVideoLectures({ onBack }) {
   const [filterUnit, setFilterUnit]     = useState("all");
   const [showUpload, setShowUpload]     = useState(false);
   const [selected, setSelected]         = useState(null);
+  
+  const [lectures, setLectures]         = useState([]);
+  const [loading, setLoading]           = useState(true);
+
+  useEffect(() => {
+    const fetchLectures = async () => {
+      try {
+        const res = await api.get("/faculty/lectures");
+        const safeData = Array.isArray(res.data) ? res.data : [];
+        setLectures(safeData);
+      } catch (err) {
+        console.error("Failed to fetch lectures:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchLectures();
+  }, []);
 
   // available units for filter
   const units = ["all", ...new Set(
-    LECTURES
+    lectures
       .filter(l => activeCourse === "all" || l.courseId === activeCourse)
       .map(l => l.unit)
   )];
 
   // apply filters + sort
-  const filtered = LECTURES
+  const filtered = lectures
     .filter(l => activeCourse === "all" || l.courseId === activeCourse)
     .filter(l => filterUnit === "all" || l.unit === filterUnit)
     .filter(l =>
       l.title.toLowerCase().includes(search.toLowerCase()) ||
-      l.tags.join(" ").toLowerCase().includes(search.toLowerCase())
+      (l.tags && l.tags.join(" ").toLowerCase().includes(search.toLowerCase()))
     )
     .sort((a, b) =>
       sortBy === "week"   ? a.id - b.id :
@@ -563,6 +537,12 @@ export default function FacultyVideoLectures({ onBack }) {
   const live    = filtered.filter(l => l.status === "live");
   const pending = filtered.filter(l => l.status === "pending");
   const activeCourseObj = COURSES.find(c => c.id === activeCourse) || COURSES[0];
+
+  const TOTAL_LIVE    = lectures.filter(l => l.status === "live").length;
+  const TOTAL_PENDING = lectures.filter(l => l.status === "pending").length;
+  const TOTAL_VIEWS   = lectures.reduce((a, l) => a + (l.views || 0), 0);
+  const ratedLectures = lectures.filter(l => l.rating > 0);
+  const AVG_RATING    = ratedLectures.length ? (ratedLectures.reduce((a, l) => a + l.rating, 0) / ratedLectures.length).toFixed(1) : 0;
 
   // close overlays on Escape
   useEffect(() => {
@@ -631,8 +611,8 @@ export default function FacultyVideoLectures({ onBack }) {
             {c.code}
             <span className="vl-ctab-count">
               {c.id === "all"
-                ? LECTURES.filter(l => l.status === "live").length
-                : LECTURES.filter(l => l.courseId === c.id && l.status === "live").length}
+                ? lectures.filter(l => l.status === "live").length
+                : lectures.filter(l => l.courseId === c.id && l.status === "live").length}
             </span>
           </button>
         ))}

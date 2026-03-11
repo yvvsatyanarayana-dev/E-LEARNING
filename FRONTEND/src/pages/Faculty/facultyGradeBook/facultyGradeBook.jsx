@@ -69,21 +69,22 @@ export default function facultyGradeBook({ onBack }) {
       try {
         const response = await api.get("/faculty/students");
         const studentList = response.data;
+        const safeStudentList = Array.isArray(studentList) ? studentList : [];
         const newGradeData = {};
         
-        studentList.forEach(s => {
-          const cCode = s.course.toLowerCase();
+        safeStudentList.forEach(s => {
+          const cCode = s.course ? s.course.toLowerCase() : "cs501";
           if (!newGradeData[cCode]) newGradeData[cCode] = [];
           
           // Generate realistic mock marks based on their overall score to maintain the UI visual density
-          const basePerf = s.score / 100; 
-          const seed = hashStr(s.roll);
+          const basePerf = (s.score || 0) / 100; 
+          const seed = hashStr(s.roll || "DEF");
           
           const vary = (max, tgt) => Math.min(max, Math.max(0, Math.round(tgt * max * (0.85 + (seed % 30) / 100))));
           
           newGradeData[cCode].push({
-            roll: s.roll,
-            name: s.name,
+            roll: s.roll || "UNK",
+            name: s.name || "Unknown",
             a1: vary(20, basePerf),
             a2: vary(20, basePerf),
             q1: vary(15, basePerf),

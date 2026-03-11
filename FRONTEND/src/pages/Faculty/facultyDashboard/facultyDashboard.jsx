@@ -84,6 +84,8 @@ const PAGE_PARAM_MAP = {
   "reports": ROUTES.REPORTS,
   "profile": ROUTES.PROFILE,
   "settings": ROUTES.SETTINGS,
+  "quickactions": ROUTES.QUICKACTIONS,
+  "notifications": ROUTES.NOTIFICATIONS,
 };
 
 const ROUTE_TO_URL = {
@@ -315,7 +317,7 @@ function Sidebar({ open, onClose, activePage, onNavigate, userName, stats, tasks
 }
 
 // ─── TOPBAR ──────────────────────────────────────────────────────
-function Topbar({ onHamburger, onQuickActions, onNotifications }) {
+function Topbar({ onHamburger, onQuickActions, onNotifications, onProfile, notifAnchorRef, notifOpen, onNotifClose }) {
   const date = new Date().toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
   return (
     <div className="topbar">
@@ -328,9 +330,15 @@ function Topbar({ onHamburger, onQuickActions, onNotifications }) {
       </div>
       <div className="tb-right">
         <span className="tb-date">{date}</span>
-        <div className="tb-icon-btn" onClick={onNotifications}><IcoBell /><div className="notif-dot" /></div>
-        <div className="tb-icon-btn" onClick={() => window.dispatchEvent(new CustomEvent('open-profile-page'))}><IcoUser /></div>
+        <div className="tb-icon-btn" onClick={onNotifications} ref={notifAnchorRef}><IcoBell /><div className="notif-dot" /></div>
+        <div className="tb-icon-btn" onClick={onProfile}><IcoUser /></div>
         <Btn className="btn-solid" style={{ padding: "7px 16px", fontSize: 11, gap: 5 }} onClick={onQuickActions}><IcoFlash /> Quick Actions</Btn>
+
+        <FacultyNotification 
+          open={notifOpen} 
+          onClose={onNotifClose} 
+          anchorRef={notifAnchorRef}
+        />
       </div>
     </div>
   );
@@ -402,6 +410,8 @@ export default function FacultyDashboard() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [checkedTasks, setCheckedTasks] = useState([]);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const notifAnchorRef = useRef(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -466,7 +476,6 @@ export default function FacultyDashboard() {
   const toggleTask = i => setCheckedTasks(p => p.includes(i) ? p.filter(x => x !== i) : [...p, i]);
 
   const renderContent = () => {
-    if (profileOpen) return <FacultyProfile onBack={() => setProfileOpen(false)} />;
     switch (activePage) {
       case ROUTES.ANALYTICS: return <FacultyAnalytics onBack={() => navigate(ROUTES.DASHBOARD)} />;
       case ROUTES.MY_COURSES: return <FacultyMyCourses onBack={() => navigate(ROUTES.DASHBOARD)} />;
@@ -481,6 +490,7 @@ export default function FacultyDashboard() {
       case ROUTES.REPORTS: return <Reports onBack={() => navigate(ROUTES.DASHBOARD)} />;
       case ROUTES.SETTINGS: return <FacultySettings onBack={() => navigate(ROUTES.DASHBOARD)} />;
       case ROUTES.PROFILE: return <FacultyProfile onBack={() => navigate(ROUTES.DASHBOARD)} />;
+      case ROUTES.QUICKACTIONS: return <FacultyQuickaction onBack={() => navigate(ROUTES.DASHBOARD)} />;
       default: return null; // falls through to dashboard content below
     }
   };
@@ -509,7 +519,11 @@ export default function FacultyDashboard() {
           <Topbar
             onHamburger={() => setSidebarOpen(o => !o)}
             onQuickActions={() => navigate(ROUTES.QUICKACTIONS)}
-            onNotifications={() => navigate(ROUTES.NOTIFICATIONS)}
+            onNotifications={() => setNotifOpen(o => !o)}
+            onProfile={() => navigate(ROUTES.PROFILE)}
+            notifAnchorRef={notifAnchorRef}
+            notifOpen={notifOpen}
+            onNotifClose={() => setNotifOpen(false)}
           />
 
           {!isDashboard && renderContent()}
@@ -600,13 +614,19 @@ export default function FacultyDashboard() {
                   <div className="panel-hd"><div className="panel-ttl"><IcoCal width={14} height={14} style={{ color: "var(--indigo-ll)" }} /> Today's Schedule <span>Fri, 28 Feb</span></div><a href="#" className="panel-act" onClick={e => { e.preventDefault(); navigate(ROUTES.ATTENDANCE); }}>Full week <IcoChevR /></a></div>
                   <div className="panel-body">
                     <div className="sched-list">
-                      {schedule.map((s) => (
-                        <Hoverable key={s.from} className="sched-item">
-                          <div className="sched-time"><div className="st-from" style={{ color: s.color }}>{s.from}</div><div className="st-to">{s.to}</div></div>
-                          <div className="sched-div" style={{ background: s.color }} />
-                          <div className="sched-info"><div className="si-name">{s.name}</div><div className="si-room">{s.room}</div><span className="si-tag" style={s.tagStyle}>{s.tag}</span></div>
-                        </Hoverable>
-                      ))}
+                      {schedule.length === 0 ? (
+                        <div style={{ padding: "20px", textAlign: "center", color: "var(--text3)", fontSize: 13 }}>
+                          No classes scheduled for today
+                        </div>
+                      ) : (
+                        schedule.map((s) => (
+                          <Hoverable key={s.from} className="sched-item">
+                            <div className="sched-time"><div className="st-from" style={{ color: s.color }}>{s.from}</div><div className="st-to">{s.to}</div></div>
+                            <div className="sched-div" style={{ background: s.color }} />
+                            <div className="sched-info"><div className="si-name">{s.name}</div><div className="si-room">{s.room}</div><span className="si-tag" style={s.tagStyle}>{s.tag}</span></div>
+                          </Hoverable>
+                        ))
+                      )}
                     </div>
                   </div>
                 </div>
@@ -614,13 +634,19 @@ export default function FacultyDashboard() {
                   <div className="panel-hd"><div className="panel-ttl"><IcoAlert width={14} height={14} style={{ color: "var(--rose)" }} /> Pending Tasks <span style={{ color: "var(--rose)" }}>{tasks.length - checkedTasks.length} remaining</span></div><a href="#" className="panel-act" onClick={e => { e.preventDefault(); navigate(ROUTES.ASSIGNMENTS); }}>All tasks <IcoChevR /></a></div>
                   <div className="panel-body">
                     <div className="task-list">
-                      {tasks.map((t, i) => (
-                        <Hoverable key={i} className={`task-item ${checkedTasks.includes(i) ? "done" : ""}`} onClick={() => toggleTask(i)}>
-                          <div className={`task-check ${checkedTasks.includes(i) ? "checked" : ""}`}>{checkedTasks.includes(i) && <IcoCheck />}</div>
-                          <div className="task-body"><div className="task-label">{t.label}</div><div className="task-sub">{t.course}</div></div>
-                          <div className={`task-due ${t.urgent ? "urgent" : ""}`}>{t.due}</div>
-                        </Hoverable>
-                      ))}
+                      {tasks.length === 0 ? (
+                        <div style={{ padding: "20px", textAlign: "center", color: "var(--text3)", fontSize: 13 }}>
+                          You have no pending tasks, great job!
+                        </div>
+                      ) : (
+                        tasks.map((t, i) => (
+                          <Hoverable key={i} className={`task-item ${checkedTasks.includes(i) ? "done" : ""}`} onClick={() => toggleTask(i)}>
+                            <div className={`task-check ${checkedTasks.includes(i) ? "checked" : ""}`}>{checkedTasks.includes(i) && <IcoCheck />}</div>
+                            <div className="task-body"><div className="task-label">{t.label}</div><div className="task-sub">{t.course}</div></div>
+                            <div className={`task-due ${t.urgent ? "urgent" : ""}`}>{t.due}</div>
+                          </Hoverable>
+                        ))
+                      )}
                     </div>
                   </div>
                 </div>
@@ -632,20 +658,26 @@ export default function FacultyDashboard() {
                   <div className="panel-hd"><div className="panel-ttl"><IcoClock width={14} height={14} style={{ color: "var(--indigo-ll)" }} /> Quiz Analytics <span>Recent</span></div><a href="#" className="panel-act" onClick={e => { e.preventDefault(); navigate(ROUTES.QUIZZES); }}>All quizzes <IcoChevR /></a></div>
                   <div className="panel-body">
                     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                      {quizStats.map((q) => (
-                        <Hoverable key={q.name} className="quiz-faculty-item">
-                          <div className="qfi-top"><span className="qfi-name">{q.name}</span><span className="qfi-sub">{q.submitted}/{q.total} submitted</span></div>
-                          <div className="qfi-bars">
-                            {[["Avg", q.avg, q.color], ["High", q.highest, "var(--teal)"], ["Low", q.lowest, "var(--rose)"]].map(([lbl, val, col], ji) => (
-                              <div key={lbl} className="qfi-bar-row">
-                                <span className="qfi-bar-lbl">{lbl}</span>
-                                <div className="qfi-bar-track"><AnimatedProgressBar pct={val} color={col} height={4} delay={700 + ji * 100} /></div>
-                                <span className="qfi-bar-val" style={{ color: col }}>{val}%</span>
-                              </div>
-                            ))}
-                          </div>
-                        </Hoverable>
-                      ))}
+                      {quizStats.length === 0 ? (
+                        <div style={{ padding: "30px 20px", textAlign: "center", color: "var(--text3)", fontSize: 13 }}>
+                          No recent quizzes available for analysis.
+                        </div>
+                      ) : (
+                        quizStats.map((q) => (
+                          <Hoverable key={q.name} className="quiz-faculty-item">
+                            <div className="qfi-top"><span className="qfi-name">{q.name}</span><span className="qfi-sub">{q.submitted}/{q.total} submitted</span></div>
+                            <div className="qfi-bars">
+                              {[["Avg", q.avg, q.color], ["High", q.highest, "var(--teal)"], ["Low", q.lowest, "var(--rose)"]].map(([lbl, val, col], ji) => (
+                                <div key={lbl} className="qfi-bar-row">
+                                  <span className="qfi-bar-lbl">{lbl}</span>
+                                  <div className="qfi-bar-track"><AnimatedProgressBar pct={val} color={col} height={4} delay={700 + ji * 100} /></div>
+                                  <span className="qfi-bar-val" style={{ color: col }}>{val}%</span>
+                                </div>
+                              ))}
+                            </div>
+                          </Hoverable>
+                        ))
+                      )}
                     </div>
                   </div>
                 </div>
@@ -653,17 +685,23 @@ export default function FacultyDashboard() {
                   <div className="panel-hd"><div className="panel-ttl"><IcoAlert width={14} height={14} style={{ color: "var(--amber)" }} /> Weak Topics Detected</div><a href="#" className="panel-act" onClick={e => { e.preventDefault(); navigate(ROUTES.QUESTION_BANK); }}>Generate remedials <IcoChevR /></a></div>
                   <div className="panel-body">
                     <div className="weak-list">
-                      {weakTopics.map((w, i) => (
-                        <Hoverable key={i} className="weak-item">
-                          <div className="wi-top">
-                            <span className="wi-course" style={{ color: w.color }}>{w.course}</span>
-                            <span className="wi-name">{w.topic}</span>
-                            <span className="wi-count">{w.student_count} students</span>
-                          </div>
-                          <AnimatedProgressBar pct={w.percentage} color={w.color} height={3} delay={700 + i * 100} />
-                          <div className="wi-hint">Below 40% — needs attention</div>
-                        </Hoverable>
-                      ))}
+                      {weakTopics.length === 0 ? (
+                        <div style={{ padding: "20px", textAlign: "center", color: "var(--text3)", fontSize: 13 }}>
+                          No weak topics detected across your courses.
+                        </div>
+                      ) : (
+                        weakTopics.map((w, i) => (
+                          <Hoverable key={i} className="weak-item">
+                            <div className="wi-top">
+                              <span className="wi-course" style={{ color: w.color }}>{w.course}</span>
+                              <span className="wi-name">{w.topic}</span>
+                              <span className="wi-count">{w.student_count} students</span>
+                            </div>
+                            <AnimatedProgressBar pct={w.percentage} color={w.color} height={3} delay={700 + i * 100} />
+                            <div className="wi-hint">Below 40% — needs attention</div>
+                          </Hoverable>
+                        ))
+                      )}
                     </div>
                     <div className="weak-footer">
                       <Btn className="btn-solid" onClick={() => navigate(ROUTES.AI_ASSISTANT)} style={{ width: "100%", justifyContent: "center", fontSize: 11, padding: "8px 12px" }}>
@@ -676,14 +714,20 @@ export default function FacultyDashboard() {
                   <div className="panel-hd"><div className="panel-ttl"><IcoUsers width={14} height={14} style={{ color: "var(--indigo-ll)" }} /> Student Spotlight</div><a href="#" className="panel-act" onClick={e => { e.preventDefault(); navigate(ROUTES.ALL_STUDENTS); }}>All students <IcoChevR /></a></div>
                   <div className="panel-body">
                     <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                      {topStudents.map((s, i) => (
-                        <Hoverable key={i} className="student-item">
-                          <div className="sti-rank">{i + 1}</div>
-                          <div className="sti-avatar">{s.name ? s.name.split(" ").map(x => x[0]).join("") : "S"}</div>
-                          <div className="sti-info"><div className="sti-name">{s.name}</div><div className="sti-roll">{s.roll} · {s.course}</div></div>
-                          <div className="sti-right"><div className="sti-cgpa">{s.cgpa}</div><span className="sti-badge" style={{ background: s.badge_color ? `rgba(${s.badge_color.replace('var(--', '').replace(')', '')},.1)` : "rgba(39,201,176,.1)", color: s.badge_color || "var(--teal)" }}>{s.badge}</span></div>
-                        </Hoverable>
-                      ))}
+                      {topStudents.length === 0 ? (
+                        <div style={{ padding: "20px", textAlign: "center", color: "var(--text3)", fontSize: 13 }}>
+                          No students qualifying for spotlight yet.
+                        </div>
+                      ) : (
+                        topStudents.map((s, i) => (
+                          <Hoverable key={i} className="student-item">
+                            <div className="sti-rank">{i + 1}</div>
+                            <div className="sti-avatar">{s.name ? s.name.split(" ").map(x => x[0]).join("") : "S"}</div>
+                            <div className="sti-info"><div className="sti-name">{s.name}</div><div className="sti-roll">{s.roll} · {s.course}</div></div>
+                            <div className="sti-right"><div className="sti-cgpa">{s.cgpa}</div><span className="sti-badge" style={{ background: s.badge_color ? `rgba(${s.badge_color.replace('var(--', '').replace(')', '')},.1)` : "rgba(39,201,176,.1)", color: s.badge_color || "var(--teal)" }}>{s.badge}</span></div>
+                          </Hoverable>
+                        ))
+                      )}
                     </div>
                   </div>
                 </div>

@@ -63,12 +63,17 @@ const RECENT = [
 ];
 
 // ─── COMPONENT ───────────────────────────────────────────────────
-export default function QuickActionsPage() {
+export default function QuickActionsPage({ onBack }) {
   const [search, setSearch] = useState("");
   const [recentVisible, setRecentVisible] = useState(true);
   const inputRef = useRef();
   const backdropRef = useRef();
   const navigate = useNavigate();
+
+  const handleBack = useCallback(() => {
+    if (onBack) onBack();
+    else navigate("/facultydashboard");
+  }, [onBack, navigate]);
 
   // Focus input on mount
   useEffect(() => {
@@ -78,10 +83,10 @@ export default function QuickActionsPage() {
 
   // Escape key to go back
   useEffect(() => {
-    const h = (e) => { if (e.key === "Escape") navigate(-1); };
+    const h = (e) => { if (e.key === "Escape") handleBack(); };
     document.addEventListener("keydown", h);
     return () => document.removeEventListener("keydown", h);
-  }, [navigate]);
+  }, [handleBack]);
 
   const handleAction = useCallback((route) => {
     // Route using dashboard navigation logic
@@ -124,7 +129,7 @@ export default function QuickActionsPage() {
               <div className="qa-subtitle">Jump to any action instantly</div>
             </div>
           </div>
-          <button className="qa-close" onClick={() => navigate(-1)}><IcoClose /></button>
+          <button className="qa-close" onClick={handleBack}><IcoClose /></button>
         </div>
 
         {/* ── SEARCH ── */}

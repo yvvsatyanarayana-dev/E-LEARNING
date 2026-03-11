@@ -92,30 +92,35 @@ const INITIAL_NOTIFS = [
 const TABS = ["All", "Unread", "Urgent"];
 
 // ─── COMPONENT ───────────────────────────────────────────────────
-export default function NotificationsPopup({ open, onClose, anchorRef }) {
+export default function NotificationsPopup({ open, onClose, anchorRef, onBack, isPage }) {
   const [notifs, setNotifs] = useState(INITIAL_NOTIFS);
   const [activeTab, setActiveTab] = useState("All");
   const popupRef = useRef();
 
-  // Close on outside click
+  // Close on outside click (only for popup mode)
   useEffect(() => {
-    if (!open) return;
+    if (!open || isPage) return;
     const h = (e) => {
       if (
         popupRef.current && !popupRef.current.contains(e.target) &&
         anchorRef?.current && !anchorRef.current.contains(e.target)
-      ) onClose();
+      ) onClose?.();
     };
     document.addEventListener("mousedown", h);
     return () => document.removeEventListener("mousedown", h);
-  }, [open, onClose, anchorRef]);
+  }, [open, onClose, anchorRef, isPage]);
 
   // Escape
   useEffect(() => {
-    const h = (e) => { if (e.key === "Escape" && open) onClose(); };
+    const h = (e) => {
+      if (e.key === "Escape") {
+        if (isPage && onBack) onBack();
+        else if (open && onClose) onClose();
+      }
+    };
     document.addEventListener("keydown", h);
     return () => document.removeEventListener("keydown", h);
-  }, [open, onClose]);
+  }, [open, onClose, isPage, onBack]);
 
   const markRead = (id) => setNotifs(n => n.map(x => x.id === id ? { ...x, unread: false } : x));
   const markAllRead = () => setNotifs(n => n.map(x => ({ ...x, unread: false })));
@@ -129,12 +134,17 @@ export default function NotificationsPopup({ open, onClose, anchorRef }) {
     return true;
   });
 
-  if (!open) return null;
+  const handleClose = () => {
+    if (isPage && onBack) onBack();
+    else if (onClose) onClose();
+  };
+
+  if (!open && !isPage) return null;
 
   return (
-    <div className="np-popup" ref={popupRef}>
+    <div className={`np-popup ${isPage ? "is-page" : ""}`} ref={popupRef}>
       {/* Arrow */}
-      <div className="np-arrow" />
+      {!isPage && <div className="np-arrow" />}
 
       {/* Header */}
       <div className="np-header">
@@ -149,7 +159,7 @@ export default function NotificationsPopup({ open, onClose, anchorRef }) {
               <IcoCheckAll /> Mark all read
             </button>
           )}
-          <button className="np-hclose" onClick={onClose}><IcoClose /></button>
+          <button className="np-hclose" onClick={handleClose}><IcoClose /></button>
         </div>
       </div>
 
@@ -209,7 +219,7 @@ export default function NotificationsPopup({ open, onClose, anchorRef }) {
 
       {/* Footer */}
       <div className="np-footer">
-        <button className="np-footer-btn" onClick={onClose}>View all notifications</button>
+        <button className="np-footer-btn" onClick={handleClose}>View all notifications</button>
       </div>
     </div>
   );

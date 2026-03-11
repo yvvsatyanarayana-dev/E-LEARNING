@@ -101,6 +101,14 @@ const router = createBrowserRouter([
     path: "/facultydashboard/profile",
     element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
   },
+  {
+    path: "/facultydashboard/quickactions",
+    element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+  },
+  {
+    path: "/facultydashboard/notifications",
+    element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+  },
 
   // ──────── OTHER DASHBOARD ROUTES ────────
   {

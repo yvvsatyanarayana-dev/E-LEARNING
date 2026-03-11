@@ -7,7 +7,8 @@ from Service.FacultyService import FacultyService
 from typing import List
 from Schemas.FacultySchema import (
     FacultyDashboardResponse, FacultyCourseSummary, FacultyAssignmentDetail, 
-    FacultyQuizDetail, FacultyStudentDetail, FacultyGradeBookEntry, FacultyAnalyticsData
+    FacultyQuizDetail, FacultyStudentDetail, FacultyGradeBookEntry, FacultyAnalyticsData,
+    FacultyLectureDetail, FacultyProfileResponse, FacultyAttendanceCourse
 )
 
 router = APIRouter(prefix="/faculty", tags=["Faculty"])
@@ -17,9 +18,21 @@ faculty_service = FacultyService()
 def get_faculty_dashboard(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return faculty_service.get_dashboard(current_user, db)
 
+@router.get("/profile", response_model=FacultyProfileResponse)
+def get_faculty_profile(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return faculty_service.get_profile(current_user, db)
+
+@router.get("/attendance", response_model=List[FacultyAttendanceCourse])
+def get_faculty_attendance(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return faculty_service.get_attendance(current_user, db)
+
 @router.get("/courses", response_model=List[FacultyCourseSummary])
 def get_faculty_courses(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return faculty_service.get_courses(current_user, db)
+
+@router.get("/lectures", response_model=List[FacultyLectureDetail])
+def get_faculty_lectures(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return faculty_service.get_lectures(current_user, db)
 
 @router.get("/assignments", response_model=List[FacultyAssignmentDetail])
 def get_faculty_assignments(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
