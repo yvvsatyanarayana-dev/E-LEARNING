@@ -3,6 +3,7 @@
 // Inherits CSS variables from StudentDashboard.css + StudentMyCourses.css + StudentAssignments.css
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import api from "../../../utils/api";
 import {
   ChevronLeft, ChevronRight, Clock, CheckCircle2, XCircle,
   AlertTriangle, Star, Search, Filter, List, LayoutGrid,
@@ -14,365 +15,9 @@ import {
   Activity, AlarmClock, Brain, Timer, Flag, Send
 } from "lucide-react";
 
-// ─── COURSES ─────────────────────────────────────────────────────
-const COURSES = [
-  { id:"os",    code:"CS501", name:"Operating Systems",               short:"OS",     faculty:"Dr. R. Sharma",  color:"var(--indigo-l)", rgb:"91,78,248"  },
-  { id:"dbms",  code:"CS502", name:"Database Management Systems",     short:"DBMS",   faculty:"Prof. A. Verma", color:"var(--teal)",     rgb:"20,184,166" },
-  { id:"ml",    code:"CS503", name:"Machine Learning",                short:"ML",     faculty:"Dr. P. Nair",    color:"var(--amber)",    rgb:"245,158,11" },
-  { id:"cn",    code:"CS504", name:"Computer Networks",               short:"CN",     faculty:"Prof. K. Rao",   color:"var(--violet)",   rgb:"139,92,246" },
-  { id:"crypto",code:"CS505", name:"Cryptography & Network Security", short:"Crypto", faculty:"Dr. S. Mehta",   color:"var(--rose)",     rgb:"244,63,94"  },
-];
-
 // ─── QUIZ STATUS & TYPE ───────────────────────────────────────────
 const QSTATUS = { UPCOMING:"upcoming", LIVE:"live", COMPLETED:"completed", MISSED:"missed" };
 const QTYPE   = { MCQ:"MCQ", CODING:"Coding", DESCRIPTIVE:"Descriptive", MIXED:"Mixed" };
-
-// ─── ALL QUIZZES ─────────────────────────────────────────────────
-const QUIZZES = [
-  // ── OS ──
-  {
-    id:"q1", courseId:"os", title:"Process Scheduling Algorithms",
-    type:QTYPE.MCQ, status:QSTATUS.COMPLETED,
-    scheduledAt:"Feb 28, 2026 · 10:30 AM", duration:30,
-    totalQuestions:20, attempted:20, correct:17, wrong:2, skipped:1,
-    marks:85, maxMarks:100, rank:3, totalStudents:112,
-    classAvg:71, topScore:98, passPercent:82,
-    topics:["FCFS","SJF","Round Robin","Priority","Scheduling"],
-    difficulty:"Medium", weight:"10%",
-    weakAreas:["Multilevel Queue","Aging concept"],
-    aiTip:"You scored above class average! Focus on multilevel queue scheduling for the next quiz.",
-    questions: [
-      { id:1, text:"Which scheduling algorithm is non-preemptive by default?", options:["FCFS","Round Robin","SRTF","Priority (Preemptive)"], correct:0, selected:0, explanation:"FCFS (First Come First Serve) is inherently non-preemptive — a process runs to completion before the CPU is given to the next." },
-      { id:2, text:"Round Robin scheduling uses a concept called:", options:["Aging","Time Quantum","Priority","Burst Time"], correct:1, selected:1, explanation:"Round Robin uses a fixed time slice called Time Quantum. Each process gets the CPU for this duration before being preempted." },
-      { id:3, text:"In SJF, which metric is used to decide scheduling order?", options:["Arrival Time","Priority Number","Burst Time","Process ID"], correct:2, selected:2, explanation:"Shortest Job First schedules the process with the smallest burst time (CPU time needed) next." },
-      { id:4, text:"Starvation can occur in which algorithm?", options:["Round Robin","FCFS","Priority Scheduling","SJF (Non-preemptive)"], correct:2, selected:1, explanation:"Priority Scheduling can cause starvation — low-priority processes may wait indefinitely if high-priority processes keep arriving." },
-      { id:5, text:"The Gantt chart for FCFS with arrivals A(0,4), B(0,3), C(0,2) is:", options:["A→B→C","B→A→C","C→B→A","A→C→B"], correct:0, selected:0, explanation:"FCFS processes in arrival order. All arrived at 0, so order by queue: A first." },
-      { id:6, text:"Which algorithm solves the starvation problem in Priority Scheduling?", options:["Time Sharing","Aging","SJF","Round Robin"], correct:1, selected:1, explanation:"Aging gradually increases the priority of waiting processes, preventing indefinite starvation." },
-      { id:7, text:"Preemptive SJF is also known as:", options:["HRRN","SSTF","SRTF","LCFS"], correct:2, selected:2, explanation:"Preemptive SJF is called Shortest Remaining Time First (SRTF) — it preempts the running process if a new shorter job arrives." },
-      { id:8, text:"What is the average waiting time for FCFS with burst times [3,6,4]?", options:["3.67","5.67","4.33","6.00"], correct:1, selected:1, explanation:"P1 waits 0, P2 waits 3, P3 waits 9. Avg = (0+3+9)/3 = 4. Wait — recalculate: avg = 12/3 = 4. Closest answer is 5.67 (depends on arrival)." },
-      { id:9, text:"Multilevel Queue scheduling divides processes by:", options:["Burst time","Priority groups","Memory size","I/O frequency"], correct:1, selected:3, explanation:"Multilevel Queue partitions the ready queue into separate queues based on process type/priority, each with its own algorithm." },
-      { id:10, text:"Which scheduling criterion minimises response time best?", options:["FCFS","SJF","Round Robin","Priority"], correct:2, selected:2, explanation:"Round Robin provides the best average response time for interactive systems due to its time-sharing nature." },
-    ],
-  },
-  {
-    id:"q2", courseId:"os", title:"Memory Management & Paging",
-    type:QTYPE.MCQ, status:QSTATUS.COMPLETED,
-    scheduledAt:"Mar 3, 2026 · 11:00 AM", duration:25,
-    totalQuestions:15, attempted:15, correct:13, wrong:1, skipped:1,
-    marks:92, maxMarks:100, rank:2, totalStudents:108,
-    classAvg:68, topScore:100, passPercent:79,
-    topics:["Paging","TLB","Page Tables","Virtual Memory"],
-    difficulty:"Medium", weight:"8%",
-    weakAreas:["Multi-level paging address calculation"],
-    aiTip:"Excellent! Practice multi-level paging address translation problems for the end-semester exam.",
-    questions: [],
-  },
-  {
-    id:"q3", courseId:"os", title:"Deadlock & Synchronisation",
-    type:QTYPE.MIXED, status:QSTATUS.UPCOMING,
-    scheduledAt:"Mar 10, 2026 · 10:30 AM", duration:40,
-    totalQuestions:20, attempted:0, correct:0, wrong:0, skipped:0,
-    marks:null, maxMarks:100, rank:null, totalStudents:0,
-    classAvg:null, topScore:null, passPercent:null,
-    topics:["Deadlock","Banker's Algorithm","Semaphores","Mutex"],
-    difficulty:"Hard", weight:"12%",
-    weakAreas:[], aiTip:"Based on your performance, revise the Banker's algorithm thoroughly before this quiz.",
-    questions:[],
-    isLive:false,
-  },
-
-  // ── DBMS ──
-  {
-    id:"q4", courseId:"dbms", title:"Relational Model & SQL",
-    type:QTYPE.MCQ, status:QSTATUS.COMPLETED,
-    scheduledAt:"Feb 20, 2026 · 09:00 AM", duration:30,
-    totalQuestions:20, attempted:20, correct:16, wrong:3, skipped:1,
-    marks:82, maxMarks:100, rank:7, totalStudents:115,
-    classAvg:65, topScore:96, passPercent:74,
-    topics:["SQL","Keys","Constraints","Joins"],
-    difficulty:"Easy", weight:"8%",
-    weakAreas:["Natural Join vs Cross Join","Subquery optimisation"],
-    aiTip:"Good performance! Practise complex nested subqueries to push your score to 90+.",
-    questions:[],
-  },
-  {
-    id:"q5", courseId:"dbms", title:"Normalisation — 1NF to BCNF",
-    type:QTYPE.MCQ, status:QSTATUS.COMPLETED,
-    scheduledAt:"Feb 27, 2026 · 02:00 PM", duration:35,
-    totalQuestions:20, attempted:19, correct:14, wrong:4, skipped:2,
-    marks:75, maxMarks:100, rank:15, totalStudents:115,
-    classAvg:60, topScore:95, passPercent:68,
-    topics:["1NF","2NF","3NF","BCNF","FDs"],
-    difficulty:"Medium", weight:"10%",
-    weakAreas:["BCNF decomposition","Lossless join property"],
-    aiTip:"You skipped 2 questions — practise under time pressure. BCNF needs more attention.",
-    questions:[],
-  },
-  {
-    id:"q6", courseId:"dbms", title:"Transactions & Concurrency Control",
-    type:QTYPE.MIXED, status:QSTATUS.UPCOMING,
-    scheduledAt:"Mar 12, 2026 · 11:00 AM", duration:40,
-    totalQuestions:25, attempted:0, correct:0, wrong:0, skipped:0,
-    marks:null, maxMarks:100, rank:null, totalStudents:0,
-    classAvg:null, topScore:null, passPercent:null,
-    topics:["ACID","Transactions","2PL","Deadlock in DB"],
-    difficulty:"Hard", weight:"12%",
-    weakAreas:[], aiTip:"Focus on two-phase locking protocols and serializability schedules.",
-    questions:[],
-  },
-
-  // ── ML ──
-  {
-    id:"q7", courseId:"ml", title:"Linear & Logistic Regression",
-    type:QTYPE.MCQ, status:QSTATUS.COMPLETED,
-    scheduledAt:"Feb 22, 2026 · 03:00 PM", duration:30,
-    totalQuestions:15, attempted:15, correct:11, wrong:3, skipped:1,
-    marks:76, maxMarks:100, rank:18, totalStudents:98,
-    classAvg:58, topScore:94, passPercent:61,
-    topics:["Gradient Descent","Cost Function","Sigmoid","Regularisation"],
-    difficulty:"Medium", weight:"10%",
-    weakAreas:["Polynomial regression overfitting","L1 vs L2 regularisation"],
-    aiTip:"Your gradient descent understanding is solid. Work on regularisation trade-offs.",
-    questions:[],
-  },
-  {
-    id:"q8", courseId:"ml", title:"SVM & Decision Trees",
-    type:QTYPE.MCQ, status:QSTATUS.UPCOMING,
-    scheduledAt:"Mar 8, 2026 · 10:00 AM", duration:30,
-    totalQuestions:20, attempted:0, correct:0, wrong:0, skipped:0,
-    marks:null, maxMarks:100, rank:null, totalStudents:0,
-    classAvg:null, topScore:null, passPercent:null,
-    topics:["SVM","Kernel Trick","CART","Gini Impurity","Random Forest"],
-    difficulty:"Hard", weight:"10%",
-    weakAreas:[], aiTip:"Kernel functions (RBF, Polynomial) are frequently tested. Revise them carefully.",
-    questions:[],
-  },
-  {
-    id:"q9", courseId:"ml", title:"Neural Networks Fundamentals",
-    type:QTYPE.MCQ, status:QSTATUS.MISSED,
-    scheduledAt:"Feb 15, 2026 · 09:00 AM", duration:25,
-    totalQuestions:15, attempted:0, correct:0, wrong:0, skipped:0,
-    marks:0, maxMarks:100, rank:null, totalStudents:96,
-    classAvg:54, topScore:92, passPercent:58,
-    topics:["Perceptron","Backpropagation","Activation Functions"],
-    difficulty:"Hard", weight:"8%",
-    weakAreas:["Backpropagation","Vanishing gradient"],
-    aiTip:"You missed this quiz. These topics will appear in end-semester — revise backpropagation.",
-    questions:[],
-  },
-
-  // ── CN ──
-  {
-    id:"q10", courseId:"cn", title:"OSI Model & Data Link Layer",
-    type:QTYPE.MCQ, status:QSTATUS.COMPLETED,
-    scheduledAt:"Feb 18, 2026 · 11:00 AM", duration:25,
-    totalQuestions:20, attempted:20, correct:17, wrong:2, skipped:1,
-    marks:88, maxMarks:100, rank:5, totalStudents:120,
-    classAvg:72, topScore:100, passPercent:84,
-    topics:["OSI Layers","MAC","CSMA/CD","Framing"],
-    difficulty:"Easy", weight:"8%",
-    weakAreas:["CSMA/CA vs CSMA/CD"],
-    aiTip:"Excellent work! You're in the top 5%. Small gap on CSMA/CA — quick revision will fix it.",
-    questions:[],
-  },
-  {
-    id:"q11", courseId:"cn", title:"IP Addressing & Subnetting",
-    type:QTYPE.MCQ, status:QSTATUS.COMPLETED,
-    scheduledAt:"Feb 25, 2026 · 02:00 PM", duration:30,
-    totalQuestions:20, attempted:20, correct:15, wrong:4, skipped:1,
-    marks:78, maxMarks:100, rank:12, totalStudents:120,
-    classAvg:63, topScore:98, passPercent:71,
-    topics:["IPv4","IPv6","CIDR","Subnetting","NAT"],
-    difficulty:"Medium", weight:"10%",
-    weakAreas:["VLSM","IPv6 address types"],
-    aiTip:"Solid performance. VLSM problems need more practice — try solving 5 subnetting problems daily.",
-    questions:[],
-  },
-  {
-    id:"q12", courseId:"cn", title:"Transport & Application Layers",
-    type:QTYPE.MIXED, status:QSTATUS.LIVE,
-    scheduledAt:"Mar 5, 2026 · 09:00 AM", duration:35,
-    totalQuestions:20, attempted:0, correct:0, wrong:0, skipped:0,
-    marks:null, maxMarks:100, rank:null, totalStudents:0,
-    classAvg:null, topScore:null, passPercent:null,
-    topics:["TCP","UDP","HTTP","DNS","HTTPS"],
-    difficulty:"Medium", weight:"10%",
-    weakAreas:[], aiTip:"This quiz is LIVE right now! TCP 3-way handshake and DNS resolution are key topics.",
-    questions:[],
-    isLive: true,
-  },
-
-  // ── Crypto ──
-  {
-    id:"q13", courseId:"crypto", title:"Classical Ciphers & Cryptanalysis",
-    type:QTYPE.MCQ, status:QSTATUS.COMPLETED,
-    scheduledAt:"Feb 12, 2026 · 10:00 AM", duration:20,
-    totalQuestions:15, attempted:15, correct:9, wrong:5, skipped:1,
-    marks:62, maxMarks:100, rank:42, totalStudents:102,
-    classAvg:55, topScore:90, passPercent:60,
-    topics:["Caesar Cipher","Vigenère","Frequency Analysis"],
-    difficulty:"Easy", weight:"6%",
-    weakAreas:["Vigenère key finding","Kasiski Test"],
-    aiTip:"Below average performance. Revisit frequency analysis attacks — they account for 40% of this topic.",
-    questions:[],
-  },
-  {
-    id:"q14", courseId:"crypto", title:"Symmetric Key Cryptography",
-    type:QTYPE.MCQ, status:QSTATUS.UPCOMING,
-    scheduledAt:"Mar 14, 2026 · 11:00 AM", duration:30,
-    totalQuestions:20, attempted:0, correct:0, wrong:0, skipped:0,
-    marks:null, maxMarks:100, rank:null, totalStudents:0,
-    classAvg:null, topScore:null, passPercent:null,
-    topics:["DES","AES","Feistel Network","Block Cipher Modes"],
-    difficulty:"Hard", weight:"12%",
-    weakAreas:[], aiTip:"AES SubBytes and MixColumns transformations are complex — use visual aids to understand them.",
-    questions:[],
-  },
-];
-
-// ─── PRACTICE QUESTIONS (for live attempt UI) ─────────────────────
-const PRACTICE_QUESTIONS = [
-  {
-    id:1,
-    text:"Which TCP flag is used to initiate a connection?",
-    options:["ACK","SYN","FIN","RST"],
-    correct:1,
-    explanation:"The SYN (Synchronize) flag initiates TCP's 3-way handshake. The client sends SYN, server replies SYN-ACK, client replies ACK."
-  },
-  {
-    id:2,
-    text:"DNS primarily uses which transport protocol?",
-    options:["TCP","UDP","ICMP","SCTP"],
-    correct:1,
-    explanation:"DNS primarily uses UDP port 53 for queries (faster, connectionless). TCP is used for zone transfers and responses >512 bytes."
-  },
-  {
-    id:3,
-    text:"The maximum segment lifetime (MSL) in TCP TIME_WAIT is typically:",
-    options:["30 seconds","60 seconds","2 minutes","10 minutes"],
-    correct:2,
-    explanation:"TCP TIME_WAIT state lasts 2×MSL (Maximum Segment Lifetime) = 2 minutes. This ensures all delayed packets expire before port reuse."
-  },
-  {
-    id:4,
-    text:"Which HTTP method is idempotent but NOT safe?",
-    options:["GET","HEAD","PUT","POST"],
-    correct:2,
-    explanation:"PUT is idempotent (same result if repeated) but not safe (it modifies the server state). GET and HEAD are both safe and idempotent."
-  },
-  {
-    id:5,
-    text:"HTTPS uses TLS on top of which layer?",
-    options:["Network","Transport","Session","Application"],
-    correct:1,
-    explanation:"TLS/SSL operates at the Transport layer (Layer 4), providing encryption for application layer protocols like HTTP."
-  },
-  {
-    id:6,
-    text:"UDP's checksum field is:",
-    options:["Mandatory","Optional","Not present","4 bytes"],
-    correct:1,
-    explanation:"UDP's checksum is optional in IPv4 (but mandatory in IPv6). If unused, the field is set to all zeros."
-  },
-  {
-    id:7,
-    text:"Which DNS record type maps a domain to an IPv6 address?",
-    options:["A","AAAA","CNAME","MX"],
-    correct:1,
-    explanation:"AAAA (quad-A) records map domain names to 128-bit IPv6 addresses. A records are for IPv4."
-  },
-  {
-    id:8,
-    text:"The sliding window protocol is used to control:",
-    options:["Routing","Flow Control","Error Detection","Fragmentation"],
-    correct:1,
-    explanation:"The sliding window protocol implements flow control by allowing the sender to transmit multiple frames before waiting for acknowledgement."
-  },
-  {
-    id:9,
-    text:"HTTP/2's primary improvement over HTTP/1.1 is:",
-    options:["Encryption","Multiplexing","Stateful connections","Binary encoding only"],
-    correct:1,
-    explanation:"HTTP/2 introduces multiplexing — multiple requests and responses can be sent over a single TCP connection simultaneously, eliminating head-of-line blocking."
-  },
-  {
-    id:10,
-    text:"Which port does HTTPS use by default?",
-    options:["80","443","8080","8443"],
-    correct:1,
-    explanation:"HTTPS uses port 443 by default. HTTP uses port 80. Ports 8080 and 8443 are common alternatives used in development."
-  },
-  {
-    id:11,
-    text:"TCP's congestion control algorithm that starts with exponential growth is:",
-    options:["Congestion Avoidance","Fast Retransmit","Slow Start","Fast Recovery"],
-    correct:2,
-    explanation:"Slow Start begins with a small congestion window (cwnd=1) and doubles it each RTT — exponential growth — until the slow start threshold is reached."
-  },
-  {
-    id:12,
-    text:"What does the FIN flag in TCP signify?",
-    options:["Force immediate close","No more data from sender","Reset connection","Fragment indicator"],
-    correct:1,
-    explanation:"FIN (Finish) signals that the sender has no more data to send. TCP uses a 4-step FIN exchange for graceful connection termination."
-  },
-  {
-    id:13,
-    text:"Which layer of the OSI model does SMTP operate at?",
-    options:["Transport","Network","Session","Application"],
-    correct:3,
-    explanation:"SMTP (Simple Mail Transfer Protocol) operates at Layer 7 — the Application layer. It handles email transmission between mail servers."
-  },
-  {
-    id:14,
-    text:"The purpose of the ACK number in TCP is to:",
-    options:["Identify the sender","Indicate next expected byte","Set window size","Signal congestion"],
-    correct:1,
-    explanation:"The ACK number tells the sender the next expected byte sequence number, confirming receipt of all previous bytes."
-  },
-  {
-    id:15,
-    text:"QUIC protocol is built on top of:",
-    options:["TCP","UDP","IP directly","SCTP"],
-    correct:1,
-    explanation:"QUIC (used in HTTP/3) is built on UDP, not TCP. This allows faster connection setup and avoids TCP's head-of-line blocking."
-  },
-  {
-    id:16,
-    text:"A web browser sends an HTTP GET. At which layer is the destination IP added?",
-    options:["Application","Transport","Network","Data Link"],
-    correct:2,
-    explanation:"The Network layer (Layer 3) adds the source and destination IP addresses to form the IP packet."
-  },
-  {
-    id:17,
-    text:"Which DNS record stores mail server information?",
-    options:["A","AAAA","MX","NS"],
-    correct:2,
-    explanation:"MX (Mail Exchanger) records specify the mail server responsible for accepting email for a domain."
-  },
-  {
-    id:18,
-    text:"TCP uses which mechanism to handle out-of-order segments?",
-    options:["NACK","Reordering buffer","Go-Back-N only","CRC retransmit"],
-    correct:1,
-    explanation:"TCP uses a reordering buffer (receive buffer) to hold out-of-order segments and reassemble them in the correct order before passing to the application."
-  },
-  {
-    id:19,
-    text:"The RST flag in TCP is used to:",
-    options:["Reduce window size","Abruptly terminate a connection","Acknowledge receipt","Request retransmission"],
-    correct:1,
-    explanation:"RST (Reset) abruptly terminates a TCP connection without the normal 4-step FIN process, typically due to errors or refused connections."
-  },
-  {
-    id:20,
-    text:"HTTP status code 301 means:",
-    options:["Created","Temporary Redirect","Moved Permanently","Not Modified"],
-    correct:2,
-    explanation:"301 Moved Permanently indicates that the resource has been permanently moved to a new URL. Browsers cache this redirect."
-  },
-];
 
 // ─── STATUS CONFIG ─────────────────────────────────────────────────
 const STATUS_CFG = {
@@ -394,6 +39,10 @@ const DIFF_CFG = {
   "Medium": { color:"var(--amber)", bg:"rgba(245,158,11,.1)" },
   "Hard":   { color:"var(--rose)",  bg:"rgba(244,63,94,.1)"  },
 };
+
+const DIFF_FALLBACK   = { color:"var(--text3)",    bg:"rgba(120,120,120,.1)" };
+const STATUS_FALLBACK = { label:"Unknown", color:"var(--text3)", bg:"rgba(120,120,120,.1)", Icon: Calendar };
+const TYPE_FALLBACK   = { color:"var(--indigo-ll)", bg:"rgba(91,78,248,.1)" };
 
 // ─── FILTER / SORT ────────────────────────────────────────────────
 const FILTER_TABS  = ["All","Upcoming","Live","Completed","Missed"];
@@ -431,15 +80,16 @@ function scoreColor(pct) {
 }
 
 // ─── STATS STRIP ─────────────────────────────────────────────────
-function StatsStrip() {
-  const total     = QUIZZES.length;
-  const completed = QUIZZES.filter(q=>q.status===QSTATUS.COMPLETED).length;
-  const upcoming  = QUIZZES.filter(q=>q.status===QSTATUS.UPCOMING).length;
-  const live      = QUIZZES.filter(q=>q.status===QSTATUS.LIVE).length;
-  const missed    = QUIZZES.filter(q=>q.status===QSTATUS.MISSED).length;
-  const gradedArr = QUIZZES.filter(q=>q.marks!=null&&q.status===QSTATUS.COMPLETED);
+function StatsStrip({ quizzes = [] }) {
+  const total     = quizzes.length;
+  const completed = quizzes.filter(q=>q.status===QSTATUS.COMPLETED).length;
+  const upcoming  = quizzes.filter(q=>q.status===QSTATUS.UPCOMING).length;
+  const live      = quizzes.filter(q=>q.status===QSTATUS.LIVE).length;
+  const missed    = quizzes.filter(q=>q.status===QSTATUS.MISSED).length;
+  const gradedArr = quizzes.filter(q=>q.marks!=null&&q.status===QSTATUS.COMPLETED);
   const avgScore  = gradedArr.length ? Math.round(gradedArr.reduce((s,q)=>s+q.marks,0)/gradedArr.length) : 0;
-  const bestRank  = Math.min(...QUIZZES.filter(q=>q.rank).map(q=>q.rank));
+  const ranks     = quizzes.filter(q=>q.rank).map(q=>q.rank);
+  const bestRank  = ranks.length ? Math.min(...ranks) : "—";
 
   return (
     <div className="san-kpi-grid" style={{marginBottom:20}}>
@@ -461,7 +111,7 @@ function StatsStrip() {
 }
 
 // ─── COURSE SIDEBAR ───────────────────────────────────────────────
-function CourseSidebar({ activeCourseId, onSelect }) {
+function CourseSidebar({ activeCourseId, onSelect, courses = [], quizzes = [] }) {
   return (
     <div className="vl-course-sidebar">
       <div className="vl-cs-title">Courses</div>
@@ -471,23 +121,23 @@ function CourseSidebar({ activeCourseId, onSelect }) {
         </div>
         <div className="vl-cs-info">
           <span className="vl-cs-name">All Courses</span>
-          <span className="vl-cs-count">{QUIZZES.length} quizzes</span>
+          <span className="vl-cs-count">{quizzes.length} quizzes</span>
         </div>
       </button>
-      {COURSES.map(c=>{
-        const cqs      = QUIZZES.filter(q=>q.courseId===c.id);
+      {courses.map(c=>{
+        const cqs      = quizzes.filter(q=>q.courseId===c.id);
         const live     = cqs.filter(q=>q.status===QSTATUS.LIVE).length;
         const upcoming = cqs.filter(q=>q.status===QSTATUS.UPCOMING).length;
         const badge    = live>0?live:upcoming>0?upcoming:0;
-        const badgeBg  = live>0?`rgba(20,184,166,.15)`:`rgba(${c.rgb},.15)`;
-        const badgeCol = live>0?`var(--teal)`:c.color;
+        const badgeBg  = live>0?`rgba(20,184,166,.15)`:`rgba(${c.rgb||'91,78,248'},.15)`;
+        const badgeCol = live>0?`var(--teal)`:(c.color||'var(--indigo-ll)');
         return (
           <button key={c.id}
             className={`vl-cs-item${activeCourseId===c.id?" active":""}`}
-            style={{"--cs-color":c.color,"--cs-rgb":c.rgb}}
+            style={{"--cs-color":c.color||'var(--indigo-ll)',"--cs-rgb":c.rgb||'91,78,248'}}
             onClick={()=>onSelect(c.id)}>
-            <div className="vl-cs-icon" style={{background:`rgba(${c.rgb},.12)`,border:`1px solid rgba(${c.rgb},.2)`}}>
-              <BookOpen size={14} style={{color:c.color}}/>
+            <div className="vl-cs-icon" style={{background:`rgba(${c.rgb||'91,78,248'},.12)`,border:`1px solid rgba(${c.rgb||'91,78,248'},.2)`}}>
+              <BookOpen size={14} style={{color:c.color||'var(--indigo-ll)'}}/>
             </div>
             <div className="vl-cs-info">
               <span className="vl-cs-name">{c.short}</span>
@@ -504,9 +154,9 @@ function CourseSidebar({ activeCourseId, onSelect }) {
 // ─── QUIZ CARD (grid) ─────────────────────────────────────────────
 function QuizCard({ quiz, course, onOpen, onAttempt }) {
   const [hov,setHov] = useState(false);
-  const sc  = STATUS_CFG[quiz.status];
-  const tc  = TYPE_CFG[quiz.type];
-  const dc  = DIFF_CFG[quiz.difficulty];
+  const sc  = STATUS_CFG[quiz.status] || STATUS_FALLBACK;
+  const tc  = TYPE_CFG[quiz.type]     || TYPE_FALLBACK;
+  const dc  = DIFF_CFG[quiz.difficulty] || DIFF_FALLBACK;
   const ScIcon = sc.Icon;
   const pct = quiz.marks != null ? quiz.marks : null;
 
@@ -599,9 +249,9 @@ function QuizCard({ quiz, course, onOpen, onAttempt }) {
 
 // ─── QUIZ ROW (list) ──────────────────────────────────────────────
 function QuizRow({ quiz, course, onOpen, onAttempt }) {
-  const sc = STATUS_CFG[quiz.status];
-  const tc = TYPE_CFG[quiz.type];
-  const dc = DIFF_CFG[quiz.difficulty];
+  const sc = STATUS_CFG[quiz.status] || STATUS_FALLBACK;
+  const tc = TYPE_CFG[quiz.type]     || TYPE_FALLBACK;
+  const dc = DIFF_CFG[quiz.difficulty] || DIFF_FALLBACK;
   const ScIcon = sc.Icon;
   const pct = quiz.marks != null ? quiz.marks : null;
 
@@ -655,8 +305,8 @@ function QuizRow({ quiz, course, onOpen, onAttempt }) {
 }
 
 // ─── QUIZ ATTEMPT SCREEN ──────────────────────────────────────────
-function QuizAttemptScreen({ quiz, course, onClose, onSubmit }) {
-  const questions = quiz.id==="q12" ? PRACTICE_QUESTIONS : quiz.questions.length > 0 ? quiz.questions : PRACTICE_QUESTIONS.slice(0,quiz.totalQuestions||10);
+function QuizAttemptScreen({ quiz, course, onClose, onSubmit, practiceQuestions = [] }) {
+  const questions = quiz.id==="q12" ? practiceQuestions : quiz.questions.length > 0 ? quiz.questions : practiceQuestions.slice(0,quiz.totalQuestions||10);
   const total    = questions.length;
   const [current, setCurrent]   = useState(0);
   const [answers, setAnswers]   = useState({});
@@ -855,14 +505,14 @@ function QuizAttemptScreen({ quiz, course, onClose, onSubmit }) {
 }
 
 // ─── REVIEW DRAWER ────────────────────────────────────────────────
-function ReviewDrawer({ quiz, course, onClose, onAttempt }) {
+function ReviewDrawer({ quiz, course, onClose, onAttempt, practiceQuestions = [] }) {
   const [tab, setTab] = useState("overview"); // overview | questions | analysis
   const sc = STATUS_CFG[quiz.status];
   const tc = TYPE_CFG[quiz.type];
   const ScIcon = sc.Icon;
   const pct  = quiz.marks;
   const col  = pct!=null ? scoreColor(pct) : course.color;
-  const qs   = quiz.questions.length>0 ? quiz.questions : (quiz.id==="q12"?PRACTICE_QUESTIONS:[]);
+  const qs   = quiz.questions.length>0 ? quiz.questions : (quiz.id==="q12"?practiceQuestions:[]);
 
   return (
     <div className="as-drawer-overlay" onClick={onClose}>
@@ -1129,8 +779,8 @@ function ReviewDrawer({ quiz, course, onClose, onAttempt }) {
 }
 
 // ─── LEADERBOARD CARD ─────────────────────────────────────────────
-function LeaderboardCard() {
-  const completedWithRanks = QUIZZES.filter(q=>q.rank&&q.status===QSTATUS.COMPLETED)
+function LeaderboardCard({ courses = [], quizzes = [] }) {
+  const completedWithRanks = quizzes.filter(q=>q.rank&&q.status===QSTATUS.COMPLETED)
     .sort((a,b)=>a.rank-b.rank).slice(0,5);
   return (
     <div className="panel">
@@ -1139,7 +789,7 @@ function LeaderboardCard() {
       </div>
       <div className="panel-body" style={{padding:"0 0 8px"}}>
         {completedWithRanks.map((q,i)=>{
-          const c   = COURSES.find(x=>x.id===q.courseId);
+          const c   = courses.find(x=>x.id===q.courseId) || { color: "var(--text2)", short: "???" };
           const col = scoreColor(q.marks);
           return (
             <div key={q.id} className="qz-lb-row">
@@ -1158,8 +808,8 @@ function LeaderboardCard() {
 }
 
 // ─── UPCOMING CARD ────────────────────────────────────────────────
-function UpcomingCard({ onAttempt }) {
-  const upcoming = QUIZZES.filter(q=>q.status===QSTATUS.UPCOMING||q.status===QSTATUS.LIVE)
+function UpcomingCard({ quizzes = [], courses = [], onAttempt }) {
+  const upcoming = (quizzes || []).filter(q=>q.status===QSTATUS.UPCOMING||q.status===QSTATUS.LIVE)
     .sort((a,b)=>new Date(a.scheduledAt)-new Date(b.scheduledAt)).slice(0,4);
   return (
     <div className="panel">
@@ -1168,7 +818,7 @@ function UpcomingCard({ onAttempt }) {
       </div>
       <div className="panel-body" style={{padding:"0 0 8px"}}>
         {upcoming.map(q=>{
-          const c   = COURSES.find(x=>x.id===q.courseId);
+          const c   = courses.find(x=>x.id===q.courseId) || { color: "var(--text2)", short: "???" };
           const isLive = q.status===QSTATUS.LIVE;
           return (
             <div key={q.id} className={`qz-up-row${isLive?" qz-up-row--live":""}`}
@@ -1192,8 +842,11 @@ function UpcomingCard({ onAttempt }) {
   );
 }
 
-// ─── MAIN COMPONENT ───────────────────────────────────────────────
+
 export default function StudentQuizzes({ onBack }) {
+  const [coursesState, setCoursesState] = useState([]);
+  const [quizzesState, setQuizzesState] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [activeCourseId, setActiveCourseId] = useState(null);
   const [filterTab,  setFilterTab]   = useState("All");
   const [typeFilter, setTypeFilter]  = useState("All Types");
@@ -1205,16 +858,86 @@ export default function StudentQuizzes({ onBack }) {
   const [reviewQuiz, setReviewQuiz]  = useState(null);
   const [attemptQuiz,setAttemptQuiz] = useState(null);
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [cData, qData] = await Promise.all([
+          api.get("/student/courses").catch(() => []),
+          api.get("/student/quizzes?include_questions=true").catch(() => [])
+        ]);
+
+        const mappedCourses = (cData || []).map((c, i) => {
+          const colors = ["var(--indigo-l)", "var(--teal)", "var(--amber)", "var(--violet)", "var(--rose)"];
+          const rgb = ["91,78,248", "20,184,166", "245,158,11", "139,92,246", "244,63,94"];
+          return {
+            id: c.course_id,                           // API returns course_id
+            code: c.code || ("CS" + c.course_id),
+            name: c.title,
+            short: c.title.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 4),
+            faculty: c.faculty_name,
+            color: colors[i % colors.length],
+            rgb: rgb[i % rgb.length],
+          };
+        });
+        setCoursesState(mappedCourses);
+
+        const mappedQuizzes = (qData || []).map(q => ({
+          id: q.id,
+          courseId: q.course_id,
+          title: q.title,
+          type: QTYPE.MCQ,
+          status: q.attempt_count > 0 ? QSTATUS.COMPLETED : 
+                  (new Date(q.created_at) > new Date() ? QSTATUS.UPCOMING : QSTATUS.LIVE),
+          scheduledAt: q.created_at ? new Date(q.created_at).toLocaleString('en-US', { 
+            month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: 'numeric', hour12: true 
+          }).replace(',', ' ·') : "TBD",
+          duration: 30,
+          totalQuestions: q.question_count,
+          attempted: q.attempt_count > 0 ? q.question_count : 0,
+          correct: q.best_score != null ? Math.round((q.best_score / 100) * q.question_count) : 0,
+          wrong: 0,
+          skipped: 0,
+          marks: q.best_score,
+          maxMarks: 100,
+          rank: null,
+          totalStudents: 0,
+          classAvg: null,
+          topScore: null,
+          passPercent: null,
+          topics: ["Quiz", q.difficulty],
+          difficulty: q.difficulty ? (q.difficulty.charAt(0).toUpperCase() + q.difficulty.slice(1).toLowerCase()) : "Medium",
+          weight: "10%",
+          weakAreas: [],
+          aiTip: null,
+          questions: (q.questions || []).map(quest => ({
+            id: quest.id,
+            text: quest.question_text,
+            options: quest.options,
+            correct: 0,
+            explanation: "Review the course materials."
+          })),
+          isLive: q.attempt_count === 0,
+        }));
+        setQuizzesState(mappedQuizzes);
+      } catch (error) {
+        console.error("Failed to fetch quizzes data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
   useEffect(()=>{
     const h=()=>{ setShowSortDd(false); setShowTypeDd(false); };
     document.addEventListener("click",h);
     return()=>document.removeEventListener("click",h);
   },[]);
 
-  const activeCourse = COURSES.find(c=>c.id===activeCourseId)||null;
+  const activeCourse = coursesState.find(c=>c.id===activeCourseId)||null;
 
   // Filter
-  const filtered = QUIZZES.filter(q=>{
+  const filtered = quizzesState.filter(q=>{
     const byCourse = !activeCourseId || q.courseId===activeCourseId;
     const byTab =
       filterTab==="All"       ? true :
@@ -1233,12 +956,11 @@ export default function StudentQuizzes({ onBack }) {
   // Sort
   const sorted = [...filtered].sort((a,b)=>{
     if(sortBy==="Schedule") {
-      // Live first, then upcoming, then completed, then missed
       const order={[QSTATUS.LIVE]:0,[QSTATUS.UPCOMING]:1,[QSTATUS.COMPLETED]:2,[QSTATUS.MISSED]:3};
       return (order[a.status]||0)-(order[b.status]||0);
     }
     if(sortBy==="Score")      return (b.marks||0)-(a.marks||0);
-    if(sortBy==="Course")     return a.courseId.localeCompare(b.courseId);
+    if(sortBy==="Course")     return String(a.courseId).localeCompare(String(b.courseId));
     if(sortBy==="Difficulty") {
       const d={Easy:0,Medium:1,Hard:2};
       return (d[a.difficulty]||0)-(d[b.difficulty]||0);
@@ -1246,21 +968,30 @@ export default function StudentQuizzes({ onBack }) {
     return 0;
   });
 
-  const liveCount     = QUIZZES.filter(q=>q.status===QSTATUS.LIVE).length;
-  const upcomingCount = QUIZZES.filter(q=>q.status===QSTATUS.UPCOMING).length;
+  const liveCount     = quizzesState.filter(q=>q.status===QSTATUS.LIVE).length;
+  const upcomingCount = quizzesState.filter(q=>q.status===QSTATUS.UPCOMING).length;
 
   const handleOpen    = q => setReviewQuiz(q);
   const handleAttempt = q => { setReviewQuiz(null); setAttemptQuiz(q); };
   const handleClose   = () => { setReviewQuiz(null); setAttemptQuiz(null); };
 
+  if (loading) {
+    return (
+      <div className="mc-loading" style={{display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",height:"100%",gap:16}}>
+        <div className="mc-loading-spinner"/>
+        <p style={{color:"var(--text3)",fontSize:14}}>Loading quizzes...</p>
+      </div>
+    );
+  }
+
   return (
     <>
       {reviewQuiz&&(()=>{
-        const c=COURSES.find(x=>x.id===reviewQuiz.courseId);
+        const c=coursesState.find(x=>x.id===reviewQuiz.courseId) || { color: "var(--indigo-ll)", rgb: "91,78,248", short: "?", code: "?" };
         return <ReviewDrawer quiz={reviewQuiz} course={c} onClose={handleClose} onAttempt={handleAttempt}/>;
       })()}
       {attemptQuiz&&(()=>{
-        const c=COURSES.find(x=>x.id===attemptQuiz.courseId);
+        const c=coursesState.find(x=>x.id===attemptQuiz.courseId) || { color: "var(--indigo-ll)", rgb: "91,78,248", short: "?", code: "?" };
         return <QuizAttemptScreen quiz={attemptQuiz} course={c} onClose={handleClose} onSubmit={handleClose}/>;
       })()}
 
@@ -1281,7 +1012,7 @@ export default function StudentQuizzes({ onBack }) {
             <div>
               <div className="greet-tag" style={{marginBottom:8}}>
                 <div className="greet-pip"/>
-                <span className="greet-pip-txt">Semester 5 · Week 11 · {QUIZZES.length} Quizzes · {liveCount} Live</span>
+                <span className="greet-pip-txt">Semester 5 · Week 11 · {quizzesState.length} Quizzes · {liveCount} Live</span>
               </div>
               <h1 className="greet-title">My <em>Quizzes</em></h1>
               <p className="greet-sub">Attempt live quizzes, review past results, and track your performance across all subjects.</p>
@@ -1290,7 +1021,7 @@ export default function StudentQuizzes({ onBack }) {
               <div className="qz-live-banner">
                 <span className="qz-live-pulse-dot"/><Zap size={13} fill="var(--teal)"/>
                 <span><strong>{liveCount}</strong> quiz is live right now!</span>
-                <button className="qz-live-go" onClick={()=>handleAttempt(QUIZZES.find(q=>q.status===QSTATUS.LIVE))}>
+                <button className="qz-live-go" onClick={()=>handleAttempt(quizzesState.find(q=>q.status===QSTATUS.LIVE))}>
                   Attempt Now →
                 </button>
               </div>
@@ -1298,16 +1029,12 @@ export default function StudentQuizzes({ onBack }) {
           </div>
         </div>
 
-        <StatsStrip/>
+        <StatsStrip quizzes={quizzesState}/>
 
-        {/* ── Main layout ── */}
         <div className="qz-main-layout">
-          {/* Left sidebar */}
-          <CourseSidebar activeCourseId={activeCourseId} onSelect={setActiveCourseId}/>
+          <CourseSidebar activeCourseId={activeCourseId} onSelect={setActiveCourseId} courses={coursesState} quizzes={quizzesState}/>
 
-          {/* Content */}
           <div className="as-content-area">
-            {/* Course heading */}
             {activeCourse&&(
               <div className="vl-course-heading"
                 style={{"--card-color":activeCourse.color,"--card-rgb":activeCourse.rgb}}>
@@ -1320,7 +1047,7 @@ export default function StudentQuizzes({ onBack }) {
                 </div>
                 <div style={{display:"flex",alignItems:"center",gap:12,flexShrink:0}}>
                   {(()=>{
-                    const all=QUIZZES.filter(q=>q.courseId===activeCourse.id);
+                    const all=quizzesState.filter(q=>q.courseId===activeCourse.id);
                     const done=all.filter(q=>q.status===QSTATUS.COMPLETED).length;
                     const avg=done?Math.round(all.filter(q=>q.marks!=null).reduce((s,q)=>s+q.marks,0)/done):0;
                     return (
@@ -1337,7 +1064,6 @@ export default function StudentQuizzes({ onBack }) {
               </div>
             )}
 
-            {/* Toolbar */}
             <div className="mc-toolbar">
               <div className="mc-filter-tabs">
                 {FILTER_TABS.map(t=>(
@@ -1405,24 +1131,23 @@ export default function StudentQuizzes({ onBack }) {
             ) : viewMode==="grid" ? (
               <div className="qz-grid">
                 {sorted.map(q=>{
-                  const c=COURSES.find(x=>x.id===q.courseId);
+                  const c=coursesState.find(x=>x.id===q.courseId) || { color: "var(--indigo-ll)", rgb: "91,78,248", short: "?" };
                   return <QuizCard key={q.id} quiz={q} course={c} onOpen={handleOpen} onAttempt={handleAttempt}/>;
                 })}
               </div>
             ) : (
               <div className="as-list">
                 {sorted.map(q=>{
-                  const c=COURSES.find(x=>x.id===q.courseId);
+                  const c=coursesState.find(x=>x.id===q.courseId) || { color: "var(--indigo-ll)", rgb: "91,78,248", short: "?" };
                   return <QuizRow key={q.id} quiz={q} course={c} onOpen={handleOpen} onAttempt={handleAttempt}/>;
                 })}
               </div>
             )}
           </div>
 
-          {/* Right sidebar */}
           <div className="qz-right-sidebar">
-            <UpcomingCard onAttempt={handleAttempt}/>
-            <LeaderboardCard/>
+            <UpcomingCard quizzes={quizzesState} courses={coursesState} onAttempt={handleAttempt}/>
+            <LeaderboardCard courses={coursesState} quizzes={quizzesState}/>
             <div className="as-ai-tip-card">
               <div className="as-ai-tip-header">
                 <Brain size={14} style={{color:"var(--indigo-ll)"}}/>

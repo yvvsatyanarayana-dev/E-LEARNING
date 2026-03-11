@@ -49,38 +49,26 @@ export default function StudentResume({ onBack }) {
   const [open, setOpen] = useState({ personal:true, education:true, experience:false, projects:true, skills:true, certifications:false, achievements:false });
   const toggle = (k) => setOpen(o => ({...o,[k]:!o[k]}));
 
-  // ATS fill anim
+  const [data, setData] = useState(null);
   const [atsW, setAtsW] = useState(0);
-  useEffect(() => { const t = setTimeout(()=>setAtsW(78), 500); return ()=>clearTimeout(t); },[]);
 
-  // Experiences
-  const [experiences, setExperiences] = useState([
-    { id:1, role:"Software Development Intern", company:"TechCorp Solutions", duration:"Jun 2024 – Aug 2024", desc:"Built REST APIs using FastAPI and PostgreSQL. Reduced query response time by 40% via indexing optimisation." },
-  ]);
+  const [experiences, setExperiences] = useState([]);
   const addExp = () => setExperiences(e=>[...e,{id:Date.now(),role:"",company:"",duration:"",desc:""}]);
   const delExp = (id) => setExperiences(e=>e.filter(x=>x.id!==id));
   const updExp = (id,key,val) => setExperiences(e=>e.map(x=>x.id===id?{...x,[key]:val}:x));
 
-  // Projects
-  const [projects, setProjects] = useState([
-    { id:1, name:"SmartDB Query Optimiser", tech:"Python · PostgreSQL · FastAPI", desc:"Built an AI-powered query suggestion engine achieving 60% faster execution on complex joins." },
-    { id:2, name:"Distributed Task Scheduler", tech:"Node.js · Redis · Docker", desc:"Designed a fault-tolerant task queue with automatic retry and load balancing for 10k+ concurrent jobs." },
-  ]);
+  const [projects, setProjects] = useState([]);
   const addProj = () => setProjects(p=>[...p,{id:Date.now(),name:"",tech:"",desc:""}]);
   const delProj = (id) => setProjects(p=>p.filter(x=>x.id!==id));
   const updProj = (id,key,val) => setProjects(p=>p.map(x=>x.id===id?{...x,[key]:val}:x));
 
-  // Skills
   const PRESET = ["Python","C++","JavaScript","React","Node.js","FastAPI","PostgreSQL","MongoDB","Redis","Docker","Git","Linux","Machine Learning","DSA","System Design","REST APIs"];
-  const [skills, setSkills]   = useState(["Python","C++","React","FastAPI","PostgreSQL","Docker","DSA","System Design"]);
+  const [skills, setSkills]   = useState([]);
   const [skillInput, setSkillInput] = useState("");
   const toggleSkill = (s) => setSkills(sk=>sk.includes(s)?sk.filter(x=>x!==s):[...sk,s]);
   const addCustomSkill = () => { if(skillInput.trim()&&!skills.includes(skillInput.trim())){setSkills(sk=>[...sk,skillInput.trim()]);setSkillInput(""); }};
 
-  // Certs
-  const [certs, setCerts] = useState([
-    { id:1, name:"AWS Solutions Architect – Associate", issuer:"Amazon Web Services", date:"Dec 2024" },
-  ]);
+  const [certs, setCerts] = useState([]);
   const addCert = () => setCerts(c=>[...c,{id:Date.now(),name:"",issuer:"",date:""}]);
   const delCert = (id) => setCerts(c=>c.filter(x=>x.id!==id));
   const updCert = (id,key,val) => setCerts(c=>c.map(x=>x.id===id?{...x,[key]:val}:x));
@@ -88,11 +76,21 @@ export default function StudentResume({ onBack }) {
   const [template, setTemplate] = useState(0);
   const TEMPLATES = ["Classic","Modern","Minimal","Compact","Bold","Academic"];
 
-  const ATS_CHIPS = [
-    {t:"Action verbs",        cls:"good"},{t:"Quantified results", cls:"good"},
-    {t:"Keywords match 78%",  cls:"good"},{t:"Missing: GPA",       cls:"warn"},
-    {t:"Add LinkedIn",        cls:"warn"},{t:"No photo — ✓",       cls:"good"},
-  ];
+  useEffect(() => {
+    import("../../../utils/api").then(({ default: api }) => {
+      api.get("/student/resume").then(res => {
+        setData(res);
+        setExperiences(res.experiences);
+        setProjects(res.projects);
+        setSkills(res.skills);
+        setCerts(res.certs);
+        setTimeout(()=>setAtsW(78), 500);
+      }).catch(console.error);
+    });
+  }, []);
+
+  if (!data) return <div className="rv-root" style={{ padding: 40, textAlign: "center" }}>Loading Resume Data...</div>;
+  const ATS_CHIPS = data.ats_chips;
 
   return (
     <div className="rv-root">
@@ -128,32 +126,32 @@ export default function StudentResume({ onBack }) {
         <div className="rv-editor">
           {/* Personal Info */}
           <Card icon={<IcoUser/>} title="Personal Information" open={open.personal} onToggle={()=>toggle("personal")}>
-            <Field label="FULL NAME"><input className="rv-input" defaultValue="Arjun Reddy" /></Field>
+            <Field label="FULL NAME"><input className="rv-input" defaultValue={data.personal?.fullName} /></Field>
             <div className="rv-field-row">
-              <Field label="EMAIL"><input className="rv-input rv-input-half" defaultValue="arjun.reddy@college.edu" /></Field>
-              <Field label="PHONE"><input className="rv-input rv-input-half" defaultValue="+91 98765 43210" /></Field>
+              <Field label="EMAIL"><input className="rv-input rv-input-half" defaultValue={data.personal?.email} /></Field>
+              <Field label="PHONE"><input className="rv-input rv-input-half" defaultValue={data.personal?.phone} /></Field>
             </div>
             <div className="rv-field-row">
-              <Field label="LINKEDIN"><input className="rv-input rv-input-half" defaultValue="linkedin.com/in/arjunreddy" /></Field>
-              <Field label="GITHUB"><input className="rv-input rv-input-half" defaultValue="github.com/arjunreddy21" /></Field>
+              <Field label="LINKEDIN"><input className="rv-input rv-input-half" defaultValue={data.personal?.linkedin} /></Field>
+              <Field label="GITHUB"><input className="rv-input rv-input-half" defaultValue={data.personal?.github} /></Field>
             </div>
-            <Field label="LOCATION"><input className="rv-input" defaultValue="Hyderabad, India" /></Field>
+            <Field label="LOCATION"><input className="rv-input" defaultValue={data.personal?.location} /></Field>
             <Field label="PROFESSIONAL SUMMARY">
-              <textarea className="rv-textarea" defaultValue="CSE student at Amrita University with strong foundations in algorithms, distributed systems, and full-stack development. Seeking SWE internship / full-time roles for 2025." rows={3}/>
+              <textarea className="rv-textarea" defaultValue={data.personal?.summary} rows={3}/>
             </Field>
           </Card>
 
           {/* Education */}
           <Card icon={<IcoBook/>} title="Education" open={open.education} onToggle={()=>toggle("education")}>
             <div className="rv-entry">
-              <Field label="DEGREE / COURSE"><input className="rv-input" defaultValue="B.Tech — Computer Science Engineering" /></Field>
+              <Field label="DEGREE / COURSE"><input className="rv-input" defaultValue={data.education?.degree} /></Field>
               <div className="rv-field-row">
-                <Field label="INSTITUTION"><input className="rv-input rv-input-half" defaultValue="Amrita Vishwa Vidyapeetham" /></Field>
-                <Field label="DURATION"><input className="rv-input rv-input-half" defaultValue="2021 – 2025" /></Field>
+                <Field label="INSTITUTION"><input className="rv-input rv-input-half" defaultValue={data.education?.institution} /></Field>
+                <Field label="DURATION"><input className="rv-input rv-input-half" defaultValue={data.education?.duration} /></Field>
               </div>
               <div className="rv-field-row">
-                <Field label="CGPA"><input className="rv-input rv-input-half" defaultValue="8.4 / 10" /></Field>
-                <Field label="LOCATION"><input className="rv-input rv-input-half" defaultValue="Hyderabad, India" /></Field>
+                <Field label="CGPA"><input className="rv-input rv-input-half" defaultValue={data.education?.cgpa} /></Field>
+                <Field label="LOCATION"><input className="rv-input rv-input-half" defaultValue={data.education?.location} /></Field>
               </div>
             </div>
           </Card>
@@ -238,18 +236,18 @@ export default function StudentResume({ onBack }) {
               <span className="rv-preview-tag">Auto-updating</span>
             </div>
             <div className="rv-doc">
-              <div className="rv-doc-name">Arjun Reddy</div>
-              <div className="rv-doc-meta">+91 98765 43210 · arjun.reddy@college.edu · Hyderabad, India</div>
+              <div className="rv-doc-name">{data.personal?.fullName}</div>
+              <div className="rv-doc-meta">{data.personal?.phone} · {data.personal?.email} · {data.personal?.location}</div>
               <div className="rv-doc-links">
-                <span className="rv-doc-link">linkedin.com/in/arjunreddy</span>
-                <span className="rv-doc-link">github.com/arjunreddy21</span>
+                <span className="rv-doc-link">{data.personal?.linkedin}</span>
+                <span className="rv-doc-link">{data.personal?.github}</span>
               </div>
               <div className="rv-doc-div"/>
               <div className="rv-doc-sec-title">Education</div>
               <div className="rv-doc-entry">
-                <div className="rv-doc-entry-title">B.Tech — Computer Science Engineering</div>
-                <div className="rv-doc-entry-meta">Amrita Vishwa Vidyapeetham</div>
-                <div className="rv-doc-entry-date">2021 – 2025 · CGPA: 8.4 / 10</div>
+                <div className="rv-doc-entry-title">{data.education?.degree}</div>
+                <div className="rv-doc-entry-meta">{data.education?.institution}</div>
+                <div className="rv-doc-entry-date">{data.education?.duration} · CGPA: {data.education?.cgpa}</div>
               </div>
               {experiences.length>0 && <>
                 <div className="rv-doc-div"/>

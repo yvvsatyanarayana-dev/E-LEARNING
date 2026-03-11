@@ -1,6 +1,6 @@
 // studentInternships.jsx
 import { useState, useEffect } from "react";
-import "./studentInterships.css";
+import "./studentInternships.css";
 
 // ─── ICONS ───────────────────────────────────────────────────────
 const IcoBack    = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>;
@@ -21,69 +21,6 @@ const IcoZap     = (p) => <svg {...p} width="12" height="12" viewBox="0 0 24 24"
 const IcoClose   = (p) => <svg {...p} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
 const IcoExtern  = (p) => <svg {...p} width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>;
 const IcoMail    = (p) => <svg {...p} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>;
-
-// ─── DATA ────────────────────────────────────────────────────────
-const INTERNSHIP_LISTINGS = [
-  {
-    id: 1, company: "Google", logo: "G", logoBg: "rgba(66,133,244,.15)", logoColor: "#4285F4",
-    role: "Software Engineering Intern", domain: "Backend", location: "Bengaluru · Hybrid",
-    stipend: "₹2.4L / mo", duration: "6 months", seats: 12, deadline: "Mar 22",
-    skills: ["Python", "Distributed Systems", "Go"],
-    tag: "Open", tagColor: "teal", difficulty: "Hard", match: 91,
-    desc: "Work with core infrastructure teams on large-scale distributed systems. Expected to ship production code from week one.",
-  },
-  {
-    id: 2, company: "Microsoft", logo: "M", logoBg: "rgba(0,120,212,.15)", logoColor: "#0078D4",
-    role: "SWE Intern – Azure", domain: "Cloud", location: "Hyderabad · On-site",
-    stipend: "₹1.9L / mo", duration: "4 months", seats: 8, deadline: "Apr 5",
-    skills: ["C#", "Azure", "TypeScript"],
-    tag: "Open", tagColor: "teal", difficulty: "Hard", match: 84,
-    desc: "Join the Azure platform team to build and scale cloud services serving millions of developers worldwide.",
-  },
-  {
-    id: 3, company: "Flipkart", logo: "F", logoBg: "rgba(244,165,53,.15)", logoColor: "var(--amber)",
-    role: "Data Science Intern", domain: "ML / AI", location: "Bengaluru · Remote",
-    stipend: "₹80K / mo", duration: "3 months", seats: 5, deadline: "Mar 18",
-    skills: ["Python", "ML", "SQL", "Spark"],
-    tag: "Closing", tagColor: "amber", difficulty: "Medium", match: 78,
-    desc: "Build recommendation and demand-forecasting models that directly impact GMV. Full access to production datasets.",
-  },
-  {
-    id: 4, company: "Amazon", logo: "A", logoBg: "rgba(255,153,0,.15)", logoColor: "#FF9900",
-    role: "SDE Intern", domain: "Backend", location: "Chennai · On-site",
-    stipend: "₹1.5L / mo", duration: "6 months", seats: 20, deadline: "Apr 12",
-    skills: ["Java", "AWS", "Microservices"],
-    tag: "Open", tagColor: "teal", difficulty: "Hard", match: 82,
-    desc: "Contribute to core AWS services or consumer products. Interns ship to production with full team support and mentorship.",
-  },
-  {
-    id: 5, company: "Razorpay", logo: "R", logoBg: "rgba(39,201,176,.12)", logoColor: "var(--teal)",
-    role: "Frontend Intern", domain: "Frontend", location: "Remote",
-    stipend: "₹60K / mo", duration: "3 months", seats: 4, deadline: "Mar 25",
-    skills: ["React", "TypeScript", "Node.js"],
-    tag: "Open", tagColor: "teal", difficulty: "Medium", match: 88,
-    desc: "Own entire features on Razorpay's merchant dashboard. Fast-paced environment with direct impact on checkout flows.",
-  },
-  {
-    id: 6, company: "Infosys", logo: "I", logoBg: "rgba(159,122,234,.15)", logoColor: "var(--violet)",
-    role: "Systems Engineer Intern", domain: "Full Stack", location: "Pune · Hybrid",
-    stipend: "₹25K / mo", duration: "2 months", seats: 50, deadline: "Mar 30",
-    skills: ["Java", "Spring Boot", "Angular"],
-    tag: "Applied", tagColor: "violet", difficulty: "Easy", match: 72,
-    desc: "Rotational internship across business units. Exposure to enterprise-grade Java applications and Agile workflows.",
-  },
-];
-
-const MY_APPLICATIONS = [
-  { company: "Infosys", role: "Systems Engineer Intern", logo: "I", logoBg: "rgba(159,122,234,.15)", logoColor: "var(--violet)", appliedOn: "Mar 8", status: "Under Review", statusColor: "amber", steps: ["Applied", "OA", "Interview", "Offer"], currentStep: 1 },
-  { company: "TCS", role: "Digital Associate Intern",    logo: "T", logoBg: "rgba(39,201,176,.12)", logoColor: "var(--teal)",    appliedOn: "Mar 5", status: "OA Scheduled", statusColor: "indigo", steps: ["Applied", "OA", "Interview", "Offer"], currentStep: 2 },
-  { company: "Wipro", role: "Project Engineer Intern",  logo: "W", logoBg: "rgba(242,68,92,.12)",   logoColor: "var(--rose)",    appliedOn: "Feb 28", status: "Rejected",     statusColor: "rose",  steps: ["Applied", "OA", "Interview", "Offer"], currentStep: -1 },
-];
-
-const SAVED = [
-  { company: "Swiggy", role: "Product Analytics Intern", logo: "S", logoBg: "rgba(244,165,53,.15)", logoColor: "var(--amber)", stipend: "₹70K / mo", deadline: "Apr 2" },
-  { company: "CRED",   role: "iOS Intern",               logo: "C", logoBg: "rgba(91,78,248,.15)",  logoColor: "var(--indigo-ll)", stipend: "₹1L / mo",  deadline: "Apr 10" },
-];
 
 const DOMAINS = ["All", "Backend", "Frontend", "ML / AI", "Cloud", "Full Stack"];
 const TAGS    = ["All", "Open", "Closing", "Applied"];
@@ -108,7 +45,7 @@ function Bar({ pct, color, delay = 400 }) {
 }
 
 // ─── DETAIL DRAWER ───────────────────────────────────────────────
-function InternshipDrawer({ item, onClose }) {
+function InternshipDrawer({ item, onClose, onApply }) {
   useEffect(() => {
     const h = (e) => e.key === "Escape" && onClose();
     document.addEventListener("keydown", h);
@@ -123,12 +60,12 @@ function InternshipDrawer({ item, onClose }) {
         <button className="int-drawer-close" onClick={onClose}><IcoClose /></button>
 
         <div className="int-drawer-header">
-          <div className="int-drawer-logo" style={{ background: item.logoBg, color: item.logoColor }}>{item.logo}</div>
+          <div className="int-drawer-logo" style={{ background: item.logo_bg, color: item.logo_color }}>{item.logo}</div>
           <div>
-            <div className="int-drawer-company">{item.company}</div>
+            <div className="int-drawer-company">{item.company_name}</div>
             <div className="int-drawer-role">{item.role}</div>
           </div>
-          <span className={`int-tag int-tag-${item.tagColor}`} style={{ marginLeft: "auto" }}>{item.tag}</span>
+          <span className={`int-tag int-tag-${item.tag_color}`} style={{ marginLeft: "auto" }}>{item.tag}</span>
         </div>
 
         <div className="int-drawer-meta-row">
@@ -145,7 +82,7 @@ function InternshipDrawer({ item, onClose }) {
 
         <div className="int-drawer-section">
           <div className="int-drawer-section-ttl">About the Role</div>
-          <p className="int-drawer-desc">{item.desc} This is an exceptional opportunity to build real-world experience alongside world-class engineers, contribute to systems used by millions, and add significant weight to your resume.</p>
+          <p className="int-drawer-desc">{item.description} This is an exceptional opportunity to build real-world experience alongside world-class engineers, contribute to systems used by millions, and add significant weight to your resume.</p>
         </div>
 
         <div className="int-drawer-section">
@@ -158,15 +95,17 @@ function InternshipDrawer({ item, onClose }) {
         <div className="int-drawer-section">
           <div className="int-drawer-section-ttl">AI Profile Match</div>
           <div className="int-match-row">
-            <div className="int-match-val" style={{ color: item.match >= 85 ? "var(--teal)" : item.match >= 70 ? "var(--amber)" : "var(--rose)" }}>{item.match}%</div>
-            <Bar pct={item.match} color={item.match >= 85 ? "var(--teal)" : "var(--amber)"} delay={200} />
+            <div className="int-match-val" style={{ color: (item.match || 0) >= 85 ? "var(--teal)" : (item.match || 0) >= 70 ? "var(--amber)" : "var(--rose)" }}>{item.match || 0}%</div>
+            <Bar pct={item.match || 0} color={(item.match || 0) >= 85 ? "var(--teal)" : "var(--amber)"} delay={200} />
           </div>
           <p className="int-match-hint">Based on your resume, skills, and CGPA. Add certifications to improve match score.</p>
         </div>
 
         <div className="int-drawer-actions">
           <button className="int-btn-ghost"><IcoMail /> Save for Later</button>
-          <button className="int-btn-solid"><IcoArrow /> Apply Now <IcoExtern /></button>
+          <button className="int-btn-solid" onClick={() => onApply(item.id)}>
+            <IcoArrow /> Apply Now <IcoExtern />
+          </button>
         </div>
       </div>
     </>
@@ -180,24 +119,57 @@ export default function StudentInternships({ onBack }) {
   const [tagFilter, setTagFilter]       = useState("All");
   const [search, setSearch]             = useState("");
   const [selected, setSelected]         = useState(null);
+  const [data, setData]                 = useState(null);
+  const [applying, setApplying]         = useState(false);
+
+  const fetchInternships = () => {
+    import("../../../utils/api").then(({ default: api }) => {
+      api.get("/student/internships").then(res => setData(res)).catch(console.error);
+    });
+  };
+
+  useEffect(() => {
+    fetchInternships();
+  }, []);
+
+  const handleApply = (id) => {
+    if (applying) return;
+    setApplying(true);
+    import("../../../utils/api").then(({ default: api }) => {
+      api.post(`/student/internships/${id}/apply`)
+        .then(() => {
+          alert("Application submitted successfully!");
+          fetchInternships();
+          setSelected(null);
+        })
+        .catch(err => {
+          console.error(err);
+          alert(err.response?.data?.detail || "Failed to apply");
+        })
+        .finally(() => setApplying(false));
+    });
+  };
+
+  if (!data) return <div className="int-root" style={{ padding: 40, textAlign: "center" }}>Loading Internships...</div>;
+  const { listings, applications, saved, funnel, timeline } = data;
 
   const tabs = [
     { id: "browse",  label: "Browse Internships", icon: <IcoSearch /> },
-    { id: "applied", label: "My Applications",    icon: <IcoBrief />, badge: MY_APPLICATIONS.length },
-    { id: "saved",   label: "Saved",               icon: <IcoStar />,  badge: SAVED.length },
+    { id: "applied", label: "My Applications",    icon: <IcoBrief />, badge: applications.length },
+    { id: "saved",   label: "Saved",               icon: <IcoStar />,  badge: saved.length },
     { id: "track",   label: "Application Tracker", icon: <IcoTrend /> },
   ];
 
-  const filtered = INTERNSHIP_LISTINGS.filter(i => {
+  const filtered = listings.filter(i => {
     const matchDomain = domainFilter === "All" || i.domain === domainFilter;
     const matchTag    = tagFilter === "All"    || i.tag === tagFilter;
-    const matchSearch = !search || i.role.toLowerCase().includes(search.toLowerCase()) || i.company.toLowerCase().includes(search.toLowerCase());
+    const matchSearch = !search || i.role.toLowerCase().includes(search.toLowerCase()) || (i.company_name || "").toLowerCase().includes(search.toLowerCase());
     return matchDomain && matchTag && matchSearch;
   });
 
   return (
     <div className="int-root">
-      <InternshipDrawer item={selected} onClose={() => setSelected(null)} />
+      <InternshipDrawer item={selected} onClose={() => setSelected(null)} onApply={handleApply} />
 
       {/* ── HEADER ── */}
       <div className="int-header">
@@ -212,10 +184,10 @@ export default function StudentInternships({ onBack }) {
         <div className="int-header-right">
           <div className="int-stats-mini">
             {[
-              { val: INTERNSHIP_LISTINGS.filter(i => i.tag === "Open").length, lbl: "Open", color: "var(--teal)" },
-              { val: MY_APPLICATIONS.length, lbl: "Applied", color: "var(--indigo-ll)" },
-              { val: MY_APPLICATIONS.filter(i => i.status === "OA Scheduled" || i.status === "Interview").length, lbl: "Active", color: "var(--amber)" },
-              { val: SAVED.length, lbl: "Saved", color: "var(--violet)" },
+              { val: listings.filter(i => i.tag === "Open").length, lbl: "Open", color: "var(--teal)" },
+              { val: applications.length, lbl: "Applied", color: "var(--indigo-ll)" },
+              { val: applications.filter(i => i.status === "OA Scheduled" || i.status === "Interview").length, lbl: "Active", color: "var(--amber)" },
+              { val: saved.length, lbl: "Saved", color: "var(--violet)" },
             ].map(s => (
               <div key={s.lbl} className="int-sm-stat">
                 <span className="int-sm-val" style={{ color: s.color }}>{s.val}</span>
@@ -282,12 +254,12 @@ export default function StudentInternships({ onBack }) {
                 onClick={() => setSelected(item)}
               >
                 <div className="int-card-top">
-                  <div className="int-card-logo" style={{ background: item.logoBg, color: item.logoColor }}>{item.logo}</div>
+                  <div className="int-card-logo" style={{ background: item.logo_bg, color: item.logo_color }}>{item.logo}</div>
                   <div className="int-card-info">
-                    <div className="int-card-company">{item.company}</div>
+                    <div className="int-card-company">{item.company_name}</div>
                     <div className="int-card-role">{item.role}</div>
                   </div>
-                  <span className={`int-tag int-tag-${item.tagColor}`}>{item.tag}</span>
+                  <span className={`int-tag int-tag-${item.tag_color}`}>{item.tag}</span>
                 </div>
 
                 <div className="int-card-attrs">
@@ -303,8 +275,8 @@ export default function StudentInternships({ onBack }) {
                 <div className="int-card-footer">
                   <div className="int-card-stipend">{item.stipend}</div>
                   <div className="int-card-match">
-                    <IcoZap style={{ color: item.match >= 85 ? "var(--teal)" : "var(--amber)" }} />
-                    <span style={{ color: item.match >= 85 ? "var(--teal)" : "var(--amber)", fontWeight: 700 }}>{item.match}% match</span>
+                    <IcoZap style={{ color: (item.match || 0) >= 85 ? "var(--teal)" : "var(--amber)" }} />
+                    <span style={{ color: (item.match || 0) >= 85 ? "var(--teal)" : "var(--amber)", fontWeight: 700 }}>{item.match || 0}% match</span>
                   </div>
                 </div>
 
@@ -323,12 +295,12 @@ export default function StudentInternships({ onBack }) {
       {/* ══════ MY APPLICATIONS ══════ */}
       {activeTab === "applied" && (
         <div className="int-applied-layout">
-          {MY_APPLICATIONS.map((app, i) => (
+          {applications.map((app, i) => (
             <div key={i} className="int-app-card" style={{ animationDelay: `${i * .07}s` }}>
               <div className="int-app-top">
                 <div className="int-app-logo" style={{ background: app.logoBg, color: app.logoColor }}>{app.logo}</div>
                 <div className="int-app-info">
-                  <div className="int-app-company">{app.company}</div>
+                  <div className="int-app-company">{app.company_name || app.company}</div>
                   <div className="int-app-role">{app.role}</div>
                   <div className="int-app-date">Applied {app.appliedOn}</div>
                 </div>
@@ -370,7 +342,7 @@ export default function StudentInternships({ onBack }) {
       {/* ══════ SAVED ══════ */}
       {activeTab === "saved" && (
         <div className="int-saved-layout">
-          {SAVED.map((s, i) => (
+          {saved.map((s, i) => (
             <div key={i} className="int-saved-card" style={{ animationDelay: `${i * .08}s` }}>
               <div className="int-sc-logo" style={{ background: s.logoBg, color: s.logoColor }}>{s.logo}</div>
               <div className="int-sc-info">
@@ -384,7 +356,7 @@ export default function StudentInternships({ onBack }) {
               </div>
             </div>
           ))}
-          {SAVED.length === 0 && (
+          {saved.length === 0 && (
             <div className="int-empty">
               <div className="int-empty-icon">📌</div>
               <div className="int-empty-ttl">No saved internships</div>
@@ -401,12 +373,7 @@ export default function StudentInternships({ onBack }) {
           <div className="int-funnel-card">
             <div className="int-card-hd"><span className="int-card-ttl"><IcoTrend style={{ color: "var(--indigo-ll)" }} /> Application Funnel</span></div>
             <div className="int-funnel-body">
-              {[
-                { stage: "Applied",          count: 6,  color: "var(--indigo-l)", pct: 100 },
-                { stage: "OA / Test",        count: 3,  color: "var(--teal)",     pct: 50 },
-                { stage: "Interview",        count: 1,  color: "var(--amber)",    pct: 16 },
-                { stage: "Offer Received",   count: 0,  color: "var(--violet)",   pct: 0 },
-              ].map((f, i) => (
+              {funnel.map((f, i) => (
                 <div key={f.stage} className="int-funnel-row" style={{ animationDelay: `${i * .08}s` }}>
                   <span className="int-funnel-stage">{f.stage}</span>
                   <div className="int-funnel-bar-wrap">
@@ -422,13 +389,7 @@ export default function StudentInternships({ onBack }) {
           <div className="int-timeline-card">
             <div className="int-card-hd"><span className="int-card-ttl"><IcoCal style={{ color: "var(--indigo-ll)" }} /> Activity Timeline</span></div>
             <div className="int-timeline-body">
-              {[
-                { date: "Mar 8",  event: "Applied to Infosys · Systems Engineer Intern", type: "apply",     color: "var(--indigo-l)" },
-                { date: "Mar 7",  event: "TCS OA invite received — 90 min Aptitude + Coding", type: "test", color: "var(--amber)" },
-                { date: "Mar 5",  event: "Applied to TCS · Digital Associate Intern",    type: "apply",     color: "var(--indigo-l)" },
-                { date: "Mar 2",  event: "Wipro application rejected after OA round",    type: "reject",    color: "var(--rose)" },
-                { date: "Feb 28", event: "Applied to Wipro · Project Engineer Intern",   type: "apply",     color: "var(--indigo-l)" },
-              ].map((e, i) => (
+              {timeline.map((e, i) => (
                 <div key={i} className="int-tl-item">
                   <div className="int-tl-dot" style={{ background: e.color }} />
                   <div className="int-tl-content">

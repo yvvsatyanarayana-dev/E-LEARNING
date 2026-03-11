@@ -16,216 +16,16 @@ import {
   Volume2, VolumeX, Monitor, PhoneOff, Phone
 } from "lucide-react";
 
-// ─── DATA ─────────────────────────────────────────────────────────
-const MY_USER = {
-  id: "u0", name: "Arjun Reddy", initials: "AR",
-  role: "member", avatar: null, status: "online",
-};
+// Data will be fetched from API
 
-const MEMBERS_POOL = [
-  { id: "u1", name: "Priya Sharma", initials: "PS", status: "online", role: "admin", course: "CSE" },
-  { id: "u2", name: "Rahul Mehta", initials: "RM", status: "online", role: "member", course: "CSE" },
-  { id: "u3", name: "Sneha Patel", initials: "SP", status: "away", role: "member", course: "CSE" },
-  { id: "u4", name: "Karan Joshi", initials: "KJ", status: "offline", role: "member", course: "CSE" },
-  { id: "u5", name: "Divya Nair", initials: "DN", status: "online", role: "admin", course: "CSE" },
-  { id: "u6", name: "Arjun Reddy", initials: "AR", status: "online", role: "member", course: "CSE" },
-  { id: "u7", name: "Ananya Krishnan", initials: "AK", status: "online", role: "member", course: "CSE" },
-  { id: "u8", name: "Vikas Singh", initials: "VS", status: "away", role: "member", course: "CSE" },
-  { id: "u9", name: "Meera Iyer", initials: "MI", status: "online", role: "member", course: "CSE" },
-  { id: "u10", name: "Rohan Das", initials: "RD", status: "offline", role: "member", course: "CSE" },
-  { id: "u11", name: "Pooja Verma", initials: "PV", status: "online", role: "admin", course: "CSE" },
-  { id: "u12", name: "Aditya Kumar", initials: "AK", status: "online", role: "member", course: "CSE" },
-];
+// ─── UTILS ────────────────────────────────────────────────────────
+import api from "../../../utils/api";
 
-const STUDY_GROUPS = [
-  {
-    id: "g1",
-    name: "OS Mastery Squad",
-    subject: "Operating Systems",
-    subjectShort: "OS",
-    color: "var(--indigo-l)",
-    rgb: "91,78,248",
-    icon: "💻",
-    type: "private",
-    memberIds: ["u1", "u2", "u3", "u4", "u0"],
-    adminIds: ["u1"],
-    description: "Deep dives into process scheduling, memory management, deadlock detection, and file systems. We prep together for every quiz and assignment.",
-    tags: ["Scheduling", "Memory", "Deadlock", "Paging"],
-    nextSession: { date: "Mar 8, 2026", time: "7:00 PM", topic: "Deadlock & Banker's Algo", platform: "Zoom" },
-    streak: 14,
-    resources: 23,
-    messages: 312,
-    lastActivity: "2 min ago",
-    pinned: true,
-    isMember: true,
-    channels: [
-      { id: "c1", name: "general", type: "text", unread: 3 },
-      { id: "c2", name: "assignments", type: "text", unread: 0 },
-      { id: "c3", name: "resources", type: "text", unread: 1 },
-      { id: "c4", name: "voice-study", type: "voice", unread: 0 },
-    ],
-    sessions: [
-      { id: "s1", topic: "Process Scheduling Deep Dive", date: "Mar 5", time: "6:00 PM", duration: 90, attendees: 5, status: "upcoming" },
-      { id: "s2", topic: "Memory Paging Practice", date: "Mar 3", time: "7:00 PM", duration: 60, attendees: 4, status: "completed" },
-      { id: "s3", topic: "Deadlock & Banker's Algorithm", date: "Mar 8", time: "7:00 PM", duration: 120, attendees: 0, status: "upcoming" },
-    ],
-    messages_data: [
-      { id: "m1", userId: "u1", text: "Hey everyone! Quiz on scheduling is tomorrow. Let's go over Round Robin once more 🎯", time: "10:02 AM", reactions: [{ emoji: "👍", count: 3 }, { emoji: "🔥", count: 2 }] },
-      { id: "m2", userId: "u2", text: "Sure! I struggled with preemptive SJF last time. Can we start there?", time: "10:05 AM", reactions: [] },
-      { id: "m3", userId: "u3", text: "Same here. Also, I found this amazing resource on Gantt charts 📊", time: "10:07 AM", reactions: [{ emoji: "❤️", count: 2 }] },
-      { id: "m4", userId: "u0", text: "I'll share my notes from yesterday's lecture. Dr. Prakash explained multilevel queue really well.", time: "10:09 AM", reactions: [{ emoji: "👍", count: 4 }], isMe: true },
-      { id: "m5", userId: "u1", text: "Perfect! Let's meet at 7 PM on Zoom. I'll send the link. Make sure you go through the practice MCQs from last week before joining.", time: "10:11 AM", reactions: [{ emoji: "✅", count: 3 }] },
-      { id: "m6", userId: "u4", text: "Will be there! Though I might join a bit late, have lab until 6:30", time: "10:14 AM", reactions: [] },
-      { id: "m7", userId: "u2", text: "No worries Karan, we'll record it!", time: "10:15 AM", reactions: [{ emoji: "👍", count: 1 }] },
-      { id: "m8", userId: "u0", text: "Also — anyone want to do a mock quiz on the Lucyna AI platform before the session? We can compare our results.", time: "10:18 AM", reactions: [{ emoji: "🔥", count: 5 }, { emoji: "⚡", count: 2 }], isMe: true },
-      { id: "m9", userId: "u3", text: "YES! Great idea. I'll set one up now.", time: "10:19 AM", reactions: [{ emoji: "❤️", count: 3 }] },
-      { id: "m10", userId: "u1", text: "This group is on fire 🔥 We're going to ace this quiz.", time: "10:20 AM", reactions: [{ emoji: "🏆", count: 4 }, { emoji: "🔥", count: 3 }] },
-    ],
-  },
-  {
-    id: "g2",
-    name: "DBMS Nerds",
-    subject: "Database Management",
-    subjectShort: "DBMS",
-    color: "var(--teal)",
-    rgb: "20,184,166",
-    icon: "🗄️",
-    type: "public",
-    memberIds: ["u5", "u6", "u7", "u8", "u0", "u9"],
-    adminIds: ["u5", "u6"],
-    description: "Mastering SQL, normalization, transactions, and query optimization together. Weekly mock SQL challenges and peer-reviewed assignments.",
-    tags: ["SQL", "Normalization", "Transactions", "ER Diagrams"],
-    nextSession: { date: "Mar 9, 2026", time: "5:30 PM", topic: "Advanced SQL & Window Functions", platform: "Meet" },
-    streak: 8,
-    resources: 18,
-    messages: 247,
-    lastActivity: "15 min ago",
-    pinned: false,
-    isMember: true,
-    channels: [
-      { id: "c5", name: "general", type: "text", unread: 7 },
-      { id: "c6", name: "sql-challenges", type: "text", unread: 2 },
-      { id: "c7", name: "resources", type: "text", unread: 0 },
-    ],
-    sessions: [
-      { id: "s4", topic: "SQL Advanced Queries Practice", date: "Mar 7", time: "5:00 PM", duration: 90, attendees: 0, status: "upcoming" },
-      { id: "s5", topic: "Normalization Case Study Review", date: "Feb 28", time: "5:30 PM", duration: 60, attendees: 5, status: "completed" },
-      { id: "s6", topic: "Advanced SQL & Window Functions", date: "Mar 9", time: "5:30 PM", duration: 120, attendees: 0, status: "upcoming" },
-    ],
-    messages_data: [
-      { id: "m11", userId: "u5", text: "Who completed the SQL queries assignment? I'm stuck on the window function part 😵", time: "9:00 AM", reactions: [] },
-      { id: "m12", userId: "u7", text: "Same! LAG and LEAD functions are confusing me. Should we do a quick screen share tonight?", time: "9:05 AM", reactions: [{ emoji: "👍", count: 2 }] },
-      { id: "m13", userId: "u0", text: "I got through it. LAG(salary, 1) basically looks at the previous row's salary. Happy to explain.", time: "9:10 AM", reactions: [{ emoji: "❤️", count: 3 }], isMe: true },
-      { id: "m14", userId: "u5", text: "Arjun please save us 🙏", time: "9:12 AM", reactions: [{ emoji: "😂", count: 4 }] },
-      { id: "m15", userId: "u9", text: "Sharing my notes from Prof. Verma's class — she explained CTEs really clearly.", time: "9:15 AM", reactions: [{ emoji: "🔥", count: 2 }] },
-    ],
-  },
-  {
-    id: "g3",
-    name: "ML Explorers",
-    subject: "Machine Learning",
-    subjectShort: "ML",
-    color: "var(--amber)",
-    rgb: "245,158,11",
-    icon: "🤖",
-    type: "public",
-    memberIds: ["u8", "u9", "u10", "u11"],
-    adminIds: ["u11"],
-    description: "Exploring ML algorithms, building projects, and sharing datasets. Currently working on our mid-semester group project.",
-    tags: ["Regression", "SVM", "Neural Nets", "Python"],
-    nextSession: { date: "Mar 11, 2026", time: "6:00 PM", topic: "SVM & Kernel Methods", platform: "Discord" },
-    streak: 5,
-    resources: 31,
-    messages: 198,
-    lastActivity: "1 hr ago",
-    pinned: false,
-    isMember: false,
-    channels: [
-      { id: "c8", name: "general", type: "text", unread: 0 },
-      { id: "c9", name: "projects", type: "text", unread: 0 },
-    ],
-    sessions: [],
-    messages_data: [],
-  },
-  {
-    id: "g4",
-    name: "CN & Crypto Study Circle",
-    subject: "Networks & Security",
-    subjectShort: "CN+Crypto",
-    color: "var(--violet)",
-    rgb: "139,92,246",
-    icon: "🔐",
-    type: "private",
-    memberIds: ["u1", "u3", "u5", "u0", "u12"],
-    adminIds: ["u1", "u5"],
-    description: "Combined study group for Computer Networks and Cryptography. Focus on protocol analysis, cipher implementations, and security concepts.",
-    tags: ["TCP/IP", "Wireshark", "AES", "RSA", "Ciphers"],
-    nextSession: { date: "Mar 10, 2026", time: "8:00 PM", topic: "RSA Algorithm Walkthrough", platform: "Zoom" },
-    streak: 11,
-    resources: 27,
-    messages: 445,
-    lastActivity: "30 min ago",
-    pinned: true,
-    isMember: true,
-    channels: [
-      { id: "c10", name: "general", type: "text", unread: 5 },
-      { id: "c11", name: "cn-topics", type: "text", unread: 0 },
-      { id: "c12", name: "crypto", type: "text", unread: 2 },
-      { id: "c13", name: "voice", type: "voice", unread: 0 },
-    ],
-    sessions: [
-      { id: "s7", topic: "RSA Algorithm & Key Exchange", date: "Mar 10", time: "8:00 PM", duration: 90, attendees: 0, status: "upcoming" },
-      { id: "s8", topic: "Wireshark Lab Walkthrough", date: "Mar 4", time: "7:30 PM", duration: 75, attendees: 4, status: "completed" },
-    ],
-    messages_data: [
-      { id: "m16", userId: "u1", text: "Wireshark lab is due in 2 days! Who's done the HTTP capture part?", time: "8:00 PM", reactions: [] },
-      { id: "m17", userId: "u12", text: "I got confused between TCP and UDP filters. Help 🥲", time: "8:05 PM", reactions: [] },
-      { id: "m18", userId: "u0", text: "The filter for TCP is just `tcp` and for UDP it's `udp`. Easy once you know the syntax!", time: "8:08 PM", reactions: [{ emoji: "👍", count: 3 }], isMe: true },
-      { id: "m19", userId: "u3", text: "Also `http.request.method == \"GET\"` for filtering GET requests specifically", time: "8:10 PM", reactions: [{ emoji: "💡", count: 4 }] },
-      { id: "m20", userId: "u5", text: "Adding that to our shared filter cheat sheet right now!", time: "8:12 PM", reactions: [{ emoji: "❤️", count: 2 }] },
-    ],
-  },
-  {
-    id: "g5",
-    name: "Placement Prep Warriors",
-    subject: "Placement & Interviews",
-    subjectShort: "Placement",
-    color: "var(--rose)",
-    rgb: "244,63,94",
-    icon: "🏆",
-    type: "public",
-    memberIds: ["u2", "u4", "u7", "u10", "u12"],
-    adminIds: ["u2", "u4"],
-    description: "Cracking placements together — DSA, system design, aptitude, and mock interviews. 15+ members placed at top companies already!",
-    tags: ["DSA", "System Design", "Aptitude", "Mock Interviews"],
-    nextSession: { date: "Mar 7, 2026", time: "9:00 AM", topic: "Array & String DSA Marathon", platform: "Meet" },
-    streak: 22,
-    resources: 56,
-    messages: 891,
-    lastActivity: "5 min ago",
-    pinned: false,
-    isMember: false,
-    channels: [],
-    sessions: [],
-    messages_data: [],
-  },
-];
-
-// ─── DISCOVER GROUPS (not joined) ─────────────────────────────────
-const DISCOVER_EXTRA = [
-  {
-    id: "g6", name: "Algorithms & DSA", subject: "Data Structures", subjectShort: "DSA",
-    color: "var(--teal)", rgb: "20,184,166", icon: "🧮", type: "public",
-    memberIds: ["u1", "u3", "u7", "u9", "u10", "u11", "u12"], adminIds: ["u1"],
-    description: "Weekly DSA challenges, LeetCode sessions, and competitive programming. From arrays to graphs.",
-    tags: ["Arrays", "Trees", "DP", "Graphs", "LeetCode"],
-    streak: 18, resources: 44, messages: 620, lastActivity: "1 hr ago", isMember: false,
-    nextSession: { date: "Mar 8", time: "4:00 PM", topic: "Dynamic Programming", platform: "Discord" },
-    channels: [], sessions: [], messages_data: [],
-  },
-];
-
-const ALL_GROUPS = [...STUDY_GROUPS, ...DISCOVER_EXTRA];
+function getStatusColor(status) {
+  if (status === "online") return "var(--teal)";
+  if (status === "away") return "var(--amber)";
+  return "var(--surface3)";
+}
 
 // ─── EMOJI REACTIONS ──────────────────────────────────────────────
 const QUICK_EMOJIS = ["👍", "❤️", "🔥", "😂", "😮", "✅", "💡", "🏆"];
@@ -251,14 +51,14 @@ function MemberAvatar({ member, size = 32, showStatus = false }) {
         display: "flex", alignItems: "center", justifyContent: "center",
         fontSize: size * 0.34, fontWeight: 700, color: "#fff", flexShrink: 0,
       }}>
-        {member.initials}
+        {member?.initials || "??"}
       </div>
       {showStatus && (
         <span style={{
           position: "absolute", bottom: 0, right: 0,
           width: size * 0.28, height: size * 0.28,
           borderRadius: "50%",
-          background: statusColors[member.status] || "var(--surface3)",
+          background: statusColors[member?.status] || "var(--surface3)",
           border: "2px solid var(--surface)",
         }} />
       )}
@@ -266,21 +66,22 @@ function MemberAvatar({ member, size = 32, showStatus = false }) {
   );
 }
 
-function AvatarStack({ memberIds, max = 4, size = 26 }) {
-  const members = memberIds.slice(0, max).map(id => MEMBERS_POOL.find(m => m.id === id)).filter(Boolean);
-  const extra = memberIds.length - max;
+function AvatarStack({ memberCount, size = 26 }) {
+  const count = parseInt(memberCount) || 0;
+  const displayCount = Math.max(0, Math.min(count, 3));
+  const extra = Math.max(0, count - displayCount);
   return (
     <div style={{ display: "flex", alignItems: "center" }}>
-      {members.map((m, i) => (
-        <div key={m.id} style={{
-          marginLeft: i === 0 ? 0 : -8, zIndex: members.length - i,
+      {[...Array(displayCount)].map((_, i) => (
+        <div key={i} style={{
+          marginLeft: i === 0 ? 0 : -8, zIndex: displayCount - i,
           width: size, height: size, borderRadius: "50%",
           background: `linear-gradient(135deg, var(--indigo-l), var(--teal))`,
           display: "flex", alignItems: "center", justifyContent: "center",
           fontSize: size * 0.34, fontWeight: 700, color: "#fff",
           border: "2px solid var(--surface)", flexShrink: 0
         }}>
-          {m.initials}
+          ?
         </div>
       ))}
       {extra > 0 && (
@@ -330,16 +131,9 @@ function GroupCard({ group, onOpen, onJoin }) {
         {group.tags.length > 3 && <span className="vl-tag">+{group.tags.length - 3}</span>}
       </div>
 
-      <div className="sg-card-stats">
-        <span><Users size={10} />{group.memberIds.length} members</span>
-        <span><MessageSquare size={10} />{group.messages} msgs</span>
-        <span><FileText size={10} />{group.resources} files</span>
-        <span><Flame size={10} style={{ color: "var(--rose)" }} />{group.streak}d streak</span>
-      </div>
-
       <div className="sg-card-members">
-        <AvatarStack memberIds={group.memberIds} max={5} size={26} />
-        <span className="sg-last-activity">{group.lastActivity}</span>
+        <AvatarStack memberCount={group.member_count} size={26} />
+        <span className="sg-last-activity">{group.last_activity || "No activity"}</span>
       </div>
 
       {group.nextSession && (
@@ -352,11 +146,11 @@ function GroupCard({ group, onOpen, onJoin }) {
 
       <button
         className="sg-card-cta"
-        style={group.isMember
+        style={group.is_member
           ? { background: `rgba(${group.rgb},.1)`, color: group.color, border: `1px solid rgba(${group.rgb},.2)` }
           : { background: group.color, color: "#fff", border: "none" }}
-        onClick={e => { e.stopPropagation(); group.isMember ? onOpen(group) : onJoin(group); }}>
-        {group.isMember ? <><MessageSquare size={12} />Open Group</> : <><UserPlus size={12} />Join Group</>}
+        onClick={e => { e.stopPropagation(); group.is_member ? onOpen(group) : onJoin(group); }}>
+        {group.is_member ? <><MessageSquare size={12} />Open Group</> : <><UserPlus size={12} />Join Group</>}
       </button>
     </div>
   );
@@ -781,11 +575,11 @@ function GroupDetailView({ group, onBack }) {
 }
 
 // ─── STATS STRIP ─────────────────────────────────────────────────
-function StatsStrip() {
-  const myGroups = ALL_GROUPS.filter(g => g.isMember).length;
-  const totalMsgs = ALL_GROUPS.filter(g => g.isMember).reduce((s, g) => s + g.messages, 0);
-  const bestStreak = Math.max(...ALL_GROUPS.filter(g => g.isMember).map(g => g.streak));
-  const sessions = ALL_GROUPS.filter(g => g.isMember).reduce((s, g) => s + g.sessions.filter(ss => ss.status === "upcoming").length, 0);
+function StatsStrip({ groups, joinedIds }) {
+  const myGroups = groups.filter(g => g.isMember || joinedIds.has(g.id)).length;
+  const totalMsgs = groups.filter(g => g.isMember || joinedIds.has(g.id)).reduce((s, g) => s + (g.messages||0), 0);
+  const bestStreak = Math.max(...groups.filter(g => g.isMember || joinedIds.has(g.id)).map(g => g.streak||0), 0);
+  const sessions = groups.filter(g => g.isMember || joinedIds.has(g.id)).reduce((s, g) => s + (g.sessions||[]).filter(ss => ss.status === "upcoming").length, 0);
   return (
     <div className="san-kpi-grid" style={{ marginBottom: 20 }}>
       {[
@@ -899,11 +693,59 @@ export default function StudentStudyGroups({ onBack }) {
   const [search, setSearch] = useState("");
   const [viewMode, setViewMode] = useState("grid");
   const [showCreate, setShowCreate] = useState(false);
-  const [joinedIds, setJoinedIds] = useState(new Set(["g1", "g2", "g4"])); // groups already joined
+  const [joinedIds, setJoinedIds] = useState(new Set());
+  const [groupsState, setGroupsState] = useState([]);
+
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchGroups = async () => {
+      try {
+        const data = await api.get("/student/study-groups");
+        const mapped = (data || []).map((g, i) => {
+          const colors = ["var(--indigo-l)", "var(--teal)", "var(--amber)", "var(--violet)", "var(--rose)"];
+          const rgbs = ["91,78,248", "20,184,166", "245,158,11", "139,92,246", "244,63,94"];
+          const cIdx = i % colors.length;
+          return {
+            id: String(g.id),
+            name: g.name,
+            subject: g.subject || g.name,
+            subjectShort: (g.subject || g.name).split(" ")[0],
+            color: colors[cIdx],
+            rgb: rgbs[cIdx],
+            icon: "📚",
+            type: g.is_public ? "public" : "private",
+            memberIds: Array.from({ length: g.member_count || 0 }, (_, k) => "u" + k),
+            adminIds: ["u0"],
+            description: g.description || "",
+            tags: g.tags || [],
+            nextSession: g.next_session ? { date: g.next_session.split("T")[0], time: "Time TBD", topic: "Study Session", platform: "Online" } : null,
+            streak: g.streak || 0,
+            resources: 0,
+            messages: 0,
+            lastActivity: "Recently",
+            pinned: false,
+            isMember: g.is_member,        // Use API field
+            channels: [{ id: "c1", name: "general", type: "text", unread: 0 }],
+            sessions: [],
+            messages_data: []
+          };
+        });
+        setGroupsState(mapped);
+        // Only mark groups the student is actually a member of
+        setJoinedIds(new Set(mapped.filter(m => m.isMember).map(m => m.id)));
+      } catch (err) {
+        console.error("Failed to fetch study groups:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchGroups();
+  }, []);
 
   const FILTER_TABS = ["My Groups", "All Groups", "Discover"];
 
-  const filtered = ALL_GROUPS.filter(g => {
+  const filtered = groupsState.filter(g => {
     const byTab =
       filterTab === "My Groups" ? (g.isMember || joinedIds.has(g.id)) :
         filterTab === "Discover" ? (!g.isMember && !joinedIds.has(g.id)) :
@@ -911,7 +753,7 @@ export default function StudentStudyGroups({ onBack }) {
     const bySearch = !search ||
       g.name.toLowerCase().includes(search.toLowerCase()) ||
       g.subject.toLowerCase().includes(search.toLowerCase()) ||
-      g.tags.some(t => t.toLowerCase().includes(search.toLowerCase()));
+      (g.tags||[]).some(t => t.toLowerCase().includes(search.toLowerCase()));
     return byTab && bySearch;
   });
 
@@ -946,10 +788,9 @@ export default function StudentStudyGroups({ onBack }) {
             <div>
               <div className="greet-tag" style={{ marginBottom: 8 }}>
                 <div className="greet-pip" />
-                <span className="greet-pip-txt">Semester 5 · {ALL_GROUPS.filter(g => g.isMember || joinedIds.has(g.id)).length} Groups Joined · {ALL_GROUPS.length} Total</span>
+                <span className="greet-pip-txt">Semester 5 · {groupsState.filter(g => g.isMember || joinedIds.has(g.id)).length} Groups Joined · {groupsState.length} Total</span>
               </div>
-              <h1 className="greet-title">Study <em>Groups</em></h1>
-              <p className="greet-sub">Collaborate with classmates, share resources, attend group sessions, and ace your subjects together.</p>
+              <p className="greet-sub">Learn faster together. Join subject-specific squads to share resources and prep for exams.</p>
             </div>
             <button className="sg-create-btn" onClick={() => setShowCreate(true)}>
               <Plus size={14} />Create Group
@@ -957,7 +798,7 @@ export default function StudentStudyGroups({ onBack }) {
           </div>
         </div>
 
-        <StatsStrip />
+        <StatsStrip groups={groupsState} joinedIds={joinedIds} />
 
         {/* ── Toolbar ── */}
         <div className="mc-toolbar" style={{ marginBottom: 16 }}>
@@ -966,7 +807,7 @@ export default function StudentStudyGroups({ onBack }) {
               <button key={t} className={`mc-filter-tab${filterTab === t ? " active" : ""}`}
                 onClick={() => setFilterTab(t)}>
                 {t}
-                {t === "My Groups" && <span className="as-tab-badge">{ALL_GROUPS.filter(g => g.isMember || joinedIds.has(g.id)).length}</span>}
+                {t === "My Groups" && <span className="as-tab-badge">{groupsState.filter(g => g.isMember || joinedIds.has(g.id)).length}</span>}
               </button>
             ))}
           </div>
@@ -985,11 +826,11 @@ export default function StudentStudyGroups({ onBack }) {
         </div>
 
         {/* ── Pinned groups ── */}
-        {filterTab === "My Groups" && ALL_GROUPS.some(g => g.pinned && (g.isMember || joinedIds.has(g.id))) && (
+        {filterTab === "My Groups" && groupsState.some(g => g.pinned && (g.isMember || joinedIds.has(g.id))) && (
           <div style={{ marginBottom: 20 }}>
             <div className="sg-section-label"><Pin size={11} style={{ color: "var(--amber)" }} />Pinned Groups</div>
             <div className="sg-grid">
-              {ALL_GROUPS.filter(g => g.pinned && (g.isMember || joinedIds.has(g.id))).map(g => (
+              {groupsState.filter(g => g.pinned && (g.isMember || joinedIds.has(g.id))).map(g => (
                 <GroupCard key={g.id} group={{ ...g, isMember: true }} onOpen={handleOpen} onJoin={handleJoin} />
               ))}
             </div>
@@ -1024,7 +865,7 @@ export default function StudentStudyGroups({ onBack }) {
             <div>
               <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text1)", marginBottom: 3 }}>Discover more groups</div>
               <div style={{ fontSize: 11.5, color: "var(--text3)" }}>
-                {ALL_GROUPS.filter(g => !g.isMember && !joinedIds.has(g.id)).length} groups available to join
+                {groupsState.filter(g => !g.isMember && !joinedIds.has(g.id)).length} groups available to join
               </div>
             </div>
             <button className="sg-discover-btn" onClick={() => setFilterTab("Discover")}>

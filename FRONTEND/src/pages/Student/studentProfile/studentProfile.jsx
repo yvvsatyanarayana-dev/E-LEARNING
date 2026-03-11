@@ -31,34 +31,59 @@ function SkillBar({ label, pct, color, pctColor }) {
   );
 }
 
-const COURSES = [
-  { name:"Operating Systems",    pct:78, grade:"A",  color:"var(--indigo-l)", gradeStyle:{background:"rgba(39,201,176,.1)",color:"var(--teal)"} },
-  { name:"Database Mgmt Sys",    pct:61, grade:"A−", color:"var(--teal)",     gradeStyle:{background:"rgba(91,78,248,.1)",color:"var(--indigo-ll)"} },
-  { name:"Machine Learning",     pct:44, grade:"B+", color:"var(--amber)",    gradeStyle:{background:"rgba(244,165,53,.1)",color:"var(--amber)"} },
-  { name:"Computer Networks",    pct:55, grade:"A",  color:"var(--violet)",   gradeStyle:{background:"rgba(159,122,234,.1)",color:"var(--violet)"} },
-  { name:"Cryptography & NS",    pct:32, grade:"B",  color:"var(--rose)",     gradeStyle:{background:"rgba(242,68,92,.1)",color:"var(--rose)"} },
-];
+import api from "../../../utils/api";
 
-const ACTIVITY = [
-  { icon:"📝", color:"rgba(242,68,92,.1)",  title:"Assignment Submitted",  sub:"OS Unit III — 2 hrs before deadline", time:"Today" },
-  { icon:"🎯", color:"rgba(39,201,176,.1)", title:"Quiz Completed",        sub:"DBMS Normalisation — Score: 85%",      time:"Yesterday" },
-  { icon:"💬", color:"rgba(159,122,234,.1)",title:"Study Group Post",      sub:"Replied in OS Revision Group",         time:"2 days ago" },
-  { icon:"🏅", color:"rgba(244,165,53,.1)", title:"Badge Earned",          sub:"Consistency Streak — 7 days",          time:"3 days ago" },
-  { icon:"🎓", color:"rgba(91,78,248,.1)",  title:"Lecture Completed",     sub:"ML — Linear Regression (44 min)",      time:"4 days ago" },
+const PALETTE = [
+  {color:"var(--teal)",    pctColor:"var(--teal)"},
+  {color:"var(--indigo-l)",pctColor:"var(--indigo-ll)"},
+  {color:"var(--violet)", pctColor:"var(--violet)"},
+  {color:"var(--amber)",  pctColor:"var(--amber)"},
+  {color:"var(--rose)",   pctColor:"var(--rose)"},
 ];
-
-const BADGES = [
-  { ico:"🔥", name:"7-day Streak" }, { ico:"🎯", name:"Quiz Ace" },
-  { ico:"🚀", name:"Early Bird"  }, { ico:"🏆", name:"Top 15%" },
-  { ico:"⚡", name:"Fast Learner"}, { ico:"💎", name:"Consistent" },
+const GRADE_STYLES = [
+  {background:"rgba(39,201,176,.1)",color:"var(--teal)"},
+  {background:"rgba(91,78,248,.1)",color:"var(--indigo-ll)"},
+  {background:"rgba(244,165,53,.1)",color:"var(--amber)"},
+  {background:"rgba(159,122,234,.1)",color:"var(--violet)"},
+  {background:"rgba(242,68,92,.1)",color:"var(--rose)"},
 ];
 
 export default function StudentProfile({ onBack, onNavigateSettings }) {
+  const [user,       setUser]       = useState(null);
+  const [skills,     setSkills]     = useState([]);
+  const [courses,    setCourses]    = useState([]);
+  const [placement,  setPlacement]  = useState(null);
+  const [loading,    setLoading]    = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [meRes, dashRes] = await Promise.allSettled([
+          api.get("/auth/me"),
+          api.get("/student/dashboard"),
+        ]);
+        if (meRes.status === "fulfilled") setUser(meRes.value);
+        if (dashRes.status === "fulfilled") {
+          const d = dashRes.value;
+          if (d.skill_scores)    setSkills(d.skill_scores);
+          if (d.enrolled_courses) setCourses(d.enrolled_courses);
+          if (d.placement)       setPlacement(d.placement);
+        }
+      } catch (e) { console.error("Profile load failed:", e); }
+      finally { setLoading(false); }
+    };
+    load();
+  }, []);
+
+  const initials = user?.full_name ? user.full_name.split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2) : "??";
+  const priScore = placement?.pri_score ?? 0;
+  const priLabel = priScore >= 85 ? "Excellent" : priScore >= 70 ? "Good" : priScore >= 50 ? "Average" : "Needs Work";
+
   const STATS = [
-    { val:"8.4",  lbl:"Current CGPA",        color:"var(--teal)",    delta:<><IcoChevUp style={{color:"var(--teal)"}}/> +0.2 this sem</>, dc:"teal" },
-    { val:"87%",  lbl:"Attendance",           color:"var(--amber)",   delta:"Min 75% req",                                              dc:"amber" },
-    { val:"72",   lbl:"Placement Readiness",  color:"var(--indigo-ll)",delta:"Good tier",                                              dc:"indigo" },
-    { val:"Top 15%",lbl:"Class Rank",         color:"var(--violet)",  delta:"↑ 3 positions",                                           dc:"violet" },
+    { val: `${Math.round(priScore)}`, lbl:"Placement Readiness", color:"var(--indigo-ll)", delta: priLabel, dc:"indigo" },
+    { val: `${courses.length}`,       lbl:"Enrolled Courses",    color:"var(--teal)",    delta:"Active courses", dc:"teal" },
+    { val: `${skills.length}`,        lbl:"Skills Tracked",      color:"var(--violet)",  delta:"In skill tracker", dc:"violet" },
+    { val: `${placement?.mock_interviews_done ?? 0}`, lbl:"Mock Interviews", color:"var(--amber)", delta:"Completed", dc:"amber" },
   ];
 
   return (
@@ -68,145 +93,136 @@ export default function StudentProfile({ onBack, onNavigateSettings }) {
         <button className="sp-back" onClick={onBack}><IcoBack /> Back</button>
       </div>
 
-      {/* Hero */}
-      <div className="sp-hero">
-        <div className="sp-hero-banner" />
-        <div className="sp-hero-body">
-          <div className="sp-avatar-wrap">
-            <div className="sp-avatar">AR</div>
-            <div className="sp-avatar-actions">
-              <button className="sp-btn-outline" onClick={onNavigateSettings}><IcoEdit /> Edit Profile</button>
-              <button className="sp-btn-outline"><IcoShare /> Share</button>
-              <button className="sp-btn-solid"><IcoBrief /> View Resume</button>
+      {loading ? (
+        <div style={{padding:"60px 20px",textAlign:"center",color:"var(--text3)"}}>Loading profile…</div>
+      ) : (
+        <>
+          {/* Hero */}
+          <div className="sp-hero">
+            <div className="sp-hero-banner" />
+            <div className="sp-hero-body">
+              <div className="sp-avatar-wrap">
+                <div className="sp-avatar">{initials}</div>
+                <div className="sp-avatar-actions">
+                  <button className="sp-btn-outline" onClick={onNavigateSettings}><IcoEdit /> Edit Profile</button>
+                  <button className="sp-btn-outline"><IcoShare /> Share</button>
+                  <button className="sp-btn-solid"><IcoBrief /> View Resume</button>
+                </div>
+              </div>
+              <div className="sp-name">{user?.full_name || "Student"}</div>
+              <div className="sp-meta">{user?.email || ""}</div>
+              <div className="sp-bio">Student at SmartCampus</div>
+              {skills.length > 0 && (
+                <div className="sp-tags">
+                  {skills.slice(0, 8).map(s => (
+                    <span key={s.skill_name} className="sp-tag">{s.skill_name}</span>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
-          <div className="sp-name">Arjun Reddy</div>
-          <div className="sp-meta">Computer Science Engineering · Semester 5 · Roll 21CS047 · Amrita University</div>
-          <div className="sp-bio">CSE student passionate about distributed systems, machine learning, and competitive programming. Aspiring software engineer with strong foundations in algorithms and system design.</div>
-          <div className="sp-tags">
-            {["Python","C++","React","Node.js","Machine Learning","SQL","DSA","System Design"].map(t => (
-              <span key={t} className="sp-tag">{t}</span>
+
+          {/* Stats */}
+          <div className="sp-stats">
+            {STATS.map(s => (
+              <div key={s.lbl} className="sp-stat">
+                <div className="sp-stat-val" style={{ color: s.color }}>{s.val}</div>
+                <div className="sp-stat-lbl">{s.lbl}</div>
+                <div className="sp-stat-delta" style={{ color: s.color, opacity: .7 }}>{s.delta}</div>
+              </div>
             ))}
           </div>
-        </div>
-      </div>
 
-      {/* Stats */}
-      <div className="sp-stats">
-        {STATS.map(s => (
-          <div key={s.lbl} className="sp-stat">
-            <div className="sp-stat-val" style={{ color: s.color }}>{s.val}</div>
-            <div className="sp-stat-lbl">{s.lbl}</div>
-            <div className="sp-stat-delta" style={{ color: s.color, opacity: .7 }}>{s.delta}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* Main grid */}
-      <div className="sp-grid">
-        <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-          {/* Skills */}
-          <div className="sp-panel">
-            <div className="sp-panel-hd">
-              <span className="sp-panel-ttl"><IcoBar style={{marginRight:6,verticalAlign:"middle",color:"var(--indigo-ll)"}}/>Skill Tracker</span>
-              <button className="sp-panel-act">Full report →</button>
-            </div>
-            <div className="sp-panel-body">
-              {[
-                { label:"DSA",           pct:82, color:"var(--teal)",    pctColor:"var(--teal)" },
-                { label:"Python",        pct:74, color:"var(--indigo-l)",pctColor:"var(--indigo-ll)" },
-                { label:"SQL",           pct:68, color:"var(--violet)",  pctColor:"var(--violet)" },
-                { label:"Machine Learning",pct:55,color:"var(--amber)",  pctColor:"var(--amber)" },
-                { label:"System Design", pct:41, color:"var(--rose)",    pctColor:"var(--rose)" },
-                { label:"Communication", pct:77, color:"linear-gradient(90deg,var(--indigo),var(--teal))",pctColor:"var(--indigo-ll)" },
-              ].map(s => <SkillBar key={s.label} {...s} />)}
-            </div>
-          </div>
-
-          {/* Courses */}
-          <div className="sp-panel">
-            <div className="sp-panel-hd">
-              <span className="sp-panel-ttl"><IcoBook style={{marginRight:6,verticalAlign:"middle",color:"var(--indigo-ll)"}}/>Active Courses</span>
-              <button className="sp-panel-act">View all →</button>
-            </div>
-            <div className="sp-panel-body" style={{padding:"8px 18px"}}>
-              {COURSES.map(c => (
-                <div key={c.name} className="sp-course-item">
-                  <div className="sp-course-dot" style={{ background: c.color }} />
-                  <div className="sp-course-info">
-                    <div className="sp-course-name">{c.name}</div>
-                    <div className="sp-course-prog">{c.pct}% complete</div>
-                  </div>
-                  <div className="sp-course-grade" style={c.gradeStyle}>{c.grade}</div>
+          {/* Main grid */}
+          <div className="sp-grid">
+            <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+              {/* Skills */}
+              <div className="sp-panel">
+                <div className="sp-panel-hd">
+                  <span className="sp-panel-ttl"><IcoBar style={{marginRight:6,verticalAlign:"middle",color:"var(--indigo-ll)"}}/>Skill Tracker</span>
+                  <span style={{fontSize:11,color:"var(--text3)"}}>{skills.length} skills</span>
                 </div>
-              ))}
-            </div>
-          </div>
-        </div>
+                <div className="sp-panel-body">
+                  {skills.length === 0 ? (
+                    <div style={{padding:"20px",textAlign:"center",color:"var(--text3)",fontSize:12}}>No skills tracked yet</div>
+                  ) : skills.map((s, i) => {
+                    const p = PALETTE[i % PALETTE.length];
+                    return <SkillBar key={s.skill_name} label={s.skill_name} pct={Math.round(s.score)} color={p.color} pctColor={p.pctColor} />;
+                  })}
+                </div>
+              </div>
 
-        {/* Right column */}
-        <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
-          {/* Badges */}
-          <div className="sp-panel">
-            <div className="sp-panel-hd">
-              <span className="sp-panel-ttl"><IcoAward style={{marginRight:6,verticalAlign:"middle",color:"var(--indigo-ll)"}}/>Achievements</span>
-              <span style={{fontSize:11,color:"var(--text3)"}}>{BADGES.length} earned</span>
-            </div>
-            <div className="sp-panel-body">
-              <div className="sp-badges">
-                {BADGES.map(b => (
-                  <div key={b.name} className="sp-badge">
-                    <span className="sp-badge-ico">{b.ico}</span>
-                    <span className="sp-badge-name">{b.name}</span>
-                  </div>
-                ))}
+              {/* Courses */}
+              <div className="sp-panel">
+                <div className="sp-panel-hd">
+                  <span className="sp-panel-ttl"><IcoBook style={{marginRight:6,verticalAlign:"middle",color:"var(--indigo-ll)"}}/>Active Courses</span>
+                  <button className="sp-panel-act">View all →</button>
+                </div>
+                <div className="sp-panel-body" style={{padding:"8px 18px"}}>
+                  {courses.length === 0 ? (
+                    <div style={{padding:"20px",textAlign:"center",color:"var(--text3)",fontSize:12}}>No courses enrolled</div>
+                  ) : courses.map((c, i) => {
+                    const p = PALETTE[i % PALETTE.length];
+                    const g = GRADE_STYLES[i % GRADE_STYLES.length];
+                    const grade = c.progress >= 90 ? "A+" : c.progress >= 80 ? "A" : c.progress >= 70 ? "A−" : c.progress >= 60 ? "B+" : "B";
+                    return (
+                      <div key={c.course_id} className="sp-course-item">
+                        <div className="sp-course-dot" style={{ background: p.color }} />
+                        <div className="sp-course-info">
+                          <div className="sp-course-name">{c.title}</div>
+                          <div className="sp-course-prog">{Math.round(c.progress)}% complete</div>
+                        </div>
+                        <div className="sp-course-grade" style={g}>{grade}</div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Recent Activity */}
-          <div className="sp-panel">
-            <div className="sp-panel-hd">
-              <span className="sp-panel-ttl">Recent Activity</span>
-            </div>
-            <div className="sp-panel-body" style={{padding:"6px 18px"}}>
-              {ACTIVITY.map((a,i) => (
-                <div key={i} className="sp-activity-item">
-                  <div className="sp-act-ico" style={{ background: a.color }}>
-                    <span style={{fontSize:14}}>{a.icon}</span>
-                  </div>
-                  <div style={{flex:1}}>
-                    <div className="sp-act-title">{a.title}</div>
-                    <div className="sp-act-sub">{a.sub}</div>
-                  </div>
-                  <div className="sp-act-time">{a.time}</div>
+            {/* Right column */}
+            <div style={{ display:"flex", flexDirection:"column", gap:16 }}>
+              {/* Contact */}
+              <div className="sp-panel">
+                <div className="sp-panel-hd">
+                  <span className="sp-panel-ttl">Contact & Info</span>
+                  <button className="sp-panel-act" onClick={onNavigateSettings}>Edit →</button>
                 </div>
-              ))}
-            </div>
-          </div>
+                <div className="sp-panel-body" style={{padding:"8px 18px"}}>
+                  {[
+                    { ico:<IcoMail/>,  val: user?.email || "—" },
+                    { ico:<IcoPhone/>, val: "Update in Settings" },
+                  ].map((c,i) => (
+                    <div key={i} className="sp-contact-item">
+                      <span className="sp-contact-ico">{c.ico}</span>
+                      <span className="sp-contact-val">{c.val}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
 
-          {/* Contact */}
-          <div className="sp-panel">
-            <div className="sp-panel-hd">
-              <span className="sp-panel-ttl">Contact & Links</span>
-              <button className="sp-panel-act" onClick={onNavigateSettings}>Edit →</button>
-            </div>
-            <div className="sp-panel-body" style={{padding:"8px 18px"}}>
-              {[
-                { ico:<IcoMail/>,   val:"arjun.reddy@college.edu" },
-                { ico:<IcoPhone/>,  val:"+91 98765 43210" },
-                { ico:<IcoLinked/>, val:"linkedin.com/in/arjunreddy" },
-                { ico:<IcoGithub/>, val:"github.com/arjunreddy21" },
-              ].map((c,i) => (
-                <div key={i} className="sp-contact-item">
-                  <span className="sp-contact-ico">{c.ico}</span>
-                  <span className="sp-contact-val">{c.val}</span>
+
+              {/* Placement Summary */}
+              {placement && (
+                <div className="sp-panel">
+                  <div className="sp-panel-hd">
+                    <span className="sp-panel-ttl"><IcoBrief style={{marginRight:6,verticalAlign:"middle",color:"var(--indigo-ll)"}}/>Placement Readiness</span>
+                  </div>
+                  <div className="sp-panel-body" style={{padding:"12px 18px"}}>
+                    <div style={{fontSize:32,fontWeight:800,color:"var(--indigo-ll)",marginBottom:4}}>{Math.round(placement.pri_score)}</div>
+                    <div style={{fontSize:12,color:"var(--text3)",marginBottom:8}}>PRI Score — {priLabel}</div>
+                    <div style={{fontSize:12,color:"var(--text2)"}}>
+                      Mock Interviews: <strong>{placement.mock_interviews_done}</strong> done &nbsp;·&nbsp;
+                      Skills: <strong>{placement.skills_completed}</strong> completed
+                    </div>
+                  </div>
                 </div>
-              ))}
+              )}
             </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
     </div>
   );
 }
+

@@ -6,6 +6,7 @@ import FacultyDashboard from "../pages/Faculty/facultyDashboard/facultyDashboard
 import FacultyQuickaction from "../pages/Faculty/facultyQuickaction/facultyQuickaction";
 import FacultyNotification from "../pages/Faculty/facultyNotification/facultyNotification";
 import RoleRoute from "./RoleRoute";
+import ErrorBoundary from "./ErrorBoundary";
 
 const SD = (
   <RoleRoute allowedRoles={["student", "admin"]}>
@@ -21,8 +22,8 @@ const FD = (
 
 const router = createBrowserRouter([
   // ──────── AUTH ROUTES ────────
-  { path: "/",                element: <SmartCampus /> },
-  { path: "/login",           element: <SmartCampus defaultModal="login" /> },
+  { path: "/",                element: <SmartCampus />, errorElement: <ErrorBoundary /> },
+  { path: "/login",           element: <SmartCampus defaultModal="login" />, errorElement: <ErrorBoundary /> },
   { path: "/register",        element: <SmartCampus defaultModal="signup" /> },
   { path: "/forgot-password", element: <SmartCampus defaultModal="forgot" /> },
 
@@ -44,24 +45,54 @@ const router = createBrowserRouter([
   { path: "/studentdashboard/studentResume",             element: SD },
 
   // ──────── FACULTY DASHBOARD ROUTES ────────
-  { path: "/facultydashboard",                           element: FD },
-  { path: "/facultydashboard/facultyAnalytics",          element: FD },
-  { path: "/facultydashboard/facultyMycourse",           element: FD },
-  { path: "/facultydashboard/facultyVideoLectures",      element: FD },
-  { path: "/facultydashboard/facultyAssignments",        element: FD },
-  { path: "/facultydashboard/facultyQuizzes",            element: FD },
-  { path: "/facultydashboard/allStudents",               element: FD },
-  { path: "/facultydashboard/attendance",                element: FD },
-  { path: "/facultydashboard/gradeBook",                 element: FD },
-  { path: "/facultydashboard/questionBank",              element: FD },
-  { path: "/facultydashboard/aiAssistant",               element: FD },
-  { path: "/facultydashboard/reports",                   element: FD },
-  // ── NEW: Profile & Settings ──
-  { path: "/facultydashboard/profile",                   element: FD },
-  { path: "/facultydashboard/settings",                  element: FD },
-  // ── Quickactions & Notifications ──
-  { path: "/facultydashboard/quickactions",              element: <FacultyQuickaction /> },
-  { path: "/facultydashboard/notifications",             element: <FacultyNotification /> },
+  {
+    path: "/facultydashboard",
+    element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+  },
+  {
+    path: "/facultydashboard/facultyAnalytics",
+    element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+  },
+  {
+    path: "/facultydashboard/facultyMycourse",
+    element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+  },
+  {
+    path: "/facultydashboard/facultyVideoLectures",
+    element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+  },
+  {
+    path: "/facultydashboard/facultyAssignments",
+    element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+  },
+  {
+    path: "/facultydashboard/facultyQuizzes",
+    element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+  },
+  {
+    path: "/facultydashboard/allStudents",
+    element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+  },
+  {
+    path: "/facultydashboard/attendance",
+    element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+  },
+  {
+    path: "/facultydashboard/gradeBook",
+    element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+  },
+  {
+    path: "/facultydashboard/questionBank",
+    element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+  },
+  {
+    path: "/facultydashboard/aiAssistant",
+    element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+  },
+  {
+    path: "/facultydashboard/reports",
+    element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+  },
 
   // ──────── OTHER DASHBOARD ROUTES ────────
   {

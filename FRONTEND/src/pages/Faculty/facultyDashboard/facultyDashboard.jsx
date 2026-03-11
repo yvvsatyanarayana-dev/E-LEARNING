@@ -17,6 +17,7 @@ import FacultyProfile  from "../facultyProfile/facultyProfile";
 import FacultySettings from "../facultySettings/facultySettings";
 import FacultyQuickaction from "../facultyQuickaction/facultyQuickaction";
 import FacultyNotification from "../facultyNotification/facultyNotification";
+import api from "../../../utils/api";
 
 // ─── ICONS ───────────────────────────────────────────────────────
 const IcoDashboard  = (p) => <svg {...p} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>;
@@ -183,6 +184,44 @@ const NAV_ITEMS = [
   ]},
 ];
 
+// ─── MAPPERS ─────────────────────────────────────────────────────
+const mapApiCourse = (c) => ({
+  ...c,
+  lectures: { done: c.lectures_done, total: c.lectures_total },
+  badgeStyle: { background: "rgba(91,78,248,.12)", color: "var(--indigo-ll)" }, // Default styles
+  pctColor: c.color || "var(--indigo-ll)",
+  pendingGrade: c.pending_grades,
+  icon: <IcoBook width={18} height={18} />
+});
+
+const mapApiSchedule = (s) => ({
+  from: s.from_time,
+  to: s.to_time,
+  name: s.name,
+  room: s.room,
+  tag: s.tag,
+  color: s.color,
+  tagStyle: { background: "rgba(39,201,176,.1)", color: s.color }
+});
+
+const mapApiTask = (t) => ({
+  label: t.label,
+  course: t.course,
+  due: t.due,
+  urgent: t.urgent,
+  type: t.type
+});
+
+const mapApiQuiz = (q) => ({
+  name: q.name,
+  avg: q.avg_score,
+  highest: q.highest_score,
+  lowest: q.lowest_score,
+  submitted: q.submitted_count,
+  total: q.total_count,
+  color: q.color
+});
+
 // ─── HELPERS ─────────────────────────────────────────────────────
 function addRipple(e, el) {
   const r = document.createElement("span");
@@ -241,7 +280,7 @@ function AnimatedProgressBar({pct,color,height=3,delay=500}){
 }
 
 // ─── SIDEBAR ─────────────────────────────────────────────────────
-function Sidebar({open,onClose,activePage,onNavigate}){
+function Sidebar({open,onClose,activePage,onNavigate,userName,stats,tasks}){
   const logoutNavigate=useNavigate();
   const handleLogout=()=>{ localStorage.removeItem("token");localStorage.removeItem("user");logoutNavigate("/login",{replace:true}); };
 
@@ -259,10 +298,10 @@ function Sidebar({open,onClose,activePage,onNavigate}){
           <button className="sb-mobile-close" onClick={onClose} aria-label="Close menu"><IcoClose/></button>
         </div>
         <div className="sb-user">
-          <div className="sb-avatar">SP</div>
+          <div className="sb-avatar">{userName ? userName.split(" ").map(x=>x[0]).join("") : "FP"}</div>
           <div>
-            <div className="sb-uname">Dr. S. Prakash</div>
-            <div className="sb-urole">Faculty · CSE Dept · 3 Courses</div>
+            <div className="sb-uname">{userName || "Faculty Member"}</div>
+            <div className="sb-urole">Faculty · {stats.active_courses} Courses</div>
           </div>
         </div>
         <div className="sb-scrollable">
@@ -286,11 +325,20 @@ function Sidebar({open,onClose,activePage,onNavigate}){
         </div>
         <div className="sb-bottom-fixed">
           <div className="sb-stat-row">
-            <div className="sb-mini-stat"><div className="sb-mini-val teal">316</div><div className="sb-mini-lbl">Students</div></div>
-            <div className="sb-mini-sep"/>
-            <div className="sb-mini-stat"><div className="sb-mini-val indigo">82%</div><div className="sb-mini-lbl">Avg Attendance</div></div>
-            <div className="sb-mini-sep"/>
-            <div className="sb-mini-stat"><div className="sb-mini-val amber">25</div><div className="sb-mini-lbl">Pending</div></div>
+            <div className="sb-mini-stat">
+              <div className="sb-mini-val teal">{stats.total_students}</div>
+              <div className="sb-mini-lbl">Students</div>
+            </div>
+            <div className="sb-mini-sep" />
+            <div className="sb-mini-stat">
+              <div className="sb-mini-val indigo">{stats.avg_attendance}%</div>
+              <div className="sb-mini-lbl">Avg Attendance</div>
+            </div>
+            <div className="sb-mini-sep" />
+            <div className="sb-mini-stat">
+              <div className="sb-mini-val amber">{tasks.length}</div>
+              <div className="sb-mini-lbl">Pending</div>
+            </div>
           </div>
           <button className="sb-logout" onClick={handleLogout}><IcoLogout/> Sign Out</button>
         </div>
@@ -380,19 +428,52 @@ function AiFab({onClick}){
 
 // ─── MAIN ────────────────────────────────────────────────────────
 export default function FacultyDashboard(){
-    const [profileOpen, setProfileOpen] = useState(false);
-
-    useEffect(() => {
-      const handler = () => setProfileOpen(true);
-      window.addEventListener('open-profile-page', handler);
-      return () => window.removeEventListener('open-profile-page', handler);
-    }, []);
   const navigateRouter=useNavigate();
   const {page}=useParams();
   const [activePage,setActivePage]=useState(()=>{ if(!page) return ROUTES.DASHBOARD; return PAGE_PARAM_MAP[page.toLowerCase()]||ROUTES.DASHBOARD; });
   const [aiOpen,setAiOpen]=useState(false);
   const [sidebarOpen,setSidebarOpen]=useState(false);
   const [checkedTasks,setCheckedTasks]=useState([]);
+  const [profileOpen,setProfileOpen]=useState(false);
+
+  const [loading,     setLoading]     = useState(true);
+  const [error,       setError]       = useState(null);
+  const [userName,    setUserName]    = useState("");
+  const [stats,       setStats]       = useState({ total_students: 0, active_courses: 0, avg_attendance: 0, avg_class_score: 0 });
+  const [courses,     setCourses]     = useState([]);
+  const [tasks,       setTasks]       = useState([]);
+  const [schedule,    setSchedule]    = useState([]);
+  const [quizStats,   setQuizStats]   = useState([]);
+  const [weakTopics,  setWeakTopics]  = useState([]);
+  const [topStudents, setTopStudents] = useState([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const [meData, dashData] = await Promise.allSettled([
+          api.get("/auth/me"),
+          api.get("/faculty/dashboard"),
+        ]);
+        if (meData.status === "fulfilled") setUserName(meData.value.full_name || meData.value.email || "");
+        if (dashData.status === "fulfilled") {
+          const d = dashData.value;
+          if (d.stats) setStats(d.stats);
+          if (d.courses) setCourses(d.courses.map(mapApiCourse));
+          if (d.tasks) setTasks(d.tasks.map(mapApiTask));
+          if (d.schedule) setSchedule(d.schedule.map(mapApiSchedule));
+          if (d.quiz_stats) setQuizStats(d.quiz_stats.map(mapApiQuiz));
+          if (d.weak_topics) setWeakTopics(d.weak_topics);
+          if (d.top_students) setTopStudents(d.top_students);
+        }
+      } catch (err) {
+        console.error("Dashboard fetch failed:", err);
+        setError("Could not load dashboard data.");
+      } finally { setLoading(false); }
+    };
+    fetchData();
+  }, []);
+
   useCursor();
 
   useEffect(()=>{
@@ -432,6 +513,7 @@ export default function FacultyDashboard(){
       case ROUTES.AI_ASSISTANT:   return <AiAssistant           onBack={()=>navigate(ROUTES.DASHBOARD)}/>;
       case ROUTES.REPORTS:        return <Reports               onBack={()=>navigate(ROUTES.DASHBOARD)}/>;
       case ROUTES.SETTINGS:       return <FacultySettings       onBack={()=>navigate(ROUTES.DASHBOARD)}/>;
+      case ROUTES.PROFILE:        return <FacultyProfile        onBack={()=>navigate(ROUTES.DASHBOARD)}/>;
       default: return null; // falls through to dashboard content below
     }
   };
@@ -447,7 +529,15 @@ export default function FacultyDashboard(){
       <AiPanel open={aiOpen} onClose={()=>setAiOpen(false)}/>
       {/* Remove modal, use routing instead */}
       <div className="app">
-        <Sidebar open={sidebarOpen} onClose={()=>setSidebarOpen(false)} activePage={activePage} onNavigate={navigate}/>
+        <Sidebar 
+          open={sidebarOpen} 
+          onClose={()=>setSidebarOpen(false)} 
+          activePage={activePage} 
+          onNavigate={navigate}
+          userName={userName}
+          stats={stats}
+          tasks={tasks}
+        />
         <main className="main">
           <Topbar 
             onHamburger={()=>setSidebarOpen(o=>!o)}
@@ -461,26 +551,28 @@ export default function FacultyDashboard(){
             <div className="content">
               {/* GREETING */}
               <div className="greet-row">
-                <div className="greet-tag"><div className="greet-pip"/><span className="greet-pip-txt">Academic Year 2024–25 · Semester 5 · Week 11</span></div>
-                <h1 className="greet-title">Good morning, <em>Dr. Prakash</em></h1>
-                <p className="greet-sub">You have 22 pending submissions to grade and an OS lecture at 9:00 AM today.</p>
+                <div className="greet-tag">
+                  <div className="greet-pip" />
+                  <span className="greet-pip-txt">Academic Year 2024–25 · Semester 5 · Week 11</span>
+                </div>
+                <h1 className="greet-title">Good morning, <em>{userName ? userName.split(" ")[0] : "Faculty"}</em></h1>
+                <p className="greet-sub">You have {tasks.length} pending submissions to grade. Let's get ahead.</p>
                 <div className="greet-actions">
-                  <Btn className="btn-solid" onClick={()=>navigate(ROUTES.GRADE_BOOK)}><IcoPen/> Grade Submissions</Btn>
-                  <Btn className="btn-ghost" onClick={()=>navigate(ROUTES.QUIZZES)}><IcoPlus/> Create Quiz</Btn>
-                  <Btn className="btn-ghost" onClick={()=>navigate(ROUTES.VIDEO_LECTURES)}><IcoUpload/> Upload Lecture</Btn>
-                  <Btn className="btn-solid" style={{marginLeft:8}} onClick={()=>setQuickActionsOpen(true)}><IcoFlash/> Quick Actions</Btn>
+                  <Btn className="btn-solid"><IcoPen/> Grade Submissions</Btn>
+                  <Btn className="btn-ghost"><IcoPlus/> Create Quiz</Btn>
+                  <Btn className="btn-ghost"><IcoUpload/> Upload Lecture</Btn>
                 </div>
               </div>
 
               {/* STAT CARDS */}
               <div className="stat-grid">
                 {[
-                  {cls:"sc-teal",  icon:<IcoUsers width={18} height={18}/>, val:"316", lbl:"Total Students",  delta:<><IcoChevUp/>+12 this semester</>, dc:"delta-up",  route:ROUTES.ALL_STUDENTS },
-                  {cls:"sc-indigo",icon:<IcoBook  width={18} height={18}/>, val:"3",   lbl:"Active Courses",  delta:<><IcoMinus/>Same as last sem</>,   dc:"delta-neu", route:ROUTES.MY_COURSES   },
-                  {cls:"sc-amber", icon:<IcoCal   width={18} height={18}/>, val:"82%", lbl:"Avg Attendance",  delta:<><IcoChevDn/>−3% vs last week</>,  dc:"delta-dn",  route:ROUTES.ATTENDANCE   },
-                  {cls:"sc-violet",icon:<IcoTrend width={18} height={18}/>, val:"73%", lbl:"Avg Class Score", delta:<><IcoChevUp/>+2% vs last quiz</>,  dc:"delta-up",  route:ROUTES.ANALYTICS    },
-                ].map(({cls,icon,val,lbl,delta,dc,route},i)=>(
-                  <Hoverable key={lbl} className={`stat-card ${cls}`} style={{animationDelay:`${(i+1)*.07}s`,cursor:"pointer"}} onClick={()=>navigate(route)}>
+                  {cls:"sc-teal",  icon:<IcoUsers width={18} height={18}/>, val:stats.total_students.toString(), lbl:"Total Students",  delta:<><IcoChevUp/>+12 this semester</>, dc:"delta-up"  },
+                  {cls:"sc-indigo",icon:<IcoBook  width={18} height={18}/>, val:stats.active_courses.toString(),   lbl:"Active Courses",  delta:<><IcoMinus/>Same as last sem</>,   dc:"delta-neu" },
+                  {cls:"sc-amber", icon:<IcoCal   width={18} height={18}/>, val:`${Math.round(stats.avg_attendance)}%`, lbl:"Avg Attendance",  delta:<><IcoChevDn/>−3% vs last week</>,  dc:"delta-dn"  },
+                  {cls:"sc-violet",icon:<IcoTrend width={18} height={18}/>, val:`${Math.round(stats.avg_class_score)}%`, lbl:"Avg Class Score", delta:<><IcoChevUp/>+2% vs last quiz</>,  dc:"delta-up"  },
+                ].map(({cls,icon,val,lbl,delta,dc},i)=>(
+                  <Hoverable key={lbl} className={`stat-card ${cls}`} style={{animationDelay:`${(i+1)*.07}s`}}>
                     <div className="stat-ic">{icon}</div>
                     <div className="stat-val">{val}</div>
                     <div className="stat-lbl">{lbl}</div>
@@ -492,24 +584,33 @@ export default function FacultyDashboard(){
               {/* MY COURSES */}
               <div className="panel" style={{animationDelay:"0.07s"}}>
                 <div className="panel-hd">
-                  <div className="panel-ttl"><IcoBook width={14} height={14} style={{color:"var(--indigo-ll)"}}/> My Courses <span>3 active this semester</span></div>
+                  <div className="panel-ttl"><IcoBook width={14} height={14} style={{color:"var(--indigo-ll)"}}/> My Courses <span>{courses.length} active this semester</span></div>
                   <a href="#" className="panel-act" onClick={e=>{e.preventDefault();navigate(ROUTES.MY_COURSES);}}>Manage <IcoChevR/></a>
                 </div>
                 <div className="panel-body">
                   <div className="course-faculty-grid">
-                    {MY_COURSES.map(c=>(
-                      <Hoverable key={c.name} className="course-faculty-card" style={{cursor:"pointer"}} onClick={()=>navigate(ROUTES.MY_COURSES)}>
+                    {courses.map(c=>(
+                      <Hoverable key={c.name} className="course-faculty-card">
                         <div className="cfc-top">
                           <div className="ci-badge" style={c.badgeStyle}>{c.icon}</div>
                           <div className="cfc-meta"><div className="cfc-code">{c.code} · {c.sem}</div><div className="cfc-name">{c.name}</div></div>
-                          {c.pendingGrade>0&&<div className="cfc-pending" style={{cursor:"pointer"}} onClick={e=>{e.stopPropagation();navigate(ROUTES.GRADE_BOOK);}}>{c.pendingGrade} to grade</div>}
+                          {c.pendingGrade>0&&<div className="cfc-pending">{c.pendingGrade} to grade</div>}
                         </div>
                         <div className="cfc-stats">
-                          <div className="cfc-stat-item"><div className="cfc-stat-val" style={{color:c.pctColor}}>{c.students}</div><div className="cfc-stat-lbl">Students</div></div>
-                          <div className="cfc-stat-sep"/>
-                          <div className="cfc-stat-item"><div className="cfc-stat-val" style={{color:c.avgAttendance>=85?"var(--teal)":c.avgAttendance>=75?"var(--amber)":"var(--rose)"}}>{c.avgAttendance}%</div><div className="cfc-stat-lbl">Attendance</div></div>
-                          <div className="cfc-stat-sep"/>
-                          <div className="cfc-stat-item"><div className="cfc-stat-val" style={{color:"var(--violet)"}}>{c.avgScore}%</div><div className="cfc-stat-lbl">Avg Score</div></div>
+                          <div className="cfc-stat-item">
+                            <div className="cfc-stat-val" style={{ color: c.pctColor }}>{c.student_count}</div>
+                            <div className="cfc-stat-lbl">Students</div>
+                          </div>
+                          <div className="cfc-stat-sep" />
+                          <div className="cfc-stat-item">
+                            <div className="cfc-stat-val" style={{ color: c.avg_attendance >= 85 ? "var(--teal)" : c.avg_attendance >= 75 ? "var(--amber)" : "var(--rose)" }}>{c.avg_attendance}%</div>
+                            <div className="cfc-stat-lbl">Attendance</div>
+                          </div>
+                          <div className="cfc-stat-sep" />
+                          <div className="cfc-stat-item">
+                            <div className="cfc-stat-val" style={{ color: "var(--violet)" }}>{c.avg_score}%</div>
+                            <div className="cfc-stat-lbl">Avg Score</div>
+                          </div>
                         </div>
                         <div className="cfc-progress">
                           <div className="cfc-prog-lbl"><span style={{color:"var(--text3)",fontSize:10}}>Lecture Progress</span><span style={{color:c.pctColor,fontSize:10,fontWeight:600}}>{c.lectures.done}/{c.lectures.total}</span></div>
@@ -532,7 +633,7 @@ export default function FacultyDashboard(){
                   <div className="panel-hd"><div className="panel-ttl"><IcoCal width={14} height={14} style={{color:"var(--indigo-ll)"}}/> Today's Schedule <span>Fri, 28 Feb</span></div><a href="#" className="panel-act" onClick={e=>{e.preventDefault();navigate(ROUTES.ATTENDANCE);}}>Full week <IcoChevR/></a></div>
                   <div className="panel-body">
                     <div className="sched-list">
-                      {SCHEDULE.map(s=>(
+                      {schedule.map((s) => (
                         <Hoverable key={s.from} className="sched-item">
                           <div className="sched-time"><div className="st-from" style={{color:s.color}}>{s.from}</div><div className="st-to">{s.to}</div></div>
                           <div className="sched-div" style={{background:s.color}}/>
@@ -543,18 +644,11 @@ export default function FacultyDashboard(){
                   </div>
                 </div>
                 <div className="panel">
-                  <div className="panel-hd"><div className="panel-ttl"><IcoAlert width={14} height={14} style={{color:"var(--rose)"}}/> Pending Tasks <span style={{color:"var(--rose)"}}>{PENDING_TASKS.length-checkedTasks.length} remaining</span></div><a href="#" className="panel-act" onClick={e=>{e.preventDefault();navigate(ROUTES.ASSIGNMENTS);}}>All tasks <IcoChevR/></a></div>
+                  <div className="panel-hd"><div className="panel-ttl"><IcoAlert width={14} height={14} style={{color:"var(--rose)"}}/> Pending Tasks <span style={{color:"var(--rose)"}}>{tasks.length-checkedTasks.length} remaining</span></div><a href="#" className="panel-act" onClick={e=>{e.preventDefault();navigate(ROUTES.ASSIGNMENTS);}}>All tasks <IcoChevR/></a></div>
                   <div className="panel-body">
                     <div className="task-list">
-                      {PENDING_TASKS.map((t,i)=>(
-                        <Hoverable key={i} className={`task-item ${checkedTasks.includes(i)?"done":""}`}
-                          onClick={()=>{
-                            toggleTask(i);
-                            if(t.type==="grade")  navigate(ROUTES.GRADE_BOOK);
-                            if(t.type==="upload") navigate(ROUTES.VIDEO_LECTURES);
-                            if(t.type==="quiz")   navigate(ROUTES.QUIZZES);
-                            if(t.type==="qpaper") navigate(ROUTES.QUESTION_BANK);
-                          }}>
+                      {tasks.map((t,i)=>(
+                        <Hoverable key={i} className={`task-item ${checkedTasks.includes(i)?"done":""}`} onClick={()=>toggleTask(i)}>
                           <div className={`task-check ${checkedTasks.includes(i)?"checked":""}`}>{checkedTasks.includes(i)&&<IcoCheck/>}</div>
                           <div className="task-body"><div className="task-label">{t.label}</div><div className="task-sub">{t.course}</div></div>
                           <div className={`task-due ${t.urgent?"urgent":""}`}>{t.due}</div>
@@ -570,8 +664,8 @@ export default function FacultyDashboard(){
                 <div className="panel">
                   <div className="panel-hd"><div className="panel-ttl"><IcoClock width={14} height={14} style={{color:"var(--indigo-ll)"}}/> Quiz Analytics <span>Recent</span></div><a href="#" className="panel-act" onClick={e=>{e.preventDefault();navigate(ROUTES.QUIZZES);}}>All quizzes <IcoChevR/></a></div>
                   <div className="panel-body">
-                    <div style={{display:"flex",flexDirection:"column",gap:14}}>
-                      {QUIZ_STATS.map(q=>(
+                    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                      {quizStats.map((q) => (
                         <Hoverable key={q.name} className="quiz-faculty-item">
                           <div className="qfi-top"><span className="qfi-name">{q.name}</span><span className="qfi-sub">{q.submitted}/{q.total} submitted</span></div>
                           <div className="qfi-bars">
@@ -592,10 +686,14 @@ export default function FacultyDashboard(){
                   <div className="panel-hd"><div className="panel-ttl"><IcoAlert width={14} height={14} style={{color:"var(--amber)"}}/> Weak Topics Detected</div><a href="#" className="panel-act" onClick={e=>{e.preventDefault();navigate(ROUTES.QUESTION_BANK);}}>Generate remedials <IcoChevR/></a></div>
                   <div className="panel-body">
                     <div className="weak-list">
-                      {WEAK_TOPICS.map((w,i)=>(
+                      {weakTopics.map((w, i) => (
                         <Hoverable key={i} className="weak-item">
-                          <div className="wi-top"><span className="wi-course" style={{color:w.color}}>{w.course}</span><span className="wi-name">{w.topic}</span><span className="wi-count">{w.students} students</span></div>
-                          <AnimatedProgressBar pct={w.pct} color={w.bar} height={3} delay={700+i*100}/>
+                          <div className="wi-top">
+                            <span className="wi-course" style={{ color: w.color }}>{w.course}</span>
+                            <span className="wi-name">{w.topic}</span>
+                            <span className="wi-count">{w.student_count} students</span>
+                          </div>
+                          <AnimatedProgressBar pct={w.percentage} color={w.color} height={3} delay={700 + i * 100} />
                           <div className="wi-hint">Below 40% — needs attention</div>
                         </Hoverable>
                       ))}
@@ -611,12 +709,12 @@ export default function FacultyDashboard(){
                   <div className="panel-hd"><div className="panel-ttl"><IcoUsers width={14} height={14} style={{color:"var(--indigo-ll)"}}/> Student Spotlight</div><a href="#" className="panel-act" onClick={e=>{e.preventDefault();navigate(ROUTES.ALL_STUDENTS);}}>All students <IcoChevR/></a></div>
                   <div className="panel-body">
                     <div style={{display:"flex",flexDirection:"column",gap:8}}>
-                      {TOP_STUDENTS.map((s,i)=>(
-                        <Hoverable key={i} className="student-item" style={{cursor:"pointer"}} onClick={()=>navigate(ROUTES.ALL_STUDENTS)}>
+                      {topStudents.map((s,i)=>(
+                        <Hoverable key={i} className="student-item">
                           <div className="sti-rank">{i+1}</div>
-                          <div className="sti-avatar">{s.name.split(" ").map(x=>x[0]).join("")}</div>
+                          <div className="sti-avatar">{s.name ? s.name.split(" ").map(x=>x[0]).join("") : "S"}</div>
                           <div className="sti-info"><div className="sti-name">{s.name}</div><div className="sti-roll">{s.roll} · {s.course}</div></div>
-                          <div className="sti-right"><div className="sti-cgpa">{s.cgpa}</div><span className="sti-badge" style={s.badgeStyle}>{s.badge}</span></div>
+                          <div className="sti-right"><div className="sti-cgpa">{s.cgpa}</div><span className="sti-badge" style={{background: s.badge_color ? `rgba(${s.badge_color.replace('var(--','').replace(')','')},.1)` : "rgba(39,201,176,.1)", color: s.badge_color || "var(--teal)"}}>{s.badge}</span></div>
                         </Hoverable>
                       ))}
                     </div>

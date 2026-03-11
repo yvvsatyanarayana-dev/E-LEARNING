@@ -1,5 +1,5 @@
-// facultyMycourse.jsx
 import { useState, useEffect } from "react";
+import api from "../../../utils/api";
 import "./facultyMycourse.css";
 
 // ─── ICONS ───────────────────────────────────────────────────────
@@ -28,168 +28,7 @@ const IcoBrain   = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24"
 const IcoPlay    = (p) => <svg {...p} width="11" height="11" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>;
 const IcoLock    = (p) => <svg {...p} width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>;
 
-// ─── COURSE DATA ─────────────────────────────────────────────────
-// ✅ FIX: renamed inner "students" array → "studentList" to avoid
-//    overwriting the numeric "students" count field in each course object
-const COURSES = [
-  {
-    id: "cs501",
-    name: "Operating Systems",
-    code: "CS501",
-    sem: "Sem 5",
-    section: "A & B",
-    students: 112,           // ✅ numeric count — no longer overwritten
-    lectures: { done: 33, total: 42 },
-    avgAttendance: 81,
-    avgScore: 74,
-    color: "var(--indigo-l)",
-    colorRgb: "91,78,248",
-    badgeStyle: { background: "rgba(91,78,248,.12)", color: "var(--indigo-ll)" },
-    pctColor: "var(--indigo-ll)",
-    pendingGrade: 8,
-    description: "Core concepts of OS: process management, memory, file systems, and scheduling algorithms.",
-    lastUpdated: "2 hours ago",
-    icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>,
-    assignments: [
-      { id:1, title:"Process Scheduling Simulation",  type:"Lab",     due:"Today",     submissions:98,  total:112, avgScore:72,   status:"grading"  },
-      { id:2, title:"Memory Allocation Algorithms",   type:"Theory",  due:"3 days",    submissions:0,   total:112, avgScore:null, status:"upcoming" },
-      { id:3, title:"File System Implementation",     type:"Project", due:"10 days",   submissions:0,   total:112, avgScore:null, status:"upcoming" },
-      { id:4, title:"Deadlock Detection Report",      type:"Theory",  due:"Completed", submissions:112, total:112, avgScore:68,   status:"done"     },
-      { id:5, title:"CPU Scheduling Algorithms",      type:"Coding",  due:"Completed", submissions:109, total:112, avgScore:81,   status:"done"     },
-    ],
-    quizzes: [
-      { id:1, title:"Unit I – Process Management",  questions:20, avgScore:74, highest:98,  lowest:32, submitted:108, total:112, date:"Week 9",  status:"closed"    },
-      { id:2, title:"Unit II – Memory Management",  questions:15, avgScore:0,  highest:0,   lowest:0,  submitted:0,   total:112, date:"Week 12", status:"scheduled" },
-      { id:3, title:"Unit III – File Systems",      questions:20, avgScore:68, highest:94,  lowest:24, submitted:112, total:112, date:"Week 7",  status:"closed"    },
-    ],
-    lectureList: [   // ✅ renamed from "lectures" array to avoid conflict with lectures:{done,total}
-      { id:1,  title:"Introduction to OS Concepts",           duration:"48m", views:112, week:"W1",  type:"Recorded" },
-      { id:2,  title:"Process States & PCB",                  duration:"52m", views:110, week:"W2",  type:"Recorded" },
-      { id:3,  title:"CPU Scheduling – FCFS & SJF",           duration:"55m", views:109, week:"W3",  type:"Recorded" },
-      { id:4,  title:"CPU Scheduling – RR & Priority",        duration:"47m", views:108, week:"W4",  type:"Recorded" },
-      { id:5,  title:"Process Synchronization",               duration:"61m", views:105, week:"W5",  type:"Recorded" },
-      { id:6,  title:"Deadlock – Detection & Prevention",     duration:"58m", views:98,  week:"W6",  type:"Recorded" },
-      { id:7,  title:"Memory Management – Paging",            duration:"53m", views:102, week:"W7",  type:"Recorded" },
-      { id:8,  title:"Memory Management – Segmentation",      duration:"49m", views:99,  week:"W8",  type:"Recorded" },
-      { id:9,  title:"Virtual Memory & Page Replacement",     duration:"64m", views:96,  week:"W9",  type:"Recorded" },
-      { id:10, title:"File Systems – Structure & Operations", duration:"56m", views:94,  week:"W10", type:"Recorded" },
-    ],
-    studentList: [   // ✅ FIXED: was "students" array — renamed to "studentList"
-      { roll:"21CS047", name:"Arjun Reddy",  attendance:92, score:88, grade:"A",  trend:"up",  status:"top"  },
-      { roll:"21CS031", name:"Priya Nair",   attendance:88, score:82, grade:"A",  trend:"up",  status:"good" },
-      { roll:"21CS019", name:"Rohan Mehta",  attendance:85, score:76, grade:"B+", trend:"up",  status:"good" },
-      { roll:"21CS062", name:"Sneha Sharma", attendance:94, score:78, grade:"B+", trend:"neu", status:"good" },
-      { roll:"21CS008", name:"Dev Iyer",     attendance:72, score:58, grade:"C",  trend:"dn",  status:"risk" },
-      { roll:"21CS015", name:"Aisha Khan",   attendance:90, score:84, grade:"A",  trend:"up",  status:"good" },
-      { roll:"21CS033", name:"Kiran Rao",    attendance:65, score:44, grade:"D",  trend:"dn",  status:"risk" },
-      { roll:"21CS055", name:"Meena Pillai", attendance:78, score:66, grade:"B",  trend:"neu", status:"good" },
-      { roll:"21CS071", name:"Rahul Singh",  attendance:88, score:72, grade:"B+", trend:"up",  status:"good" },
-      { roll:"21CS042", name:"Zara Patel",   attendance:82, score:80, grade:"A−", trend:"up",  status:"good" },
-    ],
-    weakTopics: [
-      { topic:"Deadlock Detection Algorithms", students:34, pct:30, color:"var(--rose)"  },
-      { topic:"Page Replacement Algorithms",   students:28, pct:25, color:"var(--amber)" },
-      { topic:"Semaphore Implementation",      students:22, pct:20, color:"var(--amber)" },
-    ],
-  },
-  {
-    id: "cs502",
-    name: "Database Management Systems",
-    code: "CS502",
-    sem: "Sem 5",
-    section: "A",
-    students: 108,           // ✅ numeric count
-    lectures: { done: 23, total: 38 },
-    avgAttendance: 76,
-    avgScore: 68,
-    color: "var(--teal)",
-    colorRgb: "39,201,176",
-    badgeStyle: { background: "rgba(39,201,176,.1)", color: "var(--teal)" },
-    pctColor: "var(--teal)",
-    pendingGrade: 14,
-    description: "Relational model, SQL, normalization, transactions, indexing, and database design.",
-    lastUpdated: "1 day ago",
-    icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>,
-    assignments: [
-      { id:1, title:"ER Diagram Design",             type:"Theory", due:"Completed", submissions:108, total:108, avgScore:75,   status:"done"     },
-      { id:2, title:"SQL Query Optimization",        type:"Coding", due:"Tomorrow",  submissions:72,  total:108, avgScore:null, status:"grading"  },
-      { id:3, title:"Normalization to 3NF",          type:"Theory", due:"5 days",    submissions:0,   total:108, avgScore:null, status:"upcoming" },
-      { id:4, title:"Transaction Management Report", type:"Theory", due:"8 days",    submissions:0,   total:108, avgScore:null, status:"upcoming" },
-    ],
-    quizzes: [
-      { id:1, title:"Unit I – ER Model & SQL",   questions:20, avgScore:68, highest:95, lowest:28, submitted:102, total:108, date:"Week 8",  status:"closed"    },
-      { id:2, title:"Unit II – Normalization",   questions:15, avgScore:0,  highest:0,  lowest:0,  submitted:0,   total:108, date:"Week 11", status:"scheduled" },
-    ],
-    lectureList: [
-      { id:1, title:"Introduction to DBMS",           duration:"44m", views:108, week:"W1", type:"Recorded" },
-      { id:2, title:"Entity Relationship Model",      duration:"58m", views:105, week:"W2", type:"Recorded" },
-      { id:3, title:"Relational Model & Keys",        duration:"51m", views:103, week:"W3", type:"Recorded" },
-      { id:4, title:"SQL – DDL & DML",                duration:"62m", views:102, week:"W4", type:"Recorded" },
-      { id:5, title:"SQL – Joins & Subqueries",       duration:"55m", views:99,  week:"W5", type:"Recorded" },
-      { id:6, title:"Normalization – 1NF to 3NF",     duration:"67m", views:97,  week:"W6", type:"Recorded" },
-      { id:7, title:"Transactions & ACID Properties", duration:"53m", views:94,  week:"W7", type:"Recorded" },
-    ],
-    studentList: [   // ✅ FIXED
-      { roll:"21CS031", name:"Priya Nair",   attendance:88, score:80, grade:"A−", trend:"up",  status:"top"  },
-      { roll:"21CS047", name:"Arjun Reddy",  attendance:85, score:76, grade:"B+", trend:"up",  status:"good" },
-      { roll:"21CS008", name:"Dev Iyer",     attendance:68, score:50, grade:"D+", trend:"dn",  status:"risk" },
-      { roll:"21CS055", name:"Meena Pillai", attendance:74, score:62, grade:"B",  trend:"neu", status:"good" },
-      { roll:"21CS019", name:"Rohan Mehta",  attendance:80, score:71, grade:"B+", trend:"up",  status:"good" },
-    ],
-    weakTopics: [
-      { topic:"Transaction Isolation Levels", students:41, pct:38, color:"var(--rose)"  },
-      { topic:"B+ Tree Indexing",             students:22, pct:20, color:"var(--amber)" },
-    ],
-  },
-  {
-    id: "cs503",
-    name: "Computer Architecture",
-    code: "CS503",
-    sem: "Sem 3",
-    section: "B",
-    students: 96,            // ✅ numeric count
-    lectures: { done: 28, total: 36 },
-    avgAttendance: 88,
-    avgScore: 79,
-    color: "var(--violet)",
-    colorRgb: "159,122,234",
-    badgeStyle: { background: "rgba(159,122,234,.12)", color: "var(--violet)" },
-    pctColor: "var(--violet)",
-    pendingGrade: 3,
-    description: "Von Neumann architecture, ISA, pipelining, cache memory, and parallel processing.",
-    lastUpdated: "3 days ago",
-    icon: <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>,
-    assignments: [
-      { id:1, title:"Pipeline Hazard Analysis", type:"Theory",  due:"Completed", submissions:96, total:96, avgScore:82,   status:"done"     },
-      { id:2, title:"Cache Coherence Report",   type:"Theory",  due:"4 days",    submissions:21, total:96, avgScore:null, status:"grading"  },
-      { id:3, title:"ISA Design Project",       type:"Project", due:"12 days",   submissions:0,  total:96, avgScore:null, status:"upcoming" },
-    ],
-    quizzes: [
-      { id:1, title:"Unit I – ISA & Data Path", questions:20, avgScore:79, highest:100, lowest:44, submitted:94, total:96, date:"Week 8",  status:"closed"    },
-      { id:2, title:"Unit II – Pipelining",     questions:20, avgScore:0,  highest:0,   lowest:0,  submitted:0,  total:96, date:"Week 12", status:"scheduled" },
-    ],
-    lectureList: [
-      { id:1, title:"Von Neumann Architecture",      duration:"46m", views:96, week:"W1", type:"Recorded" },
-      { id:2, title:"Instruction Set Architecture",  duration:"54m", views:94, week:"W2", type:"Recorded" },
-      { id:3, title:"ALU Design & Data Path",        duration:"58m", views:93, week:"W3", type:"Recorded" },
-      { id:4, title:"Control Unit Design",           duration:"52m", views:92, week:"W4", type:"Recorded" },
-      { id:5, title:"Pipelining – Fundamentals",     duration:"60m", views:91, week:"W5", type:"Recorded" },
-      { id:6, title:"Pipeline Hazards & Solutions",  duration:"55m", views:89, week:"W6", type:"Recorded" },
-      { id:7, title:"Cache Memory Hierarchy",        duration:"63m", views:88, week:"W7", type:"Recorded" },
-      { id:8, title:"Cache Replacement Policies",    duration:"48m", views:86, week:"W8", type:"Recorded" },
-    ],
-    studentList: [   // ✅ FIXED
-      { roll:"20CS012", name:"Sneha Sharma", attendance:94, score:90, grade:"A+", trend:"up",  status:"top"  },
-      { roll:"20CS028", name:"Arun Kumar",   attendance:91, score:85, grade:"A",  trend:"up",  status:"good" },
-      { roll:"20CS044", name:"Priya Das",    attendance:86, score:80, grade:"A−", trend:"up",  status:"good" },
-      { roll:"20CS007", name:"Raj Verma",    attendance:80, score:74, grade:"B+", trend:"neu", status:"good" },
-      { roll:"20CS066", name:"Neha Joshi",   attendance:78, score:68, grade:"B",  trend:"neu", status:"good" },
-    ],
-    weakTopics: [
-      { topic:"Cache Coherence Protocols", students:19, pct:20, color:"var(--rose)" },
-    ],
-  },
-];
+// COURSES array removed - now using dynamic data
 
 // ─── COURSE DETAIL TABS ──────────────────────────────────────────
 const DETAIL_TABS = [
@@ -391,7 +230,7 @@ function OverviewTab({ course }) {
                   <div key={i} className="fcd-weak-item">
                     <div className="fcd-weak-top">
                       <span className="fcd-weak-name">{w.topic}</span>
-                      <span className="fcd-weak-count" style={{ color:w.color }}>{w.students} students</span>
+                      <span className="fcd-weak-count" style={{ color:w.color }}>{w.students} students struggling</span>
                     </div>
                     <AnimBar pct={w.pct} color={w.color} height={4} delay={500 + i*100}/>
                     <div className="fcd-weak-hint">Below 40% — needs attention</div>
@@ -702,7 +541,7 @@ function StudentsTab({ course }) {
               </div>
               <div className="fcd-stu-attend">
                 <AnimBar pct={s.attendance} color={s.attendance>=85?"var(--teal)":s.attendance>=75?"var(--amber)":"var(--rose)"} height={3} delay={400+i*60}/>
-                <span style={{ fontSize:10.5, fontWeight:600, color:s.attendance>=85?"var(--teal)":s.attendance>=75?"var(--amber)":"var(--rose)" }}>{s.attendance}%</span>
+                <span style={{ fontSize:10.5, fontWeight:700, color:s.attendance>=85?"var(--teal)":s.attendance>=75?"var(--amber)":"var(--rose)" }}>{s.attendance}%</span>
               </div>
               <span style={{ fontSize:13, fontWeight:700, color:s.score>=80?"var(--teal)":s.score>=65?"var(--indigo-ll)":s.score>=50?"var(--amber)":"var(--rose)" }}>{s.score}%</span>
               <span className="fcd-grade-badge" style={{ color:GRADE_COLOR[s.grade]||"var(--text2)", background:`${GRADE_COLOR[s.grade]||"var(--text2)"}18` }}>{s.grade}</span>
@@ -789,11 +628,49 @@ function CourseDetail({ course, onBack }) {
 
 // ─── MAIN EXPORT ─────────────────────────────────────────────────
 export default function FacultyCourses({ onBack }) {
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [search, setSearch] = useState("");
   const [sortBy, setSortBy] = useState("name");
 
-  const filtered = COURSES
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const res = await api.get("/faculty/courses");
+        // Map backend snake_case to frontend expected shape
+        const mapped = res.data.map(c => ({
+          ...c,
+          students: c.student_count,
+          lectures: { done: c.lectures_done, total: c.lectures_total },
+          avgAttendance: c.avg_attendance,
+          avgScore: c.avg_score,
+          pendingGrade: c.pending_grades,
+          lastUpdated: "Today", // Mock
+          icon: <IcoBook />, // Default icon
+          colorRgb: c.color === "var(--teal)" ? "39,201,176" : c.color === "var(--violet)" ? "159,122,234" : c.color === "var(--amber)" ? "244,165,53" : "91,78,248",
+          pctColor: c.color,
+          badgeStyle: { background: `${c.color}15`, color: c.color },
+          weakTopics: [], // To be populated if needed
+          sem: c.semester,
+          section: "A", // Mock
+          description: "Course details and management.", // Mock
+          assignments: [],
+          quizzes: [],
+          lectureList: [],
+          studentList: [],
+        }));
+        setCourses(mapped);
+      } catch (err) {
+        console.error("Failed to fetch courses:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCourses();
+  }, []);
+
+  const filtered = courses
     .filter(c => c.name.toLowerCase().includes(search.toLowerCase()) || c.code.toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => {
       if (sortBy === "name")       return a.name.localeCompare(b.name);
@@ -802,6 +679,78 @@ export default function FacultyCourses({ onBack }) {
       if (sortBy === "pending")    return b.pendingGrade - a.pendingGrade;
       return 0;
     });
+
+  // Handle detailed view fetch
+  const handleOpenCourse = async (course) => {
+    try {
+      setLoading(true);
+      const res = await api.get(`/faculty/courses/${course.id}`);
+      const d = res.data;
+      // Merge detail into selected course
+      setSelectedCourse({
+        ...course,
+        description: d.description,
+        lastUpdated: d.last_updated,
+        assignments: d.assignments.map(a => ({
+          ...a,
+          submissions: a.submissions_count,
+          total: course.students,
+          due: a.due_label,
+          avgScore: a.avg_score,
+        })),
+        quizzes: d.quizzes.map(q => ({
+          ...q,
+          questions: q.questions_count,
+          date: q.start_date,
+          submitted: q.attempts_count,
+          total: course.students,
+          avgScore: q.avg_score,
+          highest: q.highest,
+          lowest: q.lowest,
+        })),
+        lectureList: d.lessons.map(l => ({
+          ...l,
+          id: l.id,
+          title: l.title,
+          duration: l.duration,
+          views: l.views,
+          week: l.week,
+        })),
+        studentList: d.students.map(s => ({
+          ...s,
+          name: s.name,
+          roll: s.roll,
+          attendance: s.attendance,
+          score: s.score,
+          grade: s.grade,
+          trend: s.trend,
+          status: s.status,
+        })),
+        weakTopics: d.weak_topics.map(w => ({
+          ...w,
+          topic: w.topic,
+          students: w.student_count,
+          pct: w.percentage,
+          color: w.color,
+        })),
+      });
+    } catch (err) {
+      console.error("Failed to fetch course details:", err);
+      // Fallback to basic course data if detail fails
+      setSelectedCourse(course);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="fcc-root" style={{ display:"flex", alignItems:"center", justifyContent:"center", minHeight:400 }}>
+        <div className="loading-spinner" />
+        <span style={{ marginLeft:12, color:"var(--text3)", fontSize:13 }}>Loading courses...</span>
+      </div>
+    );
+  }
 
   if (selectedCourse) {
     return <CourseDetail course={selectedCourse} onBack={() => setSelectedCourse(null)}/>;
@@ -822,7 +771,7 @@ export default function FacultyCourses({ onBack }) {
           <div>
             <div className="greet-tag" style={{ marginBottom:8 }}>
               <div className="greet-pip"/>
-              <span className="greet-pip-txt">Semester 5 · Week 11 · 3 Active Courses</span>
+              <span className="greet-pip-txt">Semester 5 · Week 11 · {courses.length} Active Courses</span>
             </div>
             <h1 className="greet-title"><em>Courses</em></h1>
             <p className="greet-sub">Manage lectures, assignments, quizzes, and track student performance.</p>
@@ -843,10 +792,10 @@ export default function FacultyCourses({ onBack }) {
 
       <div className="fcc-summary-strip">
         {[
-          { val:COURSES.reduce((a,c)=>a+c.students,0),                                                    lbl:"Total Students",   color:"var(--teal)"      },
-          { val:`${Math.round(COURSES.reduce((a,c)=>a+c.avgAttendance,0)/COURSES.length)}%`,               lbl:"Avg Attendance",   color:"var(--indigo-ll)" },
-          { val:`${Math.round(COURSES.reduce((a,c)=>a+c.avgScore,0)/COURSES.length)}%`,                    lbl:"Avg Score",        color:"var(--violet)"    },
-          { val:COURSES.reduce((a,c)=>a+c.pendingGrade,0),                                                 lbl:"Pending to Grade", color:"var(--rose)"      },
+          { val:courses.reduce((a,c)=>a+(c.students || 0),0),                                                    lbl:"Total Students",   color:"var(--teal)"      },
+          { val:`${courses.length ? Math.round(courses.reduce((a,c)=>a+(c.avgAttendance || 0),0)/courses.length) : 0}%`, lbl:"Avg Attendance",   color:"var(--indigo-ll)" },
+          { val:`${courses.length ? Math.round(courses.reduce((a,c)=>a+(c.avgScore || 0),0)/courses.length) : 0}%`,      lbl:"Avg Score",        color:"var(--violet)"    },
+          { val:courses.reduce((a,c)=>a+(c.pendingGrade || 0),0),                                                 lbl:"Pending to Grade", color:"var(--rose)"      },
         ].map((s,i) => (
           <div key={i} className="fcc-summary-item">
             <div className="fcc-sum-val" style={{ color:s.color }}>{s.val}</div>
@@ -861,8 +810,8 @@ export default function FacultyCourses({ onBack }) {
         </div>
       ) : (
         <div className="fcc-course-grid">
-          {filtered.map(course => (
-            <CourseCard key={course.id} course={course} onOpen={setSelectedCourse}/>
+          {filtered.map(c => (
+            <CourseCard key={c.id} course={c} onOpen={handleOpenCourse}/>
           ))}
         </div>
       )}
