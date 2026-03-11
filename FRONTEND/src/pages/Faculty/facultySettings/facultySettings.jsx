@@ -1,5 +1,6 @@
 // facultySettings.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import api from "../../../utils/api";
 import "./facultySettings.css";
 
 // ─── ICONS ───────────────────────────────────────────────────────
@@ -96,66 +97,58 @@ function Row({ label, desc, children }) {
 
 // ─── MAIN ────────────────────────────────────────────────────────
 export default function FacultySettings({ onBack }) {
-  const [activeTab, setActiveTab] = useState("notifications");
+  const [activeTab, setActiveTab] = useState("account");
+  const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
 
-  // Notification prefs
+  // Unified settings state
   const [notif, setNotif] = useState({
-    submissionAlerts: true,
-    attendanceReminders: true,
-    quizResults: true,
-    studentMessages: false,
-    weeklyDigest: true,
-    systemUpdates: false,
-    emailNotif: true,
-    pushNotif: true,
-    smsNotif: false,
+    submissionAlerts: true, attendanceReminders: true, quizResults: true,
+    studentMessages: false, weeklyDigest: true, systemUpdates: false,
+    emailNotif: true, pushNotif: true, smsNotif: false,
   });
 
-  // Appearance
   const [appearance, setAppearance] = useState({
-    theme: "dark",
-    accentColor: "indigo",
-    density: "comfortable",
-    fontSize: "medium",
-    animations: true,
-    sidebarCollapsed: false,
+    theme: "dark", accentColor: "indigo", density: "comfortable",
+    fontSize: "medium", animations: true, sidebarCollapsed: false,
   });
 
-  // Account
   const [account, setAccount] = useState({
-    displayName: "Dr. S. Prakash",
-    email: "s.prakash@smartcampus.edu.in",
-    phone: "+91 98765 43210",
-    department: "cse",
-    language: "en",
-    timezone: "asia_kolkata",
+    displayName: "", email: "", phone: "",
+    department: "cse", language: "en", timezone: "asia_kolkata",
   });
 
-  // Security
   const [security, setSecurity] = useState({
-    currentPassword: "",
-    newPassword: "",
-    confirmPassword: "",
-    twoFactor: true,
-    sessionTimeout: "30",
-    loginAlerts: true,
+    currentPassword: "", newPassword: "", confirmPassword: "",
+    twoFactor: true, sessionTimeout: "30", loginAlerts: true,
   });
 
-  // AI
   const [ai, setAi] = useState({
-    aiAssistant: true,
-    autoSuggest: true,
-    dataAnalysis: true,
-    gradeAssist: false,
-    aiLanguage: "en",
-    aiPersonality: "professional",
+    aiAssistant: true, autoSuggest: true, dataAnalysis: true,
+    gradeAssist: false, aiLanguage: "en", aiPersonality: "professional",
   });
+
+  useEffect(() => {
+    const fetchSettings = async () => {
+      try {
+        const res = await api.get("/faculty/settings");
+        if (res.notifications) setNotif(res.notifications);
+        if (res.appearance)    setAppearance(res.appearance);
+        if (res.account)       setAccount(res.account);
+        if (res.ai)            setAi(res.ai);
+      } catch (err) {
+        console.error("Failed to fetch faculty settings:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchSettings();
+  }, []);
 
   const TABS = [
+    { id: "account",       icon: <IcoGlobe />,   label: "Account",       color: "var(--teal)"     },
     { id: "notifications", icon: <IcoBell />,    label: "Notifications", color: "var(--rose)"     },
     { id: "appearance",    icon: <IcoPalette />, label: "Appearance",    color: "var(--violet)"   },
-    { id: "account",       icon: <IcoGlobe />,   label: "Account",       color: "var(--teal)"     },
     { id: "security",      icon: <IcoLock />,    label: "Security",      color: "var(--amber)"    },
     { id: "ai",            icon: <IcoBrain />,   label: "AI Preferences",color: "var(--indigo-ll)"},
   ];
@@ -168,10 +161,19 @@ export default function FacultySettings({ onBack }) {
     { id: "rose",   color: "#f2445c" },
   ];
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2200);
+  const handleSave = async () => {
+    try {
+      const update = { notifications: notif, appearance, account, ai };
+      await api.put("/faculty/settings", update);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2200);
+    } catch (err) {
+      console.error("Failed to save faculty settings:", err);
+      alert("Failed to save settings. Please try again.");
+    }
   };
+
+  if (loading) return <div className="loading-state">Loading settings...</div>;
 
   return (
     <div className="fs-root">

@@ -14,6 +14,7 @@ class Lesson(Base):
     pdf_url     = Column(String(500), nullable=True)
     duration    = Column(String(50), nullable=True) # e.g. "45m"
     is_completed = Column(Boolean, default=False)
+    target_group = Column(String(50), nullable=True, default="All")
     order       = Column(Integer, default=1)
     created_at  = Column(DateTime(timezone=True), default=datetime.utcnow)
 

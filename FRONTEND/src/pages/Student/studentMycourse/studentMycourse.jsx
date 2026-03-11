@@ -488,7 +488,7 @@ export default function StudentMyCourses({ onBack }) {
         const rgb = ["91,78,248", "20,184,166", "245,158,11", "139,92,246", "244,63,94"];
         return {
           id: c.course_id,
-          code: "CS" + c.course_id,
+          code: "CS" + (c.course_id || c.id || idx),
           name: c.title,
           short: c.title.substring(0, 4),
           faculty: c.faculty_name,

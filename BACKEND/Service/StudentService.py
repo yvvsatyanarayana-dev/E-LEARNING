@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
-from datetime import datetime
+from datetime import datetime, timezone
 from itertools import islice
 from typing import Optional, List, Dict, Any, cast
 
@@ -111,7 +111,7 @@ class StudentService:
                 AssignmentSubmission.student_id == student.id
             ).all()
         }
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         pending_assignments = sum(
             1 for a in all_assignments
             if a.id not in submitted_ids and (a.due_date is None or a.due_date >= now)
@@ -171,7 +171,7 @@ class StudentService:
                 "courseKey": s.course_key
             } for s in db.query(Schedule).filter(
                 Schedule.student_id == student.id,
-                Schedule.day == datetime.utcnow().weekday()
+                Schedule.day == datetime.now(timezone.utc).weekday()
             ).all()
         ]
 
@@ -182,7 +182,7 @@ class StudentService:
             recent_quiz_list.append({
                 "id": quiz.id,
                 "title": quiz.title,
-                "score": int(att.score),
+                "score": int(att.score) if att.score is not None else 0,
                 "date": att.attempted_at.strftime("%b %d"),
                 "status": "excellent" if att.score >= 90 else "good" if att.score >= 70 else "average"
             })
@@ -262,7 +262,7 @@ class StudentService:
             # Rank
             all_attempts_sorted = sorted(all_scores, key=lambda x: x[0], reverse=True)
             try:
-                rank = [s[0] for s in all_attempts_sorted].index(att.score) + 1
+                rank = [s[0] for s in all_attempts_sorted].index(att.score) + 1 if att.score is not None else 0
             except: rank = 1
             
             real_quiz_history.append(QuizHistoryItem(
@@ -408,7 +408,7 @@ class StudentService:
         
         upcoming_asgns = db.query(Assignment).filter(
             Assignment.course_id.in_(enrolled_ids),
-            Assignment.due_date >= datetime.utcnow()
+            Assignment.due_date >= datetime.now(timezone.utc)
         ).all() if enrolled_ids else []
         
         def get_course_key(title):
@@ -432,7 +432,7 @@ class StudentService:
                     "time": a.due_date.strftime("%I:%M %p") if a.due_date else "11:59 PM",
                     "type": "assignment",
                     "courseKey": get_course_key(a.course.title if a.course else ""),
-                    "urgent": (a.due_date - datetime.utcnow()).days < 3 if a.due_date else False
+                    "urgent": (a.due_date - datetime.now(timezone.utc)).days < 3 if a.due_date else False
                 })
         
         # Fetch upcoming quizzes
@@ -492,7 +492,7 @@ class StudentService:
             likes=i.likes,
             comments=i.comments,
             bookmarks=i.bookmarks,
-            timeAgo=f"{(datetime.utcnow() - i.created_at.replace(tzinfo=None)).days}d ago" if (datetime.utcnow() - i.created_at.replace(tzinfo=None)).days > 0 else "Today",
+            timeAgo=f"{(datetime.now(timezone.utc) - i.created_at).days}d ago" if (datetime.now(timezone.utc) - i.created_at).days > 0 else "Today",
             stage=i.stage,
             stageColor=i.stage_color or "var(--teal)",
             looking=i.looking_for or [],
@@ -529,7 +529,7 @@ class StudentService:
             org=h.organizer or "Unknown",
             prize=h.prize or "N/A",
             deadline=h.deadline.strftime("%b %d, %Y") if h.deadline else "TBD",
-            daysLeft=max(0, (h.deadline.replace(tzinfo=None) - datetime.utcnow()).days) if h.deadline else 30,
+            daysLeft=max(0, (h.deadline - datetime.now(timezone.utc)).days) if h.deadline else 30,
             mode=h.mode,
             domain=h.domain or "All",
             registered=False, # Would need a mapping table
@@ -682,6 +682,15 @@ class StudentService:
         query = db.query(Lesson)
         if course_id:
             query = query.filter(Lesson.course_id == course_id)
+            
+        # Filter by target_group
+        dept = student.department or ""
+        query = query.filter(
+            (Lesson.target_group == None) | 
+            (Lesson.target_group == "All") | 
+            (Lesson.target_group == dept)
+        )
+            
         lessons = query.order_by(Lesson.course_id, Lesson.order).all()
 
         # Build watch map
@@ -720,7 +729,7 @@ class StudentService:
         if wh:
             wh.watch_time_seconds = data.watch_time_seconds
             wh.completed = data.completed
-            wh.watched_at = datetime.utcnow()
+            wh.watched_at = datetime.now(timezone.utc)
         else:
             wh = WatchHistory(
                 student_id=student.id,
@@ -743,6 +752,15 @@ class StudentService:
         query = db.query(Assignment).filter(Assignment.course_id.in_(enrolled_ids))
         if course_id:
             query = query.filter(Assignment.course_id == course_id)
+            
+        # Filter by target_group
+        dept = student.department or ""
+        query = query.filter(
+            (Assignment.target_group == None) | 
+            (Assignment.target_group == "All") | 
+            (Assignment.target_group == dept)
+        )
+            
         assignments = query.order_by(Assignment.due_date.asc()).all()
 
         sub_map = {
@@ -814,7 +832,7 @@ class StudentService:
         ).first()
         if existing:
             existing.file_url = data.file_url
-            existing.submitted_at = datetime.utcnow()
+            existing.submitted_at = datetime.now(timezone.utc)
         else:
             sub = AssignmentSubmission(
                 assignment_id=assignment_id,
@@ -836,6 +854,15 @@ class StudentService:
         query = db.query(Quiz).filter(Quiz.course_id.in_(enrolled_ids))
         if course_id:
             query = query.filter(Quiz.course_id == course_id)
+            
+        # Filter by target_group
+        dept = student.department or ""
+        query = query.filter(
+            (Quiz.target_group == None) | 
+            (Quiz.target_group == "All") | 
+            (Quiz.target_group == dept)
+        )
+            
         quizzes = query.all()
 
         attempts_map: dict[int, list[QuizAttempt]] = {}
@@ -991,7 +1018,7 @@ class StudentService:
             pri_score=pri_obj.pri_score if pri_obj else 0.0,
             mock_interviews_done=pri_obj.mock_interviews_done if pri_obj else 0,
             skills_completed=pri_obj.skills_completed if pri_obj else 0,
-            updated_at=pri_obj.updated_at if pri_obj else datetime.utcnow(),
+            updated_at=pri_obj.updated_at if pri_obj else datetime.now(timezone.utc),
         )
         
         # PRI Breakdown
@@ -1216,7 +1243,7 @@ class StudentService:
 
     def get_notifications(self, student: User, db: Session) -> List[NotificationResponse]:
         _require_student(student)
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         notifications = []
 
         # Assignment due soon (within 3 days, not submitted)

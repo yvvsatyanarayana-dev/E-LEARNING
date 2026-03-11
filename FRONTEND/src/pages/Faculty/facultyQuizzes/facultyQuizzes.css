@@ -671,6 +671,14 @@ select.qz-input { cursor: pointer; }
   align-items: center;
   gap: 8px;
 }
+.qz-q-type {
+  width: auto !important;
+  flex: 1;
+  font-weight: 700;
+  color: var(--indigo-ll);
+  background: rgba(91,78,248,.08) !important;
+  border-color: rgba(91,78,248,.15) !important;
+}
 .qz-q-num {
   font-size: 10px;
   font-weight: 800;

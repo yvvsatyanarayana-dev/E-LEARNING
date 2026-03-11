@@ -24,8 +24,10 @@ class User(Base):
     phone = Column(String(20), nullable=True)
     bio = Column(String(500), nullable=True)
     avatar = Column(String(10), nullable=True)
+    department = Column(String(100), nullable=True)
     roll_number = Column(String(20), nullable=True)
     skills = Column(JSON, nullable=True) # ["Python", "React"]
+    settings = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), onupdate=datetime.utcnow)
 

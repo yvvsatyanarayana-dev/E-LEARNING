@@ -407,7 +407,7 @@ export default function StudentVideoLectures({ onBack }) {
         const rgbs = ["91,78,248", "20,184,166", "245,158,11", "139,92,246", "244,63,94"];
         
         const mappedCourses = coursesData.map((c, i) => ({
-          id: "cs" + c.id, code: c.code, name: c.name, short: (c.code || "").split(" ")[0] || c.code || "Course",
+          id: "cs" + (c.course_id || c.id), code: (c.code || c.title), name: (c.title || c.name), short: (c.code || c.title || "").split(" ")[0] || "Course",
           faculty: c.faculty_name || "Faculty", color: colors[i % colors.length], colorRgb: rgbs[i % rgbs.length],
           totalLectures: c.total_lessons || 10, watchedLectures: Math.floor(c.progress || 0)
         }));
