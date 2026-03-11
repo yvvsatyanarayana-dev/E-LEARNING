@@ -42,8 +42,8 @@ export default function FacultyProfile({ onBack }) {
     const load = async () => {
       try {
         const res = await api.get("/faculty/profile");
-        setProfile(res.data);
-        setBioEdit(res.data.bio || "");
+        setProfile(res);
+        setBioEdit(res.bio || "");
       } catch (err) {
         console.error("Failed to load profile:", err);
       } finally {
@@ -90,7 +90,7 @@ export default function FacultyProfile({ onBack }) {
           <div className="fp-hero-info">
             <div className="fp-hero-name">{profile.full_name}</div>
             <div className="fp-hero-role">
-              {profile.role.charAt(0).toUpperCase() + profile.role.slice(1)} · Department of Computer Science &amp; Engineering
+              {profile.role.charAt(0).toUpperCase() + profile.role.slice(1)} · {profile.department || "Department of Computer Science"}
             </div>
             <div className="fp-hero-meta">
               <span className="fp-meta-chip"><IcoMail /> {profile.email}</span>

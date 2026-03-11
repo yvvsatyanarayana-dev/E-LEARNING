@@ -35,12 +35,23 @@ const IcoLink     = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="c
 const IcoGrid     = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>;
 const IcoList     = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>;
 
-// ─── LOOKUP TABLES ────────────────────────────────────────────────
-const COURSES_META = {
-  cs501: { code: "CS501", name: "Operating Systems",           color: "var(--indigo-l)",  rgb: "91,78,248",   bg: "rgba(91,78,248,.1)",   border: "rgba(91,78,248,.2)",   total: 112 },
-  cs502: { code: "CS502", name: "Database Management Systems", color: "var(--teal)",      rgb: "39,201,176",  bg: "rgba(39,201,176,.1)",  border: "rgba(39,201,176,.2)",  total: 108 },
-  cs503: { code: "CS503", name: "Computer Architecture",       color: "var(--violet)",    rgb: "159,122,234", bg: "rgba(159,122,234,.1)", border: "rgba(159,122,234,.2)", total: 96  },
-};
+// ─── HELPERS ──────────────────────────────────────────────────────
+const COLORS = [
+  { color: "var(--indigo-l)",  rgb: "91,78,248",   bg: "rgba(91,78,248,.1)",   border: "rgba(91,78,248,.2)" },
+  { color: "var(--teal)",      rgb: "39,201,176",  bg: "rgba(39,201,176,.1)",  border: "rgba(39,201,176,.2)" },
+  { color: "var(--violet)",    rgb: "159,122,234", bg: "rgba(159,122,234,.1)", border: "rgba(159,122,234,.2)" },
+  { color: "var(--rose)",      rgb: "242,68,92",   bg: "rgba(242,68,92,.1)",   border: "rgba(242,68,92,.2)" },
+  { color: "var(--amber)",     rgb: "244,165,53",  bg: "rgba(244,165,53,.1)",  border: "rgba(244,165,53,.2)" },
+];
+
+function getCourseMeta(courseId, courseCode) {
+  const idx = String(courseId).length % COLORS.length;
+  return {
+    ...COLORS[idx],
+    code: courseCode || `C${courseId}`,
+    total: 100 // Estimate total if missing
+  };
+}
 
 const TYPE_META = {
   Lab:     { color: "var(--indigo-l)",  bg: "rgba(91,78,248,.1)",   icon: "🧪" },
@@ -72,11 +83,18 @@ function AnimBar({ pct, color, height = 4, delay = 300 }) {
 }
 
 // ─── CREATE ASSIGNMENT MODAL ──────────────────────────────────────
-function CreateModal({ onClose, onCreated }) {
+function CreateModal({ onClose, onCreated, courses = [] }) {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
-    title: "", courseId: "cs501", type: "Theory",
-    week: "W10", unit: "", dueDate: "", marks: 20, desc: "",
+    title: "", 
+    course_id: courses.length > 0 ? String(courses[0].id) : "", 
+    type: "Theory", 
+    target_group: "All",
+    week: "W10", 
+    unit: "", 
+    dueDate: "", 
+    marks: 20, 
+    desc: "",
     rubric: [{ item: "", marks: 0 }],
     draft: false,
   });
@@ -90,7 +108,7 @@ function CreateModal({ onClose, onCreated }) {
 
   const totalRubric = form.rubric.reduce((s, r) => s + Number(r.marks || 0), 0);
   const canProceed  = form.title.trim() && form.dueDate;
-  const cm = COURSES_META[form.courseId];
+  const cm = getCourseMeta(form.course_id, form.course_id);
 
   return (
     <div className="as-overlay" onClick={onClose}>
@@ -104,7 +122,7 @@ function CreateModal({ onClose, onCreated }) {
 
         <div className="as-steps">
           {["Details", "Rubric", "Publish"].map((s, i) => (
-            <div key={i} className={`as-step ${step === i+1 ? "as-step--active" : ""} ${step > i+1 ? "as-step--done" : ""}`}>
+            <div key={s} className={`as-step ${step === i+1 ? "as-step--active" : ""} ${step > i+1 ? "as-step--done" : ""}`}>
               <div className="as-step-dot">{step > i+1 ? <IcoCheck width={8} height={8}/> : i+1}</div>
               <span>{s}</span>
               {i < 2 && <div className="as-step-line" />}
@@ -123,11 +141,22 @@ function CreateModal({ onClose, onCreated }) {
                 <div className="as-2col">
                   <div className="as-field">
                     <div className="as-field-lbl">Course *</div>
-                    <select className="as-input" value={form.courseId} onChange={set("courseId")}>
-                      <option value="cs501">CS501 – Operating Systems</option>
-                      <option value="cs502">CS502 – Database Management</option>
-                      <option value="cs503">CS503 – Computer Architecture</option>
-                    </select>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <select className="as-input" style={{ flex: 1 }} value={form.course_id} onChange={set("course_id")}>
+                        {courses.length > 0
+                          ? courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)
+                          : <option value="">No courses found</option>
+                        }
+                      </select>
+                      <button 
+                        className="btn btn-ghost" 
+                        title="Create New Course" 
+                        style={{ height: 42, width: 42, padding: 0 }}
+                        onClick={() => window.dispatchEvent(new CustomEvent('OPEN_CREATE_COURSE'))}
+                      >
+                        <IcoPlus width={14} height={14} />
+                      </button>
+                    </div>
                   </div>
                   <div className="as-field">
                     <div className="as-field-lbl">Type *</div>
@@ -147,6 +176,18 @@ function CreateModal({ onClose, onCreated }) {
                     <div className="as-field-lbl">Unit / Module</div>
                     <input className="as-input" value={form.unit} placeholder="e.g. Unit III – Memory Management" onChange={set("unit")} />
                   </div>
+                </div>
+                <div className="as-2col">
+                  <div className="as-field">
+                    <div className="as-field-lbl">Target Group</div>
+                    <select className="as-input" value={form.target_group} onChange={set("target_group")}>
+                      <option value="All">All Students</option>
+                      <option value="BCA">BCA Only</option>
+                      <option value="MCA">MCA Only</option>
+                      <option value="BTech">B.Tech Only</option>
+                    </select>
+                  </div>
+                  <div className="as-field"></div>
                 </div>
                 <div className="as-2col">
                   <div className="as-field">
@@ -184,7 +225,7 @@ function CreateModal({ onClose, onCreated }) {
               </div>
               <div className="as-rubric-list">
                 {form.rubric.map((r, i) => (
-                  <div key={i} className="as-rubric-row">
+                  <div key={`rubric-${i}-${r.item}`} className="as-rubric-row">
                     <span className="as-rubric-idx">{i+1}</span>
                     <input className="as-input as-rubric-item-inp" value={r.item}
                       placeholder={`Criterion ${i+1}…`}
@@ -243,7 +284,7 @@ function CreateModal({ onClose, onCreated }) {
                 {form.rubric.filter(r => r.item).length > 0 && (
                   <div className="as-preview-rubric">
                     {form.rubric.filter(r => r.item).map((r, i) => (
-                      <div key={i} className="as-preview-rubric-row">
+                      <div key={`preview-rubric-${i}-${r.item}`} className="as-preview-rubric-row">
                         <span>{r.item}</span>
                         <span style={{ color: cm?.color, fontWeight: 700 }}>{r.marks}m</span>
                       </div>
@@ -282,7 +323,7 @@ function CreateModal({ onClose, onCreated }) {
 
               <div className="as-modal-foot">
                 <button className="btn btn-ghost" onClick={() => setStep(2)}>← Back</button>
-                <button className="btn btn-solid as-btn-teal" onClick={() => { onCreated?.(); onClose(); }}>
+                <button className="btn btn-solid as-btn-teal" onClick={() => { onCreated?.(form); onClose(); }}>
                   <IcoCheck width={12} height={12} /> Create Assignment
                 </button>
               </div>
@@ -302,7 +343,7 @@ function DetailDrawer({ assignment, onClose }) {
   const [activeGrader, setActiveGrader] = useState(null);
 
   if (!assignment) return null;
-  const cm = COURSES_META[assignment.courseId];
+  const cm = getCourseMeta(assignment.courseId, assignment.course_code);
   const tm = TYPE_META[assignment.type] || TYPE_META.Theory;
   const sm = STATUS_META[assignment.status];
   const subPct = cm ? Math.round((assignment.submissions / cm.total) * 100) : 0;
@@ -355,7 +396,7 @@ function DetailDrawer({ assignment, onClose }) {
                     { lbl: "Highest", val: assignment.highest != null ? `${assignment.highest}%` : "—", color: "var(--teal)" },
                     { lbl: "Lowest",  val: assignment.lowest  != null ? `${assignment.lowest}%`  : "—", color: "var(--rose)" },
                   ].map((s, i) => (
-                    <div key={i} className="as-ds">
+                    <div key={s.lbl} className="as-ds">
                       <div className="as-ds-val" style={{ color: s.color }}>{s.val}</div>
                       <div className="as-ds-lbl">{s.lbl}</div>
                     </div>
@@ -382,7 +423,7 @@ function DetailDrawer({ assignment, onClose }) {
                     { lbl: "Low",  pct: assignment.lowest,   color: "var(--rose)"  },
                     { lbl: "Sub%", pct: subPct,              color: "var(--violet)"},
                   ].map((b, i) => (
-                    <div key={i} className="as-score-row">
+                    <div key={b.lbl} className="as-score-row">
                       <span className="as-score-lbl">{b.lbl}</span>
                       <div style={{ flex: 1 }}><AnimBar pct={b.pct} color={b.color} height={5} delay={200 + i*80} /></div>
                       <span className="as-score-val" style={{ color: b.color }}>{b.pct}%</span>
@@ -435,7 +476,7 @@ function DetailDrawer({ assignment, onClose }) {
               ) : (
                 <div className="as-sub-list">
                   {filteredSubs.map((s, i) => (
-                    <div key={i} className="as-sub-row">
+                    <div key={s.roll || i} className="as-sub-row">
                       <div className="as-sub-avatar">{(s.name || "S").split(" ").map(x=>x[0]).join("")}</div>
                       <div className="as-sub-info">
                         <div className="as-sub-name">{s.name}</div>
@@ -462,7 +503,7 @@ function DetailDrawer({ assignment, onClose }) {
                     <button className="as-grader-close" onClick={() => setActiveGrader(null)}><IcoClose width={10} height={10}/></button>
                   </div>
                   {(assignment.rubric || []).map((r, i) => (
-                    <div key={i} className="as-grader-row">
+                    <div key={`grader-rubric-${i}-${r.item}`} className="as-grader-row">
                       <span className="as-grader-criterion">{r.item || `Criterion ${i+1}`}</span>
                       <div className="as-grader-input-wrap">
                         <input className="as-grader-input" type="number" min={0} max={r.marks} placeholder="0" />
@@ -486,7 +527,7 @@ function DetailDrawer({ assignment, onClose }) {
             <div className="as-rubric-view">
               <div className="as-rv-header"><span>Criterion</span><span>Marks</span></div>
               {(assignment.rubric || []).map((r, i) => (
-                <div key={i} className="as-rv-row">
+                <div key={`view-rubric-${i}-${r.item}`} className="as-rv-row">
                   <div className="as-rv-num">{i+1}</div>
                   <div className="as-rv-name">{r.item}</div>
                   <div className="as-rv-marks" style={{ color: cm?.color }}>
@@ -511,7 +552,7 @@ function DetailDrawer({ assignment, onClose }) {
 
 // ─── GRID CARD ────────────────────────────────────────────────────
 function AssignmentCard({ assignment, onSelect }) {
-  const cm = COURSES_META[assignment.courseId];
+  const cm = getCourseMeta(assignment.courseId, assignment.course_code);
   const tm = TYPE_META[assignment.type] || TYPE_META.Theory;
   const sm = STATUS_META[assignment.status];
   const subPct = cm ? Math.round((assignment.submissions / cm.total) * 100) : 0;
@@ -569,7 +610,7 @@ function AssignmentCard({ assignment, onSelect }) {
 
 // ─── LIST ROW ─────────────────────────────────────────────────────
 function AssignmentRow({ assignment, idx, onSelect }) {
-  const cm = COURSES_META[assignment.courseId];
+  const cm = getCourseMeta(assignment.courseId, assignment.course_code);
   const tm = TYPE_META[assignment.type] || TYPE_META.Theory;
   const sm = STATUS_META[assignment.status];
   const subPct = cm ? Math.round((assignment.submissions / cm.total) * 100) : 0;
@@ -599,6 +640,63 @@ function AssignmentRow({ assignment, idx, onSelect }) {
   );
 }
 
+// ─── CREATE COURSE MODAL ──────────────────────────────────────────
+function CreateCourseModal({ onClose, onCreated }) {
+  const [form, setForm] = useState({ title: "", description: "", semester: "Sem 5" });
+  const [loading, setLoading] = useState(false);
+
+  const handleCreate = async () => {
+    if (!form.title.trim()) return alert("Please enter course title");
+    setLoading(true);
+    try {
+      const res = await api.post("/faculty/courses", form);
+      onCreated(res);
+      onClose();
+    } catch (err) {
+      console.error("Failed to create course:", err);
+      alert("Failed to create course. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="as-overlay" style={{ zIndex: 1100 }} onClick={onClose}>
+      <div className="as-modal" style={{ maxWidth: 420 }} onClick={e => e.stopPropagation()}>
+        <div className="as-modal-hd">
+          <div className="as-modal-ico" style={{ background: "var(--teal)" }}>
+            <IcoPlus width={14} height={14} style={{ color: "#fff" }} />
+          </div>
+          <span className="as-modal-title">Create New Course</span>
+          <button className="as-modal-close" onClick={onClose}><IcoClose width={12} height={12} /></button>
+        </div>
+        <div className="as-modal-body">
+          <div className="as-form">
+            <div className="as-field">
+              <div className="as-field-lbl">Course Title *</div>
+              <input className="as-input" value={form.title} placeholder="e.g. Operating Systems" onChange={e => setForm({ ...form, title: e.target.value })} autoFocus />
+            </div>
+            <div className="as-field">
+              <div className="as-field-lbl">Semester</div>
+              <input className="as-input" value={form.semester} placeholder="e.g. Sem 5" onChange={e => setForm({ ...form, semester: e.target.value })} />
+            </div>
+            <div className="as-field">
+              <div className="as-field-lbl">Description</div>
+              <textarea className="as-input as-textarea" rows={2} value={form.description} placeholder="Short description…" onChange={e => setForm({ ...form, description: e.target.value })} />
+            </div>
+          </div>
+          <div className="as-modal-foot" style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+            <button className="btn btn-ghost" onClick={onClose} disabled={loading}>Cancel</button>
+            <button className="btn btn-primary" style={{ background: 'var(--teal)', borderColor: 'var(--teal)' }} onClick={handleCreate} disabled={loading}>
+              {loading ? "Creating…" : "Create Course"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── MAIN ─────────────────────────────────────────────────────────
 export default function FacultyAssignments({ onBack }) {
   const [assignments, setAssignments] = useState([]);
@@ -612,25 +710,66 @@ export default function FacultyAssignments({ onBack }) {
   const [selected, setSelected] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
   const [toast, setToast] = useState(null);
+  const [showCreateCourse, setShowCreateCourse] = useState(false);
+
+  const [courses, setCourses] = useState([]);
 
   useEffect(() => {
-    const fetchAssignments = async () => {
+    const fetchData = async () => {
       try {
-        const res = await api.get("/faculty/assignments");
-        setAssignments(res.data);
+        const [assignRes, courseRes] = await Promise.all([
+          api.get("/faculty/assignments"),
+          api.get("/faculty/courses"),
+        ]);
+        setAssignments(Array.isArray(assignRes) ? assignRes : []);
+        const courseList = Array.isArray(courseRes)
+          ? courseRes.map(c => ({ id: c.id, name: `${c.code} – ${c.name}` }))
+          : [];
+        setCourses(courseList);
       } catch (err) {
-        console.error("Failed to fetch assignments:", err);
+        console.error("Failed to fetch data:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchAssignments();
+    fetchData();
+
+    const fn = () => setShowCreateCourse(true);
+    window.addEventListener('OPEN_CREATE_COURSE', fn);
+    return () => window.removeEventListener('OPEN_CREATE_COURSE', fn);
   }, []);
+
 
   const showToast = useCallback((msg) => {
     setToast(msg);
     setTimeout(() => setToast(null), 2800);
   }, []);
+
+  const handleCreateAssignment = async (formData) => {
+    try {
+      const cId = parseInt(formData.course_id);
+      if (isNaN(cId)) {
+        alert("Please select a valid course.");
+        return;
+      }
+
+      // Basic formatting for the payload
+      const payload = {
+        title: formData.title,
+        course_id: cId, // Real ID from API
+        due_date: formData.dueDate ? formData.dueDate + "T23:59:59Z" : null, // Append time component
+        target_group: formData.target_group
+      };
+      
+      const res = await api.post("/faculty/assignments", payload);
+      setAssignments(prev => [...prev, res]);
+      showToast("✅ Assignment Created!");
+      setShowCreate(false); // Close modal
+    } catch (err) {
+      console.error("Failed to create assignment:", err);
+      alert("Failed to create assignment. Please try again.");
+    }
+  };
 
   // AGGREGATE STATS
   const safeAssig = Array.isArray(assignments) ? assignments : [];
@@ -662,8 +801,16 @@ export default function FacultyAssignments({ onBack }) {
 
   return (
     <div className="as-root">
-      {selected   && <DetailDrawer assignment={selected} onClose={() => setSelected(null)} />}
-      {showCreate && <CreateModal onClose={() => setShowCreate(false)} onCreated={() => showToast("✅ Created!")} />}
+      {showCreate && <CreateModal onClose={() => setShowCreate(false)} onCreated={handleCreateAssignment} courses={courses} />}
+      {showCreateCourse && (
+        <CreateCourseModal 
+          onClose={() => setShowCreateCourse(false)} 
+          onCreated={(newCourse) => {
+            setCourses(prev => [...prev, { id: newCourse.id, name: `${newCourse.code} – ${newCourse.name}` }]);
+          }} 
+        />
+      )}
+      {selected && <DetailDrawer assignment={selected} onClose={() => setSelected(null)} />}
       {toast      && <div className="as-toast">{toast}</div>}
 
       <div className="as-page-hd">
@@ -690,7 +837,7 @@ export default function FacultyAssignments({ onBack }) {
           { cls:"sc-teal",   icon:<IcoCheck width={17} height={17}/>, val:TOTAL_DONE,          lbl:"Fully Graded"     },
           { cls:"sc-violet", icon:<IcoUsers width={17} height={17}/>, val:TOTAL_SUBMISSIONS,   lbl:"Total Submitted"  },
         ].map((s, i) => (
-          <div key={i} className={`stat-card ${s.cls}`} style={{ cursor:"default" }}>
+          <div key={s.lbl} className={`stat-card ${s.cls}`} style={{ cursor:"default" }}>
             <div className="stat-ic">{s.icon}</div>
             <div className="stat-val">{s.val}</div>
             <div className="stat-lbl">{s.lbl}</div>
@@ -700,6 +847,7 @@ export default function FacultyAssignments({ onBack }) {
 
       <div className="as-course-tabs">
         <button
+          key="all"
           className={`as-ctab ${activeCourse === "all" ? "as-ctab--active" : ""}`}
           style={activeCourse === "all" ? { borderColor:"rgba(91,78,248,.2)", color:"var(--indigo-l)", background:"rgba(91,78,248,.1)" } : {}}
           onClick={() => setActiveCourse("all")}>
@@ -707,16 +855,20 @@ export default function FacultyAssignments({ onBack }) {
           All Courses
           <span className="as-ctab-count">{safeAssig.length}</span>
         </button>
-        {Object.entries(COURSES_META).map(([id, cm]) => (
-          <button key={id}
-            className={`as-ctab ${activeCourse === id ? "as-ctab--active" : ""}`}
-            style={activeCourse === id ? { borderColor:cm.border, color:cm.color, background:cm.bg } : {}}
-            onClick={() => setActiveCourse(id)}>
-            <span className="as-ctab-dot" style={{ background:cm.color }}/>
-            {cm.code}
-            <span className="as-ctab-count">{safeAssig.filter(a => String(a.courseId) === String(id)).length}</span>
-          </button>
-        ))}
+        {Array.from(new Set(safeAssig.map(a => a.courseId))).map((cid) => {
+          const a = safeAssig.find(x => x.courseId === cid);
+          const cm = getCourseMeta(cid, a?.course_code);
+          return (
+            <button key={`ctab-${cid || 'none'}`}
+              className={`as-ctab ${activeCourse === cid ? "as-ctab--active" : ""}`}
+              style={activeCourse === cid ? { borderColor:cm.border, color:cm.color, background:cm.bg } : {}}
+              onClick={() => setActiveCourse(cid)}>
+              <span className="as-ctab-dot" style={{ background:cm.color }}/>
+              {cm.code}
+              <span className="as-ctab-count">{safeAssig.filter(x => x.courseId === cid).length}</span>
+            </button>
+          );
+        })}
       </div>
 
       <div className="as-toolbar">

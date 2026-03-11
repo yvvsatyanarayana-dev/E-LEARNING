@@ -109,13 +109,7 @@ const ROUTE_TO_URL = {
 
 // Constants removed as they are fetched from API
 
-const AI_RESPONSES_FAC = [
-  "Based on quiz results, <strong style='color:var(--rose)'>34 students</strong> scored below 40% on Deadlock Detection. Want me to generate a remedial quiz set? 🎯",
-  "Average attendance in DBMS dropped by <strong style='color:var(--amber)'>6%</strong> this week.",
-  "I've analyzed 108 OS assignment submissions. Common error: <strong style='color:var(--teal)'>incorrect Round Robin queue simulation</strong>.",
-  "Generating a 20-question Unit IV paper on <strong style='color:var(--indigo-ll)'>Memory Management</strong> with difficulty distribution: 40% easy, 40% medium, 20% hard.",
-  "Your course completion rate is <strong style='color:var(--teal)'>ahead by 2 lectures</strong> compared to the semester plan. Great pacing, Dr. Prakash! ✨",
-];
+// Constants removed as they are fetched from API
 
 const NAV_ITEMS = [
   {
@@ -317,7 +311,7 @@ function Sidebar({ open, onClose, activePage, onNavigate, userName, stats, tasks
 }
 
 // ─── TOPBAR ──────────────────────────────────────────────────────
-function Topbar({ onHamburger, onQuickActions, onNotifications, onProfile, notifAnchorRef, notifOpen, onNotifClose }) {
+function Topbar({ onHamburger, onQuickActions, onNotifications, onProfile, notifAnchorRef, notifOpen, onNotifClose, notifications }) {
   const date = new Date().toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
   return (
     <div className="topbar">
@@ -338,6 +332,7 @@ function Topbar({ onHamburger, onQuickActions, onNotifications, onProfile, notif
           open={notifOpen} 
           onClose={onNotifClose} 
           anchorRef={notifAnchorRef}
+          notifications={notifications}
         />
       </div>
     </div>
@@ -345,24 +340,39 @@ function Topbar({ onHamburger, onQuickActions, onNotifications, onProfile, notif
 }
 
 // ─── AI PANEL ────────────────────────────────────────────────────
-function AiPanel({ open, onClose }) {
+function AiPanel({ open, onClose, insights = [] }) {
   const [messages, setMessages] = useState([
-    { role: "ai", html: "Hello Dr. Prakash! 👋 You have <strong style='color:var(--rose)'>22 ungraded submissions</strong> and an OS lecture at 9 AM today." },
-    { role: "user", html: "Give me a summary of OS quiz performance." },
-    { role: "ai", html: "OS Quiz — Process Scheduling results:<br/><br/>📊 Class avg: <strong style='color:var(--teal)'>74%</strong> · Highest: 98% · Lowest: 32%<br/>⚠️ <strong style='color:var(--rose)'>18 students below 50%</strong> — mostly struggling with Round Robin & Priority inversion." },
+    { role: "ai", html: "Hello! 👋 I've analyzed your courses. You have some pending submissions to grade." },
   ]);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
   const [showChips, setShowChips] = useState(true);
   const [aiIdx, setAiIdx] = useState(0);
+
+  useEffect(() => {
+    if (insights.length > 0 && messages.length === 1) {
+      setMessages([{ role: "ai", html: insights[0] }]);
+    }
+  }, [insights]);
+
   const msgRef = useRef();
   useEffect(() => { if (msgRef.current) msgRef.current.scrollTop = msgRef.current.scrollHeight; }, [messages, typing]);
   const send = useCallback((text) => {
     const val = text || input.trim(); if (!val) return;
     setMessages(m => [...m, { role: "user", html: val }]);
     setInput(""); setShowChips(false); setTyping(true);
-    setTimeout(() => { setTyping(false); setMessages(m => [...m, { role: "ai", html: AI_RESPONSES_FAC[aiIdx % AI_RESPONSES_FAC.length] }]); setAiIdx(i => i + 1); }, 950);
-  }, [input, aiIdx]);
+    
+    // Choose next insight or generic response
+    const nextHtml = insights.length > 0 
+      ? insights[(aiIdx + 1) % insights.length]
+      : "I'm here to help with your course management.";
+
+    setTimeout(() => { 
+      setTyping(false); 
+      setMessages(m => [...m, { role: "ai", html: nextHtml }]); 
+      setAiIdx(i => i + 1); 
+    }, 950);
+  }, [input, aiIdx, insights]);
   return (
     <div className={`lucyna-panel ${open ? "open" : ""}`}>
       <div className="lp-header">
@@ -423,6 +433,10 @@ export default function FacultyDashboard() {
   const [quizStats, setQuizStats] = useState([]);
   const [weakTopics, setWeakTopics] = useState([]);
   const [topStudents, setTopStudents] = useState([]);
+  const [aiInsights, setAiInsights] = useState([]);
+  const [notifications, setNotifications] = useState([]);
+  const [recentActivity, setRecentActivity] = useState([]);
+  const [academicMeta, setAcademicMeta] = useState({ year: "2024–25", semester: "5", week: "11", today: "" });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -442,6 +456,10 @@ export default function FacultyDashboard() {
           if (d.quiz_stats) setQuizStats(d.quiz_stats.map(mapApiQuiz));
           if (d.weak_topics) setWeakTopics(d.weak_topics);
           if (d.top_students) setTopStudents(d.top_students);
+          if (d.ai_insights) setAiInsights(d.ai_insights);
+          if (d.notifications) setNotifications(d.notifications);
+          if (d.recent_activity) setRecentActivity(d.recent_activity);
+          if (d.academic_meta) setAcademicMeta(d.academic_meta);
         }
       } catch (err) {
         console.error("Dashboard fetch failed:", err);
@@ -490,7 +508,14 @@ export default function FacultyDashboard() {
       case ROUTES.REPORTS: return <Reports onBack={() => navigate(ROUTES.DASHBOARD)} />;
       case ROUTES.SETTINGS: return <FacultySettings onBack={() => navigate(ROUTES.DASHBOARD)} />;
       case ROUTES.PROFILE: return <FacultyProfile onBack={() => navigate(ROUTES.DASHBOARD)} />;
-      case ROUTES.QUICKACTIONS: return <FacultyQuickaction onBack={() => navigate(ROUTES.DASHBOARD)} />;
+      case ROUTES.QUICKACTIONS: return (
+        <FacultyQuickaction 
+          onBack={() => navigate(ROUTES.DASHBOARD)} 
+          stats={stats}
+          recentActivity={recentActivity}
+          weakTopics={weakTopics}
+        />
+      );
       default: return null; // falls through to dashboard content below
     }
   };
@@ -503,7 +528,7 @@ export default function FacultyDashboard() {
       <div className="fc-cursor-ring" id="fc-cursor-ring" />
       <div className="sc-noise" />
       <AiFab onClick={() => setAiOpen(o => !o)} />
-      <AiPanel open={aiOpen} onClose={() => setAiOpen(false)} />
+      <AiPanel open={aiOpen} onClose={() => setAiOpen(false)} insights={aiInsights} />
       {/* Remove modal, use routing instead */}
       <div className="app">
         <Sidebar
@@ -524,6 +549,7 @@ export default function FacultyDashboard() {
             notifAnchorRef={notifAnchorRef}
             notifOpen={notifOpen}
             onNotifClose={() => setNotifOpen(false)}
+            notifications={notifications}
           />
 
           {!isDashboard && renderContent()}
@@ -534,7 +560,7 @@ export default function FacultyDashboard() {
               <div className="greet-row">
                 <div className="greet-tag">
                   <div className="greet-pip" />
-                  <span className="greet-pip-txt">Academic Year 2024–25 · Semester 5 · Week 11</span>
+                  <span className="greet-pip-txt">Academic Year {academicMeta.year} · Semester {academicMeta.semester} · Week {academicMeta.week}</span>
                 </div>
                 <h1 className="greet-title">Good morning, <em>{userName ? userName.split(" ")[0] : "Faculty"}</em></h1>
                 <p className="greet-sub">You have {tasks.length} pending submissions to grade. Let's get ahead.</p>
@@ -570,8 +596,8 @@ export default function FacultyDashboard() {
                 </div>
                 <div className="panel-body">
                   <div className="course-faculty-grid">
-                    {courses.map(c => (
-                      <Hoverable key={c.name} className="course-faculty-card">
+                    {courses.map((c, i) => (
+                      <Hoverable key={c.id || c.name || i} className="course-faculty-card">
                         <div className="cfc-top">
                           <div className="ci-badge" style={c.badgeStyle}>{c.icon}</div>
                           <div className="cfc-meta"><div className="cfc-code">{c.code} · {c.sem}</div><div className="cfc-name">{c.name}</div></div>
@@ -611,7 +637,7 @@ export default function FacultyDashboard() {
               {/* SCHEDULE + PENDING */}
               <div className="two-col-grid">
                 <div className="panel">
-                  <div className="panel-hd"><div className="panel-ttl"><IcoCal width={14} height={14} style={{ color: "var(--indigo-ll)" }} /> Today's Schedule <span>Fri, 28 Feb</span></div><a href="#" className="panel-act" onClick={e => { e.preventDefault(); navigate(ROUTES.ATTENDANCE); }}>Full week <IcoChevR /></a></div>
+                  <div className="panel-hd"><div className="panel-ttl"><IcoCal width={14} height={14} style={{ color: "var(--indigo-ll)" }} /> Today's Schedule <span>{academicMeta.today || "..."}</span></div><a href="#" className="panel-act" onClick={e => { e.preventDefault(); navigate(ROUTES.ATTENDANCE); }}>Full week <IcoChevR /></a></div>
                   <div className="panel-body">
                     <div className="sched-list">
                       {schedule.length === 0 ? (
@@ -640,7 +666,7 @@ export default function FacultyDashboard() {
                         </div>
                       ) : (
                         tasks.map((t, i) => (
-                          <Hoverable key={i} className={`task-item ${checkedTasks.includes(i) ? "done" : ""}`} onClick={() => toggleTask(i)}>
+                          <Hoverable key={`task-${t.label}-${i}`} className={`task-item ${checkedTasks.includes(i) ? "done" : ""}`} onClick={() => toggleTask(i)}>
                             <div className={`task-check ${checkedTasks.includes(i) ? "checked" : ""}`}>{checkedTasks.includes(i) && <IcoCheck />}</div>
                             <div className="task-body"><div className="task-label">{t.label}</div><div className="task-sub">{t.course}</div></div>
                             <div className={`task-due ${t.urgent ? "urgent" : ""}`}>{t.due}</div>
@@ -691,7 +717,7 @@ export default function FacultyDashboard() {
                         </div>
                       ) : (
                         weakTopics.map((w, i) => (
-                          <Hoverable key={i} className="weak-item">
+                          <Hoverable key={`weak-${w.topic}-${i}`} className="weak-item">
                             <div className="wi-top">
                               <span className="wi-course" style={{ color: w.color }}>{w.course}</span>
                               <span className="wi-name">{w.topic}</span>
@@ -720,7 +746,7 @@ export default function FacultyDashboard() {
                         </div>
                       ) : (
                         topStudents.map((s, i) => (
-                          <Hoverable key={i} className="student-item">
+                          <Hoverable key={s.roll || i} className="student-item">
                             <div className="sti-rank">{i + 1}</div>
                             <div className="sti-avatar">{s.name ? s.name.split(" ").map(x => x[0]).join("") : "S"}</div>
                             <div className="sti-info"><div className="sti-name">{s.name}</div><div className="sti-roll">{s.roll} · {s.course}</div></div>

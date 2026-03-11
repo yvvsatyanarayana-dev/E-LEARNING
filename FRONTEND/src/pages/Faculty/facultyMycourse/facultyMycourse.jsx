@@ -638,7 +638,7 @@ export default function FacultyCourses({ onBack }) {
     const fetchCourses = async () => {
       try {
         const res = await api.get("/faculty/courses");
-        const resData = Array.isArray(res.data) ? res.data : [];
+        const resData = Array.isArray(res) ? res : [];
         const mapped = resData.map(c => ({
           ...c,
           students: c.student_count,
@@ -646,15 +646,15 @@ export default function FacultyCourses({ onBack }) {
           avgAttendance: c.avg_attendance,
           avgScore: c.avg_score,
           pendingGrade: c.pending_grades,
-          lastUpdated: "Today", // Mock
-          icon: <IcoBook />, // Default icon
+          lastUpdated: c.last_updated || "Today",
+          icon: <IcoBook />, 
           colorRgb: c.color === "var(--teal)" ? "39,201,176" : c.color === "var(--violet)" ? "159,122,234" : c.color === "var(--amber)" ? "244,165,53" : "91,78,248",
           pctColor: c.color,
           badgeStyle: { background: `${c.color}15`, color: c.color },
-          weakTopics: [], // To be populated if needed
+          weakTopics: [], 
           sem: c.semester,
-          section: "A", // Mock
-          description: "Course details and management.", // Mock
+          section: c.section || "A",
+          description: c.description || "Course details and management.",
           assignments: [],
           quizzes: [],
           lectureList: [],
@@ -685,7 +685,7 @@ export default function FacultyCourses({ onBack }) {
     try {
       setLoading(true);
       const res = await api.get(`/faculty/courses/${course.id}`);
-      const d = res.data || {};
+      const d = res || {};
       const safeAssignments = Array.isArray(d.assignments) ? d.assignments : [];
       const safeQuizzes     = Array.isArray(d.quizzes) ? d.quizzes : [];
       const safeLectures    = Array.isArray(d.lecture_list) ? d.lecture_list : [];

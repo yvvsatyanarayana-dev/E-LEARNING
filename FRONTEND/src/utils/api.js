@@ -56,6 +56,41 @@ const api = {
     delete(endpoint, options = {}) {
         return this.request(endpoint, { ...options, method: "DELETE" });
     },
+
+    async upload(endpoint, file) {
+        const token = localStorage.getItem("token");
+        const headers = {};
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+        
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const response = await fetch(`${BASE_URL}${endpoint}`, {
+                method: "POST",
+                headers,
+                body: formData
+            });
+
+            if (response.status === 401) {
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+                window.location.href = "/login";
+                throw new Error("Unauthorized");
+            }
+
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                throw new Error(errorData.detail || "Upload failed");
+            }
+
+            return await response.json();
+        } catch (error) {
+            console.error(`API Upload Error (${endpoint}):`, error);
+            throw error;
+        }
+    },
 };
+
 
 export default api;

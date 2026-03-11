@@ -32,7 +32,7 @@ export default function Attendance({ onBack }) {
     const load = async () => {
       try {
         const res = await api.get("/faculty/attendance");
-        const data = Array.isArray(res.data) ? res.data : [];
+        const data = Array.isArray(res) ? res : [];
         setCourses(data);
 
         // Initialize today's status for all students

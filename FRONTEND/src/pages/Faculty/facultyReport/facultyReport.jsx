@@ -1,5 +1,5 @@
-// reports.jsx  —  place at: src/pages/Faculty/reports/reports.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import api from "../../../utils/api";
 import "./facultyReport.css";
 
 const IcoChevL   = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>;
@@ -20,14 +20,8 @@ const REPORT_TYPES = [
   { id:"custom",      icon:<IcoBar   style={{width:18,height:18}}/>, title:"Custom Report",           desc:"Build a custom report by selecting courses, students, date ranges",      cls:"sc-teal",   color:"var(--teal)"     },
 ];
 
-// Sparkline data (week-over-week %)
-const SPARKLINES = {
-  cs501: [74,71,76,73,78,75,77,74],
-  cs502: [65,68,66,70,68,72,69,71],
-  cs503: [77,80,78,82,79,83,81,79],
-};
-
 function Sparkline({ data, color }) {
+  if (!data || data.length === 0) return null;
   const max = Math.max(...data);
   const min = Math.min(...data);
   const h = 36, w = 80;
@@ -52,26 +46,28 @@ function ProgressBar({ pct, color="var(--indigo-l)", height=4 }) {
   );
 }
 
-const COURSES_META = {
-  cs501:{ code:"CS501", name:"Operating Systems",           color:"var(--indigo-l)", rgb:"91,78,248",   avgScore:74, attendance:81, lectures:{done:33,total:42} },
-  cs502:{ code:"CS502", name:"Database Management Systems", color:"var(--teal)",     rgb:"39,201,176",  avgScore:68, attendance:76, lectures:{done:23,total:38} },
-  cs503:{ code:"CS503", name:"Computer Architecture",       color:"var(--violet)",   rgb:"159,122,234", avgScore:79, attendance:88, lectures:{done:28,total:36} },
-};
-
-const WEEK_SCORES = [
-  { week:"W7", cs501:70, cs502:64, cs503:75 },
-  { week:"W8", cs501:72, cs502:66, cs503:77 },
-  { week:"W9", cs501:74, cs502:68, cs503:79 },
-  { week:"W10",cs501:73, cs502:70, cs503:78 },
-  { week:"W11",cs501:76, cs502:71, cs503:80 },
-];
-
 const maxScore = 100;
 
 export default function Reports({ onBack }) {
   const [selected, setSelected] = useState(null);
   const [generating, setGenerating] = useState(false);
   const [generated, setGenerated] = useState({});
+  const [data, setData] = useState({ stats: [], courses: [], week_scores: [] });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const res = await api.get("/faculty/reports");
+        setData(res);
+      } catch (err) {
+        console.error("Failed to fetch reports:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
 
   const generate = (id) => {
     setGenerating(true);
@@ -80,6 +76,8 @@ export default function Reports({ onBack }) {
       setGenerated(p => ({...p, [id]: true}));
     }, 1400);
   };
+
+  if (loading) return <div className="loading-state">Loading reports…</div>;
 
   return (
     <div className="rp-root">
@@ -98,13 +96,7 @@ export default function Reports({ onBack }) {
 
       {/* Stats */}
       <div className="rp-stat-strip">
-        {[
-          { label:"Total Students", value:"316",  cls:"sc-teal"   },
-          { label:"Avg Score",      value:"73%",  cls:"sc-indigo" },
-          { label:"Avg Attendance", value:"82%",  cls:"sc-amber"  },
-          { label:"Reports Generated", value:Object.keys(generated).length, cls:"sc-violet" },
-          { label:"Semester Week",  value:"W11",  cls:"sc-rose"   },
-        ].map(({ label, value, cls }) => (
+        {data.stats.map(({ label, value, cls }) => (
           <div key={label} className={`stat-card ${cls}`}>
             <div className="stat-val">{value}</div>
             <div className="stat-label">{label}</div>
@@ -146,8 +138,8 @@ export default function Reports({ onBack }) {
           <div className="rp-section-title">Course Overview</div>
           <div className="panel">
             <div className="panel-body">
-              {Object.entries(COURSES_META).map(([key,c]) => (
-                <div key={key} className="rp-course-row">
+              {data.courses.map((c) => (
+                <div key={c.id} className="rp-course-row">
                   <div className="rp-course-info">
                     <span className="rp-course-code" style={{color:c.color}}>{c.code}</span>
                     <span className="rp-course-name">{c.name}</span>
@@ -162,10 +154,10 @@ export default function Reports({ onBack }) {
                       <span className="rp-metric-lbl">Attend.</span>
                     </div>
                     <div className="rp-metric">
-                      <span className="rp-metric-val">{c.lectures.done}/{c.lectures.total}</span>
+                      <span className="rp-metric-val">{c.lectures_done}/{c.lectures_total}</span>
                       <span className="rp-metric-lbl">Lectures</span>
                     </div>
-                    <Sparkline data={SPARKLINES[key]} color={c.color}/>
+                    <Sparkline data={c.sparkline} color={c.color}/>
                   </div>
                 </div>
               ))}
@@ -176,24 +168,24 @@ export default function Reports({ onBack }) {
           <div className="rp-section-title" style={{marginTop:14}}>Score Trend (W7–W11)</div>
           <div className="panel">
             <div className="panel-body">
-              {WEEK_SCORES.map(w => (
+              {data.week_scores.map(w => (
                 <div key={w.week} className="rp-week-row">
                   <span className="rp-week-lbl">{w.week}</span>
                   <div className="rp-week-bars">
-                    {[{k:"cs501",col:"var(--indigo-l)"},{k:"cs502",col:"var(--teal)"},{k:"cs503",col:"var(--violet)"}].map(({k,col})=>(
-                      <div key={k} className="rp-week-bar-wrap">
+                    {data.courses.map((c)=>(
+                      <div key={c.id} className="rp-week-bar-wrap">
                         <div style={{height:6,borderRadius:3,background:"rgba(255,255,255,.06)",overflow:"hidden",flex:1}}>
-                          <div style={{height:"100%",width:`${(w[k]/maxScore)*100}%`,background:col,borderRadius:3,transition:"width .6s"}}/>
+                          <div style={{height:"100%",width:`${(w[c.id]/maxScore)*100}%`,background:c.color,borderRadius:3,transition:"width .6s"}}/>
                         </div>
-                        <span style={{fontSize:9.5,color:col,fontWeight:700,width:28,textAlign:"right",flexShrink:0}}>{w[k]}%</span>
+                        <span style={{fontSize:9.5,color:c.color,fontWeight:700,width:28,textAlign:"right",flexShrink:0}}>{w[c.id]}%</span>
                       </div>
                     ))}
                   </div>
                 </div>
               ))}
               <div className="rp-legend">
-                {[{code:"CS501",col:"var(--indigo-l)"},{code:"CS502",col:"var(--teal)"},{code:"CS503",col:"var(--violet)"}].map(({code,col})=>(
-                  <div key={code} className="rp-leg-item"><span style={{width:8,height:8,borderRadius:2,background:col,display:"inline-block",marginRight:5}}/>{code}</div>
+                {data.courses.map((c)=>(
+                  <div key={c.id} className="rp-leg-item"><span style={{width:8,height:8,borderRadius:2,background:c.color,display:"inline-block",marginRight:5}}/>{c.code}</div>
                 ))}
               </div>
             </div>

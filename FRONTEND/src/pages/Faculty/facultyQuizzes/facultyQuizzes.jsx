@@ -31,12 +31,23 @@ const IcoMcq      = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="c
 const IcoTf       = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M8 12l3 3 5-5"/></svg>;
 const IcoFib      = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>;
 
-// ─── LOOKUP TABLES ────────────────────────────────────────────────
-const COURSES_META = {
-  cs501: { code: "CS501", name: "Operating Systems",           color: "var(--indigo-l)",  rgb: "91,78,248",   bg: "rgba(91,78,248,.1)",   border: "rgba(91,78,248,.2)",   total: 112 },
-  cs502: { code: "CS502", name: "Database Management Systems", color: "var(--teal)",      rgb: "39,201,176",  bg: "rgba(39,201,176,.1)",  border: "rgba(39,201,176,.2)",  total: 108 },
-  cs503: { code: "CS503", name: "Computer Architecture",       color: "var(--violet)",    rgb: "159,122,234", bg: "rgba(159,122,234,.1)", border: "rgba(159,122,234,.2)", total: 96  },
-};
+// ─── HELPERS ──────────────────────────────────────────────────────
+const COLORS = [
+  { color: "var(--indigo-l)",  rgb: "91,78,248",   bg: "rgba(91,78,248,.1)",   border: "rgba(91,78,248,.2)" },
+  { color: "var(--teal)",      rgb: "39,201,176",  bg: "rgba(39,201,176,.1)",  border: "rgba(39,201,176,.2)" },
+  { color: "var(--violet)",    rgb: "159,122,234", bg: "rgba(159,122,234,.1)", border: "rgba(159,122,234,.2)" },
+  { color: "var(--rose)",      rgb: "242,68,92",   bg: "rgba(242,68,92,.1)",   border: "rgba(242,68,92,.2)" },
+  { color: "var(--amber)",     rgb: "244,165,53",  bg: "rgba(244,165,53,.1)",  border: "rgba(244,165,53,.2)" },
+];
+
+function getCourseMeta(courseId, courseCode) {
+  const idx = String(courseId).length % COLORS.length;
+  return {
+    ...COLORS[idx],
+    code: courseCode || `C${courseId}`,
+    total: 100
+  };
+}
 
 const QTYPE_META = {
   MCQ:   { label: "MCQ",         color: "var(--indigo-l)",  bg: "rgba(91,78,248,.1)",   icon: <IcoMcq  style={{width:10,height:10}}/> },
@@ -95,9 +106,8 @@ function StatusBadge({ status }) {
 }
 
 // ─── COURSE CHIP ──────────────────────────────────────────────────
-function CourseChip({ courseId }) {
-  const c = COURSES_META[courseId];
-  if (!c) return null;
+function CourseChip({ quiz }) {
+  const c = getCourseMeta(quiz.courseId, quiz.course_code);
   return (
     <span className="qz-course-chip" style={{ color: c.color, background: c.bg, borderColor: c.border }}>
       {c.code}
@@ -107,7 +117,7 @@ function CourseChip({ courseId }) {
 
 // ─── QUIZ CARD ────────────────────────────────────────────────────
 function QuizCard({ quiz, onClick }) {
-  const c = COURSES_META[quiz.courseId] || { rgb: "91,78,248", total: 100 };
+  const c = getCourseMeta(quiz.courseId, quiz.course_code);
   const isLive   = quiz.status === "live";
   const isDraft  = quiz.status === "draft";
   const isEnded  = quiz.status === "ended";
@@ -122,7 +132,7 @@ function QuizCard({ quiz, onClick }) {
 
       <div className="qz-card-hd">
         <div className="qz-card-badges">
-          <CourseChip courseId={quiz.courseId} />
+          <CourseChip quiz={quiz} />
           <span className="qz-week-chip">W{quiz.week?.replace("W","")}</span>
         </div>
         <StatusBadge status={quiz.status} />
@@ -184,7 +194,7 @@ function QuizCard({ quiz, onClick }) {
 
 // ─── QUIZ ROW (list view) ─────────────────────────────────────────
 function QuizRow({ quiz, idx, onClick }) {
-  const c = COURSES_META[quiz.courseId] || { total: 100, rgb: "91,78,248" };
+  const c = getCourseMeta(quiz.courseId, quiz.course_code);
   const subPct = quiz.attempts > 0 ? Math.round((quiz.attempts / c.total) * 100) : 0;
   return (
     <div className="qz-row" onClick={onClick}>
@@ -192,7 +202,7 @@ function QuizRow({ quiz, idx, onClick }) {
       <div className="qz-row-info">
         <div className="qz-row-title">{quiz.title}</div>
         <div className="qz-row-meta">
-          <CourseChip courseId={quiz.courseId} />
+          <CourseChip quiz={quiz} />
           <span className="qz-week-chip">{quiz.week}</span>
           <span>{quiz.unit}</span>
         </div>
@@ -226,16 +236,26 @@ const BLANK_QUESTION = (type) => ({
   marks: 1,
 });
 
-function CreateModal({ onClose, onCreated }) {
+function CreateModal({ onClose, onCreated, courses = [] }) {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
-    title: "", courseId: "cs501", type: "MCQ",
-    duration: 20, marks: 10, week: "W1", unit: "Unit I",
-    startDate: "", startTime: "10:00",
-    shuffle: true, showResult: true, negMark: false,
+    title: "", 
+    course_id: courses.length > 0 ? String(courses[0].id) : "", 
+    type: "MCQ", 
+    target_group: "All",
+    duration: 20, 
+    marks: 10, 
+    week: "W1", 
+    unit: "Unit I",
+    startDate: "", 
+    startTime: "10:00",
+    shuffle: true, 
+    showResult: true, 
+    negMark: false,
   });
   const [questions, setQuestions] = useState([BLANK_QUESTION("MCQ")]);
   const [pubMode, setPubMode] = useState("now");
+
 
   const setF = (k, v) => setForm(f => ({ ...f, [k]: v }));
   const addQ = () => setQuestions(qs => [...qs, BLANK_QUESTION(form.type)]);
@@ -247,7 +267,7 @@ function CreateModal({ onClose, onCreated }) {
     ));
 
   const handlePublish = () => {
-    onCreated(form.title || "New Quiz");
+    onCreated({ ...form, questions });
     onClose();
   };
 
@@ -272,12 +292,124 @@ function CreateModal({ onClose, onCreated }) {
           {step === 1 && (
             <div className="qz-form">
               <input className="qz-input" placeholder="Quiz Title *" value={form.title} onChange={e => setF("title", e.target.value)} />
-              <button className="btn btn-primary" onClick={() => setStep(2)}>Next</button>
+              <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
+                <div style={{ flex: 1 }}>
+                  <div className="qz-field-lbl">Course *</div>
+                  <div style={{ display: 'flex', gap: 8 }}>
+                    <select className="qz-input" style={{ flex: 1 }} value={form.course_id} onChange={e => setF("course_id", e.target.value)}>
+                      {courses.length > 0
+                        ? courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)
+                        : <option value="">No courses found</option>
+                      }
+                    </select>
+                    <button 
+                      className="btn btn-ghost" 
+                      title="Create New Course" 
+                      style={{ height: 42, width: 42, padding: 0 }}
+                      onClick={() => window.dispatchEvent(new CustomEvent('OPEN_CREATE_COURSE'))}
+                    >
+                      <IcoPlus width={14} height={14} />
+                    </button>
+                  </div>
+                </div>
+                <select className="qz-input" style={{ flex: 1 }} value={form.target_group} onChange={e => setF("target_group", e.target.value)}>
+                  <option value="All">All Students</option>
+                  <option value="BCA">BCA Only</option>
+                  <option value="MCA">MCA Only</option>
+                  <option value="BTech">B.Tech Only</option>
+                </select>
+              </div>
+              <div style={{ marginTop: 8, fontSize: 11, color: "var(--text3)", textAlign: "center" }}>
+                Step 1 of 3: Enter basic details then click Next to add questions.
+              </div>
+              <button className="btn btn-primary qz-btn-teal" style={{ height: 48, fontSize: 14, marginTop: 8 }} onClick={() => setStep(2)}>
+                Next: Add Quiz Questions <IcoChevR style={{ marginLeft: 8 }} />
+              </button>
             </div>
           )}
           {step === 2 && (
             <div className="qz-form">
-               <button className="btn btn-primary" onClick={() => setStep(3)}>Next</button>
+              <div className="qz-q-list">
+                {questions.map((q, idx) => (
+                  <div key={q.id} className="qz-q-card">
+                    <div className="qz-q-card-hd">
+                      <span className="qz-q-num">Q{idx + 1}</span>
+                      <select 
+                        className="qz-input qz-q-type" 
+                        style={{ width: 'auto', flex: 1 }}
+                        value={q.type} 
+                        onChange={(e) => updateQ(q.id, { type: e.target.value })}
+                      >
+                        <option value="MCQ">MCQ</option>
+                        <option value="TF">True/False</option>
+                        <option value="FIB">Fill in Blank</option>
+                      </select>
+                      <button className="qz-q-del" title="Remove Question" onClick={() => removeQ(q.id)}>
+                        <IcoTrash width={12} height={12} />
+                      </button>
+                    </div>
+                    
+                    <textarea 
+                      className="qz-input qz-textarea" 
+                      placeholder="Enter question text..."
+                      value={q.q}
+                      onChange={(e) => updateQ(q.id, { q: e.target.value })}
+                    />
+
+                    {q.type === "MCQ" && (
+                      <div className="qz-options">
+                        {q.options.map((opt, oIdx) => (
+                          <div 
+                            key={`opt-${oIdx}`} 
+                            className={`qz-option-row ${q.ans === oIdx ? "qz-option-row--correct" : ""}`}
+                            onClick={() => updateQ(q.id, { ans: oIdx })}
+                          >
+                            <div className={`qz-opt-radio ${q.ans === oIdx ? "qz-opt-radio--on" : ""}`} />
+                            <input 
+                              className="qz-input qz-opt-inp" 
+                              placeholder={`Option ${oIdx + 1}`}
+                              value={opt}
+                              onClick={e => e.stopPropagation()}
+                              onChange={(e) => updateOpt(q.id, oIdx, e.target.value)}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+                    {q.type === "TF" && (
+                      <div className="qz-tf-row">
+                        <button 
+                          className={`qz-tf-btn ${q.ans === true ? "qz-tf-btn--on" : ""}`}
+                          onClick={() => updateQ(q.id, { ans: true })}
+                        >True</button>
+                        <button 
+                          className={`qz-tf-btn ${q.ans === false ? "qz-tf-btn--on" : ""}`}
+                          onClick={() => updateQ(q.id, { ans: false })}
+                        >False</button>
+                      </div>
+                    )}
+
+                    {q.type === "FIB" && (
+                      <input 
+                        className="qz-input" 
+                        placeholder="Expected Answer..."
+                        value={q.ans}
+                        onChange={(e) => updateQ(q.id, { ans: e.target.value })}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+              
+              <button className="qz-add-q-btn" onClick={addQ}>
+                <IcoPlus width={12} height={12} /> Add Question
+              </button>
+
+              <div className="qz-modal-foot">
+                <button className="btn btn-ghost" onClick={() => setStep(1)}>Back</button>
+                <button className="btn btn-primary" onClick={() => setStep(3)}>Next</button>
+              </div>
             </div>
           )}
           {step === 3 && (
@@ -291,10 +423,67 @@ function CreateModal({ onClose, onCreated }) {
   );
 }
 
+// ─── CREATE COURSE MODAL ──────────────────────────────────────────
+function CreateCourseModal({ onClose, onCreated }) {
+  const [form, setForm] = useState({ title: "", description: "", semester: "Sem 5" });
+  const [loading, setLoading] = useState(false);
+
+  const handleCreate = async () => {
+    if (!form.title.trim()) return alert("Please enter course title");
+    setLoading(true);
+    try {
+      const res = await api.post("/faculty/courses", form);
+      onCreated(res);
+      onClose();
+    } catch (err) {
+      console.error("Failed to create course:", err);
+      alert("Failed to create course. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="qz-overlay" style={{ zIndex: 1100 }} onClick={onClose}>
+      <div className="qz-modal" style={{ maxWidth: 420 }} onClick={e => e.stopPropagation()}>
+        <div className="qz-modal-hd">
+          <div className="qz-modal-ico" style={{ background: "var(--teal)" }}>
+            <IcoPlus width={14} height={14} style={{ color: "#fff" }} />
+          </div>
+          <span className="qz-modal-title">Create New Course</span>
+          <button className="qz-modal-close" onClick={onClose}><IcoClose width={12} height={12} /></button>
+        </div>
+        <div className="qz-modal-body">
+          <div className="qz-form">
+            <div className="qz-field">
+              <div className="qz-field-lbl">Course Title *</div>
+              <input className="qz-input" value={form.title} placeholder="e.g. Operating Systems" onChange={e => setForm({ ...form, title: e.target.value })} autoFocus />
+            </div>
+            <div className="qz-field">
+              <div className="qz-field-lbl">Semester</div>
+              <input className="qz-input" value={form.semester} placeholder="e.g. Sem 5" onChange={e => setForm({ ...form, semester: e.target.value })} />
+            </div>
+            <div className="qz-field">
+              <div className="qz-field-lbl">Description</div>
+              <textarea className="qz-input qz-textarea" rows={2} value={form.description} placeholder="Short description…" onChange={e => setForm({ ...form, description: e.target.value })} />
+            </div>
+          </div>
+          <div className="qz-modal-foot" style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
+            <button className="btn btn-ghost" onClick={onClose} disabled={loading}>Cancel</button>
+            <button className="btn btn-primary qz-btn-teal" onClick={handleCreate} disabled={loading}>
+              {loading ? "Creating…" : "Create Course"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── DETAIL DRAWER ────────────────────────────────────────────────
 function DetailDrawer({ quiz, onClose }) {
   const [tab, setTab] = useState("overview");
-  const c = COURSES_META[quiz.courseId] || { color: "var(--indigo-l)", border: "rgba(91,78,248,.2)", bg: "rgba(91,78,248,.1)" };
+  const c = getCourseMeta(quiz.courseId, quiz.course_code);
 
   return (
     <div className="qz-overlay qz-overlay--drawer" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -326,20 +515,61 @@ export default function FacultyQuizzes({ onBack }) {
   const [search, setSearch] = useState("");
   const [showCreate, setCreate] = useState(false);
   const [selected, setSelected] = useState(null);
+  const [showCreateCourse, setShowCreateCourse] = useState(false);
   const [toast, setToast] = useState("");
 
+  const handleCreateQuiz = async (formData) => {
+    try {
+      const cId = parseInt(formData.course_id);
+      if (isNaN(cId)) {
+        alert("Please select a valid course.");
+        return;
+      }
+
+      const payload = {
+        title: formData.title || "New Quiz",
+        course_id: cId,
+        target_group: formData.target_group,
+        difficulty: "Medium",
+        is_ai_generated: false,
+        questions: formData.questions || []
+      };
+      
+      const res = await api.post("/faculty/quizzes", payload);
+      setQuizzes(prev => [...prev, res]);
+      showToast("✅ Quiz Created!");
+      setCreate(false);
+    } catch (err) {
+      console.error("Failed to create quiz:", err);
+      alert("Failed to create quiz. Please try again.");
+    }
+  };
+
+  const [courses, setCourses] = useState([]);
+
   useEffect(() => {
-    const fetchQuizzes = async () => {
+    const fetchData = async () => {
       try {
-        const res = await api.get("/faculty/quizzes");
-        setQuizzes(res.data);
+        const [quizRes, courseRes] = await Promise.all([
+          api.get("/faculty/quizzes"),
+          api.get("/faculty/courses"),
+        ]);
+        setQuizzes(Array.isArray(quizRes) ? quizRes : []);
+        const courseList = Array.isArray(courseRes)
+          ? courseRes.map(c => ({ id: c.id, name: `${c.code} – ${c.name}` }))
+          : [];
+        setCourses(courseList);
       } catch (err) {
-        console.error("Failed to fetch quizzes:", err);
+        console.error("Failed to fetch data:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchQuizzes();
+    fetchData();
+
+    const fn = () => setShowCreateCourse(true);
+    window.addEventListener('OPEN_CREATE_COURSE', fn);
+    return () => window.removeEventListener('OPEN_CREATE_COURSE', fn);
   }, []);
 
   const showToast = useCallback((msg) => {
@@ -347,10 +577,10 @@ export default function FacultyQuizzes({ onBack }) {
     setTimeout(() => setToast(""), 3000);
   }, []);
 
+
   const safeQuizzes = Array.isArray(quizzes) ? quizzes : [];
   const filtered = safeQuizzes.filter(q => {
-    const c = COURSES_META[q.courseId] || { code: "UNK" };
-    if (courseFilter !== "All" && c.code !== courseFilter) return false;
+    if (courseFilter !== "All" && q.course_code !== courseFilter) return false;
     if (statusFilter !== "all" && q.status !== statusFilter) return false;
     if (search && !q.title.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
@@ -360,7 +590,15 @@ export default function FacultyQuizzes({ onBack }) {
 
   return (
     <div className="qz-root">
-      {showCreate && <CreateModal onClose={() => setCreate(false)} onCreated={m => showToast(m)} />}
+      {showCreate && <CreateModal onClose={() => setCreate(false)} onCreated={handleCreateQuiz} courses={courses} />}
+      {showCreateCourse && (
+        <CreateCourseModal 
+          onClose={() => setShowCreateCourse(false)} 
+          onCreated={(newCourse) => {
+            setCourses(prev => [...prev, { id: newCourse.id, name: `${newCourse.code} – ${newCourse.name}` }]);
+          }} 
+        />
+      )}
       {selected && <DetailDrawer quiz={selected} onClose={() => setSelected(null)} />}
       {toast && <div className="qz-toast">{toast}</div>}
 
@@ -373,7 +611,8 @@ export default function FacultyQuizzes({ onBack }) {
       </div>
 
       <div className="qz-course-tabs">
-        {["All", "CS501", "CS502", "CS503"].map(code => (
+        <button key="All" className={`qz-ctab ${courseFilter === "All" ? "qz-ctab--active" : ""}`} onClick={() => setCourse("All")}>All</button>
+        {Array.from(new Set(safeQuizzes.map(q => q.course_code))).filter(Boolean).map(code => (
           <button key={code} className={`qz-ctab ${courseFilter === code ? "qz-ctab--active" : ""}`} onClick={() => setCourse(code)}>{code}</button>
         ))}
       </div>

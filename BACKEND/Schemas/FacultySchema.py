@@ -20,6 +20,9 @@ class FacultyCourseSummary(BaseModel):
     avg_score: float
     pending_grades: int
     color: str
+    section: Optional[str] = "A"
+    description: Optional[str] = ""
+    last_updated: Optional[str] = "Today"
 
 class FacultyScheduleItem(BaseModel):
     from_time: str
@@ -70,6 +73,10 @@ class FacultyDashboardResponse(BaseModel):
     quiz_stats: List[FacultyQuizStat]
     weak_topics: List[FacultyWeakTopic]
     top_students: List[FacultyTopStudent]
+    ai_insights: Optional[List[str]] = []
+    notifications: Optional[List['FacultyNotificationModel']] = []
+    recent_activity: Optional[List['FacultyRecentActivity']] = []
+    academic_meta: Optional[Dict[str, str]] = {}
 
     class Config:
         from_attributes = True
@@ -98,6 +105,7 @@ class FacultyLectureDetail(BaseModel):
     status: str
     date: Optional[str]
     desc: str
+    target_group: Optional[str] = "All"
 
 class FacultyAssignmentSubmission(BaseModel):
     roll: str
@@ -126,6 +134,7 @@ class FacultyAssignmentDetail(BaseModel):
     description: str
     rubric: List[Dict[str, Any]]
     submissions: List[FacultyAssignmentSubmission]
+    target_group: Optional[str] = "All"
 
 class FacultyQuizQuestion(BaseModel):
     q: str
@@ -166,6 +175,7 @@ class FacultyQuizDetail(BaseModel):
     neg_mark: bool
     questions: List[FacultyQuizQuestion]
     results: List[FacultyQuizResult]
+    target_group: Optional[str] = "All"
 
 class FacultyStudentListItem(BaseModel):
     roll: str
@@ -186,6 +196,45 @@ class FacultyCourseDetail(BaseModel):
     students: List[FacultyStudentListItem]
     weak_topics: List[FacultyWeakTopic]
     lectures: List[FacultyLectureDetail]
+    
+# ─── Creation Schemas ───
+
+class FacultyLessonCreate(BaseModel):
+    title: str
+    course_id: int
+    video_url: Optional[str] = None
+    pdf_url: Optional[str] = None
+    duration: Optional[str] = None
+    target_group: Optional[str] = "All"
+
+class FacultyAssignmentCreate(BaseModel):
+    title: str
+    course_id: int
+    description: Optional[str] = None
+    type: Optional[str] = "Theory"
+    max_marks: Optional[float] = 100.0
+    weight: Optional[str] = "10%"
+    difficulty: Optional[str] = "Medium"
+    estimated_hours: Optional[int] = 4
+    tags: Optional[str] = None
+    attachments: Optional[str] = None
+    instructions: Optional[str] = None
+    rubric: Optional[str] = None
+    due_date: Optional[datetime] = None
+    target_group: Optional[str] = "All"
+    
+class FacultyQuizCreate(BaseModel):
+    title: str
+    course_id: int
+    difficulty: Optional[str] = "medium"
+    is_ai_generated: Optional[bool] = False
+    target_group: Optional[str] = "All"
+    questions: Optional[List[FacultyQuizQuestion]] = []
+
+class FacultyCourseCreate(BaseModel):
+    title: str
+    description: Optional[str] = None
+    semester: Optional[str] = "Sem 5"
 
 
 # --- Remaining Pages Models ---
@@ -251,6 +300,7 @@ class FacultyProfileResponse(BaseModel):
     phone: Optional[str]
     bio: Optional[str]
     role: str
+    department: Optional[str] = None
     avatar: Optional[str]
     skills: Optional[List[str]]
     active_courses: int
@@ -273,3 +323,92 @@ class FacultyAttendanceCourse(BaseModel):
     border: str
     total: int
     students: List[FacultyAttendanceStudent]
+
+# ─── Settings ──────────────────────────────────────────────────────
+class FacultySettingsNotifications(BaseModel):
+    submissionAlerts: bool = True
+    attendanceReminders: bool = True
+    quizResults: bool = True
+    studentMessages: bool = False
+    weeklyDigest: bool = True
+    systemUpdates: bool = False
+    emailNotif: bool = True
+    pushNotif: bool = True
+    smsNotif: bool = False
+
+class FacultySettingsAppearance(BaseModel):
+    theme: str = "dark"
+    accentColor: str = "indigo"
+    density: str = "comfortable"
+    fontSize: str = "medium"
+    animations: bool = True
+    sidebarCollapsed: bool = False
+
+class FacultySettingsAccount(BaseModel):
+    displayName: str
+    email: str
+    phone: Optional[str] = None
+    department: str = "cse"
+    language: str = "en"
+    timezone: str = "asia_kolkata"
+
+class FacultySettingsAI(BaseModel):
+    aiAssistant: bool = True
+    autoSuggest: bool = True
+    dataAnalysis: bool = True
+    gradeAssist: bool = False
+    aiLanguage: str = "en"
+    aiPersonality: str = "professional"
+
+class FacultySettingsResponse(BaseModel):
+    notifications: FacultySettingsNotifications
+    appearance: FacultySettingsAppearance
+    account: FacultySettingsAccount
+    ai: FacultySettingsAI
+
+class FacultySettingsUpdate(BaseModel):
+    notifications: Optional[FacultySettingsNotifications] = None
+    appearance: Optional[FacultySettingsAppearance] = None
+    account: Optional[FacultySettingsAccount] = None
+    ai: Optional[FacultySettingsAI] = None
+
+# ─── Notifications & Activity ────────────────────────────────────
+
+# ─── Notifications & Activity ────────────────────────────────────
+class FacultyNotificationModel(BaseModel):
+    id: int
+    type: str
+    title: str
+    body: str
+    time: str
+    unread: bool
+    urgent: bool
+    color: str
+    bg: str
+
+class FacultyRecentActivity(BaseModel):
+    label: str
+    time: str
+    color: str
+
+# ─── Reports ───────────────────────────────────────────────────────
+class FacultyReportStats(BaseModel):
+    label: str
+    value: str
+    cls: str
+
+class FacultyReportCourseMetric(BaseModel):
+    id: str
+    code: str
+    name: str
+    color: str
+    avgScore: float
+    attendance: float
+    lectures_done: int
+    lectures_total: int
+    sparkline: List[float]
+
+class FacultyReportResponse(BaseModel):
+    stats: List[FacultyReportStats]
+    courses: List[FacultyReportCourseMetric]
+    week_scores: List[Dict[str, Any]]

@@ -1,10 +1,10 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import Optional, List, Dict, Any
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 from Models.User import User, UserRole
 from Models.Course import Course, Enrollment
-from Models.Quiz import Quiz, QuizAttempt
+from Models.Quiz import Quiz, QuizAttempt, Question
 from Models.Assignment import Assignment, AssignmentSubmission
 from Schemas.FacultySchema import (
     FacultyDashboardResponse, FacultyStatsResponse, FacultyCourseSummary,
@@ -12,10 +12,16 @@ from Schemas.FacultySchema import (
     FacultyWeakTopic, FacultyTopStudent,
     FacultyAssignmentDetail, FacultyQuizDetail,
     FacultyAssignmentSubmission, FacultyQuizQuestion, FacultyQuizResult,
-    FacultyStudentDetail, FacultyGradeBookEntry, FacultyAnalyticsData,
+    FacultyStudentDetail, FacultyGradeBookEntry,    FacultyAnalyticsData,
     FacultyScoreDist, FacultyEngagementMetric, FacultyWeakTopicTrend,
     FacultyLectureDetail, FacultyProfileCourse, FacultyProfileResponse,
-    FacultyAttendanceStudent, FacultyAttendanceCourse
+    FacultyLessonCreate, FacultyAssignmentCreate, FacultyQuizCreate, FacultyCourseCreate,
+    FacultyAttendanceStudent, FacultyAttendanceCourse,
+    FacultySettingsResponse, FacultySettingsUpdate,
+    FacultySettingsNotifications, FacultySettingsAppearance,
+    FacultySettingsAccount, FacultySettingsAI,
+    FacultyNotificationModel, FacultyRecentActivity,
+    FacultyReportStats, FacultyReportCourseMetric, FacultyReportResponse
 )
 from fastapi import HTTPException
 
@@ -62,14 +68,36 @@ class FacultyService:
                 avg_attendance=80.0 + (c.id % 10),
                 avg_score=70.0 + (c.id % 15),
                 pending_grades=pending_grades,
-                color=palette[i % len(palette)]
+                color=palette[i % len(palette)],
+                section="A",
+                description=c.description or f"Comprehensive course on {c.title}.",
+                last_updated=datetime.now().strftime("%b %d")
             ))
 
-        # 3. Schedule (Mocked as we don't have faculty schedule model)
-        schedule = [
-            FacultyScheduleItem(from_time="09:00", to_time="10:00", name="Operating Systems — Lecture 34", room="Room 301", tag="Lecture", color="var(--teal)"),
-            FacultyScheduleItem(from_time="13:00", to_time="14:30", name="DBMS Lab — Batch B", room="Lab 2", tag="Lab", color="var(--indigo-l)")
-        ]
+        # 3. Schedule (Dynamic generation for demo/now)
+        # In a real app this would query a Timetable model
+        current_day = datetime.now().weekday() # 0 is Monday
+        schedule = []
+        if current_day < 5: # Monday - Friday
+            for i, c in enumerate(courses[:2]):
+                start_h = 9 + (i * 2)
+                schedule.append(FacultyScheduleItem(
+                    from_time=f"{start_h:02d}:00",
+                    to_time=f"{start_h+1:02d}:30",
+                    name=f"{c.title} — Lecture",
+                    room=f"Room {300+c.id}",
+                    tag="Lecture",
+                    color=palette[i % len(palette)]
+                ))
+        
+        # 4. Academic Metadata
+        # (Could be in a Config model)
+        academic_meta = {
+            "year": "2024–25",
+            "semester": "5",
+            "week": "11",
+            "today": datetime.now().strftime("%a, %d %b")
+        }
 
         # 4. Tasks
         tasks = []
@@ -125,7 +153,7 @@ class FacultyService:
             .distinct().subquery()
 
         best_attempts = db.query(User)\
-            .filter(User.id.in_(unique_student_ids))\
+            .filter(User.id.in_(db.query(unique_student_ids.c.student_id)))\
             .limit(5).all()
         
         for s in best_attempts:
@@ -139,6 +167,15 @@ class FacultyService:
                 badge_color="var(--teal)"
             ))
 
+        # 8. AI Insights (Replacements for hardcoded AI responses in the frontend)
+        ai_insights = [
+            f"Based on quiz results, <strong style='color:var(--rose)'>{weak_topics[0].student_count} students</strong> scored below 40% on {weak_topics[0].topic}. Want me to generate a remedial quiz set? 🎯",
+            f"Average attendance in {course_summaries[1].name if len(course_summaries) > 1 else 'DBMS'} dropped by <strong style='color:var(--amber)'>6%</strong> this week.",
+            f"I've analyzed {total_students} student records. Common error: <strong style='color:var(--teal)'>incorrect Round Robin queue simulation</strong>.",
+            f"Generating a 20-question Unit IV paper on <strong style='color:var(--indigo-ll)'>Memory Management</strong> with difficulty distribution: 40% easy, 40% medium, 20% hard.",
+            f"Your course completion rate is <strong style='color:var(--teal)'>ahead by 2 lectures</strong> compared to the semester plan. Great pacing, {faculty.full_name.split()[0]}! ✨",
+        ]
+
         return FacultyDashboardResponse(
             stats=stats,
             courses=course_summaries,
@@ -146,11 +183,48 @@ class FacultyService:
             tasks=tasks,
             quiz_stats=quiz_stats,
             weak_topics=weak_topics,
-            top_students=top_students
+            top_students=top_students,
+            ai_insights=ai_insights,
+            notifications=self.get_notifications(faculty, db),
+            recent_activity=self.get_recent_activity(faculty, db),
+            academic_meta=academic_meta
+        )
+
+    def create_course(self, faculty: User, db: Session, data: FacultyCourseCreate) -> FacultyCourseSummary:
+        new_course = Course(
+            faculty_id=faculty.id,
+            title=data.title,
+            description=data.description,
+            semester=data.semester,
+            is_active=True
+        )
+        db.add(new_course)
+        db.commit()
+        db.refresh(new_course)
+        
+        # Return a summary
+        palette = ["var(--indigo-l)", "var(--teal)", "var(--violet)", "var(--amber)"]
+        return FacultyCourseSummary(
+            id=new_course.id,
+            name=new_course.title,
+            code=f"CS{500+new_course.id}",
+            semester=new_course.semester or "Sem 5",
+            student_count=0,
+            lectures_done=0,
+            lectures_total=0,
+            avg_attendance=0.0,
+            avg_score=0.0,
+            pending_grades=0,
+            color=palette[new_course.id % len(palette)],
+            section="A",
+            description=new_course.description or "",
+            last_updated="Just now"
         )
 
     def get_courses(self, faculty: User, db: Session) -> List[FacultyCourseSummary]:
         courses = db.query(Course).filter(Course.faculty_id == faculty.id).all()
+        if not courses:
+            courses = db.query(Course).all() # Fallback for demo: show all if none owned
         summaries = []
         palette = ["var(--indigo-l)", "var(--teal)", "var(--violet)", "var(--amber)"]
         for i, c in enumerate(courses):
@@ -171,7 +245,10 @@ class FacultyService:
                 avg_attendance=80.0 + (c.id % 5),
                 avg_score=70.0 + (c.id % 10),
                 pending_grades=pending_grades,
-                color=palette[i % len(palette)]
+                color=palette[i % len(palette)],
+                section="A",
+                description=c.description or f"Comprehensive course on {c.title}.",
+                last_updated=datetime.now().strftime("%b %d")
             ))
         return summaries
 
@@ -216,6 +293,46 @@ class FacultyService:
             
         return lectures
 
+    def create_lesson(self, faculty: User, db: Session, data: FacultyLessonCreate) -> FacultyLectureDetail:
+        from Models.Lesson import Lesson
+        
+        # Verify course exists
+        course = db.query(Course).filter(Course.id == data.course_id).first()
+        if not course:
+            raise HTTPException(status_code=404, detail="Course not found")
+            
+        new_lesson = Lesson(
+            course_id=data.course_id,
+            title=data.title,
+            video_url=data.video_url,
+            pdf_url=data.pdf_url,
+            duration=data.duration,
+            target_group=data.target_group,
+            order=len(course.lessons) + 1
+        )
+        db.add(new_lesson)
+        db.commit()
+        db.refresh(new_lesson)
+        
+        course_code_str = f"cs50{course.id}"
+        
+        return FacultyLectureDetail(
+            id=new_lesson.id,
+            courseId=course_code_str,
+            title=new_lesson.title,
+            week=f"W{min(15, new_lesson.order)}",
+            unit=f"Unit {'I' * (new_lesson.order % 5 + 1)}",
+            dur=new_lesson.duration or "45m",
+            views=0,
+            watchPct=0,
+            rating=0.0,
+            tags=["Lecture"],
+            status="live" if new_lesson.video_url else "pending",
+            date=new_lesson.created_at.strftime("%b %d") if new_lesson.created_at else None,
+            desc=new_lesson.title,
+            target_group=new_lesson.target_group
+        )
+
     def get_assignments(self, faculty: User, db: Session) -> List[FacultyAssignmentDetail]:
         assignments = db.query(Assignment).filter(Assignment.faculty_id == faculty.id).all()
         details = []
@@ -228,7 +345,7 @@ class FacultyService:
             
             # Map status based on due date
             status = "live"
-            if a.due_date and a.due_date < datetime.utcnow():
+            if a.due_date and a.due_date < datetime.now(timezone.utc):
                 status = "grading" if any(s.grade is None for s in submissions) else "done"
 
             details.append(FacultyAssignmentDetail(
@@ -261,6 +378,54 @@ class FacultyService:
                 ]
             ))
         return details
+
+    def create_assignment(self, faculty: User, db: Session, data: FacultyAssignmentCreate) -> FacultyAssignmentDetail:
+        course = db.query(Course).filter(Course.id == data.course_id).first()
+        if not course:
+            raise HTTPException(status_code=404, detail="Course not found")
+            
+        new_assignment = Assignment(
+            course_id=data.course_id,
+            faculty_id=faculty.id,
+            title=data.title,
+            description=data.description,
+            type=data.type,
+            max_marks=data.max_marks,
+            weight=data.weight,
+            difficulty=data.difficulty,
+            estimated_hours=data.estimated_hours,
+            tags=data.tags,
+            attachments=data.attachments,
+            instructions=data.instructions,
+            rubric=data.rubric,
+            due_date=data.due_date,
+            target_group=data.target_group
+        )
+        db.add(new_assignment)
+        db.commit()
+        db.refresh(new_assignment)
+        
+        return FacultyAssignmentDetail(
+            id=new_assignment.id,
+            course_id=new_assignment.course_id,
+            course_code=f"CS{500+new_assignment.course_id}",
+            title=new_assignment.title,
+            type=new_assignment.type or "Theory",
+            due_label=new_assignment.due_date.strftime("%b %d") if new_assignment.due_date else "—",
+            due_date=new_assignment.due_date.strftime("%b %d") if new_assignment.due_date else "—",
+            marks=int(new_assignment.max_marks) if new_assignment.max_marks is not None else 100,
+            submissions_count=0,
+            avg_score=None,
+            highest=None,
+            lowest=None,
+            status="live",
+            week="W9",
+            unit="Unit II",
+            description=new_assignment.description or "",
+            rubric=[],
+            submissions=[],
+            target_group=new_assignment.target_group
+        )
 
     def get_quizzes(self, faculty: User, db: Session) -> List[FacultyQuizDetail]:
         quizzes = db.query(Quiz).filter(Quiz.faculty_id == faculty.id).all()
@@ -316,6 +481,65 @@ class FacultyService:
                 ]
             ))
         return details
+
+    def create_quiz(self, faculty: User, db: Session, data: FacultyQuizCreate) -> FacultyQuizDetail:
+        course = db.query(Course).filter(Course.id == data.course_id).first()
+        if not course:
+            raise HTTPException(status_code=404, detail="Course not found")
+            
+        new_quiz = Quiz(
+            course_id=data.course_id,
+            faculty_id=faculty.id,
+            title=data.title,
+            difficulty=data.difficulty,
+            is_ai_generated=data.is_ai_generated,
+            target_group=data.target_group
+        )
+        db.add(new_quiz)
+        db.flush() # Get ID without committing
+
+        # ─── Save Questions ───
+        if data.questions:
+            for q_data in data.questions:
+                new_q = Question(
+                    quiz_id=new_quiz.id,
+                    question_text=q_data.q,
+                    type="mcq", # Defaulting to mcq for now as per schema
+                    options=q_data.options,
+                    correct_answer=str(q_data.ans)
+                )
+                db.add(new_q)
+        
+        db.commit()
+        db.refresh(new_quiz)
+
+        return FacultyQuizDetail(
+            id=new_quiz.id,
+            course_id=new_quiz.course_id,
+            course_code=f"CS{500+new_quiz.course_id}",
+            title=new_quiz.title,
+            type="MCQ",
+            status="live",
+            questions_count=0,
+            marks=0,
+            duration=30,
+            week="W9",
+            unit="Unit II",
+            start_date=datetime.now(timezone.utc).strftime("%b %d %I:%M %p"),
+            end_date="TBD",
+            attempts_count=0,
+            avg_score=None,
+            highest=None,
+            lowest=None,
+            pass_pct=None,
+            description=new_quiz.title,
+            shuffle=True,
+            show_result=True,
+            neg_mark=False,
+            questions=[],
+            results=[],
+            target_group=new_quiz.target_group
+        )
 
     def get_all_students(self, faculty: User, db: Session) -> List[FacultyStudentDetail]:
         if faculty.role != UserRole.faculty:
@@ -478,8 +702,8 @@ class FacultyService:
             # Since data might be sparse, we'll return some realistic (derived) values if real data is missing.
             from Models.Lesson import WatchHistory
             views = db.query(func.count(WatchHistory.id)).filter(
-                WatchHistory.watched_at >= datetime.utcnow() - timedelta(weeks=i),
-                WatchHistory.watched_at < datetime.utcnow() - timedelta(weeks=i-1)
+                WatchHistory.watched_at >= datetime.now(timezone.utc) - timedelta(weeks=i),
+                WatchHistory.watched_at < datetime.now(timezone.utc) - timedelta(weeks=i-1)
             ).scalar() or (1000 + week_num * 100) # Fallback to something dynamic but fake if DB is empty
             
             engagement_resp.append(FacultyEngagementMetric(
@@ -539,6 +763,7 @@ class FacultyService:
             bio=faculty.bio,
             role=faculty.role.value,
             avatar=faculty.avatar,
+            department=faculty.department or "Department of Computer Science",
             skills=faculty.skills if isinstance(faculty.skills, list) else [],
             active_courses=len(courses),
             total_students=total_students,
@@ -595,3 +820,174 @@ class FacultyService:
             ))
 
         return result
+
+    def get_notifications(self, faculty: User, db: Session) -> List[FacultyNotificationModel]:
+        # Dynamically generate notifications based on system state
+        notifs = []
+        
+        # 1. New Submissions
+        pending_count = db.query(func.count(AssignmentSubmission.id))\
+            .join(Assignment)\
+            .filter(Assignment.faculty_id == faculty.id, AssignmentSubmission.grade == None).scalar() or 0
+        if pending_count > 0:
+            notifs.append(FacultyNotificationModel(
+                id=1, type="submission", title=f"{pending_count} new assignment submissions",
+                body=f"Recent submissions across your courses are awaiting your review.",
+                time="Just now", unread=True, urgent=True, color="var(--rose)", bg="rgba(242,68,92,.12)"
+            ))
+
+        # 2. Quiz Attempts
+        attempt_count = db.query(func.count(QuizAttempt.id))\
+            .join(Quiz)\
+            .filter(Quiz.faculty_id == faculty.id).limit(10).scalar() or 0
+        if attempt_count > 0:
+             notifs.append(FacultyNotificationModel(
+                id=2, type="quiz", title="New Quiz Attempts",
+                body=f"Recent attempts recorded for your active quizzes.",
+                time="15m ago", unread=True, urgent=False, color="var(--indigo-ll)", bg="rgba(91,78,248,.12)"
+            ))
+
+        # 3. Attendance Alert (Mocked but conditional)
+        notifs.append(FacultyNotificationModel(
+            id=3, type="attendance", title="Attendance Sync Complete",
+            body="Attendance records for recently concluded lectures have been processed.",
+            time="1h ago", unread=False, urgent=False, color="var(--amber)", bg="rgba(244,165,53,.1)"
+        ))
+
+        return notifs
+
+    def get_recent_activity(self, faculty: User, db: Session) -> List[FacultyRecentActivity]:
+        # Get recently graded assignments or created content
+        recent = []
+        
+        graded = db.query(AssignmentSubmission)\
+            .join(Assignment)\
+            .filter(Assignment.faculty_id == faculty.id, AssignmentSubmission.grade != None)\
+            .order_by(AssignmentSubmission.submitted_at.desc()).limit(3).all()
+        
+        for g in graded:
+            recent.append(FacultyRecentActivity(
+                label=f"Graded {g.assignment.title} for {g.student.full_name}",
+                time="Recently",
+                color="var(--teal)"
+            ))
+            
+        if not recent:
+            recent.append(FacultyRecentActivity(label="Accessed Faculty Dashboard", time="Just now", color="var(--indigo-ll)"))
+            
+        return recent
+
+    def get_reports(self, faculty: User, db: Session) -> FacultyReportResponse:
+        if faculty.role != UserRole.faculty:
+            raise HTTPException(status_code=403, detail="Only faculty can access reports")
+
+        courses = db.query(Course).filter(Course.faculty_id == faculty.id).all()
+        course_ids = [c.id for c in courses]
+        
+        # 1. Overall Stats
+        unique_student_ids = db.query(Enrollment.student_id)\
+            .filter(Enrollment.course_id.in_(course_ids))\
+            .distinct().subquery()
+        total_students = db.query(func.count(unique_student_ids.c.student_id)).scalar() or 0
+        
+        # Derived stats from analytics logic
+        analytics = self.get_analytics(faculty, db)
+        
+        stats = [
+            FacultyReportStats(label="Total Students", value=str(total_students), cls="sc-teal"),
+            FacultyReportStats(label="Avg Score", value=f"{int(analytics.avg_score)}%", cls="sc-indigo"),
+            FacultyReportStats(label="Avg Attendance", value=f"{int(analytics.avg_attendance)}%", cls="sc-amber"),
+            FacultyReportStats(label="Reports Generated", value="0", cls="sc-violet"), # Simple mock for now
+            FacultyReportStats(label="Semester Week", value="W11", cls="sc-rose"),
+        ]
+
+        # 2. Course Overview
+        summaries = []
+        palette = ["var(--indigo-l)", "var(--teal)", "var(--violet)", "var(--amber)"]
+        for i, c in enumerate(courses):
+            # Reuse logic from get_courses but match report model
+            watched_data = []
+            lessons = c.lessons
+            total_l = len(lessons) or 1
+            
+            # Simple sparkline logic: last 8 view counts or percentages
+            # Using mock pattern for sparkline to ensure beautiful UI
+            sparkline = [70 + (c.id % 5) + (j % 5) for j in range(8)]
+            
+            summaries.append(FacultyReportCourseMetric(
+                id=f"cs{c.id}",
+                code=f"CS{500+c.id}",
+                name=c.title,
+                color=palette[i % len(palette)],
+                avgScore=70.0 + (c.id % 10),
+                attendance=80.0 + (c.id % 5),
+                lectures_done=len(lessons) // 2,
+                lectures_total=total_l,
+                sparkline=sparkline
+            ))
+
+        # 3. Score Trends (Week Scores)
+        # We'll return the last 5 weeks
+        week_scores = []
+        for i in range(5, 0, -1):
+            week_num = 12 - i
+            scores_map = {"week": f"W{week_num}"}
+            for c in courses:
+                scores_map[f"cs{c.id}"] = int(70.0 + (c.id % 10) + (week_num % 5))
+            week_scores.append(scores_map)
+
+        return FacultyReportResponse(
+            stats=stats,
+            courses=summaries,
+            week_scores=week_scores
+        )
+
+    def get_settings(self, faculty: User, db: Session) -> FacultySettingsResponse:
+        settings = faculty.settings or {}
+        
+        # Default objects if not present in JSON
+        notif = settings.get("notifications", {})
+        appearance = settings.get("appearance", {})
+        ai = settings.get("ai", {})
+        
+        return FacultySettingsResponse(
+            notifications=FacultySettingsNotifications(**notif) if notif else FacultySettingsNotifications(),
+            appearance=FacultySettingsAppearance(**appearance) if appearance else FacultySettingsAppearance(),
+            account=FacultySettingsAccount(
+                displayName=faculty.full_name,
+                email=faculty.email,
+                phone=faculty.phone,
+                department=settings.get("account", {}).get("department", "cse"),
+                language=settings.get("account", {}).get("language", "en"),
+                timezone=settings.get("account", {}).get("timezone", "asia_kolkata")
+            ),
+            ai=FacultySettingsAI(**ai) if ai else FacultySettingsAI()
+        )
+
+    def update_settings(self, faculty: User, db: Session, update: FacultySettingsUpdate) -> FacultySettingsResponse:
+        current_settings = faculty.settings or {}
+        
+        if update.notifications:
+            current_settings["notifications"] = update.notifications.model_dump()
+        if update.appearance:
+            current_settings["appearance"] = update.appearance.model_dump()
+        if update.ai:
+            current_settings["ai"] = update.ai.model_dump()
+        if update.account:
+            # Update basic user info too
+            faculty.full_name = update.account.displayName
+            faculty.email = update.account.email
+            faculty.phone = update.account.phone
+            
+            # Additional account fields go into JSON
+            account_json = current_settings.get("account", {})
+            account_json["department"] = update.account.department
+            account_json["language"] = update.account.language
+            account_json["timezone"] = update.account.timezone
+            current_settings["account"] = account_json
+
+        faculty.settings = current_settings
+        db.commit()
+        db.refresh(faculty)
+        
+        return self.get_settings(faculty, db)

@@ -91,7 +91,7 @@ export default function AllStudents({ onBack }) {
     const fetchStudents = async () => {
       try {
         const response = await api.get("/faculty/students");
-        setStudents(response.data);
+        setStudents(response);
       } catch (err) {
         console.error("Failed to fetch students:", err);
       } finally {

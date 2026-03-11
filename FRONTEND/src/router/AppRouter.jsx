@@ -28,86 +28,106 @@ const router = createBrowserRouter([
   { path: "/forgot-password", element: <SmartCampus defaultModal="forgot" /> },
 
   // ──────── STUDENT DASHBOARD ROUTES ────────
-  { path: "/studentdashboard",                           element: SD },
-  { path: "/studentdashboard/studentAnalytics",          element: SD },
-  { path: "/studentdashboard/studentMycourses",          element: SD },
-  { path: "/studentdashboard/studentVideoLectures",      element: SD },
-  { path: "/studentdashboard/studentAssignments",        element: SD },
-  { path: "/studentdashboard/studentQuizzes",            element: SD },
-  { path: "/studentdashboard/studentStudyGroups",        element: SD },
-  { path: "/studentdashboard/studentSchedule",           element: SD },
-  { path: "/studentdashboard/studentInnovationHub",      element: SD },
-  { path: "/studentdashboard/studentPlacementPrep",      element: SD },
-  { path: "/studentdashboard/studentInternships",        element: SD },
-  { path: "/studentdashboard/studentMockInterview",      element: SD },
-  { path: "/studentdashboard/studentSettings",           element: SD },
-  { path: "/studentdashboard/studentProfile",            element: SD },
-  { path: "/studentdashboard/studentResume",             element: SD },
+  { 
+    path: "/studentdashboard", 
+    element: SD, 
+    errorElement: <ErrorBoundary /> 
+  },
+  { path: "/studentdashboard/studentAnalytics",          element: SD, errorElement: <ErrorBoundary /> },
+  { path: "/studentdashboard/studentMycourses",          element: SD, errorElement: <ErrorBoundary /> },
+  { path: "/studentdashboard/studentVideoLectures",      element: SD, errorElement: <ErrorBoundary /> },
+  { path: "/studentdashboard/studentAssignments",        element: SD, errorElement: <ErrorBoundary /> },
+  { path: "/studentdashboard/studentQuizzes",            element: SD, errorElement: <ErrorBoundary /> },
+  { path: "/studentdashboard/studentStudyGroups",        element: SD, errorElement: <ErrorBoundary /> },
+  { path: "/studentdashboard/studentSchedule",           element: SD, errorElement: <ErrorBoundary /> },
+  { path: "/studentdashboard/studentInnovationHub",      element: SD, errorElement: <ErrorBoundary /> },
+  { path: "/studentdashboard/studentPlacementPrep",      element: SD, errorElement: <ErrorBoundary /> },
+  { path: "/studentdashboard/studentInternships",        element: SD, errorElement: <ErrorBoundary /> },
+  { path: "/studentdashboard/studentMockInterview",      element: SD, errorElement: <ErrorBoundary /> },
+  { path: "/studentdashboard/studentSettings",           element: SD, errorElement: <ErrorBoundary /> },
+  { path: "/studentdashboard/studentProfile",            element: SD, errorElement: <ErrorBoundary /> },
+  { path: "/studentdashboard/studentResume",             element: SD, errorElement: <ErrorBoundary /> },
 
   // ──────── FACULTY DASHBOARD ROUTES ────────
   {
     path: "/facultydashboard",
     element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+    errorElement: <ErrorBoundary />,
   },
   {
     path: "/facultydashboard/facultyAnalytics",
     element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+    errorElement: <ErrorBoundary />,
   },
   {
     path: "/facultydashboard/facultyMycourse",
     element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+    errorElement: <ErrorBoundary />,
   },
   {
     path: "/facultydashboard/facultyVideoLectures",
     element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+    errorElement: <ErrorBoundary />,
   },
   {
     path: "/facultydashboard/facultyAssignments",
     element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+    errorElement: <ErrorBoundary />,
   },
   {
     path: "/facultydashboard/facultyQuizzes",
     element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+    errorElement: <ErrorBoundary />,
   },
   {
     path: "/facultydashboard/allStudents",
     element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+    errorElement: <ErrorBoundary />,
   },
   {
     path: "/facultydashboard/attendance",
     element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+    errorElement: <ErrorBoundary />,
   },
   {
     path: "/facultydashboard/gradeBook",
     element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+    errorElement: <ErrorBoundary />,
   },
   {
     path: "/facultydashboard/questionBank",
     element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+    errorElement: <ErrorBoundary />,
   },
   {
     path: "/facultydashboard/aiAssistant",
     element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+    errorElement: <ErrorBoundary />,
   },
   {
     path: "/facultydashboard/reports",
     element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+    errorElement: <ErrorBoundary />,
   },
   {
     path: "/facultydashboard/settings",
     element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+    errorElement: <ErrorBoundary />,
   },
   {
     path: "/facultydashboard/profile",
     element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+    errorElement: <ErrorBoundary />,
   },
   {
     path: "/facultydashboard/quickactions",
     element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+    errorElement: <ErrorBoundary />,
   },
   {
     path: "/facultydashboard/notifications",
     element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+    errorElement: <ErrorBoundary />,
   },
 
   // ──────── OTHER DASHBOARD ROUTES ────────

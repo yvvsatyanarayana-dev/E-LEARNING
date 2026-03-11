@@ -14,87 +14,16 @@ const IcoCheck   = (p) => <svg {...p} width="11" height="11" viewBox="0 0 24 24"
 const IcoCheckAll= (p) => <svg {...p} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/><polyline points="20 6 9 17 4 12" transform="translate(4,0)"/></svg>;
 
 // ─── DATA ────────────────────────────────────────────────────────
-const INITIAL_NOTIFS = [
-  {
-    id: 1,
-    type: "submission",
-    icon: <IcoPen />,
-    color: "var(--rose)",
-    bg: "rgba(242,68,92,.12)",
-    title: "14 new OS assignment submissions",
-    body: "Students from Sem 5 A submitted Assignment #4 — awaiting your review.",
-    time: "5m ago",
-    unread: true,
-    urgent: true,
-  },
-  {
-    id: 2,
-    type: "quiz",
-    icon: <IcoClock />,
-    color: "var(--indigo-ll)",
-    bg: "rgba(91,78,248,.12)",
-    title: "DBMS Quiz results are ready",
-    body: "All 102 students have submitted. Average score: 68%.",
-    time: "23m ago",
-    unread: true,
-    urgent: false,
-  },
-  {
-    id: 3,
-    type: "ai",
-    icon: <IcoBrain />,
-    color: "var(--teal)",
-    bg: "rgba(39,201,176,.1)",
-    title: "Lucyna AI detected weak topic",
-    body: "34 students scored below 40% on Deadlock Detection. Remedial quiz suggested.",
-    time: "1h ago",
-    unread: true,
-    urgent: false,
-  },
-  {
-    id: 4,
-    type: "attendance",
-    icon: <IcoAlert />,
-    color: "var(--amber)",
-    bg: "rgba(244,165,53,.1)",
-    title: "Attendance not marked for CA Lecture",
-    body: "Computer Architecture — Lecture 29 (Room 102) attendance is pending.",
-    time: "2h ago",
-    unread: true,
-    urgent: true,
-  },
-  {
-    id: 5,
-    type: "student",
-    icon: <IcoUsers />,
-    color: "var(--violet)",
-    bg: "rgba(159,122,234,.1)",
-    title: "Dev Iyer flagged as at-risk",
-    body: "Attendance dropped to 79% and last quiz score was 41%.",
-    time: "3h ago",
-    unread: false,
-    urgent: false,
-  },
-  {
-    id: 6,
-    type: "submission",
-    icon: <IcoPen />,
-    color: "var(--teal)",
-    bg: "rgba(39,201,176,.1)",
-    title: "6 project proposals approved",
-    body: "Students from CS503 submitted final project proposals for your review.",
-    time: "Yesterday",
-    unread: false,
-    urgent: false,
-  },
-];
-
 const TABS = ["All", "Unread", "Urgent"];
 
 // ─── COMPONENT ───────────────────────────────────────────────────
-export default function NotificationsPopup({ open, onClose, anchorRef, onBack, isPage }) {
-  const [notifs, setNotifs] = useState(INITIAL_NOTIFS);
+export default function NotificationsPopup({ open, onClose, anchorRef, onBack, isPage, notifications = [] }) {
+  const [notifs, setNotifs] = useState(notifications);
   const [activeTab, setActiveTab] = useState("All");
+
+  useEffect(() => {
+    setNotifs(notifications);
+  }, [notifications]);
   const popupRef = useRef();
 
   // Close on outside click (only for popup mode)

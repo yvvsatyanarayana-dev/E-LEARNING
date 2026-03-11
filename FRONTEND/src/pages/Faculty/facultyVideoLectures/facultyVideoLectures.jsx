@@ -34,22 +34,25 @@ const IcoTrend    = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="c
 const IcoRefresh  = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>;
 
 // ─── DATA ─────────────────────────────────────────────────────────
-const COURSES = [
-  { id: "all",   code: "All",   name: "All Courses",
-    color: "var(--indigo-l)", bg: "rgba(91,78,248,.1)", border: "rgba(91,78,248,.2)" },
-  { id: "cs501", code: "CS501", name: "Operating Systems",
-    color: "var(--indigo-l)", bg: "rgba(91,78,248,.1)", border: "rgba(91,78,248,.2)" },
-  { id: "cs502", code: "CS502", name: "Database Management Systems",
-    color: "var(--teal)",     bg: "rgba(39,201,176,.1)", border: "rgba(39,201,176,.2)" },
-  { id: "cs503", code: "CS503", name: "Computer Architecture",
-    color: "var(--violet)",   bg: "rgba(159,122,234,.1)", border: "rgba(159,122,234,.2)" },
+// ─── HELPERS ──────────────────────────────────────────────────────
+const COLORS = [
+  { color: "var(--indigo-l)",  rgb: "91,78,248",   bg: "rgba(91,78,248,.1)",   border: "rgba(91,78,248,.2)", grad: "linear-gradient(135deg,#130f2e,#2d1b69)", emoji: "🖥️" },
+  { color: "var(--teal)",      rgb: "39,201,176",  bg: "rgba(39,201,176,.1)",  border: "rgba(39,201,176,.2)", grad: "linear-gradient(135deg,#0a2828,#0d4a42)", emoji: "🗄️" },
+  { color: "var(--violet)",    rgb: "159,122,234", bg: "rgba(159,122,234,.1)", border: "rgba(159,122,234,.2)", grad: "linear-gradient(135deg,#1a0a32,#3c1a6e)", emoji: "⚙️" },
+  { color: "var(--rose)",      rgb: "242,68,92",   bg: "rgba(242,68,92,.1)",   border: "rgba(242,68,92,.2)", grad: "linear-gradient(135deg,#320a1a,#6e1a3c)", emoji: "📄" },
+  { color: "var(--amber)",     rgb: "244,165,53",  bg: "rgba(244,165,53,.1)",  border: "rgba(244,165,53,.2)", grad: "linear-gradient(135deg,#32260a,#6e5a1a)", emoji: "💻" },
 ];
-// thumbnail gradient per course
-const THUMB = {
-  cs501: { grad: "linear-gradient(135deg,#130f2e,#2d1b69)", emoji: "🖥️" },
-  cs502: { grad: "linear-gradient(135deg,#0a2828,#0d4a42)", emoji: "🗄️" },
-  cs503: { grad: "linear-gradient(135deg,#1a0a32,#3c1a6e)", emoji: "⚙️" },
-};
+
+function getCourseMeta(courseId, courseCode, courseName = "") {
+  const hash = String(courseId).split("").reduce((a, b) => (a << 5) - a + b.charCodeAt(0), 0);
+  const idx = Math.abs(hash) % COLORS.length;
+  return {
+    ...COLORS[idx],
+    id: courseId,
+    code: courseCode || `C${courseId}`,
+    name: courseName || "Course"
+  };
+}
 
 // ─── SHARED HELPERS ───────────────────────────────────────────────
 function AnimBar({ pct, color, height = 4, delay = 300 }) {
@@ -83,15 +86,14 @@ function Stars({ rating }) {
 
 // ─── THUMBNAIL ────────────────────────────────────────────────────
 function Thumb({ lecture, size = "card" }) {
-  const cfg    = THUMB[lecture.courseId] || THUMB.cs501;
-  const course = COURSES.find(c => c.id === lecture.courseId);
+  const cfg    = getCourseMeta(lecture.courseId, lecture.course_code);
   const live   = lecture.status === "live";
   return (
     <div className={`vl-thumb vl-thumb--${size}`} style={{ background: cfg.grad }}>
       <div className="vl-thumb-noise" />
       {/* course badge top-left */}
-      <span className="vl-thumb-code" style={{ background: course?.bg, color: course?.color, borderColor: course?.border }}>
-        {course?.code}
+      <span className="vl-thumb-code" style={{ background: cfg?.bg, color: cfg?.color, borderColor: cfg?.border }}>
+        {cfg?.code}
       </span>
       {/* week top-right */}
       <span className="vl-thumb-week">{lecture.week}</span>
@@ -113,27 +115,63 @@ function Thumb({ lecture, size = "card" }) {
 }
 
 // ─── UPLOAD MODAL ─────────────────────────────────────────────────
-function UploadModal({ onClose }) {
+function UploadModal({ onClose, onPublish, courses = [] }) {
   const [step, setStep]         = useState(1);
   const [dragging, setDragging] = useState(false);
   const [progress, setProgress] = useState(0);
   const [done, setDone]         = useState(false);
   const [form, setForm]         = useState({
-    title: "", course: "cs501", week: "W12", unit: "Unit V", desc: "", tags: "",
+    title: "", 
+    course_id: courses.length > 0 ? String(courses[0].id) : "", 
+    week: "W12", 
+    unit: "Unit V", 
+    desc: "", 
+    tags: "", 
+    target_group: "All",
   });
 
-  const simulateUpload = () => {
-    if (done) return;
+  const fileInputRef = useRef(null);
+  
+  const handlePublish = () => {
+    if (onPublish) onPublish(form);
+    onClose();
+  };
+
+  const handleFileUpload = async (file) => {
+    if (!file) return;
+    setDragging(false);
     setProgress(0); setDone(false);
+    
     let p = 0;
     const iv = setInterval(() => {
-      p += Math.random() * 14 + 6;
-      if (p >= 100) { p = 100; clearInterval(iv); setDone(true); }
-      setProgress(Math.min(p, 100));
-    }, 180);
+      p += Math.random() * 8 + 2;
+      if (p >= 90) p = 90;
+      setProgress(p);
+    }, 200);
+
+    try {
+      const res = await api.upload("/faculty/upload", file);
+      clearInterval(iv);
+      setProgress(100);
+      setDone(true);
+      setForm(f => ({ ...f, video_url: res.url, _filename: file.name, _filesize: (file.size/1024/1024).toFixed(1) }));
+    } catch (err) {
+      clearInterval(iv);
+      alert("Upload failed. Make sure backend is running.");
+      setProgress(0);
+    }
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setDragging(false);
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      handleFileUpload(e.dataTransfer.files[0]);
+    }
   };
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
+
 
   return (
     <div className="vl-overlay" onClick={onClose}>
@@ -166,12 +204,23 @@ function UploadModal({ onClose }) {
           {/* ── STEP 1: File upload ── */}
           {step === 1 && (
             <>
+              <input
+                type="file"
+                ref={fileInputRef}
+                style={{ display: "none" }}
+                accept="video/*"
+                onChange={(e) => {
+                  if (e.target.files && e.target.files[0]) {
+                    handleFileUpload(e.target.files[0]);
+                  }
+                }}
+              />
               <div
                 className={`vl-dropzone ${dragging ? "vl-dropzone--over" : ""} ${done ? "vl-dropzone--done" : ""}`}
                 onDragOver={e => { e.preventDefault(); setDragging(true); }}
                 onDragLeave={() => setDragging(false)}
-                onDrop={e => { e.preventDefault(); setDragging(false); simulateUpload(); }}
-                onClick={simulateUpload}
+                onDrop={handleDrop}
+                onClick={() => fileInputRef.current?.click()}
               >
                 {progress === 0 && !done && (
                   <>
@@ -192,7 +241,7 @@ function UploadModal({ onClose }) {
                   <div className="vl-dz-success">
                     <div className="vl-dz-check"><IcoCheck width={18} height={18} /></div>
                     <div className="vl-dz-title" style={{ color: "var(--teal)" }}>Upload Complete!</div>
-                    <div className="vl-dz-sub">lecture_video.mp4 · 842 MB</div>
+                    <div className="vl-dz-sub">{form._filename} · {form._filesize} MB</div>
                   </div>
                 )}
               </div>
@@ -229,11 +278,24 @@ function UploadModal({ onClose }) {
                 <div className="vl-2col">
                   <div className="vl-field">
                     <div className="vl-field-lbl">Course *</div>
-                    <select className="vl-input" value={form.course} onChange={set("course")}>
-                      <option value="cs501">CS501 – Operating Systems</option>
-                      <option value="cs502">CS502 – Database Management</option>
-                      <option value="cs503">CS503 – Computer Architecture</option>
-                    </select>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <select className="vl-input" style={{ flex: 1 }} value={form.course_id} onChange={set("course_id")}>
+                        {courses.length > 0
+                          ? courses.map(c => (
+                              <option key={c.id} value={c.id}>{c.name || c.title}</option>
+                            ))
+                          : <option value="">No courses available</option>
+                        }
+                      </select>
+                      <button 
+                        className="btn btn-ghost" 
+                        title="Create New Course" 
+                        style={{ width: 42, padding: 0 }}
+                        onClick={() => window.dispatchEvent(new CustomEvent('OPEN_CREATE_COURSE'))}
+                      >
+                        <IcoPlus width={14} height={14} />
+                      </button>
+                    </div>
                   </div>
                   <div className="vl-field">
                     <div className="vl-field-lbl">Week</div>
@@ -244,10 +306,21 @@ function UploadModal({ onClose }) {
                     </select>
                   </div>
                 </div>
-                <div className="vl-field">
-                  <div className="vl-field-lbl">Unit / Module</div>
-                  <input className="vl-input" value={form.unit} placeholder="e.g. Unit V – Storage Management"
-                    onChange={set("unit")} />
+                <div className="vl-2col">
+                  <div className="vl-field">
+                    <div className="vl-field-lbl">Unit / Module</div>
+                    <input className="vl-input" value={form.unit} placeholder="e.g. Unit V – Storage Management"
+                      onChange={set("unit")} />
+                  </div>
+                  <div className="vl-field">
+                    <div className="vl-field-lbl">Target Group</div>
+                    <select className="vl-input" value={form.target_group} onChange={set("target_group")}>
+                      <option value="All">All Students</option>
+                      <option value="BCA">BCA Only</option>
+                      <option value="MCA">MCA Only</option>
+                      <option value="BTech">B.Tech Only</option>
+                    </select>
+                  </div>
                 </div>
                 <div className="vl-field">
                   <div className="vl-field-lbl">Description</div>
@@ -275,12 +348,16 @@ function UploadModal({ onClose }) {
             <>
               {/* Preview card */}
               <div className="vl-preview-card">
-                <div className="vl-preview-thumb" style={{ background: THUMB[form.course]?.grad || THUMB.cs501.grad }}>
-                  <span style={{ fontSize: 26 }}>{THUMB[form.course]?.emoji || "🖥️"}</span>
+                <div className="vl-preview-thumb" style={{ background: getCourseMeta(String(form.course_id), "").grad }}>
+                  <span style={{ fontSize: 26 }}>{getCourseMeta(String(form.course_id), "").emoji}</span>
                 </div>
                 <div className="vl-preview-info">
-                  <div className="vl-preview-meta">{form.course.toUpperCase()} · {form.week} · {form.unit}</div>
+                  <div className="vl-preview-meta">
+                    {courses.find(c => String(c.id) === String(form.course_id))?.name || `Course ${form.course_id}`}
+                    {" · "}{form.week} · {form.unit}
+                  </div>
                   <div className="vl-preview-title">{form.title || "Untitled Lecture"}</div>
+
                   <div className="vl-preview-desc">{form.desc || "No description provided."}</div>
                   <div className="vl-preview-tags">
                     {(form.tags || "").split(",").filter(Boolean).map((t, i) => (
@@ -310,7 +387,7 @@ function UploadModal({ onClose }) {
 
               <div className="vl-modal-foot">
                 <button className="btn btn-ghost" onClick={() => setStep(2)}>← Back</button>
-                <button className="btn btn-solid vl-btn-teal" onClick={onClose}>
+                <button className="btn btn-solid vl-btn-teal" onClick={handlePublish}>
                   <IcoCheck width={12} height={12} /> Publish Lecture
                 </button>
               </div>
@@ -322,10 +399,67 @@ function UploadModal({ onClose }) {
   );
 }
 
+// ─── CREATE COURSE MODAL ──────────────────────────────────────────
+function CreateCourseModal({ onClose, onCreated }) {
+  const [form, setForm] = useState({ title: "", description: "", semester: "Sem 5" });
+  const [loading, setLoading] = useState(false);
+
+  const handleCreate = async () => {
+    if (!form.title.trim()) return alert("Please enter course title");
+    setLoading(true);
+    try {
+      const res = await api.post("/faculty/courses", form);
+      onCreated(res);
+      onClose();
+    } catch (err) {
+      console.error("Failed to create course:", err);
+      alert("Failed to create course. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="vl-overlay" style={{ zIndex: 1100 }} onClick={onClose}>
+      <div className="vl-modal" style={{ maxWidth: 420 }} onClick={e => e.stopPropagation()}>
+        <div className="vl-modal-hd">
+          <div className="vl-modal-ico" style={{ background: "var(--teal)" }}>
+            <IcoPlus width={14} height={14} style={{ color: "#fff" }} />
+          </div>
+          <span className="vl-modal-title">Create New Course</span>
+          <button className="vl-modal-close" onClick={onClose}><IcoClose width={12} height={12} /></button>
+        </div>
+        <div className="vl-modal-body">
+          <div className="vl-form">
+            <div className="vl-field">
+              <div className="vl-field-lbl">Course Title *</div>
+              <input className="vl-input" value={form.title} placeholder="e.g. Operating Systems" onChange={e => setForm({ ...form, title: e.target.value })} autoFocus />
+            </div>
+            <div className="vl-field">
+              <div className="vl-field-lbl">Semester</div>
+              <input className="vl-input" value={form.semester} placeholder="e.g. Sem 5" onChange={e => setForm({ ...form, semester: e.target.value })} />
+            </div>
+            <div className="vl-field">
+              <div className="vl-field-lbl">Description</div>
+              <textarea className="vl-input vl-textarea" rows={2} value={form.description} placeholder="Short description…" onChange={e => setForm({ ...form, description: e.target.value })} />
+            </div>
+          </div>
+          <div className="vl-modal-foot">
+            <button className="btn btn-ghost" onClick={onClose} disabled={loading}>Cancel</button>
+            <button className="btn btn-solid vl-btn-teal" onClick={handleCreate} disabled={loading}>
+              {loading ? "Creating…" : "Create Course"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── DETAIL DRAWER ────────────────────────────────────────────────
 function Drawer({ lecture, onClose }) {
   if (!lecture) return null;
-  const course = COURSES.find(c => c.id === lecture.courseId);
+  const course = getCourseMeta(lecture.courseId, lecture.course_code);
   const live   = lecture.status === "live";
 
   return (
@@ -337,8 +471,8 @@ function Drawer({ lecture, onClose }) {
           <button className="vl-drawer-back" onClick={onClose}>
             <IcoChevL width={11} height={11} /> Close
           </button>
-          <div className="vl-drawer-course" style={{ color: course?.color }}>
-            {course?.code} · {lecture.week} · {lecture.unit}
+          <div className="vl-drawer-course" style={{ color: getCourseMeta(lecture.courseId, lecture.course_code).color }}>
+            {lecture.course_code} · {lecture.week} · {lecture.unit}
           </div>
           <div className="vl-drawer-title">{lecture.title}</div>
           <div className="vl-drawer-tags">
@@ -365,7 +499,7 @@ function Drawer({ lecture, onClose }) {
 
               {/* Watch completion */}
               <div className="vl-drawer-sec">Watch Completion</div>
-              <AnimBar pct={lecture.watchPct} color={course?.color || "var(--indigo-l)"} height={6} delay={100} />
+              <AnimBar pct={lecture.watchPct} color={getCourseMeta(lecture.courseId, lecture.course_code).color} height={6} delay={100} />
               <div style={{ fontSize: 10, color: "var(--text3)", marginTop: 5 }}>
                 {lecture.watchPct}% of enrolled students watched this lecture
               </div>
@@ -402,7 +536,7 @@ function Drawer({ lecture, onClose }) {
 
 // ─── GRID CARD ────────────────────────────────────────────────────
 function Card({ lecture, onSelect }) {
-  const course  = COURSES.find(c => c.id === lecture.courseId);
+  const course = getCourseMeta(lecture.courseId, lecture.course_code);
   const pending = lecture.status === "pending";
   return (
     <div className={`vl-card ${pending ? "vl-card--dim" : ""}`} onClick={() => onSelect(lecture)}>
@@ -410,7 +544,7 @@ function Card({ lecture, onSelect }) {
       <div className="vl-card-body">
         <div className="vl-card-top">
           <span className="vl-card-unit">{lecture.unit}</span>
-          <span className="vl-week-chip" style={{ color: course?.color, background: course?.bg, borderColor: course?.border }}>
+          <span className="vl-week-chip" style={{ color: getCourseMeta(lecture.courseId, lecture.course_code).color, background: getCourseMeta(lecture.courseId, lecture.course_code).bg, borderColor: getCourseMeta(lecture.courseId, lecture.course_code).border }}>
             {lecture.week}
           </span>
         </div>
@@ -422,7 +556,7 @@ function Card({ lecture, onSelect }) {
                 <span><IcoClock width={10} height={10} /> {lecture.dur}</span>
                 <Stars rating={lecture.rating} />
               </div>
-              <AnimBar pct={lecture.watchPct} color={course?.color || "var(--indigo-l)"} height={3} delay={500} />
+              <AnimBar pct={lecture.watchPct} color={getCourseMeta(lecture.courseId, lecture.course_code).color} height={3} delay={500} />
               <div className="vl-card-watch">{lecture.watchPct}% avg watch</div>
             </>
           : <div className="vl-card-pending-hint">
@@ -436,7 +570,7 @@ function Card({ lecture, onSelect }) {
 
 // ─── LIST ROW ─────────────────────────────────────────────────────
 function Row({ lecture, idx, onSelect }) {
-  const course  = COURSES.find(c => c.id === lecture.courseId);
+  const course = getCourseMeta(lecture.courseId, lecture.course_code);
   const pending = lecture.status === "pending";
   return (
     <div className={`vl-row ${pending ? "vl-row--dim" : ""}`} onClick={() => onSelect(lecture)}>
@@ -495,22 +629,32 @@ export default function FacultyVideoLectures({ onBack }) {
   const [selected, setSelected]         = useState(null);
   
   const [lectures, setLectures]         = useState([]);
+  const [courses, setCourses]           = useState([]);
   const [loading, setLoading]           = useState(true);
+  const [showCreateCourse, setShowCreateCourse] = useState(false);
 
   useEffect(() => {
-    const fetchLectures = async () => {
+    const fetchData = async () => {
       try {
-        const res = await api.get("/faculty/lectures");
-        const safeData = Array.isArray(res.data) ? res.data : [];
-        setLectures(safeData);
+        const [lectureRes, courseRes] = await Promise.all([
+          api.get("/faculty/lectures"),
+          api.get("/faculty/courses"),
+        ]);
+        setLectures(Array.isArray(lectureRes) ? lectureRes : []);
+        // Map to simple {id, name} objects for CreateModal
+        const courseList = Array.isArray(courseRes)
+          ? courseRes.map(c => ({ id: c.id, name: `${c.code} – ${c.name}` }))
+          : [];
+        setCourses(courseList);
       } catch (err) {
-        console.error("Failed to fetch lectures:", err);
+        console.error("Failed to fetch data:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchLectures();
+    fetchData();
   }, []);
+
 
   // available units for filter
   const units = ["all", ...new Set(
@@ -536,7 +680,7 @@ export default function FacultyVideoLectures({ onBack }) {
 
   const live    = filtered.filter(l => l.status === "live");
   const pending = filtered.filter(l => l.status === "pending");
-  const activeCourseObj = COURSES.find(c => c.id === activeCourse) || COURSES[0];
+  const activeCourseObj = activeCourse === "all" ? null : getCourseMeta(activeCourse, lectures.find(l => l.courseId === activeCourse)?.course_code);
 
   const TOTAL_LIVE    = lectures.filter(l => l.status === "live").length;
   const TOTAL_PENDING = lectures.filter(l => l.status === "pending").length;
@@ -547,15 +691,66 @@ export default function FacultyVideoLectures({ onBack }) {
   // close overlays on Escape
   useEffect(() => {
     const fn = (e) => {
-      if (e.key === "Escape") { setShowUpload(false); setSelected(null); }
+      if (e.key === "Escape") { setShowUpload(false); setSelected(null); setShowCreateCourse(false); }
     };
     document.addEventListener("keydown", fn);
     return () => document.removeEventListener("keydown", fn);
   }, []);
 
+  useEffect(() => {
+    const fn = () => setShowCreateCourse(true);
+    window.addEventListener('OPEN_CREATE_COURSE', fn);
+    return () => window.removeEventListener('OPEN_CREATE_COURSE', fn);
+  }, []);
+
+  const handlePublishLecture = async (formData) => {
+    try {
+      const cId = parseInt(formData.course_id);
+      if (isNaN(cId)) {
+        alert("Please select a valid course.");
+        return;
+      }
+
+      const payload = {
+        title: formData.title,
+        course_id: cId, // Real ID from API
+        video_url: formData.video_url || "",
+        duration: "45m",
+        target_group: formData.target_group
+      };
+      
+      const res = await api.post("/faculty/lectures", payload);
+      setLectures(prev => [...prev, res]);
+      setShowUpload(false); // Close after success
+    } catch (err) {
+      console.error("Failed to publish lecture:", err);
+      alert("Failed to publish lecture. Please try again.");
+    }
+  };
+
+  // Build unique course list from lectures for the upload modal
+  const courseList = Object.values(
+    lectures.reduce((acc, l) => {
+      if (l.courseId && !acc[l.courseId]) {
+        const meta = getCourseMeta(l.courseId, l.course_code);
+        acc[l.courseId] = { id: l.course_id_int || l.courseId, name: l.course_code || l.courseId };
+      }
+      return acc;
+    }, {})
+  );
+
   return (
     <div className="vl-root">
-      {showUpload && <UploadModal onClose={() => setShowUpload(false)} />}
+      {showUpload && <UploadModal onClose={() => setShowUpload(false)} onPublish={handlePublishLecture} courses={courses} />}
+      {showCreateCourse && (
+        <CreateCourseModal 
+          onClose={() => setShowCreateCourse(false)} 
+          onCreated={(newCourse) => {
+            setCourses(prev => [...prev, { id: newCourse.id, name: `${newCourse.code} – ${newCourse.name}` }]);
+            // You can optionally auto-select the new course here if needed
+          }} 
+        />
+      )}
       {selected   && <Drawer lecture={selected} onClose={() => setSelected(null)} />}
 
       {/* ── PAGE HEADER ── */}
@@ -600,22 +795,30 @@ export default function FacultyVideoLectures({ onBack }) {
 
       {/* ── COURSE TABS ── */}
       <div className="vl-course-tabs">
-        {COURSES.map(c => (
-          <button key={c.id}
-            className={`vl-ctab ${activeCourse === c.id ? "vl-ctab--active" : ""}`}
-            style={activeCourse === c.id
-              ? { borderColor: c.border, color: c.color, background: c.bg }
-              : {}}
-            onClick={() => { setActiveCourse(c.id); setFilterUnit("all"); }}>
-            <span className="vl-ctab-dot" style={{ background: c.id === "all" ? "var(--indigo-l)" : c.color }} />
-            {c.code}
-            <span className="vl-ctab-count">
-              {c.id === "all"
-                ? lectures.filter(l => l.status === "live").length
-                : lectures.filter(l => l.courseId === c.id && l.status === "live").length}
-            </span>
-          </button>
-        ))}
+        <button key="all"
+          className={`vl-ctab ${activeCourse === "all" ? "vl-ctab--active" : ""}`}
+          style={activeCourse === "all" ? { borderColor: "rgba(91,78,248,.2)", color: "var(--indigo-l)", background: "rgba(91,78,248,.1)" } : {}}
+          onClick={() => { setActiveCourse("all"); setFilterUnit("all"); }}>
+          <span className="vl-ctab-dot" style={{ background: "var(--indigo-l)" }} />
+          All
+          <span className="vl-ctab-count">{lectures.filter(l => l.status === "live").length}</span>
+        </button>
+        {Array.from(new Set(lectures.map(l => l.courseId))).map(cid => {
+          const l = lectures.find(x => x.courseId === cid);
+          const c = getCourseMeta(cid, l?.course_code);
+          return (
+            <button key={cid}
+              className={`vl-ctab ${activeCourse === cid ? "vl-ctab--active" : ""}`}
+              style={activeCourse === cid ? { borderColor: c.border, color: c.color, background: c.bg } : {}}
+              onClick={() => { setActiveCourse(cid); setFilterUnit("all"); }}>
+              <span className="vl-ctab-dot" style={{ background: c.color }} />
+              {c.code}
+              <span className="vl-ctab-count">
+                {lectures.filter(x => x.courseId === cid && x.status === "live").length}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {/* ── TOOLBAR ── */}
@@ -666,7 +869,7 @@ export default function FacultyVideoLectures({ onBack }) {
           <> · <span style={{ color: "var(--rose)", fontWeight: 700 }}>{pending.length}</span> pending</>
         )}
         {" "}· {filtered.length} total
-        {activeCourse !== "all" && (
+        {activeCourse !== "all" && activeCourseObj && (
           <span style={{ color: activeCourseObj.color }}> · {activeCourseObj.code} – {activeCourseObj.name}</span>
         )}
       </div>

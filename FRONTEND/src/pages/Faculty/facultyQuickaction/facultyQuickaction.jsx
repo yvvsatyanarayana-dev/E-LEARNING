@@ -20,50 +20,44 @@ const IcoMsg     = (p) => <svg {...p} width="18" height="18" viewBox="0 0 24 24"
 const IcoBrain   = (p) => <svg {...p} width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-1.66Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-1.66Z"/></svg>;
 const IcoChevR   = (p) => <svg {...p} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>;
 
-// ─── ACTION DATA ─────────────────────────────────────────────────
-const QUICK_ACTIONS = [
-  {
-    section: "Grading & Assessment",
-    items: [
-      { id: "grade",    label: "Grade Submissions",    desc: "Review & grade pending assignments",   icon: <IcoPen />,   color: "var(--indigo-ll)", bg: "rgba(91,78,248,.12)",   badge: "22 pending", badgeClass: "rose",   route: "GRADE_BOOK"     },
-      { id: "quiz",     label: "Create New Quiz",       desc: "Build a quiz with custom questions",  icon: <IcoClock />, color: "var(--teal)",      bg: "rgba(39,201,176,.1)",   badge: null,          badgeClass: "",        route: "QUIZZES"        },
-      { id: "qbank",    label: "Generate Question Paper",desc: "AI-assisted paper from question bank",icon:<IcoAward />, color: "var(--violet)",    bg: "rgba(159,122,234,.1)",  badge: null,          badgeClass: "",        route: "QUESTION_BANK"  },
-    ],
-  },
-  {
-    section: "Content & Courses",
-    items: [
-      { id: "upload",   label: "Upload Lecture",        desc: "Add a new video lecture to a course", icon: <IcoUpload />,color: "var(--amber)",     bg: "rgba(244,165,53,.1)",   badge: null,          badgeClass: "",        route: "VIDEO_LECTURES" },
-      { id: "course",   label: "Manage Courses",        desc: "Edit course details and materials",   icon: <IcoBook />,  color: "var(--indigo-ll)", bg: "rgba(91,78,248,.1)",    badge: "3 active",    badgeClass: "",        route: "MY_COURSES"     },
-      { id: "assign",   label: "New Assignment",        desc: "Create and publish an assignment",    icon: <IcoPlus />,  color: "var(--teal)",      bg: "rgba(39,201,176,.1)",   badge: null,          badgeClass: "",        route: "ASSIGNMENTS"    },
-    ],
-  },
-  {
-    section: "Students & Attendance",
-    items: [
-      { id: "attend",   label: "Mark Attendance",       desc: "Record today's class attendance",     icon: <IcoCal />,   color: "var(--rose)",      bg: "rgba(242,68,92,.1)",    badge: "Today",       badgeClass: "rose",    route: "ATTENDANCE"     },
-      { id: "students", label: "View All Students",     desc: "Browse student profiles & progress",  icon: <IcoUsers />, color: "var(--violet)",    bg: "rgba(159,122,234,.1)",  badge: "316 total",   badgeClass: "",        route: "ALL_STUDENTS"  },
-      { id: "analytics",label: "Analytics Overview",   desc: "Scores, trends & performance data",   icon: <IcoTrend />, color: "var(--amber)",     bg: "rgba(244,165,53,.1)",   badge: "New",         badgeClass: "",        route: "ANALYTICS"      },
-    ],
-  },
-  {
-    section: "AI Tools",
-    items: [
-      { id: "ai",       label: "Ask Lucyna AI",         desc: "Get AI insights on your courses",     icon: <IcoBrain />, color: "var(--indigo-ll)", bg: "rgba(91,78,248,.12)",   badge: "Online",      badgeClass: "teal",    route: "AI_ASSISTANT"   },
-      { id: "remedial", label: "Generate Remedial Quiz",desc: "Auto-detect weak topics & fix them",  icon: <IcoFlash />, color: "var(--teal)",      bg: "rgba(39,201,176,.1)",   badge: "5 weak topics",badgeClass:"rose",    route: "AI_ASSISTANT"   },
-      { id: "report",   label: "View Reports",          desc: "Download course & student reports",   icon: <IcoMsg />,   color: "var(--violet)",    bg: "rgba(159,122,234,.1)",  badge: null,          badgeClass: "",        route: "REPORTS"        },
-    ],
-  },
-];
-
-const RECENT = [
-  { label: "Graded OS Assignment #3",    time: "2h ago",  color: "var(--teal)"      },
-  { label: "Uploaded DBMS Lecture 23",   time: "Yesterday",color:"var(--indigo-ll)" },
-  { label: "Created Process Scheduling Quiz", time: "2d ago", color:"var(--violet)" },
-];
-
 // ─── COMPONENT ───────────────────────────────────────────────────
-export default function QuickActionsPage({ onBack }) {
+export default function QuickActionsPage({ onBack, stats = {}, recentActivity = [], weakTopics = [] }) {
+  const QUICK_ACTIONS = [
+    {
+      section: "Grading & Assessment",
+      items: [
+        { id: "grade",    label: "Grade Submissions",    desc: "Review & grade pending assignments",   icon: <IcoPen />,   color: "var(--indigo-ll)", bg: "rgba(91,78,248,.12)",   badge: "Grade pending", badgeClass: "rose",   route: "GRADE_BOOK"     },
+        { id: "quiz",     label: "Create New Quiz",       desc: "Build a quiz with custom questions",  icon: <IcoClock />, color: "var(--teal)",      bg: "rgba(39,201,176,.1)",   badge: null,          badgeClass: "",        route: "QUIZZES"        },
+        { id: "qbank",    label: "Generate Question Paper",desc: "AI-assisted paper from question bank",icon:<IcoAward />, color: "var(--violet)",    bg: "rgba(159,122,234,.1)",  badge: null,          badgeClass: "",        route: "QUESTION_BANK"  },
+      ],
+    },
+    {
+      section: "Content & Courses",
+      items: [
+        { id: "upload",   label: "Upload Lecture",        desc: "Add a new video lecture to a course", icon: <IcoUpload />,color: "var(--amber)",     bg: "rgba(244,165,53,.1)",   badge: null,          badgeClass: "",        route: "VIDEO_LECTURES" },
+        { id: "course",   label: "Manage Courses",        desc: "Edit course details and materials",   icon: <IcoBook />,  color: "var(--indigo-ll)", bg: "rgba(91,78,248,.1)",    badge: `${stats.active_courses || 0} active`,    badgeClass: "",        route: "MY_COURSES"     },
+        { id: "assign",   label: "New Assignment",        desc: "Create and publish an assignment",    icon: <IcoPlus />,  color: "var(--teal)",      bg: "rgba(39,201,176,.1)",   badge: null,          badgeClass: "",        route: "ASSIGNMENTS"    },
+      ],
+    },
+    {
+      section: "Students & Attendance",
+      items: [
+        { id: "attend",   label: "Mark Attendance",       desc: "Record today's class attendance",     icon: <IcoCal />,   color: "var(--rose)",      bg: "rgba(242,68,92,.1)",    badge: "Today",       badgeClass: "rose",    route: "ATTENDANCE"     },
+        { id: "students", label: "View All Students",     desc: "Browse student profiles & progress",  icon: <IcoUsers />, color: "var(--violet)",    bg: "rgba(159,122,234,.1)",  badge: `${stats.total_students || 0} total`,   badgeClass: "",        route: "ALL_STUDENTS"  },
+        { id: "analytics",label: "Analytics Overview",   desc: "Scores, trends & performance data",   icon: <IcoTrend />, color: "var(--amber)",     bg: "rgba(244,165,53,.1)",   badge: "Live",         badgeClass: "",        route: "ANALYTICS"      },
+      ],
+    },
+    {
+      section: "AI Tools",
+      items: [
+        { id: "ai",       label: "Ask Lucyna AI",         desc: "Get AI insights on your courses",     icon: <IcoBrain />, color: "var(--indigo-ll)", bg: "rgba(91,78,248,.12)",   badge: "Online",      badgeClass: "teal",    route: "AI_ASSISTANT"   },
+        { id: "remedial", label: "Generate Remedial Quiz",desc: "Auto-detect weak topics & fix them",  icon: <IcoFlash />, color: "var(--teal)",      bg: "rgba(39,201,176,.1)",   badge: `${weakTopics.length} weak topics`, badgeClass:"rose",    route: "AI_ASSISTANT"   },
+        { id: "report",   label: "View Reports",          desc: "Download course & student reports",   icon: <IcoMsg />,   color: "var(--violet)",    bg: "rgba(159,122,234,.1)",  badge: null,          badgeClass: "",        route: "REPORTS"        },
+      ],
+    },
+  ];
+
+  const RECENT = recentActivity;
   const [search, setSearch] = useState("");
   const [recentVisible, setRecentVisible] = useState(true);
   const inputRef = useRef();

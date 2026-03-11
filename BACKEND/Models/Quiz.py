@@ -26,6 +26,7 @@ class Quiz(Base):
     title           = Column(String(200), nullable=False)
     difficulty      = Column(Enum(DifficultyLevel), default=DifficultyLevel.medium)
     is_ai_generated = Column(Boolean, default=False)
+    target_group    = Column(String(50), nullable=True, default="All")
     created_at      = Column(DateTime(timezone=True), default=datetime.utcnow)
 
     # Relationships

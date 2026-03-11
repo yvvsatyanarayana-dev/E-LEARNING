@@ -871,7 +871,7 @@ export default function StudentQuizzes({ onBack }) {
           const rgb = ["91,78,248", "20,184,166", "245,158,11", "139,92,246", "244,63,94"];
           return {
             id: c.course_id,                           // API returns course_id
-            code: c.code || ("CS" + c.course_id),
+            code: c.code || ("CS" + (c.course_id || c.id || i)),
             name: c.title,
             short: c.title.split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 4),
             faculty: c.faculty_name,
