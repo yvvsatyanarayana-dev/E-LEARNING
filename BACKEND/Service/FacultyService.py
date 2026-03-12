@@ -321,8 +321,7 @@ class FacultyService:
             
             # Map course ID to a "CS50X" style string expected by the frontend
             course_code_str = f"cs50{c.id}" if c else "cs501"
-            
-            is_live = "youtube.com" in (l.video_url or "") or l.id % 2 != 0
+            is_live = bool(l.video_url)
             
             lectures.append(FacultyLectureDetail(
                 id=l.id,
@@ -337,7 +336,8 @@ class FacultyService:
                 tags=["Lecture", "Concepts"],
                 status="live" if is_live else "pending",
                 date=l.created_at.strftime("%b %d") if l.created_at and is_live else None,
-                desc=l.title + " overview and detailed examples."
+                desc=l.title + " overview and detailed examples.",
+                target_group=l.target_group
             ))
             
         return lectures

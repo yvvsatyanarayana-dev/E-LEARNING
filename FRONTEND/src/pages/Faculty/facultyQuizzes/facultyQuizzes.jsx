@@ -372,9 +372,11 @@ function CreateModal({ onClose, onCreated, courses = [], editData = null }) {
                     <div className="qz-field-lbl">Target Group</div>
                     <select className="qz-input" value={form.target_group} onChange={e => setF("target_group", e.target.value)}>
                       <option value="All">All Students</option>
-                      <option value="BCA">BCA Only</option>
-                      <option value="MCA">MCA Only</option>
-                      <option value="BTech">B.Tech Only</option>
+                      <option value="BCA">BCA</option>
+                      <option value="MCA">MCA</option>
+                      <option value="B.Tech">B.Tech</option>
+                      <option value="B.Sc">B.Sc</option>
+                      <option value="AI">AI</option>
                     </select>
                   </div>
                 </div>
