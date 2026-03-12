@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import "./PlacementDashboard.css";
+import "./placementDashboard.css";
 
 /* ── DATA ── */
 const students = [
@@ -128,7 +128,7 @@ const Panel = ({ title, subtitle, action, children, style, bodyStyle }) => (
         {title}
         {subtitle && <span>{subtitle}</span>}
       </div>
-      {action && <button className="panel-act">{action} →</button>}
+      {action && <button className="panel-act" onClick={() => alert(action + ' clicked!')}>{action} →</button>}
     </div>
     <div className="panel-body" style={bodyStyle}>{children}</div>
   </div>
@@ -137,6 +137,10 @@ const Panel = ({ title, subtitle, action, children, style, bodyStyle }) => (
 /* ── MAIN COMPONENT ── */
 export default function PlacementDashboard() {
   const [filter, setFilter] = useState("All");
+  const [showSettings, setShowSettings] = useState(false);
+  const [showAddDrive, setShowAddDrive] = useState(false);
+  const [showNotify, setShowNotify] = useState(false);
+  const [showQuickActions, setShowQuickActions] = useState(false);
   const curRef  = useRef(null);
   const ringRef = useRef(null);
   const mx = useRef(0), my = useRef(0);
@@ -226,7 +230,7 @@ export default function PlacementDashboard() {
               <div className="sb-pri-sub">+6% vs last year · AY 2024–25</div>
               <div className="sb-pri-bar"><div className="sb-pri-fill" style={{ width: "68%" }} /></div>
             </div>
-            <button className="sb-logout">
+            <button className="sb-logout" onClick={() => alert('Signing out...')}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
               Sign Out
             </button>
@@ -246,14 +250,14 @@ export default function PlacementDashboard() {
             </div>
             <div className="tb-right">
               <span className="tb-date">Tue, 10 Mar</span>
-              <button className="tb-icon-btn" {...hoverProps}>
+              <button className="tb-icon-btn" {...hoverProps} onClick={() => setShowNotify(!showNotify)}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
                 <span className="notif-dot" />
               </button>
-              <button className="tb-icon-btn" {...hoverProps}>
+              <button className="tb-icon-btn" {...hoverProps} onClick={() => setShowSettings(!showSettings)}>
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
               </button>
-              <button className="btn btn-solid" style={{ fontSize:10, padding:"8px 14px" }} {...hoverProps}>
+              <button className="btn btn-solid" style={{ fontSize:10, padding:"8px 14px" }} {...hoverProps} onClick={() => setShowQuickActions(!showQuickActions)}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
                 Quick Actions
               </button>
@@ -275,15 +279,15 @@ export default function PlacementDashboard() {
                 <span className="rose">12 students</span> need placement readiness attention.
               </p>
               <div className="greet-actions">
-                <button className="btn btn-solid" {...hoverProps}>
+                <button className="btn btn-solid" {...hoverProps} onClick={() => setShowAddDrive(!showAddDrive)}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
                   Add Drive
                 </button>
-                <button className="btn btn-teal" {...hoverProps}>
+                <button className="btn btn-teal" {...hoverProps} onClick={() => alert('Notification sent to eligible students!')}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
                   Notify Students
                 </button>
-                <button className="btn btn-ghost" {...hoverProps}>
+                <button className="btn btn-ghost" {...hoverProps} onClick={() => alert('Report exported successfully!')}>
                   <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                   Export Report
                 </button>

@@ -1,0 +1,210 @@
+/* ═══════════════════════════════════════════════
+   placementInternships.css
+   SmartCampus — Internships Page
+   Extends: PlacementDashboard.css
+═══════════════════════════════════════════════ */
+@import '../placementDashboard/placementDashboard.css';
+
+/* ── INTERNSHIP CARD GRID ── */
+.internship-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.internship-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: border-color .22s, transform .22s, box-shadow .22s;
+  cursor: default;
+  animation: reveal-in .5s ease both;
+}
+.internship-card:hover {
+  border-color: rgba(91,78,248,.25);
+  transform: translateY(-2px);
+  box-shadow: 0 14px 42px -18px rgba(91,78,248,.18);
+}
+.internship-card-body { padding: 18px 20px; }
+
+/* ── INTERNSHIP CARD TOP ── */
+.internship-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.internship-card-id {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.internship-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(91,78,248,.3), rgba(159,122,234,.2));
+  border: 1.5px solid rgba(91,78,248,.22);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--indigo-ll);
+  flex-shrink: 0;
+}
+.internship-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  line-height: 1.2;
+}
+.internship-role-meta {
+  font-size: 10px;
+  color: var(--text3);
+  margin-top: 3px;
+}
+.internship-badge-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 5px;
+}
+
+/* ── PPO BADGE ── */
+.badge-ppo {
+  background: rgba(244,165,53,.08);
+  color: var(--amber);
+  border: 1px solid rgba(244,165,53,.2);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 20px;
+}
+.badge-ppo::before {
+  content: '★';
+  font-size: 8px;
+}
+
+/* ── INTERNSHIP MINI STATS ── */
+.internship-mini-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.internship-mini-stat {
+  background: var(--surface2);
+  border-radius: 8px;
+  padding: 9px 10px;
+  text-align: center;
+}
+.internship-mini-stat-val {
+  font-family: 'Fraunces', serif;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1;
+}
+.internship-mini-stat-lbl {
+  font-size: 9px;
+  color: var(--text3);
+  margin-top: 3px;
+}
+
+/* ── INTERNSHIP CARD FOOTER ── */
+.internship-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.internship-company-tag {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.internship-company-logo {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  background: rgba(91,78,248,.1);
+  border: 1px solid rgba(91,78,248,.14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--indigo-ll);
+  flex-shrink: 0;
+}
+.internship-company-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text2);
+}
+
+/* ── PPO CONVERSION BANNER ── */
+.ppo-conversion-banner {
+  background: linear-gradient(135deg, rgba(244,165,53,.07), rgba(91,78,248,.04));
+  border: 1px solid rgba(244,165,53,.18);
+  border-radius: 12px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+.ppo-conversion-icon {
+  font-size: 24px;
+  flex-shrink: 0;
+}
+.ppo-conversion-info { flex: 1; }
+.ppo-conversion-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+.ppo-conversion-sub {
+  font-size: 11px;
+  color: var(--text3);
+}
+.ppo-conversion-count {
+  font-family: 'Fraunces', serif;
+  font-size: 28px;
+  color: var(--amber);
+  font-weight: 400;
+  flex-shrink: 0;
+}
+
+/* ── STIPEND RANGE INDICATOR ── */
+.stipend-range {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: var(--text3);
+  margin-top: 4px;
+}
+.stipend-range-fill {
+  flex: 1;
+  height: 3px;
+  background: var(--surface3);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.stipend-range-inner {
+  height: 100%;
+  background: linear-gradient(90deg, var(--indigo), var(--teal));
+  border-radius: 2px;
+}
+
+/* ── RESPONSIVE ── */
+@media (max-width: 1100px) {
+  .internship-card-grid { grid-template-columns: 1fr; }
+}
