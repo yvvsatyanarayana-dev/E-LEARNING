@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import "./placementReports.css";
+import { useNavigate } from "react-router-dom";
+import { clearAuth } from "../../utils/auth";
 
 const SbLink = ({ active, badge, badgeCls, icon, children, to }) => (
   <Link to={to || "#"} className={`sb-link${active ? " active" : ""}`}>
@@ -27,6 +29,9 @@ const reports = [
 const typeColors = { "Analytics":"badge-indigo", "Companies":"badge-amber", "Students":"badge-teal", "Internships":"badge-violet", "Summary":"badge-rose" };
 
 export default function PlacementReports() {
+  const navigate = useNavigate();
+  const handleLogout = () => { clearAuth(); navigate('/login',{replace:true}); };
+
   const [filter, setFilter] = useState("All");
   const [generating, setGenerating] = useState(false);
   const curRef = useRef(null); const ringRef = useRef(null);
@@ -66,7 +71,7 @@ export default function PlacementReports() {
           </nav>
           <div className="sb-bottom">
             <div className="sb-pri"><div className="sb-pri-lbl">Placement Rate</div><div className="sb-pri-val">68%</div><div className="sb-pri-sub">+6% vs last year · AY 2024–25</div><div className="sb-pri-bar"><div className="sb-pri-fill" style={{ width: "68%" }} /></div></div>
-            <button className="sb-logout" onClick={() => alert('Signing out...')}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign Out</button>
+            <button className="sb-logout" onClick={handleLogout}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Sign Out</button>
           </div>
         </aside>
 

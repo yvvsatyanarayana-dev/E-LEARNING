@@ -1,21 +1,15 @@
 // PlacementDrives.jsx — SmartCampus
-// Modals use ReactDOM.createPortal — immune to parent re-renders
-import { useState, useRef, useEffect, useCallback } from "react";
-import { createPortal } from "react-dom";
+import { useState, useRef, useEffect } from "react";
+import { Link } from "react-router-dom";
 import "./placementDrives.css";
 
-const INIT_DRIVES = [
-  { id:1, logo:"A", name:"Amazon",  role:"SDE-1 · Full Time",  pkg:"26 LPA",  date:"2025-03-15", applied:31, eligible:48,  rounds:["Online Test","Technical","HR"],       branches:["CSE","IT","ECE"],        minCgpa:7.5, status:"Upcoming",  color:"#fbbf24", desc:"Hiring for core SDE roles across AWS and e-commerce teams." },
-  { id:2, logo:"T", name:"TCS",     role:"System Engineer",     pkg:"7 LPA",   date:"2025-03-18", applied:98, eligible:120, rounds:["TCS NQT","Technical","HR"],            branches:["CSE","IT","ECE","MECH"], minCgpa:6.0, status:"Upcoming",  color:"#8b5cf6", desc:"Mass hiring drive for System Engineer role." },
-  { id:3, logo:"Z", name:"Zoho",    role:"Software Developer",  pkg:"12 LPA",  date:"2025-03-22", applied:52, eligible:65,  rounds:["Aptitude","Coding","Interview"],       branches:["CSE","IT"],             minCgpa:7.0, status:"Upcoming",  color:"#2dd4bf", desc:"Zoho hiring for software dev roles, no bond." },
-  { id:4, logo:"W", name:"Wipro",   role:"Project Engineer",    pkg:"6 LPA",   date:"2025-03-28", applied:63, eligible:90,  rounds:["NLTH","Technical","HR"],              branches:["CSE","IT","ECE","MECH"], minCgpa:6.0, status:"Ongoing",   color:"#7b6ffa", desc:"NLTH-based hiring for engineering graduates." },
-  { id:5, logo:"I", name:"Infosys", role:"Systems Analyst",     pkg:"6.5 LPA", date:"2025-03-08", applied:84, eligible:110, rounds:["Online Test","Technical","HR"],        branches:["CSE","IT","ECE"],        minCgpa:6.5, status:"Completed", color:"#2dd4bf", desc:"Drive completed. Offers rolling out to selected candidates." },
-  { id:6, logo:"G", name:"Google",  role:"SWE · L3",            pkg:"32 LPA",  date:"2025-02-28", applied:9,  eligible:12,  rounds:["DSA","System Design","Googleyness"],  branches:["CSE","IT"],             minCgpa:8.5, status:"Completed", color:"#4ade80", desc:"Completed. 3 offers made to final candidates." },
-];
+/* ─────────────────────────────────────────────
+   CONSTANTS
+───────────────────────────────────────────── */
+const ALL_BRANCHES = ["CSE","IT","ECE","MECH","EEE","CIVIL"];
+const LOGO_COLORS  = ["#a59fff","#2dd4bf","#fbbf24","#8b5cf6","#fb7185","#4ade80"];
+const STATUSES     = ["Upcoming","Ongoing","Completed"];
 
-const STATUS_CLS    = { Upcoming:"badge-indigo", Completed:"badge-teal", Ongoing:"badge-amber" };
-const ALL_BRANCHES  = ["CSE","IT","ECE","MECH","EEE","CIVIL"];
-const LOGO_COLORS   = ["#a59fff","#2dd4bf","#fbbf24","#8b5cf6","#fb7185","#4ade80"];
 const FAKE_STUDENTS = [
   { name:"Aarav Sharma",  roll:"21CS001",  cgpa:8.4 },
   { name:"Priya Menon",   roll:"21CS012",  cgpa:7.9 },
@@ -25,66 +19,13 @@ const FAKE_STUDENTS = [
   { name:"Divya Rao",     roll:"21CS055",  cgpa:8.7 },
 ];
 
-/* ── TOAST HOOK ── */
-let _tid = 0;
-function useToasts() {
-  const [list, setList] = useState([]);
-  const add = useCallback((msg, type = "info") => {
-    const id = ++_tid;
-    setList(t => [...t, { id, msg, type }]);
-    setTimeout(() => setList(t => t.filter(x => x.id !== id)), 3500);
-  }, []);
-  const remove = useCallback(id => setList(t => t.filter(x => x.id !== id)), []);
-  return { list, add, remove };
-}
+const statusMap = {
+  Upcoming:  "badge-indigo",
+  Ongoing:   "badge-amber",
+  Completed: "badge-teal",
+};
 
-/* ── PORTAL ── */
-function Portal({ children }) {
-  const [mounted, setMounted] = useState(false);
-  const el = useRef(null);
-  if (!el.current) el.current = document.createElement("div");
-  useEffect(() => {
-    document.body.appendChild(el.current);
-    setMounted(true);
-    return () => { document.body.removeChild(el.current); };
-  }, []);
-  return mounted ? createPortal(children, el.current) : null;
-}
-
-/* ── TOGGLE ── */
-function Toggle({ on, onChange }) {
-  return (
-    <button type="button" className={"pd-toggle" + (on ? " on" : "")} onClick={() => onChange(!on)}>
-      <span className="pd-tknob" />
-    </button>
-  );
-}
-
-/* ── BADGE ── */
-function Badge({ cls, children }) {
-  return <span className={"pd-badge " + cls}><span className="pd-bdot" />{children}</span>;
-}
-
-/* ── TOASTS ── */
-const TICON = { success:"✅", error:"❌", info:"ℹ️", warning:"⚠️" };
-function Toasts({ list, remove }) {
-  return (
-    <div className="pd-toasts">
-      {list.map(t => (
-        <div key={t.id} className={"pd-toast " + t.type}>
-          <span>{TICON[t.type]}</span>
-          <span className="pd-tmsg">{t.msg}</span>
-          <button type="button" onClick={() => remove(t.id)}>✕</button>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/* ══════════════════════════════════════════════
-   DRIVE FORM MODAL
-══════════════════════════════════════════════ */
-const EMPTY_FORM = {
+const defaultDriveForm = {
   name:"", role:"", pkg:"", date:"",
   applied:"", eligible:"", minCgpa:"",
   status:"Upcoming", desc:"",
@@ -92,619 +33,777 @@ const EMPTY_FORM = {
   logo:"", color: LOGO_COLORS[0],
 };
 
-function DriveFormModal({ initial, onSave, onClose }) {
-  const [form, setForm] = useState(() =>
+const defaultSettings = {
+  academicYear:"2024-25",
+  officerName:"Ms. Kavitha R",
+  officerDept:"Placement Officer",
+  showProgress:true,
+  compact:false,
+  driveReminders:true,
+  studentSms:false,
+  emailAlerts:true,
+  exportFormat:"CSV",
+};
+
+const INIT_DRIVES = [
+  { id:1, logo:"A", color:"#fbbf24", name:"Amazon",  role:"SDE-1 · Full Time",  pkg:"26 LPA",  date:"2025-03-15", applied:31, eligible:48,  rounds:["Online Test","Technical","HR"],       branches:["CSE","IT","ECE"],        minCgpa:7.5, status:"Upcoming",  desc:"Hiring for core SDE roles across AWS and e-commerce teams." },
+  { id:2, logo:"T", color:"#8b5cf6", name:"TCS",     role:"System Engineer",     pkg:"7 LPA",   date:"2025-03-18", applied:98, eligible:120, rounds:["TCS NQT","Technical","HR"],            branches:["CSE","IT","ECE","MECH"], minCgpa:6.0, status:"Upcoming",  desc:"Mass hiring drive for System Engineer role." },
+  { id:3, logo:"Z", color:"#2dd4bf", name:"Zoho",    role:"Software Developer",  pkg:"12 LPA",  date:"2025-03-22", applied:52, eligible:65,  rounds:["Aptitude","Coding","Interview"],       branches:["CSE","IT"],             minCgpa:7.0, status:"Upcoming",  desc:"Zoho hiring for software dev roles, no bond." },
+  { id:4, logo:"W", color:"#7b6ffa", name:"Wipro",   role:"Project Engineer",    pkg:"6 LPA",   date:"2025-03-28", applied:63, eligible:90,  rounds:["NLTH","Technical","HR"],              branches:["CSE","IT","ECE","MECH"], minCgpa:6.0, status:"Ongoing",   desc:"NLTH-based hiring for engineering graduates." },
+  { id:5, logo:"I", color:"#2dd4bf", name:"Infosys", role:"Systems Analyst",     pkg:"6.5 LPA", date:"2025-03-08", applied:84, eligible:110, rounds:["Online Test","Technical","HR"],        branches:["CSE","IT","ECE"],        minCgpa:6.5, status:"Completed", desc:"Drive completed. Offers rolling out to selected candidates." },
+  { id:6, logo:"G", color:"#4ade80", name:"Google",  role:"SWE · L3",            pkg:"32 LPA",  date:"2025-02-28", applied:9,  eligible:12,  rounds:["DSA","System Design","Googleyness"],  branches:["CSE","IT"],             minCgpa:8.5, status:"Completed", desc:"Completed. 3 offers made to final candidates." },
+];
+
+/* ─────────────────────────────────────────────
+   SMALL HELPERS
+───────────────────────────────────────────── */
+const SbLink = ({ active, badge, badgeCls, icon, children, to }) => (
+  <Link to={to || "#"} className={`sb-link${active ? " active" : ""}`}>
+    {icon}{children}
+    {badge && <span className={`sb-badge${badgeCls ? ` ${badgeCls}` : ""}`}>{badge}</span>}
+  </Link>
+);
+
+const Badge = ({ cls, dot, children }) => (
+  <span className={`badge ${cls}`}>{dot && <span className="badge-dot" />}{children}</span>
+);
+
+const FInput = ({ label, name, value, onChange, type="text", placeholder, required, hint }) => (
+  <div className="af-field">
+    <label className="af-label">
+      {label}{required && <span className="af-req"> *</span>}
+      {hint && <span className="af-hint"> {hint}</span>}
+    </label>
+    <input className="af-input" type={type} name={name} value={value} onChange={onChange} placeholder={placeholder} />
+  </div>
+);
+
+const FSelect = ({ label, name, value, onChange, options, required }) => (
+  <div className="af-field">
+    <label className="af-label">{label}{required && <span className="af-req"> *</span>}</label>
+    <select className="af-input af-select" name={name} value={value} onChange={onChange}>
+      {options.map(o => <option key={o} value={o}>{o}</option>)}
+    </select>
+  </div>
+);
+
+const Toggle = ({ checked, onChange }) => (
+  <label className="pd-toggle" onMouseDown={e => e.stopPropagation()}>
+    <input type="checkbox" checked={checked} onChange={onChange} />
+    <span className="pd-toggle-track"><span className="pd-toggle-thumb" /></span>
+  </label>
+);
+
+const ErrIco = () => (
+  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+  </svg>
+);
+
+const fmtDate = raw => {
+  try { return new Date(raw).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"}); }
+  catch { return raw; }
+};
+
+/* ─────────────────────────────────────────────
+   OVERLAY — clicking backdrop closes,
+   clicking inside does NOT close
+───────────────────────────────────────────── */
+function Overlay({ onClose, children }) {
+  return (
+    <div
+      className="pd-overlay"
+      onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div onMouseDown={e => e.stopPropagation()}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/* ══════════════════════════════════════════
+   ADD / EDIT DRIVE MODAL
+══════════════════════════════════════════ */
+function DriveModal({ initial, onClose, onSave }) {
+  const [form,    setForm]    = useState(() =>
     initial
       ? { ...initial, rounds:[...initial.rounds], branches:[...initial.branches] }
-      : { ...EMPTY_FORM }
+      : { ...defaultDriveForm }
   );
-  const [errors, setErrors] = useState({});
+  const [errors,  setErrors]  = useState({});
+  const [success, setSuccess] = useState(false);
+  const isEdit = !!initial;
 
-  useEffect(() => {
-    const fn = e => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", fn);
-    return () => window.removeEventListener("keydown", fn);
-  }, [onClose]);
-
-  const upd = (k, v) => {
-    setForm(f => ({ ...f, [k]: v }));
-    if (errors[k]) setErrors(e => { const n = {...e}; delete n[k]; return n; });
+  const handleChange = e => {
+    const { name, value } = e.target;
+    setForm(f => ({ ...f, [name]: value }));
+    if (errors[name]) setErrors(er => ({ ...er, [name]: null }));
   };
 
   const toggleBranch = b =>
-    upd("branches", form.branches.includes(b)
-      ? form.branches.filter(x => x !== b)
-      : [...form.branches, b]);
+    setForm(f => ({
+      ...f,
+      branches: f.branches.includes(b) ? f.branches.filter(x => x !== b) : [...f.branches, b],
+    }));
 
-  const setRound = (i, v) => {
-    const r = [...form.rounds]; r[i] = v; upd("rounds", r);
+  const setRound = (i, v) =>
+    setForm(f => { const r = [...f.rounds]; r[i] = v; return { ...f, rounds: r }; });
+
+  const validate = () => {
+    const e = {};
+    if (!form.name.trim()) e.name = "Company name is required";
+    if (!form.role.trim()) e.role = "Role is required";
+    if (!form.pkg.trim())  e.pkg  = "Package is required";
+    if (!form.date)        e.date = "Drive date is required";
+    return e;
   };
 
-  const handleSave = () => {
-    const errs = {};
-    if (!form.name.trim()) errs.name = "Required";
-    if (!form.role.trim()) errs.role = "Required";
-    if (!form.pkg.trim())  errs.pkg  = "Required";
-    if (!form.date)        errs.date = "Required";
+  const handleSubmit = () => {
+    const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
-    onSave({
+    const saved = {
       ...form,
-      id:       initial ? initial.id : Date.now(),
+      id:       isEdit ? initial.id : Date.now(),
       logo:     form.logo.trim() || form.name[0].toUpperCase(),
       rounds:   form.rounds.filter(r => r.trim()),
       applied:  parseInt(form.applied)   || 0,
       eligible: parseInt(form.eligible)  || 1,
       minCgpa:  parseFloat(form.minCgpa) || 0,
-    });
+    };
+    setSuccess(true);
+    setTimeout(() => { onSave(saved); onClose(); }, 1400);
   };
 
   return (
-    <Portal>
-      <div className="pd-overlay" onPointerDown={e => { if (e.target === e.currentTarget) onClose(); }}>
-        <div className="pd-modal" onPointerDown={e => e.stopPropagation()}>
-          <div className="pd-mhead">
-            <span className="pd-mtitle">{initial ? "Edit Drive" : "New Drive"}</span>
-            <button type="button" className="pd-mclose" onClick={onClose}>✕</button>
+    <Overlay onClose={onClose}>
+      <div className="pd-panel">
+
+        {/* HEADER */}
+        <div className="pd-header">
+          <div className="pd-header-left">
+            <div className="pd-modal-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+            </div>
+            <div>
+              <div className="pd-modal-title">{isEdit ? "Edit Drive" : "Add New Drive"}</div>
+              <div className="pd-modal-sub">{isEdit ? "Update drive details" : "Register a placement drive"}</div>
+            </div>
           </div>
-          <div className="pd-mbody">
-            <div className="pd-fgrid">
+          <button className="pd-close" onClick={onClose}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
 
-              <div className={"pd-field" + (errors.name ? " has-err" : "")}>
-                <label className="pd-label">Company Name <span className="req">*</span></label>
-                <input className="pd-input" placeholder="e.g. Microsoft" autoFocus
-                  value={form.name} onChange={e => upd("name", e.target.value)} />
-                {errors.name && <span className="pd-err">{errors.name}</span>}
-              </div>
+        {/* SUCCESS */}
+        {success ? (
+          <div className="pd-success">
+            <div className="pd-success-ring">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <div className="pd-success-title">{isEdit ? "Drive Updated!" : "Drive Added!"}</div>
+            <div className="pd-success-sub">{form.name} has been {isEdit ? "updated" : "registered"}.</div>
+          </div>
+        ) : (
+          <>
+            <div className="pd-body">
+              <p className="af-section-desc">Fill in drive details. Fields marked <span style={{color:"var(--rose)"}}>*</span> are required.</p>
 
-              <div className={"pd-field" + (errors.role ? " has-err" : "")}>
-                <label className="pd-label">Role / Position <span className="req">*</span></label>
-                <input className="pd-input" placeholder="e.g. SDE-1 · Full Time"
-                  value={form.role} onChange={e => upd("role", e.target.value)} />
-                {errors.role && <span className="pd-err">{errors.role}</span>}
-              </div>
-
-              <div className={"pd-field" + (errors.pkg ? " has-err" : "")}>
-                <label className="pd-label">Package <span className="req">*</span></label>
-                <input className="pd-input" placeholder="e.g. 18 LPA"
-                  value={form.pkg} onChange={e => upd("pkg", e.target.value)} />
-                {errors.pkg && <span className="pd-err">{errors.pkg}</span>}
-              </div>
-
-              <div className={"pd-field" + (errors.date ? " has-err" : "")}>
-                <label className="pd-label">Drive Date <span className="req">*</span></label>
-                <input className="pd-input" type="date"
-                  value={form.date} onChange={e => upd("date", e.target.value)} />
-                {errors.date && <span className="pd-err">{errors.date}</span>}
-              </div>
-
-              <div className="pd-field">
-                <label className="pd-label">Applications Received</label>
-                <input className="pd-input" type="number" min="0" placeholder="e.g. 45"
-                  value={form.applied} onChange={e => upd("applied", e.target.value)} />
-              </div>
-
-              <div className="pd-field">
-                <label className="pd-label">Eligible Students</label>
-                <input className="pd-input" type="number" min="1" placeholder="e.g. 60"
-                  value={form.eligible} onChange={e => upd("eligible", e.target.value)} />
-              </div>
-
-              <div className="pd-field">
-                <label className="pd-label">Min CGPA</label>
-                <input className="pd-input" type="number" step="0.1" min="0" max="10" placeholder="e.g. 7.0"
-                  value={form.minCgpa} onChange={e => upd("minCgpa", e.target.value)} />
-              </div>
-
-              <div className="pd-field">
-                <label className="pd-label">Status</label>
-                <select className="pd-input pd-select"
-                  value={form.status} onChange={e => upd("status", e.target.value)}>
-                  <option value="Upcoming">Upcoming</option>
-                  <option value="Ongoing">Ongoing</option>
-                  <option value="Completed">Completed</option>
-                </select>
-              </div>
-
-              <div className="pd-field">
-                <label className="pd-label">Logo Letter</label>
-                <input className="pd-input" maxLength={2} placeholder="Auto (first letter)"
-                  value={form.logo} onChange={e => upd("logo", e.target.value.toUpperCase())} />
-              </div>
-
-              <div className="pd-field">
-                <label className="pd-label">Logo Colour</label>
-                <div className="pd-swatches">
-                  {LOGO_COLORS.map(c => (
-                    <button key={c} type="button"
-                      className={"pd-swatch" + (form.color === c ? " active" : "")}
-                      style={{ background: c }}
-                      onClick={() => upd("color", c)} />
-                  ))}
+              {/* Row 1 */}
+              <div className="af-grid-2">
+                <div className="af-field">
+                  <label className="af-label">Company Name <span className="af-req">*</span></label>
+                  <input className="af-input" name="name" value={form.name} onChange={handleChange} placeholder="e.g. Microsoft" autoFocus />
+                  {errors.name && <div className="af-error-inline">{errors.name}</div>}
+                </div>
+                <div className="af-field">
+                  <label className="af-label">Role / Position <span className="af-req">*</span></label>
+                  <input className="af-input" name="role" value={form.role} onChange={handleChange} placeholder="e.g. SDE-1 · Full Time" />
+                  {errors.role && <div className="af-error-inline">{errors.role}</div>}
                 </div>
               </div>
 
-              <div className="pd-field pd-full">
-                <label className="pd-label">Eligible Branches</label>
-                <div className="pd-branches">
+              {/* Row 2 */}
+              <div className="af-grid-2">
+                <div className="af-field">
+                  <label className="af-label">Package <span className="af-req">*</span></label>
+                  <input className="af-input" name="pkg" value={form.pkg} onChange={handleChange} placeholder="e.g. 18 LPA" />
+                  {errors.pkg && <div className="af-error-inline">{errors.pkg}</div>}
+                </div>
+                <div className="af-field">
+                  <label className="af-label">Drive Date <span className="af-req">*</span></label>
+                  <input className="af-input" type="date" name="date" value={form.date} onChange={handleChange} />
+                  {errors.date && <div className="af-error-inline">{errors.date}</div>}
+                </div>
+              </div>
+
+              {/* Row 3 */}
+              <div className="af-grid-2">
+                <FInput label="Applications Received" name="applied"  value={form.applied}  onChange={handleChange} type="number" placeholder="e.g. 45" hint="(optional)" />
+                <FInput label="Eligible Students"      name="eligible" value={form.eligible} onChange={handleChange} type="number" placeholder="e.g. 60" hint="(optional)" />
+              </div>
+
+              {/* Row 4 */}
+              <div className="af-grid-2">
+                <FInput    label="Min CGPA" name="minCgpa" value={form.minCgpa} onChange={handleChange} type="number" placeholder="e.g. 7.0" hint="(optional)" />
+                <FSelect   label="Status"   name="status"  value={form.status}  onChange={handleChange} options={STATUSES} required />
+              </div>
+
+              {/* Status hint */}
+              <div className={`af-status-hint status-${form.status.toLowerCase()}`}>
+                <span className="af-status-hint-icon">
+                  {form.status==="Upcoming"?"📅":form.status==="Ongoing"?"⏳":"✅"}
+                </span>
+                <span>
+                  {form.status==="Upcoming"  && "Drive is scheduled. Students can apply."}
+                  {form.status==="Ongoing"   && "Drive is currently active. Selection in progress."}
+                  {form.status==="Completed" && "Drive concluded. Update offer details where applicable."}
+                </span>
+              </div>
+
+              {/* Logo */}
+              <div className="af-grid-2">
+                <FInput label="Logo Letter" name="logo" value={form.logo} onChange={e => handleChange({ target:{ name:"logo", value:e.target.value.toUpperCase().slice(0,2) } })} placeholder="Auto (first letter)" hint="(optional)" />
+                <div className="af-field">
+                  <label className="af-label">Logo Colour</label>
+                  <div className="af-swatches">
+                    {LOGO_COLORS.map(c => (
+                      <button key={c} type="button"
+                        className={`af-swatch${form.color===c?" active":""}`}
+                        style={{ background:c }}
+                        onClick={() => setForm(f=>({...f,color:c}))} />
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Branches */}
+              <div className="af-field">
+                <label className="af-label">Eligible Branches</label>
+                <div className="af-branches">
                   {ALL_BRANCHES.map(b => (
                     <button key={b} type="button"
-                      className={"pd-branch" + (form.branches.includes(b) ? " sel" : "")}
-                      onClick={() => toggleBranch(b)}>
-                      {b}
-                    </button>
+                      className={`af-branch-btn${form.branches.includes(b)?" active":""}`}
+                      onClick={() => toggleBranch(b)}>{b}</button>
                   ))}
                 </div>
               </div>
 
-              <div className="pd-field pd-full">
-                <label className="pd-label">Interview Rounds</label>
-                <div className="pd-rounds">
+              {/* Rounds */}
+              <div className="af-field">
+                <label className="af-label">Interview Rounds</label>
+                <div className="af-rounds">
                   {form.rounds.map((r, i) => (
-                    <div key={i} className="pd-round-row">
-                      <span className="pd-rnum">{i + 1}</span>
-                      <input className="pd-input" placeholder={"Round " + (i + 1)}
+                    <div key={i} className="af-round-row">
+                      <span className="af-round-num">{i+1}</span>
+                      <input className="af-input" placeholder={`Round ${i+1}`}
                         value={r} onChange={e => setRound(i, e.target.value)} />
                       {form.rounds.length > 1 && (
-                        <button type="button" className="pd-rdel"
-                          onClick={() => upd("rounds", form.rounds.filter((_,j) => j !== i))}>✕</button>
+                        <button type="button" className="af-round-del"
+                          onClick={() => setForm(f=>({...f,rounds:f.rounds.filter((_,j)=>j!==i)}))}>✕</button>
                       )}
                     </div>
                   ))}
                 </div>
-                <button type="button" className="pd-add-round"
-                  onClick={() => upd("rounds", [...form.rounds, ""])}>+ Add Round</button>
+                <button type="button" className="af-add-round"
+                  onClick={() => setForm(f=>({...f,rounds:[...f.rounds,""]}))}>+ Add Round</button>
               </div>
 
-              <div className="pd-field pd-full">
-                <label className="pd-label">About Drive</label>
-                <textarea className="pd-input pd-ta"
-                  placeholder="Brief description about the drive, job role, and expectations…"
-                  value={form.desc} onChange={e => upd("desc", e.target.value)} />
+              {/* Description */}
+              <div className="af-field">
+                <label className="af-label">About Drive</label>
+                <textarea className="af-input af-textarea" name="desc" value={form.desc} onChange={handleChange}
+                  placeholder="Brief description about the drive, role, and expectations…" />
+              </div>
+
+              {/* Summary preview */}
+              <div className="af-summary-card">
+                <div className="af-summary-hd">Preview</div>
+                <div className="af-summary-top">
+                  <div className="af-summary-av" style={{color:form.color}}>
+                    {form.logo.trim() || (form.name[0]||"?").toUpperCase()}
+                  </div>
+                  <div className="af-summary-info">
+                    <div className="af-summary-name">{form.name||"Company Name"}</div>
+                    <div className="af-summary-meta">{form.role||"Role"} · {form.date ? fmtDate(form.date) : "Date"}</div>
+                    <div className="af-summary-meta">{form.pkg||"Package"} · Min CGPA {form.minCgpa||"—"}</div>
+                  </div>
+                  <Badge cls={statusMap[form.status]} dot>{form.status}</Badge>
+                </div>
+                <div className="af-summary-stats">
+                  {[
+                    {val:form.pkg||"—",     color:"var(--teal)",      lbl:"Package"},
+                    {val:form.applied||"0", color:"var(--indigo-ll)", lbl:"Applied"},
+                    {val:form.eligible||"0",color:"var(--amber)",     lbl:"Eligible"},
+                  ].map(m=>(
+                    <div key={m.lbl} className="af-summary-stat">
+                      <div className="af-summary-stat-val" style={{color:m.color}}>{m.val}</div>
+                      <div className="af-summary-stat-lbl">{m.lbl}</div>
+                    </div>
+                  ))}
+                </div>
+                {form.branches.length > 0 && (
+                  <div className="af-summary-chips">
+                    {form.branches.map(b=><span key={b} className="skill-chip">{b}</span>)}
+                  </div>
+                )}
               </div>
 
             </div>
+
+            {/* FOOTER */}
             <div className="pd-footer">
-              <button type="button" className="pd-btn pd-ghost" onClick={onClose}>Cancel</button>
-              <button type="button" className="pd-btn pd-solid" onClick={handleSave}>
-                {initial ? "Save Changes" : "Add Drive"}
+              <button className="btn btn-ghost" style={{fontSize:11,padding:"9px 18px"}} onClick={onClose}>Cancel</button>
+              <button className="btn btn-teal"  style={{fontSize:11,padding:"9px 22px"}} onClick={handleSubmit}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                {isEdit ? "Save Changes" : "Add Drive"}
               </button>
             </div>
-          </div>
-        </div>
+          </>
+        )}
       </div>
-    </Portal>
+    </Overlay>
   );
 }
 
-/* ── NOTIFY MODAL ── */
+/* ══════════════════════════════════════════
+   NOTIFY MODAL
+══════════════════════════════════════════ */
 function NotifyModal({ drive, onClose, onSent }) {
-  const [msg, setMsg] = useState(
-    "Dear Student,\n\nYou are eligible for the " + drive.name + " placement drive on " + drive.date + ".\n\nRole: " + drive.role + "\nPackage: " + drive.pkg + "\nMin CGPA: " + drive.minCgpa + "\n\nPlease register on the placement portal.\n\n— Placement Cell"
-  );
   const eligible = FAKE_STUDENTS.filter(s => s.cgpa >= drive.minCgpa);
-  useEffect(() => {
-    const fn = e => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", fn);
-    return () => window.removeEventListener("keydown", fn);
-  }, [onClose]);
+  const [msg, setMsg] = useState(
+    `Dear Student,\n\nYou are eligible for the ${drive.name} placement drive on ${fmtDate(drive.date)}.\n\nRole: ${drive.role}\nPackage: ${drive.pkg}\nMin CGPA: ${drive.minCgpa}\n\nPlease register on the placement portal.\n\n— Placement Cell`
+  );
+
   return (
-    <Portal>
-      <div className="pd-overlay" onPointerDown={e => { if (e.target === e.currentTarget) onClose(); }}>
-        <div className="pd-modal" style={{maxWidth:480}} onPointerDown={e => e.stopPropagation()}>
-          <div className="pd-mhead">
-            <span className="pd-mtitle">Notify Students</span>
-            <button type="button" className="pd-mclose" onClick={onClose}>✕</button>
+    <Overlay onClose={onClose}>
+      <div className="pd-panel pd-panel-sm">
+        <div className="pd-header">
+          <div className="pd-header-left">
+            <div className="pd-modal-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            </div>
+            <div>
+              <div className="pd-modal-title">Notify Students</div>
+              <div className="pd-modal-sub">
+                <strong style={{color:"var(--teal)"}}>{eligible.length} eligible</strong> students for <strong>{drive.name}</strong>
+              </div>
+            </div>
           </div>
-          <div className="pd-mbody">
-            <p className="pd-nsub">
-              Sending to <strong style={{color:"#2dd4bf"}}>{eligible.length} eligible</strong> students for <strong>{drive.name}</strong>.
-            </p>
-            <div className="pd-slist">
-              {eligible.map(s => (
-                <div key={s.roll} className="pd-srow">
-                  <div className="pd-savatar">{s.name[0]}</div>
-                  <div style={{flex:1}}>
-                    <div style={{fontSize:12,fontWeight:600}}>{s.name}</div>
-                    <div style={{fontSize:10,color:"var(--t3)"}}>{s.roll}</div>
-                  </div>
-                  <span className="pd-chip" style={{color:"#2dd4bf"}}>CGPA {s.cgpa}</span>
+          <button className="pd-close" onClick={onClose}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </div>
+        <div className="pd-body">
+          <div className="pd-slist">
+            {eligible.map(s => (
+              <div key={s.roll} className="pd-srow">
+                <div className="pd-savatar">{s.name[0]}</div>
+                <div style={{flex:1}}>
+                  <div style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{s.name}</div>
+                  <div style={{fontSize:10,color:"var(--text3)"}}>{s.roll}</div>
                 </div>
-              ))}
-            </div>
-            <div className="pd-field" style={{marginTop:14}}>
-              <label className="pd-label">Message</label>
-              <textarea className="pd-input pd-ta" style={{minHeight:120}} value={msg} onChange={e => setMsg(e.target.value)} />
-            </div>
-            <div className="pd-footer">
-              <button type="button" className="pd-btn pd-ghost" onClick={onClose}>Cancel</button>
-              <button type="button" className="pd-btn pd-teal" onClick={() => { onSent(); onClose(); }}>📨 Send Notification</button>
-            </div>
+                <span className="skill-chip" style={{color:"var(--teal)"}}>CGPA {s.cgpa}</span>
+              </div>
+            ))}
+          </div>
+          <div className="af-field" style={{marginTop:14}}>
+            <label className="af-label">Message</label>
+            <textarea className="af-input af-textarea" style={{minHeight:120}} value={msg} onChange={e=>setMsg(e.target.value)} />
           </div>
         </div>
+        <div className="pd-footer">
+          <button className="btn btn-ghost" style={{fontSize:11,padding:"9px 18px"}} onClick={onClose}>Cancel</button>
+          <button className="btn btn-teal"  style={{fontSize:11,padding:"9px 22px"}} onClick={() => { onSent(); onClose(); }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            Send Notification
+          </button>
+        </div>
       </div>
-    </Portal>
+    </Overlay>
   );
 }
 
-/* ── CONFIRM MODAL ── */
-function ConfirmModal({ drive, onConfirm, onClose }) {
-  useEffect(() => {
-    const fn = e => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", fn);
-    return () => window.removeEventListener("keydown", fn);
-  }, [onClose]);
+/* ══════════════════════════════════════════
+   DELETE CONFIRM
+══════════════════════════════════════════ */
+function DeleteConfirm({ drive, onConfirm, onCancel }) {
   return (
-    <Portal>
-      <div className="pd-overlay" onPointerDown={e => { if (e.target === e.currentTarget) onClose(); }}>
-        <div className="pd-modal pd-confirm" onPointerDown={e => e.stopPropagation()}>
-          <div className="pd-mhead">
-            <span className="pd-mtitle">Delete Drive</span>
-            <button type="button" className="pd-mclose" onClick={onClose}>✕</button>
-          </div>
-          <div className="pd-mbody" style={{textAlign:"center"}}>
-            <div style={{fontSize:40,marginBottom:12}}>🗑️</div>
-            <div style={{fontSize:16,fontWeight:700,marginBottom:8}}>Remove "{drive.name}"?</div>
-            <div style={{fontSize:12,color:"var(--t3)",marginBottom:24,lineHeight:1.6}}>
-              This action cannot be undone.
-            </div>
-            <div className="pd-footer" style={{justifyContent:"center"}}>
-              <button type="button" className="pd-btn pd-ghost" onClick={onClose}>Cancel</button>
-              <button type="button" className="pd-btn pd-rose" onClick={() => { onConfirm(); onClose(); }}>Yes, Delete</button>
-            </div>
-          </div>
+    <Overlay onClose={onCancel}>
+      <div className="pd-panel pd-panel-delete">
+        <div className="pd-delete-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+        </div>
+        <div className="pd-delete-title">Remove Drive?</div>
+        <div className="pd-delete-sub">This will permanently remove <strong style={{color:"var(--text)"}}>{drive.name}</strong> from the placement system.</div>
+        <div className="pd-delete-actions">
+          <button className="btn btn-ghost" style={{fontSize:11,padding:"9px 20px"}} onClick={onCancel}>Cancel</button>
+          <button className="btn" style={{fontSize:11,padding:"9px 20px",background:"rgba(240,83,106,.12)",color:"var(--rose)",border:"1px solid rgba(240,83,106,.25)"}} onClick={onConfirm}>Yes, Remove</button>
         </div>
       </div>
-    </Portal>
+    </Overlay>
   );
 }
 
-/* ── SETTINGS PANEL ── */
-function SettingsPanel({ settings: s, setSettings, onClose }) {
-  const set = (k, v) => setSettings(p => ({ ...p, [k]: v }));
-  useEffect(() => {
-    const fn = e => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", fn);
-    return () => window.removeEventListener("keydown", fn);
-  }, [onClose]);
-  const Row = ({ label, desc, children }) => (
-    <div className="pd-srow">
-      <div><div className="pd-slabel">{label}</div>{desc && <div className="pd-sdesc">{desc}</div>}</div>
-      {children}
-    </div>
-  );
+/* ══════════════════════════════════════════
+   SETTINGS PANEL
+══════════════════════════════════════════ */
+function SettingsPanel({ settings, onSave, onClose }) {
+  const [tab,   setTab]   = useState("general");
+  const [local, setLocal] = useState({...settings});
+  const toggle = key => setLocal(s=>({...s,[key]:!s[key]}));
+  const setVal = (key,val) => setLocal(s=>({...s,[key]:val}));
+
   return (
-    <Portal>
+    <>
       <div className="pd-soverlay" onClick={onClose} />
       <div className="pd-spanel">
         <div className="pd-shead">
           <span className="pd-stitle">Settings</span>
-          <button type="button" className="pd-mclose" onClick={onClose}>✕</button>
+          <button className="pd-close" onClick={onClose}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
         </div>
+
+        <div className="pd-stabs">
+          {["general","display","notifications","data"].map(t=>(
+            <button key={t} className={`pd-stab${tab===t?" active":""}`} onClick={()=>setTab(t)}>
+              {t.charAt(0).toUpperCase()+t.slice(1)}
+            </button>
+          ))}
+        </div>
+
         <div className="pd-sbody">
-          <div className="pd-ssec">
-            <div className="pd-ssec-title">Appearance</div>
-            <Row label="Custom Cursor" desc="SmartCampus branded cursor"><Toggle on={s.cursor} onChange={v => set("cursor", v)} /></Row>
-            <Row label="Noise Overlay" desc="Film grain texture"><Toggle on={s.noise} onChange={v => set("noise", v)} /></Row>
-            <Row label="Animations" desc="Reduce for accessibility"><Toggle on={s.animations} onChange={v => set("animations", v)} /></Row>
-          </div>
-          <div className="pd-ssec">
-            <div className="pd-ssec-title">Notifications</div>
-            <Row label="Email Alerts" desc="New drive notifications via email"><Toggle on={s.emailAlerts} onChange={v => set("emailAlerts", v)} /></Row>
-            <Row label="Student SMS" desc="Send SMS to eligible students"><Toggle on={s.smsAlerts} onChange={v => set("smsAlerts", v)} /></Row>
-            <Row label="Drive Reminders" desc="24 hrs before drive"><Toggle on={s.driveReminders} onChange={v => set("driveReminders", v)} /></Row>
-          </div>
-          <div className="pd-ssec">
-            <div className="pd-ssec-title">Display</div>
-            <Row label="Show Progress Bar" desc="Application fill rate on cards"><Toggle on={s.showProgress} onChange={v => set("showProgress", v)} /></Row>
-            <Row label="Compact View" desc="Smaller card padding"><Toggle on={s.compact} onChange={v => set("compact", v)} /></Row>
-            <Row label="Default Filter">
-              <select className="pd-sselect" value={s.defaultFilter} onChange={e => set("defaultFilter", e.target.value)}>
-                {["All","Upcoming","Ongoing","Completed"].map(f => <option key={f}>{f}</option>)}
-              </select>
-            </Row>
-          </div>
-          <div className="pd-ssec">
-            <div className="pd-ssec-title">Account</div>
-            <Row label="Placement Officer" desc="Ms. Kavitha R">
-              <button type="button" className="pd-btn pd-ghost" style={{fontSize:10,padding:"5px 12px"}}>Edit</button>
-            </Row>
-            <Row label="Academic Year">
-              <select className="pd-sselect" value={s.academicYear} onChange={e => set("academicYear", e.target.value)}>
-                {["2024-25","2023-24","2022-23"].map(y => <option key={y}>{y}</option>)}
-              </select>
-            </Row>
-          </div>
-          <button type="button" className="pd-btn pd-ghost pd-reset" onClick={() => setSettings({ cursor:true,noise:true,animations:true,emailAlerts:true,smsAlerts:false,driveReminders:true,defaultFilter:"All",showProgress:true,compact:false,academicYear:"2024-25" })}>
-            Reset to Defaults
+          {tab==="general" && (
+            <div>
+              <div className="pd-ssec-label">Academic</div>
+              <div className="pd-srow-item">
+                <div className="pd-srow-info"><div className="pd-srow-label">Academic Year</div><div className="pd-srow-desc">Shown in sidebar and reports</div></div>
+                <select className="pd-sselect" value={local.academicYear} onChange={e=>setVal("academicYear",e.target.value)}>
+                  {["2022-23","2023-24","2024-25","2025-26"].map(y=><option key={y}>{y}</option>)}
+                </select>
+              </div>
+              <div className="pd-ssec-label" style={{marginTop:18}}>Officer Profile</div>
+              <div className="af-grid-2" style={{marginBottom:0}}>
+                <FInput label="Name" name="officerName" value={local.officerName} onChange={e=>setVal("officerName",e.target.value)} placeholder="Officer name" />
+                <FInput label="Role" name="officerDept" value={local.officerDept} onChange={e=>setVal("officerDept",e.target.value)} placeholder="e.g. Placement Officer" />
+              </div>
+            </div>
+          )}
+          {tab==="display" && (
+            <div>
+              <div className="pd-ssec-label">Cards &amp; Layout</div>
+              <div className="pd-srow-item"><div className="pd-srow-info"><div className="pd-srow-label">Show Progress Bar</div><div className="pd-srow-desc">Application fill rate on cards</div></div><Toggle checked={local.showProgress} onChange={()=>toggle("showProgress")} /></div>
+              <div className="pd-srow-item"><div className="pd-srow-info"><div className="pd-srow-label">Compact View</div><div className="pd-srow-desc">Smaller card padding</div></div><Toggle checked={local.compact} onChange={()=>toggle("compact")} /></div>
+            </div>
+          )}
+          {tab==="notifications" && (
+            <div>
+              <div className="pd-ssec-label">Alerts</div>
+              {[
+                {key:"driveReminders",label:"Drive Reminders",    desc:"Notify before upcoming drives"},
+                {key:"studentSms",    label:"Student SMS",        desc:"Send SMS to eligible students"},
+                {key:"emailAlerts",   label:"Email Alerts",       desc:"New drive notifications via email"},
+              ].map(r=>(
+                <div key={r.key} className="pd-srow-item">
+                  <div className="pd-srow-info"><div className="pd-srow-label">{r.label}</div><div className="pd-srow-desc">{r.desc}</div></div>
+                  <Toggle checked={local[r.key]} onChange={()=>toggle(r.key)} />
+                </div>
+              ))}
+            </div>
+          )}
+          {tab==="data" && (
+            <div>
+              <div className="pd-ssec-label">Export</div>
+              <div className="pd-srow-item">
+                <div className="pd-srow-info"><div className="pd-srow-label">Default Export Format</div><div className="pd-srow-desc">Used when downloading data</div></div>
+                <select className="pd-sselect" value={local.exportFormat} onChange={e=>setVal("exportFormat",e.target.value)}>
+                  {["CSV","Excel","PDF"].map(v=><option key={v}>{v}</option>)}
+                </select>
+              </div>
+              <div className="pd-ssec-label" style={{marginTop:18,color:"var(--rose)"}}>Danger Zone</div>
+              <div className="pd-srow-item">
+                <div className="pd-srow-info"><div className="pd-srow-label">Reset All Settings</div><div className="pd-srow-desc">Restore defaults</div></div>
+                <button className="btn" style={{fontSize:11,padding:"7px 14px",background:"rgba(240,83,106,.1)",color:"var(--rose)",border:"1px solid rgba(240,83,106,.25)"}} onClick={()=>setLocal({...defaultSettings})}>Reset</button>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="pd-footer">
+          <button className="btn btn-ghost" style={{fontSize:11,padding:"9px 18px"}} onClick={onClose}>Cancel</button>
+          <button className="btn btn-teal"  style={{fontSize:11,padding:"9px 22px"}} onClick={()=>{ onSave(local); onClose(); }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+            Save Settings
           </button>
         </div>
       </div>
-    </Portal>
+    </>
   );
 }
 
-/* ── SIDEBAR ── */
-function NavLink({ active, to, badge, badgeCls, icon, label, onClick }) {
-  return (
-    <a href={to || "#"} className={"pd-navlink" + (active ? " active" : "")} onClick={e => { if (onClick) { e.preventDefault(); onClick(); } }}>
-      {icon}<span>{label}</span>
-      {badge != null && <span className={"pd-nbadge" + (badgeCls ? " " + badgeCls : "")}>{badge}</span>}
-    </a>
-  );
-}
-
-function Sidebar({ drives, toast, onClose }) {
-  const up = drives.filter(d => d.status === "Upcoming").length;
-  return (
-    <aside className="pd-sidebar">
-      <div className="pd-sb-top">
-        <div className="pd-brand"><div className="pd-mark">SC</div><span className="pd-bname">SmartCampus</span></div>
-      </div>
-      <div className="pd-sb-user">
-        <div className="pd-uavatar">KR</div>
-        <div><div className="pd-uname">Ms. Kavitha R</div><div className="pd-urole">Placement Officer</div></div>
-      </div>
-      <nav className="pd-nav">
-        <div className="pd-sec">Overview</div>
-        <NavLink to="/placementdashboard" label="Dashboard" onClick={onClose} icon={<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>} />
-        <NavLink to="/analytics" label="Analytics" badge="New" onClick={onClose} icon={<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>} />
-        <div className="pd-sec">Placement</div>
-        <NavLink to="/students" label="Students" badge={316} badgeCls="teal" onClick={onClose} icon={<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>} />
-        <NavLink to="/companies" label="Companies" badge={5} badgeCls="amber" onClick={onClose} icon={<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>} />
-        <NavLink active to="/drives" label="Drives" badge={up} badgeCls="rose" onClick={onClose} icon={<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>} />
-        <NavLink to="/offers" label="Offers & Placed" onClick={onClose} icon={<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>} />
-        <NavLink to="/internships" label="Internships" onClick={onClose} icon={<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>} />
-        <div className="pd-sec">Tools</div>
-        <NavLink to="/ai" label="AI Assistant" onClick={onClose} icon={<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>} />
-        <NavLink to="/reports" label="Reports" onClick={onClose} icon={<svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>} />
-      </nav>
-      <div className="pd-sb-foot">
-        <div className="pd-prbox">
-          <div className="pd-prlbl">Placement Rate</div>
-          <div className="pd-prval">68%</div>
-          <div className="pd-prsub">+6% vs last year · AY 2024–25</div>
-          <div className="pd-prbar"><div className="pd-prfill" style={{width:"68%"}} /></div>
-        </div>
-        <button type="button" className="pd-signout" onClick={() => toast("Signing out…","info")}>
-          <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-          Sign Out
-        </button>
-      </div>
-    </aside>
-  );
-}
-
-/* ── METRIC ── */
-function Metric({ val, lbl, color }) {
-  return (
-    <div className="pd-metric">
-      <div className="pd-mval" style={{color}}>{val}</div>
-      <div className="pd-mlbl">{lbl}</div>
-    </div>
-  );
-}
-
-/* ── DRIVE CARD ── */
-function DriveCard({ drive:d, expanded, onToggle, onEdit, onDelete, onNotify, showProgress, compact }) {
-  const pct = d.eligible > 0 ? Math.round((d.applied / d.eligible) * 100) : 0;
-  const fmtDate = raw => { try { return new Date(raw).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"}); } catch { return raw; } };
-  return (
-    <div className={"pd-card" + (expanded ? " expanded" : "")}>
-      <div className={"pd-card-row" + (compact ? " compact" : "")} onClick={onToggle}>
-        <div className="pd-clogo" style={{color:d.color}}>{d.logo}</div>
-        <div className="pd-cinfo">
-          <div className="pd-cname-row">
-            <span className="pd-cname">{d.name}</span>
-            <Badge cls={STATUS_CLS[d.status]}>{d.status}</Badge>
-          </div>
-          <div className="pd-crole">{d.role} · {fmtDate(d.date)}</div>
-        </div>
-        <div className="pd-cmetrics">
-          <Metric val={d.pkg}      lbl="Package" color="#2dd4bf" />
-          <Metric val={d.applied}  lbl="Applied"  color="#a59fff" />
-          <Metric val={d.eligible} lbl="Eligible" color="#fbbf24" />
-          {showProgress && (
-            <div className="pd-prog">
-              <div className="pd-prog-top"><span>Fill</span><span>{pct}%</span></div>
-              <div className="pd-pbar"><div className="pd-pfill" style={{width:pct+"%",background:d.color}} /></div>
-            </div>
-          )}
-          <span className={"pd-chev" + (expanded ? " open" : "")}>▼</span>
-        </div>
-      </div>
-      {expanded && (
-        <div className="pd-expanded" onClick={e => e.stopPropagation()}>
-          <div className="pd-esec">
-            <div className="pd-etitle">Interview Rounds</div>
-            {d.rounds.map((r, i) => (
-              <div key={i} className="pd-eround">
-                <span className="pd-rnum">{i + 1}</span><span>{r}</span>
-              </div>
-            ))}
-          </div>
-          <div className="pd-esec">
-            <div className="pd-etitle">Eligibility</div>
-            <div className="pd-chips">{d.branches.map(b => <span key={b} className="pd-chip">{b}</span>)}</div>
-            <div className="pd-minc">Min CGPA: <strong style={{color:"#fbbf24"}}>{d.minCgpa}</strong></div>
-          </div>
-          <div className="pd-esec">
-            <div className="pd-etitle">About</div>
-            <p className="pd-edesc">{d.desc}</p>
-            <div className="pd-eactions">
-              <button type="button" className="pd-btn pd-solid" style={{fontSize:10,padding:"7px 13px"}} onClick={onNotify}>📨 Notify Students</button>
-              <button type="button" className="pd-btn pd-ghost" style={{fontSize:10,padding:"7px 13px"}} onClick={onEdit}>✏️ Edit Drive</button>
-              <button type="button" className="pd-btn pd-rose"  style={{fontSize:10,padding:"7px 13px"}} onClick={onDelete}>🗑 Delete</button>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ══════════════════════════════════════════════
-   MAIN
-══════════════════════════════════════════════ */
+/* ══════════════════════════════════════════
+   MAIN PAGE
+══════════════════════════════════════════ */
 export default function PlacementDrives() {
-  const [drives, setDrives]     = useState(INIT_DRIVES);
-  const [filter, setFilter]     = useState("All");
-  const [expanded, setExpanded] = useState(null);
-  const [search, setSearch]     = useState("");
-  const [settings, setSettings] = useState({ cursor:true,noise:true,animations:true,emailAlerts:true,smsAlerts:false,driveReminders:true,defaultFilter:"All",showProgress:true,compact:false,academicYear:"2024-25" });
-  const [showAdd, setShowAdd]           = useState(false);
-  const [editTarget, setEditTarget]     = useState(null);
+  const [drives,       setDrives]       = useState(INIT_DRIVES);
+  const [filter,       setFilter]       = useState("All");
+  const [search,       setSearch]       = useState("");
+  const [expanded,     setExpanded]     = useState(null);
+  const [showAdd,      setShowAdd]      = useState(false);
+  const [editTarget,   setEditTarget]   = useState(null);
   const [notifyTarget, setNotifyTarget] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
-  const [mobSidebar, setMobSidebar]     = useState(false);
+  const [settings,     setSettings]     = useState(defaultSettings);
 
-  const { list: toasts, add: toast, remove: removeToast } = useToasts();
-
-  /* cursor */
-  const dotRef  = useRef(null);
+  /* ── CUSTOM CURSOR ── */
+  const curRef  = useRef(null);
   const ringRef = useRef(null);
-  const mx = useRef(0), my = useRef(0), rx = useRef(0), ry = useRef(0), raf = useRef(null);
+  const mx=useRef(0), my=useRef(0), rx=useRef(0), ry=useRef(0);
 
   useEffect(() => {
-    if (!settings.cursor) { document.body.style.cursor = "default"; cancelAnimationFrame(raf.current); return; }
-    document.body.style.cursor = "none";
-    const move = e => { mx.current = e.clientX; my.current = e.clientY; if (dotRef.current) { dotRef.current.style.left = e.clientX+"px"; dotRef.current.style.top = e.clientY+"px"; } };
-    const down = () => document.body.classList.add("c-click");
-    const up   = () => document.body.classList.remove("c-click");
-    const over = e => { e.target.closest("button,a,input,select,textarea,label") ? document.body.classList.add("c-hover") : document.body.classList.remove("c-hover"); };
-    document.addEventListener("mousemove", move);
-    document.addEventListener("mousedown", down);
-    document.addEventListener("mouseup",   up);
-    document.addEventListener("mouseover", over);
-    const loop = () => { rx.current += (mx.current - rx.current)*0.14; ry.current += (my.current - ry.current)*0.14; if (ringRef.current) { ringRef.current.style.left = rx.current+"px"; ringRef.current.style.top = ry.current+"px"; } raf.current = requestAnimationFrame(loop); };
+    const onMove = e => {
+      mx.current=e.clientX; my.current=e.clientY;
+      if (curRef.current) { curRef.current.style.left=e.clientX+"px"; curRef.current.style.top=e.clientY+"px"; }
+    };
+    const onDown = () => document.body.classList.add("c-click");
+    const onUp   = () => document.body.classList.remove("c-click");
+    document.addEventListener("mousemove",onMove);
+    document.addEventListener("mousedown",onDown);
+    document.addEventListener("mouseup",  onUp);
+    let raf;
+    const loop = () => {
+      rx.current += (mx.current-rx.current)*0.14;
+      ry.current += (my.current-ry.current)*0.14;
+      if (ringRef.current) { ringRef.current.style.left=rx.current+"px"; ringRef.current.style.top=ry.current+"px"; }
+      raf=requestAnimationFrame(loop);
+    };
     loop();
-    return () => { document.removeEventListener("mousemove",move); document.removeEventListener("mousedown",down); document.removeEventListener("mouseup",up); document.removeEventListener("mouseover",over); cancelAnimationFrame(raf.current); document.body.style.cursor=""; document.body.classList.remove("c-hover","c-click"); };
-  }, [settings.cursor]);
+    return () => {
+      document.removeEventListener("mousemove",onMove);
+      document.removeEventListener("mousedown",onDown);
+      document.removeEventListener("mouseup",  onUp);
+      cancelAnimationFrame(raf);
+    };
+  },[]);
 
-  const addDrive  = useCallback(form => { setDrives(p => [form, ...p]); setShowAdd(false);   toast('"'+form.name+'" added!', "success"); }, [toast]);
-  const saveDrive = useCallback(form => { setDrives(p => p.map(d => d.id===form.id ? form : d)); setEditTarget(null); toast('"'+form.name+'" updated!', "success"); }, [toast]);
-  const deleteDrive = useCallback(id => {
-    setDrives(p => { const d = p.find(x => x.id===id); toast('"'+(d?.name)+'" removed.', "info"); return p.filter(x => x.id!==id); });
-    setExpanded(null);
-  }, [toast]);
+  useEffect(() => {
+    document.body.style.overflow=(showAdd||editTarget||notifyTarget||deleteTarget||showSettings)?"hidden":"";
+    return()=>{ document.body.style.overflow=""; };
+  },[showAdd,editTarget,notifyTarget,deleteTarget,showSettings]);
+
+  const handleAdd    = d  => setDrives(p=>[d,...p]);
+  const handleSave   = d  => setDrives(p=>p.map(x=>x.id===d.id?d:x));
+  const handleDelete = () => { setDrives(p=>p.filter(d=>d.id!==deleteTarget.id)); setDeleteTarget(null); setExpanded(null); };
 
   const filtered = drives.filter(d => {
-    if (filter !== "All" && d.status !== filter) return false;
-    const q = search.toLowerCase();
-    return !q || d.name.toLowerCase().includes(q) || d.role.toLowerCase().includes(q);
+    const mf = filter==="All" || d.status===filter;
+    const ms = d.name.toLowerCase().includes(search.toLowerCase()) || d.role.toLowerCase().includes(search.toLowerCase());
+    return mf && ms;
   });
 
-  const upcoming  = drives.filter(d => d.status==="Upcoming").length;
-  const ongoing   = drives.filter(d => d.status==="Ongoing").length;
-  const completed = drives.filter(d => d.status==="Completed").length;
-  const totalApps = drives.reduce((s,d) => s+(d.applied||0), 0);
+  const upcoming  = drives.filter(d=>d.status==="Upcoming").length;
+  const ongoing   = drives.filter(d=>d.status==="Ongoing").length;
+  const completed = drives.filter(d=>d.status==="Completed").length;
+  const totalApps = drives.reduce((s,d)=>s+(d.applied||0),0);
 
   return (
     <>
-      {settings.cursor && (
-        <Portal>
-          <div className="pd-cur-dot"  ref={dotRef}  />
-          <div className="pd-cur-ring" ref={ringRef} />
-        </Portal>
-      )}
-      {settings.noise && <div className="pd-noise" />}
-      <Toasts list={toasts} remove={removeToast} />
+      {/* CURSOR */}
+      <div className="sc-cursor"      ref={curRef}  style={{zIndex:99999}} />
+      <div className="sc-cursor-ring" ref={ringRef} style={{zIndex:99999}} />
+      <div className="sc-noise" />
 
-      {showAdd      && <DriveFormModal onSave={addDrive} onClose={() => setShowAdd(false)} />}
-      {editTarget   && <DriveFormModal initial={editTarget} onSave={saveDrive} onClose={() => setEditTarget(null)} />}
-      {notifyTarget && <NotifyModal drive={notifyTarget} onClose={() => setNotifyTarget(null)} onSent={() => toast("Notifications sent for "+notifyTarget.name+"!","success")} />}
-      {deleteTarget && <ConfirmModal drive={deleteTarget} onConfirm={() => deleteDrive(deleteTarget.id)} onClose={() => setDeleteTarget(null)} />}
-      {showSettings && <SettingsPanel settings={settings} setSettings={setSettings} onClose={() => { setShowSettings(false); toast("Settings saved.","success"); }} />}
+      {/* MODALS */}
+      {showAdd      && <DriveModal  onClose={()=>setShowAdd(false)} onSave={d=>{ handleAdd(d); setShowAdd(false); }} />}
+      {editTarget   && <DriveModal  initial={editTarget} onClose={()=>setEditTarget(null)} onSave={d=>{ handleSave(d); setEditTarget(null); }} />}
+      {notifyTarget && <NotifyModal drive={notifyTarget} onClose={()=>setNotifyTarget(null)} onSent={()=>{}} />}
+      {deleteTarget && <DeleteConfirm drive={deleteTarget} onConfirm={handleDelete} onCancel={()=>setDeleteTarget(null)} />}
+      {showSettings && <SettingsPanel settings={settings} onSave={setSettings} onClose={()=>setShowSettings(false)} />}
 
-      {mobSidebar && (
-        <Portal>
-          <div className="pd-mob-bg" onClick={() => setMobSidebar(false)} />
-          <div className="pd-mob-side"><Sidebar drives={drives} toast={toast} onClose={() => setMobSidebar(false)} /></div>
-        </Portal>
-      )}
-
-      <div className="pd-app">
-        <div className="pd-desk-side"><Sidebar drives={drives} toast={toast} /></div>
-        <div className="pd-main">
-          <header className="pd-topbar">
-            <button type="button" className="pd-ham" onClick={() => setMobSidebar(true)}>
-              <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-            </button>
-            <button type="button" className="pd-back" onClick={() => window.history.back()}>
-              <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
-              <span>Back</span>
-            </button>
-            <span className="pd-tbpage">Placement Drives</span>
-            <div className="pd-sbox">
-              <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <input placeholder="Search drives…" value={search} onChange={e => setSearch(e.target.value)} />
-              {search && <button type="button" className="pd-sclear" onClick={() => setSearch("")}>✕</button>}
+      <div className="app">
+        {/* ── SIDEBAR ── */}
+        <aside className="sidebar">
+          <div className="sb-top"><a className="sb-brand" href="#"><div className="sb-mark">SC</div><span className="sb-name">SmartCampus</span></a></div>
+          <div className="sb-user">
+            <div className="sb-avatar">{settings.officerName.trim().split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2)}</div>
+            <div><div className="sb-uname">{settings.officerName}</div><div className="sb-urole">{settings.officerDept}</div></div>
+          </div>
+          <nav className="sb-nav">
+            <div className="sb-sec-label">Overview</div>
+            <SbLink to="/placementdashboard" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>}>Dashboard</SbLink>
+            <SbLink to="/placementdashboard/placementAnalytics" badge="New" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>}>Analytics</SbLink>
+            <div className="sb-sec-label">Placement</div>
+            <SbLink to="/placementdashboard/students" badge="12" badgeCls="teal" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>}>Students</SbLink>
+            <SbLink to="/placementdashboard/companies" badge="5" badgeCls="amber" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>}>Companies</SbLink>
+            <SbLink active to="/placementdashboard/drives" badge={String(upcoming)} badgeCls="rose" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>}>Drives</SbLink>
+            <SbLink to="/placementdashboard/offers-placed" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>}>Offers &amp; Placed</SbLink>
+            <SbLink to="/placementdashboard/internships" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>}>Internships</SbLink>
+            <div className="sb-sec-label">Tools</div>
+            <SbLink to="/placementdashboard/ai-assistant" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>}>AI Assistant</SbLink>
+            <SbLink to="/placementdashboard/reports" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>}>Reports</SbLink>
+          </nav>
+          <div className="sb-bottom">
+            <div className="sb-pri">
+              <div className="sb-pri-lbl">Placement Rate</div>
+              <div className="sb-pri-val">68%</div>
+              <div className="sb-pri-sub">AY {settings.academicYear}</div>
+              <div className="sb-pri-bar"><div className="sb-pri-fill" style={{width:"68%"}} /></div>
             </div>
-            <div className="pd-tbr">
-              <button type="button" className="pd-icon-btn" onClick={() => toast("3 upcoming drive reminders.","info")}>
-                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                <span className="pd-ndot" />
+            <button className="sb-logout">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+              Sign Out
+            </button>
+          </div>
+        </aside>
+
+        {/* ── MAIN ── */}
+        <div className="main">
+          <header className="topbar">
+            <span className="tb-page">Placement Drives</span>
+            <div className="tb-sep" />
+            <div className="tb-search">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{color:"var(--text3)",flexShrink:0}}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" placeholder="Search drives…" value={search} onChange={e=>setSearch(e.target.value)} style={{cursor:"none"}} />
+            </div>
+            <div className="tb-right">
+              <span className="tb-date">Placement · AY {settings.academicYear}</span>
+              <button className="tb-icon-btn" onClick={()=>setShowSettings(true)} title="Settings">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{color:"inherit"}}>
+                  <circle cx="12" cy="12" r="3"/>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                </svg>
               </button>
-              <button type="button" className="pd-icon-btn" onClick={() => setShowSettings(true)}>
-                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+              <button className="btn btn-solid" style={{fontSize:10,padding:"8px 14px"}} onClick={()=>setShowAdd(true)}>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                New Drive
               </button>
-              <button type="button" className="pd-btn pd-solid pd-newbtn" onClick={() => setShowAdd(true)}>+ New Drive</button>
             </div>
           </header>
 
-          <div className="pd-content">
-            <div className="pd-pghead">
-              <div className="pd-ptag"><span className="pd-pip" /><span>{drives.length} Drives · {upcoming} Upcoming · {ongoing} Ongoing · {completed} Completed</span></div>
-              <h1 className="pd-h1">Placement <em>Drives</em></h1>
-              <p className="pd-hsub">Manage all campus recruitment drives, eligibility, and student applications.</p>
+          <div className="content">
+            {/* PAGE HEADER */}
+            <div className="greet-row">
+              <div className="greet-tag">
+                <div className="greet-pip" />
+                <span className="greet-pip-txt">{drives.length} Drives · {upcoming} Upcoming · AY {settings.academicYear}</span>
+              </div>
+              <h1 className="greet-title">Placement <em>Drives</em></h1>
             </div>
 
-            <div className="pd-stats">
+            {/* STATS */}
+            <div className="stat-grid" style={{marginBottom:18}}>
               {[
-                {label:"Total Drives", val:drives.length, color:"#a59fff", delta:"AY 2024–25"},
-                {label:"Upcoming",     val:upcoming,      color:"#8b5cf6", delta: upcoming>0 ? "Next: "+drives.find(d=>d.status==="Upcoming")?.date : "None yet"},
-                {label:"Applications", val:totalApps,     color:"#fbbf24", delta:"Across all drives"},
-                {label:"Ongoing",      val:ongoing,       color:"#2dd4bf", delta:"Active now"},
-              ].map((s,i) => (
-                <div key={s.label} className="pd-stat" style={{animationDelay:i*0.06+"s"}}>
-                  <div className="pd-sval" style={{color:s.color}}>{s.val}</div>
-                  <div className="pd-slbl">{s.label}</div>
-                  <div className="pd-sdelta">{s.delta}</div>
+                {label:"Total Drives",  val:drives.length, color:"indigo", delta:"AY "+settings.academicYear, type:"neu"},
+                {label:"Upcoming",      val:upcoming,       color:"violet", delta: upcoming>0?"Next: "+fmtDate(drives.find(d=>d.status==="Upcoming")?.date||""):"None scheduled", type:"up"},
+                {label:"Applications",  val:totalApps,      color:"teal",   delta:"Across all drives", type:"up"},
+                {label:"Ongoing",       val:ongoing,        color:"rose",   delta:"Active now", type: ongoing>0?"up":"neu"},
+              ].map(s=>(
+                <div key={s.label} className={`stat-card sc-${s.color}`}>
+                  <div className="stat-val" style={s.color!=="indigo"?{color:`var(--${s.color})`}:{}}>{s.val}</div>
+                  <div className="stat-lbl">{s.label}</div>
+                  <span className={`stat-delta delta-${s.type}`}>{s.delta}</span>
                 </div>
               ))}
             </div>
 
-            <div className="pd-fbar">
-              <div className="pd-tabs">
-                {["All","Upcoming","Ongoing","Completed"].map(f => (
-                  <button key={f} type="button" className={"pd-tab"+(filter===f?" active":"")} onClick={() => setFilter(f)}>
-                    {f}<span className="pd-tc">{f==="All"?drives.length:drives.filter(d=>d.status===f).length}</span>
+            {/* FILTERS */}
+            <div style={{display:"flex",gap:10,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
+              <div className="filter-row">
+                {["All","Upcoming","Ongoing","Completed"].map(f=>(
+                  <button key={f} className={`filter-btn${filter===f?" active":""}`} onClick={()=>setFilter(f)}>
+                    {f}
                   </button>
                 ))}
               </div>
-              <button type="button" className="pd-btn pd-ghost pd-setbtn" onClick={() => setShowSettings(true)}>⚙️ Settings</button>
+              <span style={{marginLeft:"auto",fontSize:11,color:"var(--text3)"}}>{filtered.length} drives</span>
             </div>
 
-            {filtered.length === 0 ? (
+            {/* DRIVE LIST */}
+            {filtered.length===0 ? (
               <div className="pd-empty">
-                <div style={{fontSize:40,opacity:.3}}>📋</div>
+                <div style={{fontSize:36,opacity:.3}}>📋</div>
                 <div className="pd-et">No drives found</div>
-                <div className="pd-es">{search ? 'No results for "'+search+'"' : "No "+filter.toLowerCase()+" drives yet."}</div>
-                <button type="button" className="pd-btn pd-solid" style={{marginTop:12,fontSize:11}} onClick={() => setShowAdd(true)}>+ Add a Drive</button>
+                <div className="pd-es">{search?`No results for "${search}"`:`No ${filter.toLowerCase()} drives yet.`}</div>
+                <button className="btn btn-solid" style={{marginTop:12,fontSize:11,padding:"9px 18px"}} onClick={()=>setShowAdd(true)}>+ Add a Drive</button>
               </div>
             ) : (
-              <div className="pd-list">
-                {filtered.map(d => (
-                  <DriveCard key={d.id} drive={d}
-                    expanded={expanded===d.id}
-                    onToggle={() => setExpanded(expanded===d.id?null:d.id)}
-                    onEdit={() => setEditTarget(d)}
-                    onDelete={() => setDeleteTarget(d)}
-                    onNotify={() => setNotifyTarget(d)}
-                    showProgress={settings.showProgress}
-                    compact={settings.compact}
-                  />
-                ))}
+              <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:16}}>
+                {filtered.map((d,i) => {
+                  const pct = d.eligible>0 ? Math.round((d.applied/d.eligible)*100) : 0;
+                  const isOpen = expanded===d.id;
+                  return (
+                    <div key={d.id} className={`pd-card${isOpen?" open":""}`} style={{animationDelay:i*0.04+"s"}}>
+                      {/* CARD ROW */}
+                      <div
+                        className={`pd-card-row${settings.compact?" compact":""}`}
+                        onClick={()=>setExpanded(isOpen?null:d.id)}
+                        onMouseEnter={e=>e.currentTarget.parentElement.style.borderColor="rgba(91,78,248,.3)"}
+                        onMouseLeave={e=>{ if(!isOpen) e.currentTarget.parentElement.style.borderColor=""; }}
+                      >
+                        <div className="pd-clogo" style={{color:d.color}}>{d.logo}</div>
+                        <div className="pd-cinfo">
+                          <div className="pd-cname-row">
+                            <span className="pd-cname">{d.name}</span>
+                            <Badge cls={statusMap[d.status]} dot>{d.status}</Badge>
+                          </div>
+                          <div className="pd-crole">{d.role} · {fmtDate(d.date)}</div>
+                        </div>
+                        <div className="pd-cmetrics">
+                          <div className="pd-metric"><div className="pd-mval" style={{color:"var(--teal)"}}>{d.pkg}</div><div className="pd-mlbl">Package</div></div>
+                          <div className="pd-metric"><div className="pd-mval" style={{color:"var(--indigo-ll)"}}>{d.applied}</div><div className="pd-mlbl">Applied</div></div>
+                          <div className="pd-metric"><div className="pd-mval" style={{color:"var(--amber)"}}>{d.eligible}</div><div className="pd-mlbl">Eligible</div></div>
+                          {settings.showProgress && (
+                            <div className="pd-prog">
+                              <div className="pd-prog-top"><span>Fill</span><span>{pct}%</span></div>
+                              <div className="pd-pbar"><div className="pd-pfill" style={{width:pct+"%",background:d.color}} /></div>
+                            </div>
+                          )}
+                          <span className={`pd-chev${isOpen?" open":""}`}>▼</span>
+                        </div>
+                      </div>
+
+                      {/* EXPANDED */}
+                      {isOpen && (
+                        <div className="pd-expanded" onClick={e=>e.stopPropagation()}>
+                          <div>
+                            <div className="pd-etitle">Interview Rounds</div>
+                            {d.rounds.map((r,i)=>(
+                              <div key={i} className="pd-eround">
+                                <span className="pd-rnum">{i+1}</span>
+                                <span style={{fontSize:12,color:"var(--text2)"}}>{r}</span>
+                              </div>
+                            ))}
+                          </div>
+                          <div>
+                            <div className="pd-etitle">Eligibility</div>
+                            <div className="pd-chips">{d.branches.map(b=><span key={b} className="pd-chip">{b}</span>)}</div>
+                            <div className="pd-minc">Min CGPA: <strong style={{color:"var(--amber)"}}>{d.minCgpa}</strong></div>
+                          </div>
+                          <div>
+                            <div className="pd-etitle">About</div>
+                            <p className="pd-edesc">{d.desc}</p>
+                            <div className="pd-eactions">
+                              <button className="btn btn-solid"  style={{fontSize:10,padding:"7px 13px"}} onClick={()=>setNotifyTarget(d)}>
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                                Notify
+                              </button>
+                              <button className="btn btn-ghost"  style={{fontSize:10,padding:"7px 13px"}} onClick={()=>setEditTarget(d)}>
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                                Edit
+                              </button>
+                              <button className="btn" style={{fontSize:10,padding:"7px 13px",background:"rgba(240,83,106,.1)",color:"var(--rose)",border:"1px solid rgba(240,83,106,.2)"}} onClick={()=>setDeleteTarget(d)}>
+                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
+                                Delete
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

@@ -1,5 +1,4 @@
 import PlacementAIAssistant from "../pages/placement/placementAIAssistant/placementAIAssistant";
-import PlacementReports from "../pages/placement/placementReports/placementReports";
 import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
 import SmartCampus from "../App";
 import StudentDashboard from "../pages/Student/studentDashboard/studentDashboard";
@@ -12,6 +11,9 @@ import PlacementOffersPlaced from "../pages/placement/placementOffersPlaced/plac
 import PlacementInternships from "../pages/placement/placementInternships/placementInternships";
 import RoleRoute from "./RoleRoute";
 import PlacementAnalytics from "../pages/placement/placementAnalytics/placementAnalytics";
+import PlacementProfile from "../pages/placement/placementProfile/placementProfile";
+import PlacementReports from "../pages/placement/placementReports/placementReports";
+
 
 const SD = (
   <RoleRoute allowedRoles={["student", "admin"]}>
@@ -25,7 +27,7 @@ const router = createBrowserRouter([
       element: <RoleRoute allowedRoles={["placement_officer","admin"]}><PlacementAIAssistant /></RoleRoute>,
     },
     {
-      path: "/placementdashboard/reports",
+      path: "/placementdashboard/Reports",
       element: <RoleRoute allowedRoles={["placement_officer","admin"]}><PlacementReports /></RoleRoute>,
     },
   // ──────── AUTH ROUTES ────────
@@ -90,7 +92,7 @@ const router = createBrowserRouter([
     element: <RoleRoute allowedRoles={["placement_officer","admin"]}><PlacementDashboard /></RoleRoute>,
   },
   {
-    path: "/placementdashboard/placementAnalytics",
+    path: "/placementdashboard/Analytics",
     element: <RoleRoute allowedRoles={["placement_officer","admin"]}><PlacementAnalytics /></RoleRoute>,
   },
   {
@@ -112,6 +114,10 @@ const router = createBrowserRouter([
   {
     path: "/placementdashboard/internships",
     element: <RoleRoute allowedRoles={["placement_officer","admin"]}><PlacementInternships /></RoleRoute>,
+  },
+  {
+    path: "/placementdashboard/placementProfile",
+    element: <RoleRoute allowedRoles={["placement_officer","admin"]}><PlacementProfile /></RoleRoute>,
   },
 
   //  ──────── ADMIN DASHBOARD ROUTE ────────

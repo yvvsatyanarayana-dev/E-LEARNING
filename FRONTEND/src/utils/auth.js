@@ -26,3 +26,8 @@ export const ROLE_REDIRECTS = {
   placement_officer: "/placement/dashboard",
   admin: "/admin/dashboard",
 };
+// remove authentication info from storage
+export function clearAuth() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+}
