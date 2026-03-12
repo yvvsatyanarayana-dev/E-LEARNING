@@ -5,6 +5,16 @@ import StudentDashboard from "../pages/Student/studentDashboard/studentDashboard
 import FacultyDashboard from "../pages/Faculty/facultyDashboard/facultyDashboard";
 import FacultyQuickaction from "../pages/Faculty/facultyQuickaction/facultyQuickaction";
 import FacultyNotification from "../pages/Faculty/facultyNotification/facultyNotification";
+import AdminDashboard from "../pages/admin/adminDashbaord/adminDashboard";
+import AdminAnalytics from "../pages/admin/adminAnalytics/adminAnalytics";
+import UserManagement from "../pages/admin/adminUserManagement/adminUserManagement";
+import CourseManagement from "../pages/admin/adminCourseManagement/adminCourseManagement";
+import Departments from "../pages/admin/adminDepartments/adminDepartments";
+import Placements from "../pages/admin/adminPlacements/adminPlacements";
+import Reports from "../pages/admin/adminReports/adminreports";
+import Notifications from "../pages/admin/adminNotifications/adminNotifications";
+import AuditLogs from "../pages/admin/adminAuditLogs/adminAuditLogs";
+import SystemConfig from "../pages/admin/adminSystemConfig/adminSystemConfig";
 import RoleRoute from "./RoleRoute";
 import ErrorBoundary from "./ErrorBoundary";
 
@@ -130,16 +140,55 @@ const router = createBrowserRouter([
     errorElement: <ErrorBoundary />,
   },
 
-  // ──────── OTHER DASHBOARD ROUTES ────────
+  // ──────── PLACEMENT DASHBOARD ROUTES ────────
   {
     path: "/placementdashboard",
     element: <RoleRoute allowedRoles={["placement_officer","admin"]}><div>Placement Dashboard — coming soon</div></RoleRoute>,
   },
+
+
+
+  // ──────── ADMIN DASHBOARD ROUTES ────────
   {
     path: "/admindashboard",
-    element: <RoleRoute allowedRoles={["admin"]}><div>Admin Dashboard — coming soon</div></RoleRoute>,
+    element: <RoleRoute allowedRoles={["admin"]}><AdminDashboard/></RoleRoute>,
   },
-
+  {
+    path: "/admindashboard/adminAnalytics",
+    element: <RoleRoute allowedRoles={["admin"]}><AdminAnalytics /></RoleRoute>,
+  },
+  {
+    path: "/admindashboard/userManagement",
+    element: <RoleRoute allowedRoles={["admin"]}><UserManagement /></RoleRoute>,
+  },
+  {
+    path: "/admindashboard/courseManagement",
+    element: <RoleRoute allowedRoles={["admin"]}><CourseManagement /></RoleRoute>,
+  },
+  {
+    path: "/admindashboard/departments",
+    element: <RoleRoute allowedRoles={["admin"]}><Departments /></RoleRoute>,
+  },
+  {
+    path: "/admindashboard/placements",
+    element: <RoleRoute allowedRoles={["admin"]}><Placements /></RoleRoute>,
+  },
+  {
+    path: "/admindashboard/adminReports",
+    element: <RoleRoute allowedRoles={["admin"]}><Reports /></RoleRoute>,
+  },
+  {
+    path: "/admindashboard/notifications",
+    element: <RoleRoute allowedRoles={["admin"]}><Notifications /></RoleRoute>,
+  },
+  {
+    path: "/admindashboard/auditLogs",
+    element: <RoleRoute allowedRoles={["admin"]}><AuditLogs /></RoleRoute>,
+  },
+  {
+    path: "/admindashboard/settings",
+    element: <RoleRoute allowedRoles={["admin"]}><SystemConfig /></RoleRoute>,
+  },
   // ──────── FALLBACK ROUTE ────────
   { path: "*", element: <Navigate to="/" replace /> },
 ]);
