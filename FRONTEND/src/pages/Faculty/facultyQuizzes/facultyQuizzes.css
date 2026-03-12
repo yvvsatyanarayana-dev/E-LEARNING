@@ -751,6 +751,18 @@ select.qz-input { cursor: pointer; }
 }
 .qz-opt-inp:focus { border-color: transparent !important; }
 
+.qz-correct-label {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--teal);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-left: 10px;
+  padding: 2px 6px;
+  background: rgba(39, 201, 176, 0.12);
+  border-radius: 4px;
+}
+
 /* True/False */
 .qz-tf-row { display: flex; gap: 8px; }
 .qz-tf-btn {

@@ -749,17 +749,28 @@ class StudentService:
             en.course_id for en in
             db.query(Enrollment).filter(Enrollment.student_id == student.id).all()
         ]
-        query = db.query(Assignment).filter(Assignment.course_id.in_(enrolled_ids))
-        if course_id:
-            query = query.filter(Assignment.course_id == course_id)
-            
-        # Filter by target_group
+        
         dept = student.department or ""
-        query = query.filter(
-            (Assignment.target_group == None) | 
-            (Assignment.target_group == "All") | 
-            (Assignment.target_group == dept)
-        )
+        
+        if course_id:
+            query = db.query(Assignment).filter(Assignment.course_id == course_id)
+            query = query.filter(
+                (Assignment.target_group == None) | 
+                (Assignment.target_group == "All") | 
+                (Assignment.target_group == dept)
+            )
+        else:
+            # Show assignments from enrolled courses OR assignments targeted to "All" students
+            query = db.query(Assignment).filter(
+                (Assignment.course_id.in_(enrolled_ids)) | 
+                (Assignment.target_group == "All")
+            )
+            # Apply department filter for the enrolled ones
+            query = query.filter(
+                (Assignment.target_group == None) | 
+                (Assignment.target_group == "All") | 
+                (Assignment.target_group == dept)
+            )
             
         assignments = query.order_by(Assignment.due_date.asc()).all()
 
@@ -851,17 +862,26 @@ class StudentService:
             en.course_id for en in
             db.query(Enrollment).filter(Enrollment.student_id == student.id).all()
         ]
-        query = db.query(Quiz).filter(Quiz.course_id.in_(enrolled_ids))
-        if course_id:
-            query = query.filter(Quiz.course_id == course_id)
-            
-        # Filter by target_group
+        
         dept = student.department or ""
-        query = query.filter(
-            (Quiz.target_group == None) | 
-            (Quiz.target_group == "All") | 
-            (Quiz.target_group == dept)
-        )
+        
+        if course_id:
+            query = db.query(Quiz).filter(Quiz.course_id == course_id)
+            query = query.filter(
+                (Quiz.target_group == None) | 
+                (Quiz.target_group == "All") | 
+                (Quiz.target_group == dept)
+            )
+        else:
+            query = db.query(Quiz).filter(
+                (Quiz.course_id.in_(enrolled_ids)) | 
+                (Quiz.target_group == "All")
+            )
+            query = query.filter(
+                (Quiz.target_group == None) | 
+                (Quiz.target_group == "All") | 
+                (Quiz.target_group == dept)
+            )
             
         quizzes = query.all()
 
@@ -882,6 +902,7 @@ class StudentService:
                         question_text=q.question_text,
                         type=q.type,
                         options=q.options,
+                        correct_answer=q.correct_answer,
                     ) for q in quiz.questions
                 ]
             result.append(QuizResponse(

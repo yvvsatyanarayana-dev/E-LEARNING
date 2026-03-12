@@ -11,6 +11,7 @@ const IcoQuiz     = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="c
 const IcoPlus     = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
 const IcoSearch   = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
 const IcoChevL    = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>;
+const IcoChevR    = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>;
 const IcoPen      = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>;
 const IcoTrash    = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>;
 const IcoClose    = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
@@ -148,7 +149,7 @@ function QuizCard({ quiz, onClick }) {
           <IcoClock style={{width:9,height:9,marginRight:3}} />{quiz.duration}m
         </span>
         <span className="qz-q-badge">
-          {quiz.questions}Q
+          {quiz.questions_count ?? 0}Q
         </span>
       </div>
 
@@ -228,33 +229,64 @@ function QuizRow({ quiz, idx, onClick }) {
 
 // ─── CREATE MODAL ─────────────────────────────────────────────────
 const BLANK_QUESTION = (type) => ({
-  id: Date.now(),
+  id: Math.random().toString(36).substr(2, 9),
   type,
   q: "",
   options: type === "MCQ" ? ["","","",""] : [],
-  ans: type === "TF" ? true : (type === "MCQ" ? 0 : ""),
+  ans: type === "TF" ? true : (type === "MCQ" ? null : ""),
   marks: 1,
 });
 
-function CreateModal({ onClose, onCreated, courses = [] }) {
+function CreateModal({ onClose, onCreated, courses = [], editData = null }) {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
-    title: "", 
-    course_id: courses.length > 0 ? String(courses[0].id) : "", 
-    type: "MCQ", 
+    title: "",
+    course_id: courses.length > 0 ? String(courses[0].id) : "",
     target_group: "All",
-    duration: 20, 
-    marks: 10, 
-    week: "W1", 
+    description: "",
+    duration: 20,
+    marks: 10,
+    week: "W1",
     unit: "Unit I",
-    startDate: "", 
+    startDate: "",
     startTime: "10:00",
-    shuffle: true, 
-    showResult: true, 
+    shuffle: true,
+    showResult: true,
     negMark: false,
   });
   const [questions, setQuestions] = useState([BLANK_QUESTION("MCQ")]);
   const [pubMode, setPubMode] = useState("now");
+
+
+  useEffect(() => {
+    if (editData) {
+      setForm({
+        title: editData.title || "",
+        course_id: String(editData.course_id || ""),
+        target_group: editData.target_group || "All",
+        description: editData.description || "",
+        duration: editData.duration || 20,
+        marks: editData.marks || 10,
+        week: editData.week || "W1",
+        unit: editData.unit || "Unit I",
+        startDate: editData.start_date || "",
+        startTime: "10:00",
+        shuffle: editData.shuffle !== undefined ? editData.shuffle : true,
+        showResult: editData.show_result !== undefined ? editData.show_result : true,
+        negMark: editData.neg_mark || false
+      });
+      if (editData.questions?.length) {
+        setQuestions(editData.questions.map((q, i) => ({
+          id: Date.now() + i,
+          q: q.q,
+          options: q.options || ["", "", "", ""],
+          ans: q.ans,
+          type: "MCQ",
+          marks: q.marks || 1
+        })));
+      }
+    }
+  }, [editData]);
 
 
   const setF = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -267,6 +299,20 @@ function CreateModal({ onClose, onCreated, courses = [] }) {
     ));
 
   const handlePublish = () => {
+    // Basic validation
+    if (!form.title.trim()) return alert("Please enter a quiz title.");
+    if (!form.course_id) return alert("Please select a course.");
+    
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      if (!q.q.trim()) return alert(`Question ${i+1} is empty.`);
+      if (q.type === "MCQ") {
+        if (q.ans === null || q.ans === undefined) return alert(`Please select a correct answer for question ${i+1}.`);
+        if (q.options.some(opt => !opt.trim())) return alert(`All options for question ${i+1} must be filled.`);
+      }
+      if (q.type === "FIB" && !q.ans.toString().trim()) return alert(`Correct answer for question ${i+1} is missing.`);
+    }
+
     onCreated({ ...form, questions });
     onClose();
   };
@@ -292,33 +338,48 @@ function CreateModal({ onClose, onCreated, courses = [] }) {
           {step === 1 && (
             <div className="qz-form">
               <input className="qz-input" placeholder="Quiz Title *" value={form.title} onChange={e => setF("title", e.target.value)} />
+              
+              <div className="qz-field">
+                <div className="qz-field-lbl">Description</div>
+                <textarea className="qz-input qz-textarea" rows={2} value={form.description} placeholder="Short description…" onChange={e => setF("description", e.target.value)} />
+              </div>
+
               <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
                 <div style={{ flex: 1 }}>
-                  <div className="qz-field-lbl">Course *</div>
-                  <div style={{ display: 'flex', gap: 8 }}>
-                    <select className="qz-input" style={{ flex: 1 }} value={form.course_id} onChange={e => setF("course_id", e.target.value)}>
-                      {courses.length > 0
-                        ? courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)
-                        : <option value="">No courses found</option>
-                      }
-                    </select>
-                    <button 
-                      className="btn btn-ghost" 
-                      title="Create New Course" 
-                      style={{ height: 42, width: 42, padding: 0 }}
-                      onClick={() => window.dispatchEvent(new CustomEvent('OPEN_CREATE_COURSE'))}
-                    >
-                      <IcoPlus width={14} height={14} />
-                    </button>
+                  <div className="qz-field" style={{ marginBottom: 0 }}>
+                    <div className="qz-field-lbl">Course *</div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <select className="qz-input" style={{ flex: 1 }} value={form.course_id} onChange={e => setF("course_id", e.target.value)}>
+                        {courses.length > 0
+                          ? courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)
+                          : <option value="">No courses found</option>
+                        }
+                      </select>
+                      <button 
+                        className="btn btn-ghost" 
+                        title="Create New Course" 
+                        style={{ height: 42, width: 42, padding: 0 }}
+                        onClick={() => window.dispatchEvent(new CustomEvent('OPEN_CREATE_COURSE'))}
+                      >
+                        <IcoPlus width={14} height={14} />
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <select className="qz-input" style={{ flex: 1 }} value={form.target_group} onChange={e => setF("target_group", e.target.value)}>
-                  <option value="All">All Students</option>
-                  <option value="BCA">BCA Only</option>
-                  <option value="MCA">MCA Only</option>
-                  <option value="BTech">B.Tech Only</option>
-                </select>
+
+                <div style={{ flex: 1 }}>
+                  <div className="qz-field" style={{ marginBottom: 0 }}>
+                    <div className="qz-field-lbl">Target Group</div>
+                    <select className="qz-input" value={form.target_group} onChange={e => setF("target_group", e.target.value)}>
+                      <option value="All">All Students</option>
+                      <option value="BCA">BCA Only</option>
+                      <option value="MCA">MCA Only</option>
+                      <option value="BTech">B.Tech Only</option>
+                    </select>
+                  </div>
+                </div>
               </div>
+
               <div style={{ marginTop: 8, fontSize: 11, color: "var(--text3)", textAlign: "center" }}>
                 Step 1 of 3: Enter basic details then click Next to add questions.
               </div>
@@ -354,6 +415,7 @@ function CreateModal({ onClose, onCreated, courses = [] }) {
                       placeholder="Enter question text..."
                       value={q.q}
                       onChange={(e) => updateQ(q.id, { q: e.target.value })}
+                      onClick={(e) => e.stopPropagation()}
                     />
 
                     {q.type === "MCQ" && (
@@ -364,14 +426,17 @@ function CreateModal({ onClose, onCreated, courses = [] }) {
                             className={`qz-option-row ${q.ans === oIdx ? "qz-option-row--correct" : ""}`}
                             onClick={() => updateQ(q.id, { ans: oIdx })}
                           >
-                            <div className={`qz-opt-radio ${q.ans === oIdx ? "qz-opt-radio--on" : ""}`} />
+                            <div className={`qz-opt-radio ${q.ans === oIdx ? "qz-opt-radio--on" : ""}`}>
+                              {q.ans === oIdx && <div className="qz-opt-check" />}
+                            </div>
                             <input 
                               className="qz-input qz-opt-inp" 
                               placeholder={`Option ${oIdx + 1}`}
                               value={opt}
-                              onClick={e => e.stopPropagation()}
                               onChange={(e) => updateOpt(q.id, oIdx, e.target.value)}
+                              onClick={(e) => e.stopPropagation()}
                             />
+                            {q.ans === oIdx && <span className="qz-correct-label">Correct</span>}
                           </div>
                         ))}
                       </div>
@@ -490,7 +555,10 @@ function DetailDrawer({ quiz, onClose }) {
       <div className="qz-drawer">
         <div className="qz-drawer-hd">
           <button className="qz-drawer-back" onClick={onClose}><IcoChevL style={{width:12,height:12}} /> Close</button>
-          <div className="qz-drawer-title">{quiz.title}</div>
+          <div style={{display:"flex", gap:8, marginLeft:"auto"}}>
+            <button className="btn btn-ghost" style={{padding:"4px 10px", fontSize:11}} onClick={() => onDuplicate(quiz)}>Duplicate</button>
+            <button className="btn btn-solid" style={{padding:"4px 10px", fontSize:11}} onClick={() => onEdit(quiz)}>Edit Quiz</button>
+          </div>
         </div>
         <div className="qz-drawer-tabs">
           {["overview", "results", "questions"].map(t => (
@@ -498,7 +566,98 @@ function DetailDrawer({ quiz, onClose }) {
           ))}
         </div>
         <div className="qz-drawer-body">
-          {tab === "overview" && <p>{quiz.desc}</p>}
+          {tab === "overview" && (
+            <div className="qz-detail-overview">
+              <p className="qz-drawer-desc">{quiz.description || "No description provided."}</p>
+              
+              <div className="qz-drawer-sec">Stats</div>
+              <div className="qz-drawer-stats">
+                <div className="qz-ds">
+                  <div className="qz-ds-val">{quiz.attempts_count}</div>
+                  <div className="qz-ds-lbl">Attempts</div>
+                </div>
+                <div className="qz-ds">
+                  <div className="qz-ds-val">{quiz.avg_score || 0}%</div>
+                  <div className="qz-ds-lbl">Avg Score</div>
+                </div>
+                <div className="qz-ds">
+                  <div className="qz-ds-val">{quiz.pass_pct || 0}%</div>
+                  <div className="qz-ds-lbl">Pass Rate</div>
+                </div>
+                <div className="qz-ds">
+                  <div className="qz-ds-val">{quiz.marks}m</div>
+                  <div className="qz-ds-lbl">Marks</div>
+                </div>
+              </div>
+
+              <div className="qz-drawer-sec">Schedule</div>
+              <div className="qz-drawer-meta-grid">
+                <div className="qz-meta-item">
+                  <span>Week / Unit:</span>
+                  <strong>{quiz.week} • {quiz.unit}</strong>
+                </div>
+                <div className="qz-meta-item">
+                  <span>Start:</span>
+                  <strong>{quiz.start_date}</strong>
+                </div>
+                <div className="qz-meta-item">
+                  <span>Duration:</span>
+                  <strong>{quiz.duration} mins</strong>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {tab === "results" && (
+            <div className="qz-result-list">
+              {!quiz.results || quiz.results.length === 0 ? (
+                <div className="qz-empty" style={{padding:40}}>No student attempts yet.</div>
+              ) : (
+                quiz.results.map((r, i) => (
+                  <div key={i} className="qz-result-row">
+                    <div className="qz-result-avatar">{r.name.charAt(0)}</div>
+                    <div className="qz-result-info">
+                      <div className="qz-result-name">{r.name}</div>
+                      <div className="qz-result-roll">{r.roll}</div>
+                    </div>
+                    <div className="qz-result-score-col">
+                      <div className="qz-result-score">{r.score}/{r.total}</div>
+                      <div style={{fontSize:9, color:"var(--text3)"}}>{r.time}</div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+
+          {tab === "questions" && (
+            <div className="qz-q-view-list">
+              {!quiz.questions || quiz.questions.length === 0 ? (
+                <div className="qz-empty" style={{padding:40}}>No questions found.</div>
+              ) : (
+                quiz.questions.map((q, i) => (
+                  <div key={i} className="qz-q-view-item">
+                    <div className="qz-q-view-hd">
+                      <span className="qz-q-num">Q{i+1}</span>
+                      <div style={{flex:1, fontSize:12.5, fontWeight:600}}>{q.q}</div>
+                      <span className="qz-marks-badge" style={{fontSize:9}}>{q.marks}m</span>
+                    </div>
+                    {q.options && (
+                      <div className="qz-q-view-opts">
+                        {q.options.map((opt, oIdx) => (
+                          <div key={oIdx} className={`qz-q-view-opt ${String(q.ans) === String(oIdx) ? "qz-q-view-opt--correct" : ""}`}>
+                            <span className="qz-opt-label">{String.fromCharCode(65 + oIdx)}</span>
+                            <span>{opt}</span>
+                            {String(q.ans) === String(oIdx) && <IcoCheck width={12} height={12} style={{marginLeft:"auto"}} />}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
@@ -514,11 +673,12 @@ export default function FacultyQuizzes({ onBack }) {
   const [statusFilter, setStatus] = useState("all");
   const [search, setSearch] = useState("");
   const [showCreate, setCreate] = useState(false);
+  const [editingQuiz, setEditingQuiz] = useState(null);
   const [selected, setSelected] = useState(null);
   const [showCreateCourse, setShowCreateCourse] = useState(false);
   const [toast, setToast] = useState("");
 
-  const handleCreateQuiz = async (formData) => {
+  const handleSaveQuiz = async (formData) => {
     try {
       const cId = parseInt(formData.course_id);
       if (isNaN(cId)) {
@@ -530,19 +690,41 @@ export default function FacultyQuizzes({ onBack }) {
         title: formData.title || "New Quiz",
         course_id: cId,
         target_group: formData.target_group,
-        difficulty: "Medium",
+        description: formData.description,
+        difficulty: "medium",
         is_ai_generated: false,
         questions: formData.questions || []
       };
       
-      const res = await api.post("/faculty/quizzes", payload);
-      setQuizzes(prev => [...prev, res]);
-      showToast("✅ Quiz Created!");
+      if (editingQuiz && editingQuiz.id) {
+        const res = await api.put(`/faculty/quizzes/${editingQuiz.id}`, payload);
+        setQuizzes(prev => prev.map(q => q.id === res.id ? res : q));
+        showToast("✅ Quiz Updated!");
+      } else {
+        const res = await api.post("/faculty/quizzes", payload);
+        setQuizzes(prev => [...prev, res]);
+        showToast("✅ Quiz Created!");
+      }
       setCreate(false);
+      setEditingQuiz(null);
     } catch (err) {
-      console.error("Failed to create quiz:", err);
-      alert("Failed to create quiz. Please try again.");
+      console.error("Failed to save quiz:", err);
+      alert("Failed to save quiz. Please try again.");
     }
+  };
+
+  const handleEditQuiz = (quiz) => {
+    setEditingQuiz(quiz);
+    setCreate(true);
+  };
+
+  const handleDuplicateQuiz = (quiz) => {
+    setEditingQuiz({
+      ...quiz,
+      id: undefined,
+      title: `${quiz.title} (Copy)`
+    });
+    setCreate(true);
   };
 
   const [courses, setCourses] = useState([]);
@@ -590,7 +772,12 @@ export default function FacultyQuizzes({ onBack }) {
 
   return (
     <div className="qz-root">
-      {showCreate && <CreateModal onClose={() => setCreate(false)} onCreated={handleCreateQuiz} courses={courses} />}
+      {showCreate && <CreateModal 
+        onClose={() => { setCreate(false); setEditingQuiz(null); }} 
+        onCreated={handleSaveQuiz} 
+        courses={courses} 
+        editData={editingQuiz}
+      />}
       {showCreateCourse && (
         <CreateCourseModal 
           onClose={() => setShowCreateCourse(false)} 
@@ -599,7 +786,12 @@ export default function FacultyQuizzes({ onBack }) {
           }} 
         />
       )}
-      {selected && <DetailDrawer quiz={selected} onClose={() => setSelected(null)} />}
+      {selected && <DetailDrawer 
+        quiz={selected} 
+        onClose={() => setSelected(null)} 
+        onEdit={handleEditQuiz}
+        onDuplicate={handleDuplicateQuiz}
+      />}
       {toast && <div className="qz-toast">{toast}</div>}
 
       <div className="qz-page-hd">

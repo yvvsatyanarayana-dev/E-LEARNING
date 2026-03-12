@@ -13,7 +13,7 @@ from Schemas.FacultySchema import (
     FacultyLectureDetail, FacultyProfileResponse, FacultyAttendanceCourse,
     FacultySettingsResponse, FacultySettingsUpdate,
     FacultyLessonCreate, FacultyAssignmentCreate, FacultyQuizCreate, FacultyCourseCreate,
-    FacultyReportResponse
+    FacultyReportResponse, FacultyAssignmentUpdate, FacultyQuizUpdate
 )
 
 router = APIRouter(prefix="/faculty", tags=["Faculty"])
@@ -63,6 +63,10 @@ def get_faculty_assignments(current_user: User = Depends(get_current_user), db: 
 def create_faculty_assignment(data: FacultyAssignmentCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return faculty_service.create_assignment(current_user, db, data)
 
+@router.put("/assignments/{assignment_id}", response_model=FacultyAssignmentDetail)
+def update_faculty_assignment(assignment_id: int, data: FacultyAssignmentUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return faculty_service.update_assignment(current_user, db, assignment_id, data)
+
 @router.get("/quizzes", response_model=List[FacultyQuizDetail])
 def get_faculty_quizzes(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return faculty_service.get_quizzes(current_user, db)
@@ -70,6 +74,10 @@ def get_faculty_quizzes(current_user: User = Depends(get_current_user), db: Sess
 @router.post("/quizzes", response_model=FacultyQuizDetail)
 def create_faculty_quiz(data: FacultyQuizCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return faculty_service.create_quiz(current_user, db, data)
+
+@router.put("/quizzes/{quiz_id}", response_model=FacultyQuizDetail)
+def update_faculty_quiz(quiz_id: int, data: FacultyQuizUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return faculty_service.update_quiz(current_user, db, quiz_id, data)
 
 @router.get("/students", response_model=List[FacultyStudentDetail])
 def get_faculty_all_students(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):

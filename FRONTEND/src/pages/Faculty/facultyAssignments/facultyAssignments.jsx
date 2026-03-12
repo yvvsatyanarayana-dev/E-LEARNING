@@ -83,21 +83,39 @@ function AnimBar({ pct, color, height = 4, delay = 300 }) {
 }
 
 // ─── CREATE ASSIGNMENT MODAL ──────────────────────────────────────
-function CreateModal({ onClose, onCreated, courses = [] }) {
+function CreateModal({ onClose, onCreated, courses = [], editData }) {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
-    title: "", 
-    course_id: courses.length > 0 ? String(courses[0].id) : "", 
-    type: "Theory", 
+    title: "",
+    course_id: courses.length > 0 ? String(courses[0].id) : "",
+    type: "Theory",
     target_group: "All",
-    week: "W10", 
-    unit: "", 
-    dueDate: "", 
-    marks: 20, 
-    desc: "",
+    week: "W10",
+    unit: "",
+    dueDate: "",
+    marks: 20,
+    description: "",
     rubric: [{ item: "", marks: 0 }],
     draft: false,
   });
+
+  useEffect(() => {
+    if (editData) {
+      setForm({
+        title: editData.title || "",
+        course_id: String(editData.courseId || courses[0]?.id || ""),
+        type: editData.type || "Theory",
+        target_group: editData.target_group || "All",
+        week: editData.week || "W10",
+        unit: editData.unit || "",
+        dueDate: editData.dueDate ? editData.dueDate.split('T')[0] : (editData.due ? editData.due : ""),
+        marks: editData.marks || 20,
+        description: editData.description || editData.desc || "",
+        rubric: editData.rubric || [{ item: "", marks: 0 }],
+        draft: editData.status === "upcoming",
+      });
+    }
+  }, [editData, courses]);
 
   const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
   const addRow = () => setForm(f => ({ ...f, rubric: [...f.rubric, { item: "", marks: 0 }] }));
@@ -201,9 +219,9 @@ function CreateModal({ onClose, onCreated, courses = [] }) {
                 </div>
                 <div className="as-field">
                   <div className="as-field-lbl">Description / Instructions</div>
-                  <textarea className="as-input as-textarea" rows={4} value={form.desc}
-                    placeholder="Describe what students should submit, tools allowed, format requirements…"
-                    onChange={set("desc")} />
+                  <textarea className="as-input as-textarea" rows={4} value={form.description}
+                    placeholder="e.g. Overview of process management and scheduling..."
+                    onChange={set("description")} />
                 </div>
               </div>
               <div className="as-modal-foot">
@@ -225,7 +243,7 @@ function CreateModal({ onClose, onCreated, courses = [] }) {
               </div>
               <div className="as-rubric-list">
                 {form.rubric.map((r, i) => (
-                  <div key={`rubric-${i}-${r.item}`} className="as-rubric-row">
+                  <div key={`rubric-row-${i}`} className="as-rubric-row">
                     <span className="as-rubric-idx">{i+1}</span>
                     <input className="as-input as-rubric-item-inp" value={r.item}
                       placeholder={`Criterion ${i+1}…`}
@@ -273,7 +291,8 @@ function CreateModal({ onClose, onCreated, courses = [] }) {
                   <span className="as-marks-badge">{form.marks} marks</span>
                 </div>
                 <div className="as-preview-title">{form.title || "Untitled Assignment"}</div>
-                <div className="as-preview-desc">{form.desc || "No description provided."}</div>
+                <div className="as-field-lbl">Description</div>
+                <div className="as-preview-desc">{form.description || "No description provided."}</div>
                 <div className="as-preview-meta">
                   <IcoCal width={10} height={10} style={{ color: "var(--text3)" }} />
                   <span>Due: {form.dueDate || "—"}</span>
@@ -284,7 +303,7 @@ function CreateModal({ onClose, onCreated, courses = [] }) {
                 {form.rubric.filter(r => r.item).length > 0 && (
                   <div className="as-preview-rubric">
                     {form.rubric.filter(r => r.item).map((r, i) => (
-                      <div key={`preview-rubric-${i}-${r.item}`} className="as-preview-rubric-row">
+                      <div key={`preview-rubric-${i}`} className="as-preview-rubric-row">
                         <span>{r.item}</span>
                         <span style={{ color: cm?.color, fontWeight: 700 }}>{r.marks}m</span>
                       </div>
@@ -336,7 +355,7 @@ function CreateModal({ onClose, onCreated, courses = [] }) {
 }
 
 // ─── DETAIL DRAWER ────────────────────────────────────────────────
-function DetailDrawer({ assignment, onClose }) {
+function DetailDrawer({ assignment, onClose, onEdit, onDuplicate }) {
   const [tab, setTab]           = useState("overview");
   const [subSearch, setSubSearch] = useState("");
   const [subFilter, setSubFilter] = useState("all");
@@ -385,7 +404,7 @@ function DetailDrawer({ assignment, onClose }) {
 
           {tab === "overview" && (
             <>
-              <p className="as-drawer-desc">{assignment.desc}</p>
+              <p className="as-drawer-desc">{assignment.description}</p>
 
               {["grading","done"].includes(assignment.status) && (
                 <div className="as-drawer-stats">
@@ -440,8 +459,8 @@ function DetailDrawer({ assignment, onClose }) {
               </div>
 
               <div className="as-drawer-actions">
-                <button className="btn btn-ghost" style={{ flex:1, justifyContent:"center", gap:5, fontSize:11 }}><IcoPen width={11} height={11}/> Edit</button>
-                <button className="btn btn-ghost" style={{ flex:1, justifyContent:"center", gap:5, fontSize:11 }}><IcoCopy width={11} height={11}/> Duplicate</button>
+                <button className="btn btn-ghost" style={{ flex:1, justifyContent:"center", gap:5, fontSize:11 }} onClick={() => { onClose(); onEdit(assignment); }}><IcoPen width={11} height={11}/> Edit</button>
+                <button className="btn btn-ghost" style={{ flex:1, justifyContent:"center", gap:5, fontSize:11 }} onClick={() => { onDuplicate(assignment); onClose(); }}><IcoCopy width={11} height={11}/> Duplicate</button>
                 <button className="btn btn-ghost" style={{ flex:1, justifyContent:"center", gap:5, fontSize:11 }}><IcoLink width={11} height={11}/> Share</button>
               </div>
               <button className="as-danger-btn"><IcoTrash width={11} height={11}/> Delete Assignment</button>
@@ -709,6 +728,7 @@ export default function FacultyAssignments({ onBack }) {
   const [viewMode, setViewMode] = useState("grid"); // "grid" | "list"
   const [selected, setSelected] = useState(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [editingAssignment, setEditingAssignment] = useState(null);
   const [toast, setToast] = useState(null);
   const [showCreateCourse, setShowCreateCourse] = useState(false);
 
@@ -753,22 +773,50 @@ export default function FacultyAssignments({ onBack }) {
         return;
       }
 
-      // Basic formatting for the payload
       const payload = {
         title: formData.title,
-        course_id: cId, // Real ID from API
-        due_date: formData.dueDate ? formData.dueDate + "T23:59:59Z" : null, // Append time component
-        target_group: formData.target_group
+        course_id: cId,
+        due_date: formData.dueDate ? formData.dueDate + "T23:59:59Z" : null,
+        target_group: formData.target_group,
+        description: formData.description,
+        rubric: formData.rubric,
+        marks: formData.marks,
+        type: formData.type,
+        week: formData.week,
+        unit: formData.unit
       };
-      
-      const res = await api.post("/faculty/assignments", payload);
-      setAssignments(prev => [...prev, res]);
-      showToast("✅ Assignment Created!");
-      setShowCreate(false); // Close modal
+
+      if (editingAssignment) {
+        // Update mode
+        const res = await api.put(`/faculty/assignments/${editingAssignment.id}`, payload);
+        setAssignments(prev => prev.map(a => a.id === res.id ? res : a));
+        showToast("✅ Assignment Updated!");
+      } else {
+        // Create mode
+        const res = await api.post("/faculty/assignments", { ...payload, status: formData.draft ? "upcoming" : "live" });
+        setAssignments(prev => [...prev, res]);
+        showToast("✅ Assignment Created!");
+      }
+      setShowCreate(false);
     } catch (err) {
-      console.error("Failed to create assignment:", err);
-      alert("Failed to create assignment. Please try again.");
+      console.error("Failed to save assignment:", err);
+      alert("Failed to save assignment. Please try again.");
     }
+  };
+
+  const handleEditAssignment = (assignment) => {
+    setEditingAssignment(assignment);
+    setShowCreate(true);
+  };
+
+  const handleDuplicateAssignment = (assignment) => {
+    setEditingAssignment({
+      ...assignment,
+      id: undefined, // New ID will be generated by backend
+      title: `${assignment.title} (Copy)`,
+      status: "upcoming" // Reset to draft
+    });
+    setShowCreate(true);
   };
 
   // AGGREGATE STATS
@@ -801,7 +849,12 @@ export default function FacultyAssignments({ onBack }) {
 
   return (
     <div className="as-root">
-      {showCreate && <CreateModal onClose={() => setShowCreate(false)} onCreated={handleCreateAssignment} courses={courses} />}
+      {showCreate && <CreateModal 
+        onClose={() => { setShowCreate(false); setEditingAssignment(null); }} 
+        onCreated={handleCreateAssignment} 
+        courses={courses}
+        editData={editingAssignment}
+      />}
       {showCreateCourse && (
         <CreateCourseModal 
           onClose={() => setShowCreateCourse(false)} 
@@ -810,7 +863,7 @@ export default function FacultyAssignments({ onBack }) {
           }} 
         />
       )}
-      {selected && <DetailDrawer assignment={selected} onClose={() => setSelected(null)} />}
+      {selected && <DetailDrawer assignment={selected} onClose={() => setSelected(null)} onEdit={handleEditAssignment} onDuplicate={handleDuplicateAssignment} />}
       {toast      && <div className="as-toast">{toast}</div>}
 
       <div className="as-page-hd">

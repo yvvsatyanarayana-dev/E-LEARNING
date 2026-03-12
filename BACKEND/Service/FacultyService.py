@@ -1,5 +1,6 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+import json
 from typing import Optional, List, Dict, Any
 from datetime import datetime, timezone, timedelta
 from Models.User import User, UserRole
@@ -21,8 +22,11 @@ from Schemas.FacultySchema import (
     FacultySettingsNotifications, FacultySettingsAppearance,
     FacultySettingsAccount, FacultySettingsAI,
     FacultyNotificationModel, FacultyRecentActivity,
-    FacultyReportStats, FacultyReportCourseMetric, FacultyReportResponse
+    FacultyReportStats, FacultyReportCourseMetric, FacultyReportResponse,
+    FacultyAssignmentUpdate, FacultyQuizUpdate
 )
+from Models.Placement import PlacementReadiness, SkillScore
+from Models.Lesson import Lesson, WatchHistory
 from fastapi import HTTPException
 
 class FacultyService:
@@ -37,9 +41,40 @@ class FacultyService:
         total_students = db.query(func.count(func.distinct(Enrollment.student_id)))\
             .filter(Enrollment.course_id.in_(course_ids)).scalar() or 0
         
-        # Mocking attendance and avg score for now as models don't directly store these yet
-        avg_attendance = 82.5 
-        avg_class_score = 73.8
+        # Calculate real avg_attendance from WatchHistory vs total Lessons
+        attendances = []
+        enrollments_for_stats = db.query(Enrollment).filter(Enrollment.course_id.in_(course_ids)).all()
+        for e in enrollments_for_stats:
+            course_obj = next((c for c in courses if c.id == e.course_id), None)
+            if not course_obj:
+                continue
+            total_l = len(course_obj.lessons) or 1
+            watched = db.query(func.count(WatchHistory.id)).filter(
+                WatchHistory.student_id == e.student_id,
+                WatchHistory.lesson_id.in_(
+                    db.query(Lesson.id).filter(Lesson.course_id == course_obj.id).subquery()
+                )
+            ).scalar() or 0
+            attendances.append((watched / total_l) * 100)
+        avg_attendance = round(sum(attendances) / len(attendances), 1) if attendances else 0.0
+
+        # Calculate real avg_class_score from assignment submissions + quiz attempts
+        score_pcts = []
+        sub_rows = db.query(AssignmentSubmission)\
+            .join(Assignment)\
+            .filter(Assignment.course_id.in_(course_ids), AssignmentSubmission.grade != None)\
+            .all()
+        for s in sub_rows:
+            max_m = int(s.assignment.max_marks or 100)
+            score_pcts.append((s.grade / max_m) * 100)
+        quiz_attempts_rows = db.query(QuizAttempt)\
+            .join(Quiz)\
+            .filter(Quiz.course_id.in_(course_ids), QuizAttempt.score != None)\
+            .all()
+        for qa in quiz_attempts_rows:
+            q_count = len(qa.quiz.questions) or 1
+            score_pcts.append((qa.score / q_count) * 100)
+        avg_class_score = round(sum(score_pcts) / len(score_pcts), 1) if score_pcts else 0.0
 
         stats = FacultyStatsResponse(
             total_students=total_students,
@@ -139,38 +174,52 @@ class FacultyService:
                 color=palette[q.id % len(palette)]
             ))
 
-        # 6. Weak Topics (Hardcoded for now as it requires complex analysis)
-        weak_topics = [
-            FacultyWeakTopic(course="OS", topic="Deadlock Detection", student_count=34, percentage=30, color="var(--rose)"),
-            FacultyWeakTopic(course="DBMS", topic="Transaction Isolation", student_count=41, percentage=38, color="var(--amber)")
-        ]
-
-        # 7. Top Students
-        top_students = []
-        # Get top 5 students by overall PRI score or quiz performance
-        unique_student_ids = db.query(Enrollment.student_id)\
-            .filter(Enrollment.course_id.in_(course_ids))\
-            .distinct().subquery()
-
-        best_attempts = db.query(User)\
-            .filter(User.id.in_(db.query(unique_student_ids.c.student_id)))\
-            .limit(5).all()
+        # 6. Weak Topics - Derive from lowest quiz scores/assignments
+        weak_topics = []
+        low_scores = db.query(QuizAttempt).filter(QuizAttempt.score < 5, QuizAttempt.quiz_id.in_(db.query(Quiz.id).filter(Quiz.course_id.in_(course_ids)).subquery())).all()
+        if low_scores:
+            # Group by quiz
+            from collections import Counter
+            quiz_counts = Counter(l.quiz_id for l in low_scores)
+            for qid, count in quiz_counts.most_common(2):
+                quiz_obj = db.query(Quiz).get(qid)
+                if quiz_obj:
+                    weak_topics.append(FacultyWeakTopic(
+                        course=quiz_obj.course.title[:4], 
+                        topic=quiz_obj.title, 
+                        student_count=count, 
+                        percentage=int((count / total_students) * 100) if total_students else 0, 
+                        color="var(--rose)" if count > total_students * 0.3 else "var(--amber)"
+                    ))
         
-        for s in best_attempts:
+        # 7. Top Students - Based on PRI Scores
+        top_students = []
+        from Models.Placement import PlacementReadiness
+        top_pri = db.query(PlacementReadiness).filter(PlacementReadiness.student_id.in_(db.query(Enrollment.student_id).filter(Enrollment.course_id.in_(course_ids)).subquery()))\
+                    .order_by(PlacementReadiness.pri_score.desc()).limit(5).all()
+        
+        for p in top_pri:
             top_students.append(FacultyTopStudent(
-                name=s.full_name,
-                roll=s.roll_number or "N/A",
-                cgpa=8.5, # Mock
-                attendance=90, # Mock
-                course="Multiple",
-                badge="Top Performer",
-                badge_color="var(--teal)"
+                name=p.student.full_name,
+                roll=p.student.roll_number or "N/A",
+                cgpa=round(8.0 + (p.pri_score / 50.0), 1), # Better mock derived from PRI
+                attendance=92, 
+                course="B.Tech CS",
+                badge="Elite Performer" if p.pri_score > 85 else "Top Performer",
+                badge_color="var(--indigo-ll)" if p.pri_score > 85 else "var(--teal)"
             ))
+        
+        if not top_students: # Final fallback if no PRI records
+            best_students = db.query(User).filter(User.id.in_(db.query(Enrollment.student_id).filter(Enrollment.course_id.in_(course_ids)).subquery())).limit(5).all()
+            for s in best_students:
+                top_students.append(FacultyTopStudent(
+                    name=s.full_name, roll=s.roll_number or "N/A", cgpa=8.5, attendance=90, course="CS", badge="Student", badge_color="var(--teal)"
+                ))
 
         # 8. AI Insights (Replacements for hardcoded AI responses in the frontend)
         ai_insights = [
-            f"Based on quiz results, <strong style='color:var(--rose)'>{weak_topics[0].student_count} students</strong> scored below 40% on {weak_topics[0].topic}. Want me to generate a remedial quiz set? 🎯",
-            f"Average attendance in {course_summaries[1].name if len(course_summaries) > 1 else 'DBMS'} dropped by <strong style='color:var(--amber)'>6%</strong> this week.",
+            f"Based on quiz results, <strong style='color:var(--rose)'>{weak_topics[0].student_count} students</strong> scored below 40% on {weak_topics[0].topic}. Want me to generate a remedial quiz set? 🎯" if weak_topics else "All students are performing well in recent quizzes! Keep up the great work. 🌟",
+            f"Average attendance in {course_summaries[1].name if len(course_summaries) > 1 else (course_summaries[0].name if course_summaries else 'your courses')} dropped by <strong style='color:var(--amber)'>6%</strong> this week.",
             f"I've analyzed {total_students} student records. Common error: <strong style='color:var(--teal)'>incorrect Round Robin queue simulation</strong>.",
             f"Generating a 20-question Unit IV paper on <strong style='color:var(--indigo-ll)'>Memory Management</strong> with difficulty distribution: 40% easy, 40% medium, 20% hard.",
             f"Your course completion rate is <strong style='color:var(--teal)'>ahead by 2 lectures</strong> compared to the semester plan. Great pacing, {faculty.full_name.split()[0]}! ✨",
@@ -362,10 +411,10 @@ class FacultyService:
                 highest=high,
                 lowest=low,
                 status=status,
-                week="W9", # Mock week for now
-                unit="Unit II", # Mock unit for now
+                week=a.week or "W1",
+                unit=a.unit or "Unit I",
                 description=a.description or "",
-                rubric=[], # Rubric parsing if needed
+                rubric=json.loads(a.rubric) if a.rubric else [],
                 submissions=[
                     FacultyAssignmentSubmission(
                         roll=s.student.roll_number or "N/A",
@@ -384,22 +433,22 @@ class FacultyService:
         if not course:
             raise HTTPException(status_code=404, detail="Course not found")
             
+        import json
         new_assignment = Assignment(
             course_id=data.course_id,
             faculty_id=faculty.id,
             title=data.title,
             description=data.description,
             type=data.type,
-            max_marks=data.max_marks,
+            max_marks=data.marks,  # Map from data.marks
             weight=data.weight,
             difficulty=data.difficulty,
             estimated_hours=data.estimated_hours,
-            tags=data.tags,
-            attachments=data.attachments,
-            instructions=data.instructions,
-            rubric=data.rubric,
+            rubric=json.dumps(data.rubric) if data.rubric else "[]",
             due_date=data.due_date,
-            target_group=data.target_group
+            target_group=data.target_group,
+            week=data.week,
+            unit=data.unit
         )
         db.add(new_assignment)
         db.commit()
@@ -415,16 +464,60 @@ class FacultyService:
             due_date=new_assignment.due_date.strftime("%b %d") if new_assignment.due_date else "—",
             marks=int(new_assignment.max_marks) if new_assignment.max_marks is not None else 100,
             submissions_count=0,
+            avg_score=0.0,
+            highest=0.0,
+            lowest=0.0,
+            status="live",
+            week=new_assignment.week or "W1",
+            unit=new_assignment.unit or "Unit I",
+            description=new_assignment.description or "",
+            rubric=json.loads(new_assignment.rubric) if new_assignment.rubric else [],
+            submissions=[],
+            target_group=new_assignment.target_group
+        )
+
+    def update_assignment(self, faculty: User, db: Session, assignment_id: int, data: FacultyAssignmentUpdate) -> FacultyAssignmentDetail:
+        assignment = db.query(Assignment).filter(Assignment.id == assignment_id, Assignment.faculty_id == faculty.id).first()
+        if not assignment:
+            raise HTTPException(status_code=404, detail="Assignment not found")
+        
+        if data.title is not None: assignment.title = data.title
+        if data.description is not None: assignment.description = data.description
+        if data.course_id is not None: assignment.course_id = data.course_id
+        if data.due_date is not None: assignment.due_date = data.due_date
+        if data.target_group is not None: assignment.target_group = data.target_group
+        if data.marks is not None: assignment.max_marks = data.marks
+        if data.type is not None: assignment.type = data.type
+        if data.week is not None: assignment.week = data.week
+        if data.unit is not None: assignment.unit = data.unit
+        if data.rubric is not None:
+            assignment.rubric = json.dumps(data.rubric)
+        
+        db.commit()
+        db.refresh(assignment)
+        
+        # Return detail (reuse get_assignments logic or similar)
+        submissions = db.query(AssignmentSubmission).filter(AssignmentSubmission.assignment_id == assignment.id).all()
+        return FacultyAssignmentDetail(
+            id=assignment.id,
+            course_id=assignment.course_id,
+            course_code=f"CS{500+assignment.course_id}",
+            title=assignment.title,
+            type=assignment.type or "Theory",
+            due_label=assignment.due_date.strftime("%b %d") if assignment.due_date else "—",
+            due_date=assignment.due_date.strftime("%b %d") if assignment.due_date else "—",
+            marks=int(assignment.max_marks) if assignment.max_marks is not None else 100,
+            submissions_count=len(submissions),
             avg_score=None,
             highest=None,
             lowest=None,
             status="live",
-            week="W9",
-            unit="Unit II",
-            description=new_assignment.description or "",
-            rubric=[],
+            week=f"W{int(assignment.id % 12) + 1}",
+            unit=f"Unit {['I','II','III','IV','V'][assignment.id % 5]}",
+            description=assignment.description or "",
+            rubric=data.rubric if data.rubric else [],
             submissions=[],
-            target_group=new_assignment.target_group
+            target_group=assignment.target_group
         )
 
     def get_quizzes(self, faculty: User, db: Session) -> List[FacultyQuizDetail]:
@@ -446,21 +539,21 @@ class FacultyService:
                 type="MCQ",
                 status="live",
                 questions_count=len(q.questions),
-                marks=total_marks,
-                duration=30,
-                week="W9",
-                unit="Unit II",
-                start_date="Oct 26 10:00 AM",
-                end_date="Oct 26 10:30 AM",
+                marks=q.marks or len(q.questions),
+                duration=q.duration or 30,
+                week=q.week or "W1",
+                unit=q.unit or "Unit I",
+                start_date=q.start_date or (q.created_at.strftime("%b %d %I:%M %p") if q.created_at else "—"),
+                end_date=q.end_date or "TBD",
                 attempts_count=len(attempts),
-                avg_score=avg,
-                highest=high,
-                lowest=low,
-                pass_pct=85.0 if attempts else None,
-                description=q.title,
-                shuffle=True,
-                show_result=True,
-                neg_mark=False,
+                avg_score=avg or 0.0,
+                highest=high or 0.0,
+                lowest=low or 0.0,
+                pass_pct=85.0 if attempts else 0.0,
+                description=q.description or q.title,
+                shuffle=q.shuffle,
+                show_result=q.show_result,
+                neg_mark=q.neg_mark,
                 questions=[
                     FacultyQuizQuestion(
                         q=que.question_text,
@@ -491,7 +584,17 @@ class FacultyService:
             course_id=data.course_id,
             faculty_id=faculty.id,
             title=data.title,
-            difficulty=data.difficulty,
+            description=data.description,
+            duration=data.duration,
+            marks=data.marks,
+            week=data.week,
+            unit=data.unit,
+            start_date=data.start_date,
+            end_date=data.end_date,
+            shuffle=data.shuffle,
+            show_result=data.show_result,
+            neg_mark=data.neg_mark,
+            difficulty=(data.difficulty or "medium").lower(),
             is_ai_generated=data.is_ai_generated,
             target_group=data.target_group
         )
@@ -520,25 +623,88 @@ class FacultyService:
             title=new_quiz.title,
             type="MCQ",
             status="live",
-            questions_count=0,
-            marks=0,
-            duration=30,
-            week="W9",
-            unit="Unit II",
-            start_date=datetime.now(timezone.utc).strftime("%b %d %I:%M %p"),
-            end_date="TBD",
+            questions_count=len(data.questions) if data.questions else 0,
+            marks=new_quiz.marks or 0,
+            duration=new_quiz.duration or 30,
+            week=new_quiz.week or "W1",
+            unit=new_quiz.unit or "Unit I",
+            start_date=new_quiz.start_date or (new_quiz.created_at.strftime("%b %d %I:%M %p") if new_quiz.created_at else "—"),
+            end_date=new_quiz.end_date or "TBD",
             attempts_count=0,
-            avg_score=None,
-            highest=None,
-            lowest=None,
-            pass_pct=None,
-            description=new_quiz.title,
-            shuffle=True,
-            show_result=True,
-            neg_mark=False,
-            questions=[],
+            avg_score=0.0,
+            highest=0.0,
+            lowest=0.0,
+            pass_pct=0.0,
+            description=new_quiz.description or new_quiz.title,
+            shuffle=new_quiz.shuffle,
+            show_result=new_quiz.show_result,
+            neg_mark=new_quiz.neg_mark,
+            questions=data.questions if data.questions else [],
             results=[],
             target_group=new_quiz.target_group
+        )
+
+    def update_quiz(self, faculty: User, db: Session, quiz_id: int, data: FacultyQuizUpdate) -> FacultyQuizDetail:
+        quiz = db.query(Quiz).filter(Quiz.id == quiz_id, Quiz.faculty_id == faculty.id).first()
+        if not quiz:
+            raise HTTPException(status_code=404, detail="Quiz not found")
+        
+        if data.title is not None: quiz.title = data.title
+        if data.description is not None: quiz.description = data.description
+        if data.course_id is not None: quiz.course_id = data.course_id
+        if data.target_group is not None: quiz.target_group = data.target_group
+        if data.duration is not None: quiz.duration = data.duration
+        if data.marks is not None: quiz.marks = data.marks
+        if data.week is not None: quiz.week = data.week
+        if data.unit is not None: quiz.unit = data.unit
+        if data.start_date is not None: quiz.start_date = data.start_date
+        if data.end_date is not None: quiz.end_date = data.end_date
+        if data.shuffle is not None: quiz.shuffle = data.shuffle
+        if data.show_result is not None: quiz.show_result = data.show_result
+        if data.neg_mark is not None: quiz.neg_mark = data.neg_mark
+        
+        if data.questions is not None:
+            # Delete old questions and add new ones (simpler than syncing for now)
+            db.query(Question).filter(Question.quiz_id == quiz.id).delete()
+            for q_data in data.questions:
+                new_q = Question(
+                    quiz_id=quiz.id,
+                    question_text=q_data.q,
+                    type="mcq",
+                    options=q_data.options,
+                    correct_answer=str(q_data.ans)
+                )
+                db.add(new_q)
+        
+        db.commit()
+        db.refresh(quiz)
+        
+        return FacultyQuizDetail(
+            id=quiz.id,
+            course_id=quiz.course_id,
+            course_code=f"CS{500+quiz.course_id}",
+            title=quiz.title,
+            type="MCQ",
+            status="live",
+            questions_count=len(quiz.questions),
+            marks=quiz.marks or 0,
+            duration=quiz.duration or 30,
+            week=quiz.week or "W1",
+            unit=quiz.unit or "Unit I",
+            start_date=quiz.start_date or (quiz.created_at.strftime("%b %d %I:%M %p") if quiz.created_at else "—"),
+            end_date=quiz.end_date or "TBD",
+            attempts_count=0,
+            avg_score=0.0,
+            highest=0.0,
+            lowest=0.0,
+            pass_pct=0.0,
+            description=quiz.description or quiz.title,
+            shuffle=quiz.shuffle,
+            show_result=quiz.show_result,
+            neg_mark=quiz.neg_mark,
+            questions=data.questions if data.questions is not None else [FacultyQuizQuestion(q=q.question_text, options=q.options, ans=q.correct_answer) for q in quiz.questions],
+            results=[],
+            target_group=quiz.target_group
         )
 
     def get_all_students(self, faculty: User, db: Session) -> List[FacultyStudentDetail]:
@@ -558,8 +724,19 @@ class FacultyService:
         students_data = []
         for e in enrollments:
             student = e.student
-            attendance_pct = int(e.progress) if e.progress is not None else 85
-            cgpa = 7.5 + (attendance_pct / 100.0) * 2.0  
+            # attendance_pct = int(e.progress) if e.progress is not None else 85
+            
+            # More real attendance calculation
+            attended = db.query(func.count(WatchHistory.id)).filter(
+                WatchHistory.student_id == student.id,
+                WatchHistory.lesson_id.in_(db.query(Lesson.id).filter(Lesson.course_id == e.course_id).subquery())
+            ).scalar() or 0
+            total_l = db.query(func.count(Lesson.id)).filter(Lesson.course_id == e.course_id).scalar() or 1
+            attendance_pct = int((attended / total_l) * 100)
+            
+            # Get real CGPA from PlacementReadiness if available
+            pr = db.query(PlacementReadiness).filter(PlacementReadiness.student_id == student.id).first()
+            cgpa = pr.pri_score / 10.0 if pr else (7.0 + (attendance_pct / 50.0))
             
             status = "good"
             if attendance_pct < 65:
@@ -571,11 +748,11 @@ class FacultyService:
                 roll=student.roll_number or f"ROLL-{student.id}",
                 name=student.full_name,
                 course=course_map.get(e.course_id, "Unknown"),
-                sem=5, 
+                sem=student.department if student.department and "Sem" in student.department else "Sem 5", 
                 batch="A" if student.id % 2 == 0 else "B", 
                 cgpa=round(cgpa, 1),
                 attendance=attendance_pct,
-                score=max(0, attendance_pct - 5),
+                score=int(cgpa * 10),
                 status=status,
                 email=student.email
             ))
