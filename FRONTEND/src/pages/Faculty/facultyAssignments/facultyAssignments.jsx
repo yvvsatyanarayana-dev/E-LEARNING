@@ -83,7 +83,7 @@ function AnimBar({ pct, color, height = 4, delay = 300 }) {
 }
 
 // ─── CREATE ASSIGNMENT MODAL ──────────────────────────────────────
-function CreateModal({ onClose, onCreated, courses = [], editData }) {
+function CreateModal({ onClose, onCreated, courses = [], editData, groups = [] }) {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     title: "",
@@ -199,12 +199,9 @@ function CreateModal({ onClose, onCreated, courses = [], editData }) {
                   <div className="as-field">
                     <div className="as-field-lbl">Target Group</div>
                     <select className="as-input" value={form.target_group} onChange={set("target_group")}>
-                      <option value="All">All Students</option>
-                      <option value="BCA">BCA</option>
-                      <option value="MCA">MCA</option>
-                      <option value="B.Tech">B.Tech</option>
-                      <option value="B.Sc">B.Sc</option>
-                      <option value="AI">AI</option>
+                      {groups.map(g => (
+                        <option key={g} value={g}>{g === "All" ? "All Students" : g}</option>
+                      ))}
                     </select>
                   </div>
                   <div className="as-field"></div>
@@ -357,7 +354,7 @@ function CreateModal({ onClose, onCreated, courses = [], editData }) {
 }
 
 // ─── DETAIL DRAWER ────────────────────────────────────────────────
-function DetailDrawer({ assignment, onClose, onEdit, onDuplicate }) {
+function DetailDrawer({ assignment, onClose, onEdit, onDuplicate, onDelete }) {
   const [tab, setTab]           = useState("overview");
   const [subSearch, setSubSearch] = useState("");
   const [subFilter, setSubFilter] = useState("all");
@@ -465,7 +462,17 @@ function DetailDrawer({ assignment, onClose, onEdit, onDuplicate }) {
                 <button className="btn btn-ghost" style={{ flex:1, justifyContent:"center", gap:5, fontSize:11 }} onClick={() => { onDuplicate(assignment); onClose(); }}><IcoCopy width={11} height={11}/> Duplicate</button>
                 <button className="btn btn-ghost" style={{ flex:1, justifyContent:"center", gap:5, fontSize:11 }}><IcoLink width={11} height={11}/> Share</button>
               </div>
-              <button className="as-danger-btn"><IcoTrash width={11} height={11}/> Delete Assignment</button>
+              <button 
+                className="as-danger-btn" 
+                onClick={() => {
+                  if (window.confirm("Are you sure you want to delete this assignment?")) {
+                    onDelete(assignment.id);
+                    onClose();
+                  }
+                }}
+              >
+                <IcoTrash width={11} height={11}/> Delete Assignment
+              </button>
             </>
           )}
 
@@ -735,19 +742,22 @@ export default function FacultyAssignments({ onBack }) {
   const [showCreateCourse, setShowCreateCourse] = useState(false);
 
   const [courses, setCourses] = useState([]);
+  const [metadata, setMetadata] = useState({ departments: [], groups: [] });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [assignRes, courseRes] = await Promise.all([
+        const [assignRes, courseRes, metaRes] = await Promise.all([
           api.get("/faculty/assignments"),
           api.get("/faculty/courses"),
+          api.get("/faculty/metadata"),
         ]);
         setAssignments(Array.isArray(assignRes) ? assignRes : []);
         const courseList = Array.isArray(courseRes)
           ? courseRes.map(c => ({ id: c.id, name: `${c.code} – ${c.name}` }))
           : [];
         setCourses(courseList);
+        setMetadata(metaRes);
       } catch (err) {
         console.error("Failed to fetch data:", err);
       } finally {
@@ -788,13 +798,13 @@ export default function FacultyAssignments({ onBack }) {
         unit: formData.unit
       };
 
-      if (editingAssignment) {
+      if (editingAssignment && editingAssignment.id) {
         // Update mode
         const res = await api.put(`/faculty/assignments/${editingAssignment.id}`, payload);
         setAssignments(prev => prev.map(a => a.id === res.id ? res : a));
         showToast("✅ Assignment Updated!");
       } else {
-        // Create mode
+        // Create mode (or Duplicate)
         const res = await api.post("/faculty/assignments", { ...payload, status: formData.draft ? "upcoming" : "live" });
         setAssignments(prev => [...prev, res]);
         showToast("✅ Assignment Created!");
@@ -819,6 +829,17 @@ export default function FacultyAssignments({ onBack }) {
       status: "upcoming" // Reset to draft
     });
     setShowCreate(true);
+  };
+
+  const handleDeleteAssignment = async (assignmentId) => {
+    try {
+      await api.delete(`/faculty/assignments/${assignmentId}`);
+      setAssignments(prev => prev.filter(a => a.id !== assignmentId));
+      showToast("🗑️ Assignment Deleted");
+    } catch (err) {
+      console.error("Failed to delete assignment:", err);
+      alert("Failed to delete assignment.");
+    }
   };
 
   // AGGREGATE STATS
@@ -856,6 +877,7 @@ export default function FacultyAssignments({ onBack }) {
         onCreated={handleCreateAssignment} 
         courses={courses}
         editData={editingAssignment}
+        groups={metadata.groups}
       />}
       {showCreateCourse && (
         <CreateCourseModal 
@@ -865,7 +887,13 @@ export default function FacultyAssignments({ onBack }) {
           }} 
         />
       )}
-      {selected && <DetailDrawer assignment={selected} onClose={() => setSelected(null)} onEdit={handleEditAssignment} onDuplicate={handleDuplicateAssignment} />}
+      {selected && <DetailDrawer 
+        assignment={selected} 
+        onClose={() => setSelected(null)} 
+        onEdit={handleEditAssignment} 
+        onDuplicate={handleDuplicateAssignment} 
+        onDelete={handleDeleteAssignment}
+      />}
       {toast      && <div className="as-toast">{toast}</div>}
 
       <div className="as-page-hd">

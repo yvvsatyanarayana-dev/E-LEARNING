@@ -120,9 +120,9 @@ const NAV_ITEMS = [
   },
   {
     section: "Teaching", links: [
-      { label: ROUTES.MY_COURSES, icon: <IcoBook />, badge: "3" },
+      { label: ROUTES.MY_COURSES, icon: <IcoBook /> },
       { label: ROUTES.VIDEO_LECTURES, icon: <IcoVideo /> },
-      { label: ROUTES.ASSIGNMENTS, icon: <IcoFile />, badge: "22", badgeClass: "rose" },
+      { label: ROUTES.ASSIGNMENTS, icon: <IcoFile /> },
       { label: ROUTES.QUIZZES, icon: <IcoClock /> },
     ]
   },
@@ -130,7 +130,7 @@ const NAV_ITEMS = [
     section: "Students", links: [
       { label: ROUTES.ALL_STUDENTS, icon: <IcoUsers /> },
       { label: ROUTES.ATTENDANCE, icon: <IcoCal /> },
-      { label: ROUTES.GRADE_BOOK, icon: <IcoPen />, badge: "25", badgeClass: "rose" },
+      { label: ROUTES.GRADE_BOOK, icon: <IcoPen /> },
     ]
   },
   {
@@ -272,13 +272,19 @@ function Sidebar({ open, onClose, activePage, onNavigate, userName, stats, tasks
             {NAV_ITEMS.map(({ section, links }) => (
               <div key={section}>
                 <div className="sb-sec-label">{section}</div>
-                {links.map(({ label, icon, badge, badgeClass }) => {
+                {links.map((link) => {
+                  const { label, icon, badgeClass, badge } = link;
                   const isActive = activePage === label;
+                  let finalBadge = badge;
+                  if (label === ROUTES.MY_COURSES && stats?.active_courses != null) {
+                    finalBadge = stats.active_courses > 0 ? stats.active_courses : null;
+                  }
+                  
                   return (
                     <a key={label} href="#" className={`sb-link ${isActive ? "active" : ""}`}
                       onClick={e => { e.preventDefault(); if (ROUTABLE.has(label)) { onNavigate(label); onClose(); } }}>
                       {icon}{label}
-                      {badge && <span className={`sb-badge ${badgeClass || ""}`}>{badge}</span>}
+                      {finalBadge && <span className={`sb-badge ${badgeClass || ""}`}>{finalBadge}</span>}
                     </a>
                   );
                 })}

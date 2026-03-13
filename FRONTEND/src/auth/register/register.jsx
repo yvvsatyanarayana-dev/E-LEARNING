@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 function useRipple() {
   const addRipple = useCallback((e) => {
@@ -28,6 +28,38 @@ export default function RegisterModal({ open, onClose, onGoLogin }) {
   const [error, setError]       = useState("");
   const [success, setSuccess]   = useState("");
   const [loading, setLoading]   = useState(false);
+  const [metadata, setMetadata] = useState({ departments: [], groups: [] });
+
+  useEffect(() => {
+    if (open) {
+      const fetchMeta = async () => {
+        try {
+          const res = await fetch("http://localhost:8000/api/v1/faculty/metadata");
+          if (res.ok) {
+            const data = await res.json();
+            setMetadata(data);
+            if (data.departments.length > 0) setDept(data.departments[0]);
+            if (data.groups.length > 0) setTargetGroup(data.groups[0]);
+          }
+        } catch (err) {
+          console.error("Failed to fetch metadata:", err);
+        }
+      };
+      fetchMeta();
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) {
+      // Reset form on close
+      setFullName("");
+      setEmail("");
+      setPassword("");
+      setConfirm("");
+      setError("");
+      setSuccess("");
+    }
+  }, [open]);
 
   const roles = [
     { key: "student",           name: "Student",   desc: "Track your progress" },
@@ -36,18 +68,9 @@ export default function RegisterModal({ open, onClose, onGoLogin }) {
     { key: "admin",             name: "Admin",     desc: "Full control" },
   ];
 
-  const departments = [
-    { id: "Computer Science", name: "Computer Science" },
-  ];
+  const departments = metadata.departments.map(d => ({ id: d, name: d }));
 
-  const groups = [
-    { id: "BCA", name: "BCA" },
-    { id: "MCA", name: "MCA" },
-    { id: "B.Tech", name: "B.Tech" },
-    { id: "B.Sc", name: "B.Sc" },
-    { id: "AI", name: "AI" },
-    { id: "All", name: "All Students" },
-  ];
+  const groups = metadata.groups.map(g => ({ id: g, name: g === "All" ? "All Students" : g }));
 
   const handleRegister = async () => {
     setError("");

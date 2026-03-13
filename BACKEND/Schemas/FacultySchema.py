@@ -279,7 +279,7 @@ class FacultyStudentDetail(BaseModel):
     roll: str
     name: str
     course: str # e.g. CS501
-    sem: int
+    sem: str
     batch: str # "A" or "B"
     cgpa: float
     attendance: int
@@ -448,4 +448,6 @@ class FacultyReportCourseMetric(BaseModel):
 class FacultyReportResponse(BaseModel):
     stats: List[FacultyReportStats]
     courses: List[FacultyReportCourseMetric]
-    week_scores: List[Dict[str, Any]]
+class FacultyMetadataResponse(BaseModel):
+    departments: List[str]
+    groups: List[str]

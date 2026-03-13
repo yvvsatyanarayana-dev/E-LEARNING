@@ -13,7 +13,7 @@ from Schemas.FacultySchema import (
     FacultyLectureDetail, FacultyProfileResponse, FacultyAttendanceCourse,
     FacultySettingsResponse, FacultySettingsUpdate,
     FacultyLessonCreate, FacultyAssignmentCreate, FacultyQuizCreate, FacultyCourseCreate,
-    FacultyReportResponse, FacultyAssignmentUpdate, FacultyQuizUpdate
+    FacultyReportResponse, FacultyAssignmentUpdate, FacultyQuizUpdate, FacultyMetadataResponse
 )
 
 router = APIRouter(prefix="/faculty", tags=["Faculty"])
@@ -47,6 +47,11 @@ def get_faculty_courses(current_user: User = Depends(get_current_user), db: Sess
 def create_faculty_course(data: FacultyCourseCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return faculty_service.create_course(current_user, db, data)
 
+@router.get("/courses/{course_id}", response_model=dict)
+def get_faculty_course(course_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return faculty_service.get_course(current_user, db, course_id)
+
+
 @router.get("/lectures", response_model=List[FacultyLectureDetail])
 def get_faculty_lectures(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return faculty_service.get_lectures(current_user, db)
@@ -67,6 +72,10 @@ def create_faculty_assignment(data: FacultyAssignmentCreate, current_user: User 
 def update_faculty_assignment(assignment_id: int, data: FacultyAssignmentUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return faculty_service.update_assignment(current_user, db, assignment_id, data)
 
+@router.delete("/assignments/{assignment_id}")
+def delete_faculty_assignment(assignment_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return faculty_service.delete_assignment(current_user, db, assignment_id)
+
 @router.get("/quizzes", response_model=List[FacultyQuizDetail])
 def get_faculty_quizzes(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return faculty_service.get_quizzes(current_user, db)
@@ -78,6 +87,10 @@ def create_faculty_quiz(data: FacultyQuizCreate, current_user: User = Depends(ge
 @router.put("/quizzes/{quiz_id}", response_model=FacultyQuizDetail)
 def update_faculty_quiz(quiz_id: int, data: FacultyQuizUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return faculty_service.update_quiz(current_user, db, quiz_id, data)
+
+@router.delete("/quizzes/{quiz_id}")
+def delete_faculty_quiz(quiz_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return faculty_service.delete_quiz(current_user, db, quiz_id)
 
 @router.get("/students", response_model=List[FacultyStudentDetail])
 def get_faculty_all_students(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -94,6 +107,10 @@ def get_faculty_analytics(current_user: User = Depends(get_current_user), db: Se
 @router.get("/reports", response_model=FacultyReportResponse)
 def get_faculty_reports(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return faculty_service.get_reports(current_user, db)
+
+@router.get("/metadata", response_model=FacultyMetadataResponse)
+def get_faculty_metadata(db: Session = Depends(get_db)):
+    return faculty_service.get_metadata(db)
 
 @router.post("/upload")
 def upload_file(file: UploadFile = File(...), current_user: User = Depends(get_current_user)):

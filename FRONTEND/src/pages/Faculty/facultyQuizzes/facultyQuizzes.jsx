@@ -237,7 +237,7 @@ const BLANK_QUESTION = (type) => ({
   marks: 1,
 });
 
-function CreateModal({ onClose, onCreated, courses = [], editData = null }) {
+function CreateModal({ onClose, onCreated, courses = [], editData = null, groups = [] }) {
   const [step, setStep] = useState(1);
   const [form, setForm] = useState({
     title: "",
@@ -371,12 +371,9 @@ function CreateModal({ onClose, onCreated, courses = [], editData = null }) {
                   <div className="qz-field" style={{ marginBottom: 0 }}>
                     <div className="qz-field-lbl">Target Group</div>
                     <select className="qz-input" value={form.target_group} onChange={e => setF("target_group", e.target.value)}>
-                      <option value="All">All Students</option>
-                      <option value="BCA">BCA</option>
-                      <option value="MCA">MCA</option>
-                      <option value="B.Tech">B.Tech</option>
-                      <option value="B.Sc">B.Sc</option>
-                      <option value="AI">AI</option>
+                      {groups.map(g => (
+                        <option key={g} value={g}>{g === "All" ? "All Students" : g}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -548,7 +545,7 @@ function CreateCourseModal({ onClose, onCreated }) {
 }
 
 // ─── DETAIL DRAWER ────────────────────────────────────────────────
-function DetailDrawer({ quiz, onClose }) {
+function DetailDrawer({ quiz, onClose, onEdit, onDuplicate, onDelete }) {
   const [tab, setTab] = useState("overview");
   const c = getCourseMeta(quiz.courseId, quiz.course_code);
 
@@ -606,6 +603,21 @@ function DetailDrawer({ quiz, onClose }) {
                   <span>Duration:</span>
                   <strong>{quiz.duration} mins</strong>
                 </div>
+              </div>
+
+              <div className="qz-drawer-actions" style={{marginTop:24, display:"flex", gap:10}}>
+                <button 
+                  className="btn btn-ghost" 
+                  style={{flex:1, color:"#ef4444", borderColor:"rgba(239, 68, 68, 0.2)"}}
+                  onClick={() => {
+                    if (window.confirm("Are you sure you want to delete this quiz?")) {
+                      onDelete(quiz.id);
+                      onClose();
+                    }
+                  }}
+                >
+                  <IcoTrash width={12} height={12} style={{marginRight:6}} /> Delete Quiz
+                </button>
               </div>
             </div>
           )}
@@ -679,6 +691,7 @@ export default function FacultyQuizzes({ onBack }) {
   const [selected, setSelected] = useState(null);
   const [showCreateCourse, setShowCreateCourse] = useState(false);
   const [toast, setToast] = useState("");
+  const [metadata, setMetadata] = useState({ departments: [], groups: [] });
 
   const handleSaveQuiz = async (formData) => {
     try {
@@ -729,20 +742,33 @@ export default function FacultyQuizzes({ onBack }) {
     setCreate(true);
   };
 
+  const handleDeleteQuiz = async (quizId) => {
+    try {
+      await api.delete(`/faculty/quizzes/${quizId}`);
+      setQuizzes(prev => prev.filter(q => q.id !== quizId));
+      showToast("🗑️ Quiz Deleted");
+    } catch (err) {
+      console.error("Failed to delete quiz:", err);
+      alert("Failed to delete quiz.");
+    }
+  };
+
   const [courses, setCourses] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [quizRes, courseRes] = await Promise.all([
+        const [quizRes, courseRes, metaRes] = await Promise.all([
           api.get("/faculty/quizzes"),
           api.get("/faculty/courses"),
+          api.get("/faculty/metadata"),
         ]);
         setQuizzes(Array.isArray(quizRes) ? quizRes : []);
         const courseList = Array.isArray(courseRes)
           ? courseRes.map(c => ({ id: c.id, name: `${c.code} – ${c.name}` }))
           : [];
         setCourses(courseList);
+        setMetadata(metaRes);
       } catch (err) {
         console.error("Failed to fetch data:", err);
       } finally {
@@ -779,6 +805,7 @@ export default function FacultyQuizzes({ onBack }) {
         onCreated={handleSaveQuiz} 
         courses={courses} 
         editData={editingQuiz}
+        groups={metadata.groups}
       />}
       {showCreateCourse && (
         <CreateCourseModal 
@@ -793,6 +820,7 @@ export default function FacultyQuizzes({ onBack }) {
         onClose={() => setSelected(null)} 
         onEdit={handleEditQuiz}
         onDuplicate={handleDuplicateQuiz}
+        onDelete={handleDeleteQuiz}
       />}
       {toast && <div className="qz-toast">{toast}</div>}
 
