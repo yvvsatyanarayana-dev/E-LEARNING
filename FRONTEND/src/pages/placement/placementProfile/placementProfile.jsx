@@ -1,37 +1,40 @@
 /**
  * placementProfile.jsx
  * SmartCampus — Placement Officer Profile Page
- * Route: /placementdashboard/profile  (RoleRoute: placement_officer, admin)
+ * API calls wired using the shared api.js utility (same pattern as placementDashboard.jsx)
  *
- * Mirrors structure of placementDashboard.jsx / placementStudents.jsx:
- *   - Same sidebar, topbar, custom cursor, noise overlay, CSS-variable tokens
- *   - Reuses SbLink, Panel, FInput, FSelect, Toggle, Badge atoms
- *   - No external deps beyond react-router-dom (already in project)
+ * APIs used:
+ *   GET  /auth/me                          → load officer profile
+ *   PATCH /auth/me                         → update profile info
+ *   GET  /placement/dashboard/stats        → glance stats
+ *   GET  /placement/internships?limit=5    → recent drives for activity feed
  */
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { clearAuth } from "../../../utils/auth.js";
+import api from "../../../utils/api.js";
 import "./placementProfile.css";
 
 /* ═══════════════════════════════════════════════
-   SEED / STATIC DATA
+   FALLBACK / SEED DATA  (shown while loading or on error)
 ═══════════════════════════════════════════════ */
-const SEED_PROFILE = {
-  firstName:  "Kavitha",
-  lastName:   "Ramachandran",
+const DEFAULT_PROFILE = {
+  firstName:  "Placement",
+  lastName:   "Officer",
   role:       "Placement Officer",
-  email:      "kavitha.r@smartcampus.edu",
-  phone:      "+91 98765 43210",
+  email:      "",
+  phone:      "",
   department: "Training & Placement Cell",
-  empId:      "TPC-2019-047",
-  joined:     "2019-07-15",
-  location:   "Bangalore, Karnataka",
-  bio:        "Dedicated placement professional with 5+ years managing campus recruitment, industry partnerships, and student career development. Passionate about bridging the gap between students and top-tier companies.",
-  linkedin:   "linkedin.com/in/kavitha-r",
-  twitter:    "@kavitha_tpc",
+  empId:      "TPC-0001",
+  joined:     new Date().toISOString(),
+  location:   "",
+  bio:        "",
+  linkedin:   "",
+  twitter:    "",
 };
 
-const SEED_SETTINGS = {
+const DEFAULT_SETTINGS = {
   academicYear:   "2024-25",
   semester:       "Semester 5",
   minCgpa:        "6.5",
@@ -50,25 +53,15 @@ const SEMESTERS      = ["Semester 1","Semester 2","Semester 3","Semester 4",
 const EXPORT_FORMATS = ["PDF","CSV","Excel","JSON"];
 const CGPA_OPTS      = ["5.0","5.5","6.0","6.5","7.0","7.5","8.0","8.5"];
 
-const ACTIVITY = [
-  { id:1, icon:"🏢", col:"var(--indigo-l)", text:"Added Amazon SDE-1 drive for March 15",           time:"2h ago"     },
-  { id:2, icon:"📢", col:"var(--teal)",     text:"Notified 48 CSE students about drive deadline",   time:"4h ago"     },
-  { id:3, icon:"✅", col:"var(--teal)",     text:"Marked Infosys drive Completed — 22 offers",      time:"Yesterday"  },
-  { id:4, icon:"📋", col:"var(--amber)",    text:"Completed review of 14 student resumes",          time:"Yesterday"  },
-  { id:5, icon:"🤝", col:"var(--indigo-l)", text:"Onboarded Google as new placement partner",       time:"3 days ago" },
-  { id:6, icon:"📊", col:"var(--violet)",   text:"Generated Q3 Placement Analytics Report",         time:"5 days ago" },
-  { id:7, icon:"🎯", col:"var(--teal)",     text:"Achieved 68 % placement rate milestone",          time:"1 week ago" },
-];
-
 const ACHIEVEMENTS = [
   { icon:"🏆", label:"Best Placement Officer", sub:"AY 2023-24 Award",  color:"var(--amber)"    },
-  { icon:"🎯", label:"68% Placement Rate",      sub:"Current AY record", color:"var(--teal)"     },
-  { icon:"🤝", label:"32 Company Partners",     sub:"Active this year",  color:"var(--indigo-ll)"},
-  { icon:"⭐", label:"4.9 / 5 Rating",          sub:"Student feedback",  color:"var(--violet)"   },
+  { icon:"🎯", label:"Placement Rate Record",  sub:"Current AY record", color:"var(--teal)"     },
+  { icon:"🤝", label:"Company Partners",       sub:"Active this year",  color:"var(--indigo-ll)"},
+  { icon:"⭐", label:"Student Rating",         sub:"Student feedback",  color:"var(--violet)"   },
 ];
 
 /* ═══════════════════════════════════════════════
-   INLINE SVG ICONS  (zero extra dependencies)
+   INLINE SVG ICONS
 ═══════════════════════════════════════════════ */
 const I = {
   grid:   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>,
@@ -102,150 +95,97 @@ const I = {
 };
 
 /* ═══════════════════════════════════════════════
-   REUSABLE ATOM COMPONENTS
+   REUSABLE ATOMS
 ═══════════════════════════════════════════════ */
-
-/** Sidebar navigation link — mirrors sb-link from dashboard */
 const SbLink = ({ to, active, icon, badge, badgeCls, children }) => (
-  <Link
-    to={to || "#"}
-    className={`sb-link${active ? " active" : ""}`}
-    aria-current={active ? "page" : undefined}
-  >
-    {icon}
-    {children}
-    {badge && (
-      <span className={`sb-badge${badgeCls ? ` ${badgeCls}` : ""}`}>{badge}</span>
-    )}
+  <Link to={to || "#"} className={`sb-link${active ? " active" : ""}`}>
+    {icon}{children}
+    {badge && <span className={`sb-badge${badgeCls ? ` ${badgeCls}` : ""}`}>{badge}</span>}
   </Link>
 );
 
-/** Labeled text input */
-const FInput = ({ label, name, value, onChange, type = "text",
-                  placeholder, required, hint, error, autoComplete }) => (
+const FInput = ({ label, name, value, onChange, type = "text", placeholder, required, hint, error }) => (
   <div className="pp-field">
     <label className="pp-label" htmlFor={`pp-${name}`}>
-      {label}
-      {required && <span className="pp-req" aria-hidden="true"> *</span>}
-      {hint    && <span className="pp-hint"> — {hint}</span>}
+      {label}{required && <span className="pp-req"> *</span>}
+      {hint && <span className="pp-hint"> — {hint}</span>}
     </label>
     <input
       id={`pp-${name}`}
       className={`pp-input${error ? " pp-input-err" : ""}`}
       type={type} name={name} value={value}
       onChange={onChange} placeholder={placeholder}
-      required={required} autoComplete={autoComplete}
-      aria-invalid={error ? "true" : undefined}
-      aria-describedby={error ? `pp-${name}-err` : undefined}
     />
-    {error && (
-      <span className="pp-field-err" id={`pp-${name}-err`} role="alert">
-        {I.err} {error}
-      </span>
-    )}
+    {error && <span className="pp-field-err" role="alert">{I.err} {error}</span>}
   </div>
 );
 
-/** Labeled select */
-const FSelect = ({ label, name, value, onChange, options, required, hint }) => (
+const FSelect = ({ label, name, value, onChange, options }) => (
   <div className="pp-field">
-    <label className="pp-label" htmlFor={`pp-${name}`}>
-      {label}
-      {required && <span className="pp-req" aria-hidden="true"> *</span>}
-      {hint    && <span className="pp-hint"> — {hint}</span>}
-    </label>
-    <select
-      id={`pp-${name}`}
-      className="pp-input pp-select"
-      name={name} value={value}
-      onChange={onChange} required={required}
-    >
-      {options.map(o => (
-        <option key={o.value ?? o} value={o.value ?? o}>{o.label ?? o}</option>
-      ))}
+    <label className="pp-label" htmlFor={`pp-${name}`}>{label}</label>
+    <select id={`pp-${name}`} className="pp-input pp-select" name={name} value={value} onChange={onChange}>
+      {options.map(o => <option key={o}>{o}</option>)}
     </select>
   </div>
 );
 
-/** Labeled textarea */
-const FTextarea = ({ label, name, value, onChange, placeholder, hint, rows = 3 }) => (
+const FTextarea = ({ label, name, value, onChange, placeholder, rows = 3 }) => (
   <div className="pp-field">
-    <label className="pp-label" htmlFor={`pp-${name}`}>
-      {label}{hint && <span className="pp-hint"> — {hint}</span>}
-    </label>
-    <textarea
-      id={`pp-${name}`}
-      className="pp-input pp-textarea"
-      name={name} value={value}
-      onChange={onChange} placeholder={placeholder} rows={rows}
-    />
+    <label className="pp-label" htmlFor={`pp-${name}`}>{label}</label>
+    <textarea id={`pp-${name}`} className="pp-input pp-textarea" name={name} value={value}
+      onChange={onChange} placeholder={placeholder} rows={rows} />
   </div>
 );
 
-/** Accessible toggle switch */
 const Toggle = ({ id, checked, onChange, label, desc }) => (
   <div className="pp-toggle-row">
     <div className="pp-toggle-text">
       <span className="pp-toggle-label" id={`${id}-lbl`}>{label}</span>
       {desc && <span className="pp-toggle-desc">{desc}</span>}
     </div>
-    <button
-      role="switch" type="button"
-      aria-checked={checked} aria-labelledby={`${id}-lbl`}
-      className={`pp-toggle${checked ? " on" : ""}`}
-      onClick={() => onChange(!checked)}
-    >
-      <span className="pp-toggle-thumb" aria-hidden="true" />
+    <button role="switch" type="button" aria-checked={checked}
+      className={`pp-toggle${checked ? " on" : ""}`} onClick={() => onChange(!checked)}>
+      <span className="pp-toggle-thumb" />
     </button>
   </div>
 );
 
-/** Content panel */
 const Panel = ({ title, icon, children, action, delay = 0, className = "" }) => (
-  <section
-    className={`pp-panel${className ? ` ${className}` : ""}`}
-    style={{ animationDelay: `${delay}s` }}
-  >
+  <section className={`pp-panel${className ? ` ${className}` : ""}`} style={{ animationDelay: `${delay}s` }}>
     <div className="pp-panel-hd">
-      <h2 className="pp-panel-ttl">
-        <span aria-hidden="true">{icon}</span>{title}
-      </h2>
+      <h2 className="pp-panel-ttl"><span>{icon}</span>{title}</h2>
       {action && <div className="pp-panel-act">{action}</div>}
     </div>
     <div className="pp-panel-body">{children}</div>
   </section>
 );
 
-/** Auto-dismissing toast */
 const Toast = ({ id, icon, title, sub, type = "success", onDismiss }) => {
-  useEffect(() => {
-    const t = setTimeout(() => onDismiss(id), 3800);
-    return () => clearTimeout(t);
-  }, [id, onDismiss]);
+  useEffect(() => { const t = setTimeout(() => onDismiss(id), 3800); return () => clearTimeout(t); }, [id, onDismiss]);
   return (
-    <div className={`pp-toast pp-toast-${type}`} role="status" aria-live="polite">
-      <span className="pp-toast-icon" aria-hidden="true">{icon}</span>
+    <div className={`pp-toast pp-toast-${type}`} role="status">
+      <span className="pp-toast-icon">{icon}</span>
       <div className="pp-toast-body">
         <div className="pp-toast-title">{title}</div>
         {sub && <div className="pp-toast-sub">{sub}</div>}
       </div>
-      <button className="pp-toast-x" onClick={() => onDismiss(id)} aria-label="Dismiss">×</button>
+      <button className="pp-toast-x" onClick={() => onDismiss(id)}>×</button>
     </div>
   );
 };
 
-/* ── Change-password modal ── */
+const Skeleton = ({ width = "100%", height = 14, style = {} }) => (
+  <div style={{ width, height, background: "var(--surface3)", borderRadius: 6, animation: "pulse 1.5s ease-in-out infinite", ...style }} />
+);
+
+/* ── Change Password Modal ── */
 const ChangePasswordModal = ({ onClose, onSuccess }) => {
   const [form,   setForm]   = useState({ cur: "", next: "", confirm: "" });
   const [errors, setErrors] = useState({});
   const [busy,   setBusy]   = useState(false);
   const [done,   setDone]   = useState(false);
-  const firstRef = useRef(null);
+  const [apiErr, setApiErr] = useState(null);
 
-  // focus trap
-  useEffect(() => { firstRef.current?.focus(); }, []);
-
-  // ESC to close
   useEffect(() => {
     const h = e => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", h);
@@ -255,138 +195,106 @@ const ChangePasswordModal = ({ onClose, onSuccess }) => {
   const handle = e => {
     setForm(f => ({ ...f, [e.target.name]: e.target.value }));
     setErrors(er => ({ ...er, [e.target.name]: null }));
+    setApiErr(null);
   };
 
   const validate = () => {
     const e = {};
-    if (!form.cur.trim())            e.cur     = "Current password is required";
-    if (form.next.length < 8)        e.next    = "Must be at least 8 characters";
-    if (form.next !== form.confirm)  e.confirm = "Passwords do not match";
+    if (!form.cur.trim())           e.cur     = "Current password is required";
+    if (form.next.length < 8)       e.next    = "Must be at least 8 characters";
+    if (form.next !== form.confirm) e.confirm = "Passwords do not match";
     return e;
   };
 
-  const submit = () => {
+  const submit = async () => {
     const e = validate();
     if (Object.keys(e).length) { setErrors(e); return; }
     setBusy(true);
-    setTimeout(() => {
-      setBusy(false); setDone(true);
+    setApiErr(null);
+    try {
+      // POST /auth/change-password
+      await api.post("/auth/change-password", {
+        current_password: form.cur,
+        new_password: form.next,
+        confirm_password: form.confirm,
+      });
+      setDone(true);
       setTimeout(() => { onSuccess(); onClose(); }, 1500);
-    }, 900);
+    } catch (err) {
+      setApiErr(err.message ?? "Failed to change password. Please try again.");
+    } finally {
+      setBusy(false);
+    }
   };
 
-  // password strength: 0-4
   const strength = (() => {
     const v = form.next; if (!v) return 0;
-    return [v.length >= 8, /[A-Z]/.test(v), /\d/.test(v), /[^a-zA-Z0-9]/.test(v)]
-      .filter(Boolean).length;
+    return [v.length >= 8, /[A-Z]/.test(v), /\d/.test(v), /[^a-zA-Z0-9]/.test(v)].filter(Boolean).length;
   })();
   const strColor = ["","var(--rose)","var(--amber)","var(--indigo-ll)","var(--teal)"][strength];
   const strLabel = ["","Weak","Fair","Good","Strong"][strength];
 
   return (
-    <div
-      className="pp-overlay"
-      role="dialog" aria-modal="true" aria-labelledby="pwd-dlg-title"
-      onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}
-    >
+    <div className="pp-overlay" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div className="pp-modal pp-modal-sm" onMouseDown={e => e.stopPropagation()}>
-        {/* header */}
         <div className="pp-modal-hd">
           <div className="pp-modal-hd-l">
-            <div className="pp-modal-ico pp-modal-ico-rose" aria-hidden="true">{I.lock}</div>
+            <div className="pp-modal-ico pp-modal-ico-rose">{I.lock}</div>
             <div>
-              <div className="pp-modal-title" id="pwd-dlg-title">Change Password</div>
+              <div className="pp-modal-title">Change Password</div>
               <div className="pp-modal-sub">Update your account credentials</div>
             </div>
           </div>
-          <button className="pp-modal-close" onClick={onClose} aria-label="Close dialog">
-            {I.x}
-          </button>
+          <button className="pp-modal-close" onClick={onClose}>{I.x}</button>
         </div>
-
-        {/* body */}
         <div className="pp-modal-body">
           {done ? (
             <div className="pp-modal-success">
-              <div className="pp-modal-success-ring" aria-hidden="true">
-                {I.check}
-              </div>
+              <div className="pp-modal-success-ring">{I.check}</div>
               <div className="pp-modal-success-title">Password Updated!</div>
               <div className="pp-modal-success-sub">Credentials changed successfully.</div>
             </div>
           ) : (
             <>
+              {apiErr && (
+                <div className="pp-field-err" style={{ marginBottom: 12, fontSize: 11, background: "rgba(240,83,106,.08)", padding: "8px 12px", borderRadius: 8, border: "1px solid rgba(240,83,106,.2)" }}>
+                  {I.err} {apiErr}
+                </div>
+              )}
               <div className="pp-field">
-                <label className="pp-label" htmlFor="pwd-cur">
-                  Current Password <span className="pp-req" aria-hidden="true">*</span>
-                </label>
-                <input
-                  ref={firstRef}
-                  id="pwd-cur" className={`pp-input${errors.cur ? " pp-input-err" : ""}`}
-                  type="password" name="cur" value={form.cur} onChange={handle}
-                  placeholder="Enter current password" autoComplete="current-password"
-                  aria-invalid={errors.cur ? "true" : undefined}
-                />
-                {errors.cur && <span className="pp-field-err" role="alert">{I.err} {errors.cur}</span>}
+                <label className="pp-label">Current Password <span className="pp-req">*</span></label>
+                <input className={`pp-input${errors.cur ? " pp-input-err" : ""}`}
+                  type="password" name="cur" value={form.cur} onChange={handle} placeholder="Enter current password" />
+                {errors.cur && <span className="pp-field-err">{I.err} {errors.cur}</span>}
               </div>
-
               <div className="pp-field">
-                <label className="pp-label" htmlFor="pwd-next">
-                  New Password <span className="pp-req" aria-hidden="true">*</span>
-                </label>
-                <input
-                  id="pwd-next" className={`pp-input${errors.next ? " pp-input-err" : ""}`}
-                  type="password" name="next" value={form.next} onChange={handle}
-                  placeholder="Minimum 8 characters" autoComplete="new-password"
-                  aria-invalid={errors.next ? "true" : undefined}
-                />
-                {errors.next && <span className="pp-field-err" role="alert">{I.err} {errors.next}</span>}
+                <label className="pp-label">New Password <span className="pp-req">*</span></label>
+                <input className={`pp-input${errors.next ? " pp-input-err" : ""}`}
+                  type="password" name="next" value={form.next} onChange={handle} placeholder="Minimum 8 characters" />
+                {errors.next && <span className="pp-field-err">{I.err} {errors.next}</span>}
               </div>
-
-              {/* strength meter */}
               {form.next && (
-                <div className="pp-pwd-strength" aria-label={`Password strength: ${strLabel}`}>
-                  <div className="pp-pwd-bars" aria-hidden="true">
-                    {[1,2,3,4].map(n => (
-                      <div
-                        key={n}
-                        className="pp-pwd-bar"
-                        style={{ background: n <= strength ? strColor : "var(--surface3)" }}
-                      />
-                    ))}
+                <div className="pp-pwd-strength">
+                  <div className="pp-pwd-bars">
+                    {[1,2,3,4].map(n => <div key={n} className="pp-pwd-bar" style={{ background: n <= strength ? strColor : "var(--surface3)" }} />)}
                   </div>
                   <span className="pp-pwd-label" style={{ color: strColor }}>{strLabel}</span>
                 </div>
               )}
-
               <div className="pp-field">
-                <label className="pp-label" htmlFor="pwd-confirm">
-                  Confirm Password <span className="pp-req" aria-hidden="true">*</span>
-                </label>
-                <input
-                  id="pwd-confirm" className={`pp-input${errors.confirm ? " pp-input-err" : ""}`}
-                  type="password" name="confirm" value={form.confirm} onChange={handle}
-                  placeholder="Re-enter new password" autoComplete="new-password"
-                  aria-invalid={errors.confirm ? "true" : undefined}
-                />
-                {errors.confirm && <span className="pp-field-err" role="alert">{I.err} {errors.confirm}</span>}
+                <label className="pp-label">Confirm Password <span className="pp-req">*</span></label>
+                <input className={`pp-input${errors.confirm ? " pp-input-err" : ""}`}
+                  type="password" name="confirm" value={form.confirm} onChange={handle} placeholder="Re-enter new password" />
+                {errors.confirm && <span className="pp-field-err">{I.err} {errors.confirm}</span>}
               </div>
             </>
           )}
         </div>
-
-        {/* footer */}
         {!done && (
           <div className="pp-modal-ft">
-            <button className="pp-btn pp-btn-ghost" type="button" onClick={onClose}>Cancel</button>
-            <button
-              className="pp-btn pp-btn-solid" type="button"
-              onClick={submit} disabled={busy}
-            >
-              {busy
-                ? <><span className="pp-spinner" aria-hidden="true" /> Saving…</>
-                : <>{I.save} Update Password</>}
+            <button className="pp-btn pp-btn-ghost" onClick={onClose}>Cancel</button>
+            <button className="pp-btn pp-btn-solid" onClick={submit} disabled={busy}>
+              {busy ? <><span className="pp-spinner" /> Saving…</> : <>{I.save} Update Password</>}
             </button>
           </div>
         )}
@@ -403,65 +311,57 @@ const validateProfile = f => {
   if (!f.firstName.trim()) e.firstName = "First name is required";
   if (!f.lastName.trim())  e.lastName  = "Last name is required";
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) e.email = "Enter a valid email address";
-  if (f.phone && !/^[+\d\s\-(). ]{7,}$/.test(f.phone)) e.phone = "Enter a valid phone number";
   return e;
 };
 
 /* ═══════════════════════════════════════════════
-   MAIN PAGE COMPONENT
+   MAIN COMPONENT
 ═══════════════════════════════════════════════ */
 export default function PlacementProfile() {
   const navigate = useNavigate();
 
-  /* ── state ── */
-  const [profile,       setProfile]       = useState({ ...SEED_PROFILE });
-  const [settings,      setSettings]      = useState({ ...SEED_SETTINGS });
-  const [profileDraft,  setProfileDraft]  = useState({ ...SEED_PROFILE });
-  const [settingsDraft, setSettingsDraft] = useState({ ...SEED_SETTINGS });
-  const [fieldErrors,   setFieldErrors]   = useState({});
-  const [editing,       setEditing]       = useState(false);
-  const [activeTab,     setActiveTab]     = useState("profile");
-  const [showPwdModal,  setShowPwdModal]  = useState(false);
-  const [toasts,        setToasts]        = useState([]);
-  const [savingInfo,    setSavingInfo]    = useState(false);
-  const [savingSet,     setSavingSet]     = useState(false);
-  const [searchVal,     setSearchVal]     = useState("");
+  /* ── API data state ── */
+  const [loading,       setLoading]       = useState(true);
+  const [statsLoading,  setStatsLoading]  = useState(true);
+  const [dashStats,     setDashStats]     = useState(null);
+  const [recentDrives,  setRecentDrives]  = useState([]);
 
-  /* ── custom cursor ── */
+  /* ── Profile & settings state ── */
+  const [profile,       setProfile]       = useState({ ...DEFAULT_PROFILE });
+  const [settings,      setSettings]      = useState({ ...DEFAULT_SETTINGS });
+  const [profileDraft,  setProfileDraft]  = useState({ ...DEFAULT_PROFILE });
+  const [settingsDraft, setSettingsDraft] = useState({ ...DEFAULT_SETTINGS });
+  const [fieldErrors,   setFieldErrors]   = useState({});
+
+  /* ── UI state ── */
+  const [editing,      setEditing]      = useState(false);
+  const [activeTab,    setActiveTab]    = useState("profile");
+  const [showPwdModal, setShowPwdModal] = useState(false);
+  const [toasts,       setToasts]       = useState([]);
+  const [savingInfo,   setSavingInfo]   = useState(false);
+  const [savingSet,    setSavingSet]    = useState(false);
+  const [searchVal,    setSearchVal]    = useState("");
+
+  /* ── Custom cursor ── */
   const curRef  = useRef(null);
   const ringRef = useRef(null);
-  const mx = useRef(0), my = useRef(0);
-  const rx = useRef(0), ry = useRef(0);
+  const mx = useRef(0), my = useRef(0), rx = useRef(0), ry = useRef(0);
 
   useEffect(() => {
     const onMove = e => {
       mx.current = e.clientX; my.current = e.clientY;
-      if (curRef.current) {
-        curRef.current.style.left = `${e.clientX}px`;
-        curRef.current.style.top  = `${e.clientY}px`;
-      }
+      if (curRef.current) { curRef.current.style.left = `${e.clientX}px`; curRef.current.style.top = `${e.clientY}px`; }
     };
-    const onDown  = () => document.body.classList.add("c-click");
-    const onUp    = () => document.body.classList.remove("c-click");
-    const onEnter = () => document.body.classList.add("c-hover");
-    const onLeave = () => document.body.classList.remove("c-hover");
-
+    const onDown = () => document.body.classList.add("c-click");
+    const onUp   = () => document.body.classList.remove("c-click");
     document.addEventListener("mousemove", onMove);
     document.addEventListener("mousedown", onDown);
     document.addEventListener("mouseup",   onUp);
-
-    const selectors = "a,button,input,select,textarea,label,[tabindex]";
-    const nodes = Array.from(document.querySelectorAll(selectors));
-    nodes.forEach(n => { n.addEventListener("mouseenter", onEnter); n.addEventListener("mouseleave", onLeave); });
-
     let raf;
     const loop = () => {
       rx.current += (mx.current - rx.current) * 0.13;
       ry.current += (my.current - ry.current) * 0.13;
-      if (ringRef.current) {
-        ringRef.current.style.left = `${rx.current}px`;
-        ringRef.current.style.top  = `${ry.current}px`;
-      }
+      if (ringRef.current) { ringRef.current.style.left = `${rx.current}px`; ringRef.current.style.top = `${ry.current}px`; }
       raf = requestAnimationFrame(loop);
     };
     loop();
@@ -469,113 +369,180 @@ export default function PlacementProfile() {
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("mouseup",   onUp);
-      nodes.forEach(n => { n.removeEventListener("mouseenter", onEnter); n.removeEventListener("mouseleave", onLeave); });
       cancelAnimationFrame(raf);
     };
   }, []);
 
-  /* scroll lock when modal open */
   useEffect(() => {
     document.body.style.overflow = showPwdModal ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [showPwdModal]);
 
-  /* ── toast helpers ── */
+  /* ════════════════════════════════════════════
+     FETCH — on mount, load profile + stats in parallel
+  ════════════════════════════════════════════ */
+  useEffect(() => {
+    const fetchAll = async () => {
+      setLoading(true);
+      try {
+        const [meRes, statsRes, drivesRes] = await Promise.allSettled([
+          api.get("/auth/me"),
+          api.get("/placement/dashboard/stats"),
+          api.get("/placement/internships?limit=5"),
+        ]);
+
+        // ── Officer profile from /auth/me ──
+        if (meRes.status === "fulfilled") {
+          const me = meRes.value;
+          const nameParts = (me.full_name || "").split(" ");
+          const mapped = {
+            firstName:  nameParts[0] || "",
+            lastName:   nameParts.slice(1).join(" ") || "",
+            role:       me.role_label || "Placement Officer",
+            email:      me.email || "",
+            phone:      me.phone || "",
+            department: me.department || "Training & Placement Cell",
+            empId:      me.emp_id || `TPC-${String(me.id).padStart(4,"0")}`,
+            joined:     me.created_at || new Date().toISOString(),
+            location:   me.settings?.location || "",
+            bio:        me.settings?.bio || "",
+            linkedin:   me.settings?.linkedin || "",
+            twitter:    me.settings?.twitter || "",
+          };
+          setProfile(mapped);
+          setProfileDraft(mapped);
+
+          // Merge officer settings stored in user.settings
+          if (me.settings) {
+            const merged = { ...DEFAULT_SETTINGS, ...me.settings };
+            setSettings(merged);
+            setSettingsDraft(merged);
+          }
+        }
+
+        // ── Dashboard KPI stats ──
+        if (statsRes.status === "fulfilled") {
+          setDashStats(statsRes.value);
+          setStatsLoading(false);
+        }
+
+        // ── Recent drives for activity feed ──
+        if (drivesRes.status === "fulfilled") {
+          const raw = Array.isArray(drivesRes.value) ? drivesRes.value : (drivesRes.value?.items ?? []);
+          setRecentDrives(raw);
+        }
+      } catch (err) {
+        console.error("Profile fetch error:", err);
+      } finally {
+        setLoading(false);
+        setStatsLoading(false);
+      }
+    };
+    fetchAll();
+  }, []);
+
+  /* ── Toast helpers ── */
   const pushToast = useCallback((icon, title, sub, type = "success") => {
     setToasts(prev => [...prev, { id: Date.now() + Math.random(), icon, title, sub, type }]);
   }, []);
+  const dismissToast = useCallback(id => setToasts(prev => prev.filter(t => t.id !== id)), []);
 
-  const dismissToast = useCallback(id => {
-    setToasts(prev => prev.filter(t => t.id !== id));
-  }, []);
+  /* ── Computed ── */
+  const initials = `${profile.firstName[0] ?? ""}${profile.lastName[0] ?? ""}`.toUpperCase() || "PO";
+  const fullName = `${profile.firstName} ${profile.lastName}`.trim() || "Placement Officer";
 
-  /* ── computed ── */
-  const initials = `${profile.firstName[0] ?? ""}${profile.lastName[0] ?? ""}`.toUpperCase();
-  const fullName = `${profile.firstName} ${profile.lastName}`.trim();
+  const placementRate  = dashStats?.placement_rate  ?? 0;
+  const totalStudents  = dashStats?.total_students  ?? 0;
+  const placedStudents = dashStats?.placed_students ?? 0;
+  const avgPri         = dashStats?.avg_pri         ?? 0;
 
-  /* ── profile-info handlers ── */
+  /* ── Build activity feed from real drive data ── */
+  const activityFeed = recentDrives.map(d => ({
+    id:   d.id,
+    icon: "🏢",
+    col:  "var(--indigo-l)",
+    text: `${d.company_name} — ${d.role} drive ${d.status === "Completed" ? "completed" : "scheduled"}`,
+    time: d.created_at
+      ? new Date(d.created_at).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })
+      : "Recently",
+  }));
+
+  /* ── Profile handlers ── */
   const handleProfileChange = e => {
     const { name, value } = e.target;
     setProfileDraft(d => ({ ...d, [name]: value }));
     if (fieldErrors[name]) setFieldErrors(er => ({ ...er, [name]: null }));
   };
 
-  const startEdit = () => {
-    setProfileDraft({ ...profile });
-    setFieldErrors({});
-    setEditing(true);
-  };
+  const startEdit  = () => { setProfileDraft({ ...profile }); setFieldErrors({}); setEditing(true); };
+  const cancelEdit = () => { setProfileDraft({ ...profile }); setFieldErrors({}); setEditing(false); };
 
-  const cancelEdit = () => {
-    setProfileDraft({ ...profile });
-    setFieldErrors({});
-    setEditing(false);
-  };
-
-  const saveProfileInfo = () => {
+  const saveProfileInfo = async () => {
     const e = validateProfile(profileDraft);
     if (Object.keys(e).length) { setFieldErrors(e); return; }
     setSavingInfo(true);
-    setTimeout(() => {
+    try {
+      // PATCH /auth/me — update name, phone, and settings fields
+      await api.patch("/auth/me", {
+        full_name:  `${profileDraft.firstName} ${profileDraft.lastName}`.trim(),
+        phone:      profileDraft.phone,
+        department: profileDraft.department,
+        settings: {
+          location: profileDraft.location,
+          bio:      profileDraft.bio,
+          linkedin: profileDraft.linkedin,
+          twitter:  profileDraft.twitter,
+        },
+      });
       setProfile({ ...profileDraft });
       setEditing(false);
-      setSavingInfo(false);
       pushToast("✅", "Profile Updated", "Your details have been saved.");
-    }, 900);
+    } catch (err) {
+      pushToast("❌", "Update Failed", err.message ?? "Please try again.", "error");
+    } finally {
+      setSavingInfo(false);
+    }
   };
 
-  /* ── settings handlers ── */
+  /* ── Settings handlers ── */
   const handleSettingsChange = e => {
     const { name, value } = e.target;
     setSettingsDraft(d => ({ ...d, [name]: value }));
   };
-
   const handleToggle = key => setSettingsDraft(d => ({ ...d, [key]: !d[key] }));
 
-  const saveSettingsData = () => {
+  const saveSettingsData = async () => {
     setSavingSet(true);
-    setTimeout(() => {
+    try {
+      // PATCH /auth/me — store settings in user.settings JSON
+      await api.patch("/auth/me", { settings: settingsDraft });
       setSettings({ ...settingsDraft });
-      setSavingSet(false);
       pushToast("⚙️", "Settings Saved", "Your preferences have been updated.");
-    }, 700);
+    } catch (err) {
+      pushToast("❌", "Save Failed", err.message ?? "Please try again.", "error");
+    } finally {
+      setSavingSet(false);
+    }
   };
 
   const resetSettingsData = () => {
-    setSettingsDraft({ ...SEED_SETTINGS });
+    setSettingsDraft({ ...DEFAULT_SETTINGS });
     pushToast("🔄", "Settings Reset", "Default preferences restored.", "info");
   };
 
-  /* ── security actions ── */
+  /* ── Security actions ── */
   const SECURITY_ITEMS = [
-    {
-      icon:"🔑", label:"Change Password",
-      sub:"Last changed 3 months ago", color:"var(--indigo-ll)",
-      action: () => setShowPwdModal(true), cta:"Change",
-    },
-    {
-      icon:"🛡️", label:"Two-Factor Authentication",
-      sub:"Not enabled — strongly recommended", color:"var(--rose)",
-      action: () => pushToast("🛡️","2FA Coming Soon","Feature in development.","info"), cta:"Enable",
-    },
-    {
-      icon:"📱", label:"Active Sessions",
-      sub:"1 active session — this device", color:"var(--teal)",
-      action: () => pushToast("📱","1 Active Session","Only this device is signed in.","info"), cta:"View",
-    },
-    {
-      icon:"📦", label:"Download My Data",
-      sub:"Export a copy of all your account data", color:"var(--violet)",
-      action: () => pushToast("📦","Export Queued","You'll receive an email shortly.","info"), cta:"Export",
-    },
+    { icon:"🔑", label:"Change Password",          sub:"Update account credentials",         color:"var(--indigo-ll)", action: () => setShowPwdModal(true),                                                          cta:"Change" },
+    { icon:"🛡️", label:"Two-Factor Authentication", sub:"Not enabled — strongly recommended", color:"var(--rose)",      action: () => pushToast("🛡️","2FA Coming Soon","Feature in development.","info"),            cta:"Enable"  },
+    { icon:"📱", label:"Active Sessions",           sub:"1 active session — this device",     color:"var(--teal)",      action: () => pushToast("📱","1 Active Session","Only this device is signed in.","info"),    cta:"View"    },
+    { icon:"📦", label:"Download My Data",          sub:"Export a copy of your account data", color:"var(--violet)",    action: () => pushToast("📦","Export Queued","You'll receive an email shortly.","info"),     cta:"Export"  },
   ];
 
-  /* ── tab config ── */
   const TABS = [
-    { id:"profile",  label:"Profile Info",  icon:I.user   },
-    { id:"settings", label:"Settings",      icon:I.gear   },
-    { id:"security", label:"Security",      icon:I.shield },
-    { id:"activity", label:"Activity",      icon:I.pulse  },
+    { id:"profile",  label:"Profile Info", icon:I.user   },
+    { id:"settings", label:"Settings",     icon:I.gear   },
+    { id:"security", label:"Security",     icon:I.shield },
+    { id:"activity", label:"Activity",     icon:I.pulse  },
   ];
 
   /* ══════════════════════════════════════════════
@@ -583,14 +550,10 @@ export default function PlacementProfile() {
   ══════════════════════════════════════════════ */
   return (
     <>
-      {/* ── custom cursor ─────────────────────── */}
-      <div className="sc-cursor"      ref={curRef}  style={{ zIndex:99999 }} aria-hidden="true" />
-      <div className="sc-cursor-ring" ref={ringRef} style={{ zIndex:99999 }} aria-hidden="true" />
+      <div className="sc-cursor"      ref={curRef}  style={{ zIndex:99999 }} />
+      <div className="sc-cursor-ring" ref={ringRef} style={{ zIndex:99999 }} />
+      <div className="sc-noise" />
 
-      {/* ── noise texture ─────────────────────── */}
-      <div className="sc-noise" aria-hidden="true" />
-
-      {/* ── password dialog ───────────────────── */}
       {showPwdModal && (
         <ChangePasswordModal
           onClose={() => setShowPwdModal(false)}
@@ -598,178 +561,114 @@ export default function PlacementProfile() {
         />
       )}
 
-      {/* ── toast stack ───────────────────────── */}
-      <div className="pp-toast-stack" aria-live="polite" aria-atomic="false">
-        {toasts.map(t => (
-          <Toast key={t.id} {...t} onDismiss={dismissToast} />
-        ))}
+      <div className="pp-toast-stack">
+        {toasts.map(t => <Toast key={t.id} {...t} onDismiss={dismissToast} />)}
       </div>
 
-      {/* ════════════════ APP SHELL ═════════════ */}
       <div className="app">
-
-        {/* ══ SIDEBAR ══════════════════════════ */}
-        <aside className="sidebar" aria-label="Main navigation">
-          {/* brand */}
+        {/* ══ SIDEBAR ══ */}
+        <aside className="sidebar">
           <div className="sb-top">
-            <Link to="/placementdashboard" className="sb-brand" aria-label="SmartCampus home">
-              <div className="sb-mark" aria-hidden="true">SC</div>
+            <Link to="/placementdashboard" className="sb-brand">
+              <div className="sb-mark">SC</div>
               <span className="sb-name">SmartCampus</span>
             </Link>
           </div>
 
-          {/* officer card */}
-          <Link to="/placementdashboard/profile" className="pp-sb-officer" aria-label="My profile">
-            <div className="sb-avatar pp-sb-av" aria-hidden="true">{initials}</div>
+          <Link to="/placementdashboard/placementProfile" className="pp-sb-officer" style={{ textDecoration:"none" }}>
+            <div className="sb-avatar pp-sb-av">{initials}</div>
             <div style={{ minWidth:0 }}>
-              <div className="sb-uname">{fullName}</div>
+              <div className="sb-uname">{loading ? "Loading…" : fullName}</div>
               <div className="sb-urole">{profile.role}</div>
             </div>
-            <div className="pp-sb-edit-ico" aria-hidden="true">{I.edit}</div>
+            <div className="pp-sb-edit-ico">{I.edit}</div>
           </Link>
 
-          {/* nav links */}
-          <nav className="sb-nav" aria-label="Placement navigation">
+          <nav className="sb-nav">
             <div className="sb-sec-label">Overview</div>
             <SbLink to="/placementdashboard"              icon={I.grid}>Dashboard</SbLink>
-            <SbLink to="/placementdashboard/analytics"    icon={I.bar}  badge="New">Analytics</SbLink>
-
+            <SbLink to="/placementdashboard/analytics"    icon={I.bar} badge="New">Analytics</SbLink>
             <div className="sb-sec-label">Placement</div>
-            <SbLink to="/placementdashboard/students"     icon={I.user}  badge="316" badgeCls="teal">Students</SbLink>
-            <SbLink to="/placementdashboard/companies"    icon={I.brief} badge="8"   badgeCls="amber">Companies</SbLink>
-            <SbLink to="/placementdashboard/drives"       icon={I.file}  badge="3"   badgeCls="rose">Drives</SbLink>
+            <SbLink to="/placementdashboard/students"     icon={I.user}  badge={statsLoading ? "…" : String(totalStudents)} badgeCls="teal">Students</SbLink>
+            <SbLink to="/placementdashboard/companies"    icon={I.brief} badge="8"  badgeCls="amber">Companies</SbLink>
+            <SbLink to="/placementdashboard/drives"       icon={I.file}  badge="3"  badgeCls="rose">Drives</SbLink>
             <SbLink to="/placementdashboard/offers"       icon={I.star}>Offers &amp; Placed</SbLink>
             <SbLink to="/placementdashboard/internships"  icon={I.box}>Internships</SbLink>
-
             <div className="sb-sec-label">Tools</div>
             <SbLink to="/placementdashboard/ai-assistant" icon={I.zap}>AI Assistant</SbLink>
             <SbLink to="/placementdashboard/reports"      icon={I.file}>Reports</SbLink>
-
             <div className="sb-sec-label">Account</div>
-            <SbLink to="/placementdashboard/profile" icon={I.user} active>Profile</SbLink>
+            <SbLink to="/placementdashboard/placementProfile" icon={I.user} active>Profile</SbLink>
           </nav>
 
-          {/* placement-rate widget + sign-out */}
           <div className="sb-bottom">
             <div className="sb-pri">
               <div className="sb-pri-lbl">Placement Rate</div>
-              <div className="sb-pri-val">68%</div>
+              <div className="sb-pri-val">{statsLoading ? "…" : `${placementRate}%`}</div>
               <div className="sb-pri-sub">AY {settings.academicYear} · {settings.semester}</div>
               <div className="sb-pri-bar">
-                <div className="sb-pri-fill" style={{ width:"68%" }} />
+                <div className="sb-pri-fill" style={{ width: statsLoading ? "0%" : `${placementRate}%`, transition: "width 1s ease" }} />
               </div>
             </div>
-            <button
-              className="sb-logout" type="button"
-              onClick={() => { if (window.confirm("Sign out of SmartCampus?")) navigate("/"); }}
-            >
+            <button className="sb-logout" onClick={() => { clearAuth(); navigate("/login", { replace: true }); }}>
               {I.logout} Sign Out
             </button>
           </div>
         </aside>
 
-        {/* ══ MAIN ═════════════════════════════ */}
+        {/* ══ MAIN ══ */}
         <div className="main">
-
-          {/* topbar */}
           <header className="topbar">
             <span className="tb-page">Profile</span>
-            <div className="tb-sep" aria-hidden="true" />
-
-            {/* breadcrumb */}
-            <nav aria-label="Breadcrumb" className="pp-breadcrumb">
+            <div className="tb-sep" />
+            <nav className="pp-breadcrumb">
               <Link to="/placementdashboard">Dashboard</Link>
-              <span aria-hidden="true">›</span>
-              <span aria-current="page">Profile</span>
+              <span>›</span>
+              <span>Profile</span>
             </nav>
-
             <div className="tb-right">
-              <span className="tb-date">Thu, 12 Mar</span>
-
-              {/* search */}
+              <span className="tb-date">{new Date().toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"})}</span>
               <div className="tb-search">
-                <span aria-hidden="true" style={{ color:"var(--text3)", flexShrink:0 }}>{I.search}</span>
-                <input
-                  type="search"
-                  placeholder="Search…"
-                  value={searchVal}
-                  onChange={e => setSearchVal(e.target.value)}
-                  aria-label="Search"
-                  style={{ cursor:"none" }}
-                />
+                <span style={{ color:"var(--text3)", flexShrink:0 }}>{I.search}</span>
+                <input type="search" placeholder="Search…" value={searchVal} onChange={e => setSearchVal(e.target.value)} style={{ cursor:"none" }} />
               </div>
-
-              <button className="tb-icon-btn" aria-label="Notifications" onClick={() => navigate("/placementdashboard")}>
-                {I.bell}
-                <span className="notif-dot" aria-hidden="true" />
-              </button>
-              <button className="tb-icon-btn" aria-label="Settings" onClick={() => navigate("/placementdashboard")}>
-                {I.gear}
-              </button>
-
-              {/* avatar chip */}
-              <div className="pp-tb-avatar" aria-hidden="true">{initials}</div>
+              <div className="pp-tb-avatar">{initials}</div>
             </div>
           </header>
 
-          {/* ── CONTENT ──────────────────────── */}
-          <main className="content pp-content" id="main-content">
+          <main className="content pp-content">
 
             {/* ─── HERO ─── */}
-            <div className="pp-hero" aria-label="Profile hero">
-              {/* avatar */}
+            <div className="pp-hero">
               <div className="pp-hero-av-wrap">
-                <div className="pp-hero-av" aria-label={`Initials: ${initials}`}>{initials}</div>
-                <button
-                  className="pp-hero-av-btn" type="button" aria-label="Change avatar photo"
-                  onClick={() => pushToast("📷","Coming Soon","Avatar upload is in development.","info")}
-                >
-                  {I.camera}
-                </button>
-                <span className="pp-hero-av-online" aria-hidden="true" />
+                <div className="pp-hero-av">{loading ? "…" : initials}</div>
+                <button className="pp-hero-av-btn" onClick={() => pushToast("📷","Coming Soon","Avatar upload is in development.","info")}>{I.camera}</button>
+                <span className="pp-hero-av-online" />
               </div>
-
-              {/* info */}
               <div className="pp-hero-info">
-                <div className="pp-hero-pip" aria-hidden="true">
-                  <span className="pp-hero-pip-dot" />Active
-                </div>
-                <h1 className="pp-hero-name">{fullName}</h1>
+                <div className="pp-hero-pip"><span className="pp-hero-pip-dot" />Active</div>
+                <h1 className="pp-hero-name">{loading ? <Skeleton width={200} height={28} /> : fullName}</h1>
                 <p className="pp-hero-sub">{profile.role} · {profile.department}</p>
-
-                <div className="pp-hero-meta" role="list">
-                  {[
-                    { icon:I.mail,  val:profile.email },
-                    { icon:I.phone, val:profile.phone },
-                    { icon:I.pin,   val:profile.location },
-                    { icon:I.id,    val:`ID: ${profile.empId}` },
-                  ].map(m => (
-                    <div key={m.val} className="pp-hero-meta-item" role="listitem">
-                      <span aria-hidden="true">{m.icon}</span>{m.val}
-                    </div>
-                  ))}
+                <div className="pp-hero-meta">
+                  {loading ? <Skeleton width={280} height={12} /> : (<>
+                    {profile.email    && <div className="pp-hero-meta-item">{I.mail}  {profile.email}</div>}
+                    {profile.phone    && <div className="pp-hero-meta-item">{I.phone} {profile.phone}</div>}
+                    {profile.location && <div className="pp-hero-meta-item">{I.pin}   {profile.location}</div>}
+                    {profile.empId    && <div className="pp-hero-meta-item">{I.id}    ID: {profile.empId}</div>}
+                  </>)}
                 </div>
-
                 <div className="pp-hero-actions">
-                  <button className="pp-btn pp-btn-solid" type="button" onClick={startEdit} aria-label="Edit profile">
-                    {I.edit}&nbsp;Edit Profile
-                  </button>
-                  <button className="pp-btn pp-btn-ghost" type="button" onClick={() => setShowPwdModal(true)}>
-                    {I.lock}&nbsp;Change Password
-                  </button>
-                  <button className="pp-btn pp-btn-teal" type="button" onClick={() => navigate("/placementdashboard")}>
-                    {I.grid}&nbsp;Dashboard
-                  </button>
+                  <button className="pp-btn pp-btn-solid" onClick={startEdit}>{I.edit}&nbsp;Edit Profile</button>
+                  <button className="pp-btn pp-btn-ghost" onClick={() => setShowPwdModal(true)}>{I.lock}&nbsp;Change Password</button>
+                  <button className="pp-btn pp-btn-teal"  onClick={() => navigate("/placementdashboard")}>{I.grid}&nbsp;Dashboard</button>
                 </div>
               </div>
-
-              {/* hero stat chips */}
-              <div className="pp-hero-stats" aria-label="Profile stats">
+              <div className="pp-hero-stats">
                 {[
-                  { val:"5+",  label:"Years Exp.",  color:"var(--teal)"      },
-                  { val:"32",  label:"Partners",    color:"var(--indigo-ll)" },
-                  { val:"214", label:"Placed",      color:"var(--teal)"      },
-                  { val:"4.9", label:"Rating",      color:"var(--amber)"     },
+                  { val: statsLoading ? "…" : `${placementRate}%`, label:"Rate",         color:"var(--teal)"      },
+                  { val: statsLoading ? "…" : placedStudents,       label:"Placed",        color:"var(--teal)"      },
+                  { val: statsLoading ? "…" : Math.round(avgPri),   label:"Avg PRI",       color:"var(--indigo-ll)" },
+                  { val: recentDrives.length,                        label:"Drives",        color:"var(--amber)"     },
                 ].map(s => (
                   <div key={s.label} className="pp-hero-stat">
                     <div className="pp-hero-stat-val" style={{ color:s.color }}>{s.val}</div>
@@ -777,159 +676,84 @@ export default function PlacementProfile() {
                   </div>
                 ))}
               </div>
-            </div>{/* /hero */}
+            </div>
 
             {/* ─── TABS ─── */}
-            <div className="pp-tabs" role="tablist" aria-label="Profile sections">
+            <div className="pp-tabs" role="tablist">
               {TABS.map(t => (
-                <button
-                  key={t.id}
-                  role="tab"
-                  type="button"
-                  aria-selected={activeTab === t.id}
-                  aria-controls={`pp-tabpanel-${t.id}`}
-                  id={`pp-tabbtn-${t.id}`}
+                <button key={t.id} role="tab" aria-selected={activeTab === t.id}
                   className={`pp-tab${activeTab === t.id ? " active" : ""}`}
-                  onClick={() => setActiveTab(t.id)}
-                >
-                  <span aria-hidden="true">{t.icon}</span>{t.label}
+                  onClick={() => setActiveTab(t.id)}>
+                  <span>{t.icon}</span>{t.label}
                 </button>
               ))}
             </div>
 
             {/* ═══════════ TAB: PROFILE INFO ═══════════ */}
             {activeTab === "profile" && (
-              <div
-                id="pp-tabpanel-profile"
-                role="tabpanel"
-                aria-labelledby="pp-tabbtn-profile"
-                className="pp-tab-content pp-two-col"
-              >
-                {/* LEFT — detail form / view */}
-                <Panel
-                  title={editing ? "Edit Profile Information" : "Profile Information"}
-                  icon={I.user}
-                  delay={0.05}
-                  action={!editing && (
-                    <button className="pp-btn pp-btn-ghost pp-btn-sm" type="button" onClick={startEdit}>
-                      {I.edit}&nbsp;Edit
-                    </button>
-                  )}
-                >
-                  {editing ? (
+              <div className="pp-tab-content pp-two-col">
+                <Panel title={editing ? "Edit Profile Information" : "Profile Information"} icon={I.user} delay={0.05}
+                  action={!editing && <button className="pp-btn pp-btn-ghost pp-btn-sm" onClick={startEdit}>{I.edit}&nbsp;Edit</button>}>
+                  {loading ? (
+                    <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+                      {[1,2,3,4,5].map(i => <Skeleton key={i} height={36} style={{ borderRadius:8 }} />)}
+                    </div>
+                  ) : editing ? (
                     <form onSubmit={e => { e.preventDefault(); saveProfileInfo(); }} noValidate>
                       <div className="pp-grid-2">
-                        <FInput label="First Name" name="firstName" value={profileDraft.firstName}
-                          onChange={handleProfileChange} placeholder="First name"
-                          required error={fieldErrors.firstName} autoComplete="given-name" />
-                        <FInput label="Last Name" name="lastName" value={profileDraft.lastName}
-                          onChange={handleProfileChange} placeholder="Last name"
-                          required error={fieldErrors.lastName} autoComplete="family-name" />
+                        <FInput label="First Name" name="firstName" value={profileDraft.firstName} onChange={handleProfileChange} placeholder="First name" required error={fieldErrors.firstName} />
+                        <FInput label="Last Name"  name="lastName"  value={profileDraft.lastName}  onChange={handleProfileChange} placeholder="Last name"  required error={fieldErrors.lastName}  />
                       </div>
                       <div className="pp-grid-2">
-                        <FInput label="Role / Title" name="role" value={profileDraft.role}
-                          onChange={handleProfileChange} placeholder="e.g. Placement Officer" />
-                        <FInput label="Department" name="department" value={profileDraft.department}
-                          onChange={handleProfileChange} placeholder="Department name" />
+                        <FInput label="Role / Title" name="role"       value={profileDraft.role}       onChange={handleProfileChange} placeholder="e.g. Placement Officer" />
+                        <FInput label="Department"   name="department" value={profileDraft.department} onChange={handleProfileChange} placeholder="Department name" />
                       </div>
                       <div className="pp-grid-2">
-                        <FInput label="Email" name="email" value={profileDraft.email}
-                          onChange={handleProfileChange} type="email" placeholder="email@institution.edu"
-                          required error={fieldErrors.email} autoComplete="email" />
-                        <FInput label="Phone" name="phone" value={profileDraft.phone}
-                          onChange={handleProfileChange} type="tel" placeholder="+91 00000 00000"
-                          error={fieldErrors.phone} autoComplete="tel" />
+                        <FInput label="Email" name="email" value={profileDraft.email} onChange={handleProfileChange} type="email" placeholder="email@institution.edu" required error={fieldErrors.email} />
+                        <FInput label="Phone" name="phone" value={profileDraft.phone} onChange={handleProfileChange} type="tel"   placeholder="+91 00000 00000" />
                       </div>
+                      <FInput label="Location" name="location" value={profileDraft.location} onChange={handleProfileChange} placeholder="City, State" />
+                      <FTextarea label="Bio" name="bio" value={profileDraft.bio} onChange={handleProfileChange} rows={4} placeholder="A short professional bio…" />
                       <div className="pp-grid-2">
-                        <FInput label="Employee ID" name="empId" value={profileDraft.empId}
-                          onChange={handleProfileChange} hint="read-only" />
-                        <FInput label="Location" name="location" value={profileDraft.location}
-                          onChange={handleProfileChange} placeholder="City, State" autoComplete="address-level2" />
+                        <FInput label="LinkedIn"   name="linkedin" value={profileDraft.linkedin ?? ""} onChange={handleProfileChange} placeholder="linkedin.com/in/your-name" />
+                        <FInput label="Twitter / X" name="twitter"  value={profileDraft.twitter  ?? ""} onChange={handleProfileChange} placeholder="@handle" />
                       </div>
-                      <FTextarea label="Bio" name="bio" value={profileDraft.bio}
-                        onChange={handleProfileChange} rows={4}
-                        placeholder="A short professional bio…" hint="max 280 chars" />
-                      <div className="pp-grid-2">
-                        <FInput label="LinkedIn" name="linkedin" value={profileDraft.linkedin ?? ""}
-                          onChange={handleProfileChange} placeholder="linkedin.com/in/your-name" />
-                        <FInput label="Twitter / X" name="twitter" value={profileDraft.twitter ?? ""}
-                          onChange={handleProfileChange} placeholder="@handle" />
-                      </div>
-
-                      {/* unsaved warning */}
-                      <div className="pp-unsaved-warn" role="status" aria-live="polite">
-                        <span aria-hidden="true">{I.warn}</span> Unsaved changes — don't forget to save.
-                      </div>
-
+                      <div className="pp-unsaved-warn">{I.warn} Unsaved changes — don't forget to save.</div>
                       <div className="pp-form-actions">
-                        <button className="pp-btn pp-btn-ghost" type="button" onClick={cancelEdit}>
-                          {I.x}&nbsp;Cancel
-                        </button>
+                        <button className="pp-btn pp-btn-ghost" type="button" onClick={cancelEdit}>{I.x}&nbsp;Cancel</button>
                         <button className="pp-btn pp-btn-solid" type="submit" disabled={savingInfo}>
-                          {savingInfo
-                            ? <><span className="pp-spinner" aria-hidden="true" />&nbsp;Saving…</>
-                            : <>{I.save}&nbsp;Save Changes</>}
+                          {savingInfo ? <><span className="pp-spinner" />&nbsp;Saving…</> : <>{I.save}&nbsp;Save Changes</>}
                         </button>
                       </div>
                     </form>
                   ) : (
-                    /* VIEW MODE */
                     <dl className="pp-detail-list">
                       {[
-                        { term:"Full Name",  def:fullName,          icon:I.user  },
-                        { term:"Role",       def:profile.role,      icon:I.id    },
-                        { term:"Department", def:profile.department,icon:I.brief },
-                        { term:"Email",      def:profile.email,     icon:I.mail  },
-                        { term:"Phone",      def:profile.phone,     icon:I.phone },
-                        { term:"Employee ID",def:profile.empId,     icon:I.id    },
-                        { term:"Joined",
-                          def:new Date(profile.joined).toLocaleDateString("en-IN",
-                            { day:"2-digit", month:"long", year:"numeric" }),
-                          icon:I.cal },
-                        { term:"Location",   def:profile.location,  icon:I.pin   },
+                        { term:"Full Name",   def:fullName,           icon:I.user  },
+                        { term:"Role",        def:profile.role,       icon:I.id    },
+                        { term:"Department",  def:profile.department, icon:I.brief },
+                        { term:"Email",       def:profile.email,      icon:I.mail  },
+                        { term:"Phone",       def:profile.phone || "—", icon:I.phone },
+                        { term:"Employee ID", def:profile.empId,      icon:I.id    },
+                        { term:"Joined",      def:new Date(profile.joined).toLocaleDateString("en-IN",{day:"2-digit",month:"long",year:"numeric"}), icon:I.cal },
+                        { term:"Location",    def:profile.location || "—", icon:I.pin },
                       ].map(r => (
                         <div key={r.term} className="pp-detail-row">
-                          <dt className="pp-detail-term">
-                            <span aria-hidden="true">{r.icon}</span>{r.term}
-                          </dt>
+                          <dt className="pp-detail-term"><span>{r.icon}</span>{r.term}</dt>
                           <dd className="pp-detail-def">{r.def}</dd>
                         </div>
                       ))}
-
-                      {/* bio */}
-                      <div className="pp-detail-row pp-detail-bio-row">
-                        <dt className="pp-detail-term"><span aria-hidden="true">{I.user}</span>Bio</dt>
-                        <dd className="pp-detail-def pp-bio-text">{profile.bio}</dd>
-                      </div>
-
-                      {/* social links */}
-                      {profile.linkedin && (
-                        <div className="pp-detail-row">
-                          <dt className="pp-detail-term"><span aria-hidden="true">{I.link}</span>LinkedIn</dt>
-                          <dd className="pp-detail-def">
-                            <a
-                              href={`https://${profile.linkedin}`}
-                              target="_blank" rel="noopener noreferrer"
-                              className="pp-social-link"
-                            >
-                              {profile.linkedin}
-                            </a>
-                          </dd>
+                      {profile.bio && (
+                        <div className="pp-detail-row pp-detail-bio-row">
+                          <dt className="pp-detail-term"><span>{I.user}</span>Bio</dt>
+                          <dd className="pp-detail-def pp-bio-text">{profile.bio}</dd>
                         </div>
                       )}
-                      {profile.twitter && (
+                      {profile.linkedin && (
                         <div className="pp-detail-row">
-                          <dt className="pp-detail-term">
-                            <span aria-hidden="true">{I.link}</span>Twitter
-                          </dt>
+                          <dt className="pp-detail-term"><span>{I.link}</span>LinkedIn</dt>
                           <dd className="pp-detail-def">
-                            <a
-                              href={`https://twitter.com/${profile.twitter.replace("@","")}`}
-                              target="_blank" rel="noopener noreferrer"
-                              className="pp-social-link"
-                            >
-                              {profile.twitter}
-                            </a>
+                            <a href={`https://${profile.linkedin}`} target="_blank" rel="noopener noreferrer" className="pp-social-link">{profile.linkedin}</a>
                           </dd>
                         </div>
                       )}
@@ -937,13 +761,12 @@ export default function PlacementProfile() {
                   )}
                 </Panel>
 
-                {/* RIGHT — achievements + monthly stats */}
                 <div className="pp-col-stack">
                   <Panel title="Achievements" icon={I.star} delay={0.1}>
-                    <ul className="pp-achievements" aria-label="Achievements">
+                    <ul className="pp-achievements">
                       {ACHIEVEMENTS.map(a => (
                         <li key={a.label} className="pp-achievement-item">
-                          <span className="pp-achievement-ico" aria-hidden="true">{a.icon}</span>
+                          <span className="pp-achievement-ico">{a.icon}</span>
                           <div>
                             <div className="pp-achievement-label" style={{ color:a.color }}>{a.label}</div>
                             <div className="pp-achievement-sub">{a.sub}</div>
@@ -956,10 +779,10 @@ export default function PlacementProfile() {
                   <Panel title="This Month" icon={I.bar} delay={0.15}>
                     <div className="pp-month-stats">
                       {[
-                        { label:"Drives Managed",     val:3,  pct:60, color:"var(--indigo-ll)" },
-                        { label:"Students Placed",    val:12, pct:45, color:"var(--teal)"      },
-                        { label:"Resumes Reviewed",   val:28, pct:70, color:"var(--amber)"     },
-                        { label:"Notifications Sent", val:14, pct:35, color:"var(--violet)"    },
+                        { label:"Drives Added",       val:recentDrives.length,            pct:Math.min(recentDrives.length*20,100), color:"var(--indigo-ll)" },
+                        { label:"Students Placed",    val:statsLoading?"…":placedStudents, pct:placementRate, color:"var(--teal)"      },
+                        { label:"Avg PRI",            val:statsLoading?"…":Math.round(avgPri), pct:avgPri, color:"var(--amber)"     },
+                        { label:"Total Students",     val:statsLoading?"…":totalStudents,  pct:70, color:"var(--violet)"    },
                       ].map(s => (
                         <div key={s.label} className="pp-month-row">
                           <div className="pp-month-hd">
@@ -979,36 +802,19 @@ export default function PlacementProfile() {
 
             {/* ═══════════ TAB: SETTINGS ═══════════ */}
             {activeTab === "settings" && (
-              <div
-                id="pp-tabpanel-settings"
-                role="tabpanel"
-                aria-labelledby="pp-tabbtn-settings"
-                className="pp-tab-content"
-              >
+              <div className="pp-tab-content">
                 <div className="pp-two-col">
-                  {/* LEFT */}
                   <Panel title="Academic Configuration" icon={I.cal} delay={0.05}>
                     <div className="pp-settings-sec-label">Academic Period</div>
                     <div className="pp-grid-2">
-                      <FSelect label="Academic Year" name="academicYear"
-                        value={settingsDraft.academicYear} onChange={handleSettingsChange}
-                        options={ACADEMIC_YEARS} />
-                      <FSelect label="Semester" name="semester"
-                        value={settingsDraft.semester} onChange={handleSettingsChange}
-                        options={SEMESTERS} />
+                      <FSelect label="Academic Year" name="academicYear" value={settingsDraft.academicYear} onChange={handleSettingsChange} options={ACADEMIC_YEARS} />
+                      <FSelect label="Semester"      name="semester"     value={settingsDraft.semester}     onChange={handleSettingsChange} options={SEMESTERS}      />
                     </div>
-
                     <div className="pp-settings-sec-label">Placement Thresholds</div>
                     <div className="pp-grid-2">
-                      <FSelect label="Min. CGPA Threshold" name="minCgpa"
-                        value={settingsDraft.minCgpa} onChange={handleSettingsChange}
-                        options={CGPA_OPTS} hint="drive eligibility" />
-                      <FSelect label="Default Export Format" name="exportFormat"
-                        value={settingsDraft.exportFormat} onChange={handleSettingsChange}
-                        options={EXPORT_FORMATS} />
+                      <FSelect label="Min. CGPA Threshold"   name="minCgpa"      value={settingsDraft.minCgpa}      onChange={handleSettingsChange} options={CGPA_OPTS}      />
+                      <FSelect label="Default Export Format" name="exportFormat" value={settingsDraft.exportFormat} onChange={handleSettingsChange} options={EXPORT_FORMATS} />
                     </div>
-
-                    {/* live config preview */}
                     <div className="pp-config-preview">
                       <div className="pp-config-preview-label">Current Configuration</div>
                       <div className="pp-config-chips">
@@ -1020,47 +826,27 @@ export default function PlacementProfile() {
                     </div>
                   </Panel>
 
-                  {/* RIGHT */}
                   <div className="pp-col-stack">
                     <Panel title="Notifications" icon={I.bell} delay={0.1}>
                       <div className="pp-toggle-list">
-                        <Toggle id="driveAlerts"   checked={settingsDraft.driveAlerts}
-                          onChange={() => handleToggle("driveAlerts")}
-                          label="Drive Alerts"   desc="When drives are added or updated" />
-                        <Toggle id="studentAlerts" checked={settingsDraft.studentAlerts}
-                          onChange={() => handleToggle("studentAlerts")}
-                          label="Student Alerts" desc="Placement status changes" />
-                        <Toggle id="weeklyDigest" checked={settingsDraft.weeklyDigest}
-                          onChange={() => handleToggle("weeklyDigest")}
-                          label="Weekly Digest"  desc="Summary email every Monday" />
-                        <Toggle id="autoBackup"   checked={settingsDraft.autoBackup}
-                          onChange={() => handleToggle("autoBackup")}
-                          label="Auto Backup"    desc="Automatically back up data" />
+                        <Toggle id="driveAlerts"   checked={settingsDraft.driveAlerts}   onChange={() => handleToggle("driveAlerts")}   label="Drive Alerts"    desc="When drives are added or updated" />
+                        <Toggle id="studentAlerts" checked={settingsDraft.studentAlerts} onChange={() => handleToggle("studentAlerts")} label="Student Alerts"  desc="Placement status changes" />
+                        <Toggle id="weeklyDigest"  checked={settingsDraft.weeklyDigest}  onChange={() => handleToggle("weeklyDigest")}  label="Weekly Digest"   desc="Summary email every Monday" />
+                        <Toggle id="autoBackup"    checked={settingsDraft.autoBackup}    onChange={() => handleToggle("autoBackup")}    label="Auto Backup"     desc="Automatically back up data" />
                       </div>
                     </Panel>
-
                     <Panel title="Display" icon={I.grid} delay={0.15}>
                       <div className="pp-toggle-list">
-                        <Toggle id="showPriScore" checked={settingsDraft.showPriScore}
-                          onChange={() => handleToggle("showPriScore")}
-                          label="Show PRI Score" desc="Display Placement Readiness Index on student cards" />
-                        <Toggle id="compactSidebar" checked={settingsDraft.compactSidebar}
-                          onChange={() => handleToggle("compactSidebar")}
-                          label="Compact Sidebar" desc="Reduce sidebar width" />
+                        <Toggle id="showPriScore"   checked={settingsDraft.showPriScore}   onChange={() => handleToggle("showPriScore")}   label="Show PRI Score"   desc="Display PRI on student cards" />
+                        <Toggle id="compactSidebar" checked={settingsDraft.compactSidebar} onChange={() => handleToggle("compactSidebar")} label="Compact Sidebar"  desc="Reduce sidebar width" />
                       </div>
                     </Panel>
                   </div>
                 </div>
-
-                {/* save / reset bar */}
                 <div className="pp-settings-bar">
-                  <button className="pp-btn pp-btn-ghost" type="button" onClick={resetSettingsData}>
-                    {I.x}&nbsp;Reset Defaults
-                  </button>
-                  <button className="pp-btn pp-btn-teal" type="button" onClick={saveSettingsData} disabled={savingSet}>
-                    {savingSet
-                      ? <><span className="pp-spinner" aria-hidden="true" />&nbsp;Saving…</>
-                      : <>{I.save}&nbsp;Save Settings</>}
+                  <button className="pp-btn pp-btn-ghost" onClick={resetSettingsData}>{I.x}&nbsp;Reset Defaults</button>
+                  <button className="pp-btn pp-btn-teal"  onClick={saveSettingsData} disabled={savingSet}>
+                    {savingSet ? <><span className="pp-spinner" />&nbsp;Saving…</> : <>{I.save}&nbsp;Save Settings</>}
                   </button>
                 </div>
               </div>
@@ -1068,58 +854,36 @@ export default function PlacementProfile() {
 
             {/* ═══════════ TAB: SECURITY ═══════════ */}
             {activeTab === "security" && (
-              <div
-                id="pp-tabpanel-security"
-                role="tabpanel"
-                aria-labelledby="pp-tabbtn-security"
-                className="pp-tab-content pp-two-col"
-              >
+              <div className="pp-tab-content pp-two-col">
                 <Panel title="Security Settings" icon={I.shield} delay={0.05}>
-                  <ul className="pp-security-list" aria-label="Security options">
+                  <ul className="pp-security-list">
                     {SECURITY_ITEMS.map(item => (
                       <li key={item.label} className="pp-security-item">
-                        <span className="pp-security-ico" aria-hidden="true">{item.icon}</span>
+                        <span className="pp-security-ico">{item.icon}</span>
                         <div className="pp-security-info">
                           <div className="pp-security-label" style={{ color:item.color }}>{item.label}</div>
                           <div className="pp-security-sub">{item.sub}</div>
                         </div>
-                        <button className="pp-btn pp-btn-ghost pp-btn-sm" type="button"
-                          onClick={item.action} aria-label={`${item.cta} — ${item.label}`}>
-                          {item.cta}
-                        </button>
+                        <button className="pp-btn pp-btn-ghost pp-btn-sm" onClick={item.action}>{item.cta}</button>
                       </li>
                     ))}
                   </ul>
-
                   <div className="pp-danger-zone">
                     <div className="pp-danger-label">Danger Zone</div>
-                    <button
-                      className="pp-btn pp-btn-rose" type="button"
-                      onClick={() => {
-                        if (window.confirm("Sign out of all devices?")) {
-                          pushToast("👋","Signed Out","All sessions terminated.","info");
-                          setTimeout(() => navigate("/"), 1500);
-                        }
-                      }}
-                    >
+                    <button className="pp-btn pp-btn-rose" onClick={() => { if (window.confirm("Sign out of all devices?")) { clearAuth(); navigate("/login"); } }}>
                       {I.logout}&nbsp;Sign Out All Devices
                     </button>
                   </div>
                 </Panel>
 
-                {/* security score card */}
                 <Panel title="Security Score" icon={I.shield} delay={0.1}>
-                  {/* SVG ring */}
                   <div className="pp-score-wrap">
-                    <div className="pp-score-ring-wrap" aria-label="Security score: 72 out of 100, Fair">
-                      <svg viewBox="0 0 100 100" className="pp-score-svg" aria-hidden="true">
+                    <div className="pp-score-ring-wrap">
+                      <svg viewBox="0 0 100 100" className="pp-score-svg">
                         <circle cx="50" cy="50" r="42" className="pp-score-ring-bg" />
-                        <circle
-                          cx="50" cy="50" r="42"
-                          className="pp-score-ring-fill"
-                          strokeDasharray={`${2 * Math.PI * 42 * 0.72} ${2 * Math.PI * 42}`}
-                          strokeDashoffset={String(2 * Math.PI * 42 * 0.25)}
-                        />
+                        <circle cx="50" cy="50" r="42" className="pp-score-ring-fill"
+                          strokeDasharray={`${2*Math.PI*42*0.72} ${2*Math.PI*42}`}
+                          strokeDashoffset={String(2*Math.PI*42*0.25)} />
                       </svg>
                       <div className="pp-score-inner">
                         <div className="pp-score-num">72</div>
@@ -1127,8 +891,7 @@ export default function PlacementProfile() {
                       </div>
                     </div>
                   </div>
-
-                  <ul className="pp-checklist" aria-label="Security checklist">
+                  <ul className="pp-checklist">
                     {[
                       { label:"Strong password set",     ok:true  },
                       { label:"Two-factor auth enabled", ok:false },
@@ -1137,9 +900,9 @@ export default function PlacementProfile() {
                       { label:"Recent login reviewed",   ok:true  },
                     ].map(c => (
                       <li key={c.label} className={`pp-check-item${c.ok ? " ok" : ""}`}>
-                        <span className="pp-check-ico" aria-hidden="true">{c.ok ? I.check : I.x}</span>
+                        <span className="pp-check-ico">{c.ok ? I.check : I.x}</span>
                         <span>{c.label}</span>
-                        {!c.ok && <span className="pp-check-fix" aria-hidden="true">Fix →</span>}
+                        {!c.ok && <span className="pp-check-fix">Fix →</span>}
                       </li>
                     ))}
                   </ul>
@@ -1149,30 +912,30 @@ export default function PlacementProfile() {
 
             {/* ═══════════ TAB: ACTIVITY ═══════════ */}
             {activeTab === "activity" && (
-              <div
-                id="pp-tabpanel-activity"
-                role="tabpanel"
-                aria-labelledby="pp-tabbtn-activity"
-                className="pp-tab-content pp-two-col"
-              >
+              <div className="pp-tab-content pp-two-col">
                 <Panel title="Recent Activity" icon={I.pulse} delay={0.05}>
-                  <ol className="pp-activity-list" aria-label="Recent actions">
-                    {ACTIVITY.map(a => (
-                      <li key={a.id} className="pp-activity-item">
-                        <div className="pp-activity-dot" style={{ background:a.col }} aria-hidden="true" />
-                        <div className="pp-activity-body">
-                          <div className="pp-activity-text">
-                            <span aria-hidden="true">{a.icon}</span> {a.text}
+                  {loading ? (
+                    <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+                      {[1,2,3,4].map(i => <Skeleton key={i} height={44} style={{ borderRadius:10 }} />)}
+                    </div>
+                  ) : activityFeed.length > 0 ? (
+                    <ol className="pp-activity-list">
+                      {activityFeed.map(a => (
+                        <li key={a.id} className="pp-activity-item">
+                          <div className="pp-activity-dot" style={{ background:a.col }} />
+                          <div className="pp-activity-body">
+                            <div className="pp-activity-text"><span>{a.icon}</span> {a.text}</div>
+                            <time className="pp-activity-time">{a.time}</time>
                           </div>
-                          <time className="pp-activity-time">{a.time}</time>
-                        </div>
-                      </li>
-                    ))}
-                  </ol>
+                        </li>
+                      ))}
+                    </ol>
+                  ) : (
+                    <div style={{ textAlign:"center", padding:"30px 0", color:"var(--text3)", fontSize:12 }}>No recent activity.</div>
+                  )}
                 </Panel>
 
                 <div className="pp-col-stack">
-                  {/* quick actions */}
                   <Panel title="Quick Actions" icon={I.zap} delay={0.1}>
                     <div className="pp-quick-grid">
                       {[
@@ -1181,29 +944,23 @@ export default function PlacementProfile() {
                         { icon:"👥", label:"View Students",   col:"var(--violet)",    to:"/placementdashboard/students" },
                         { icon:"📊", label:"Analytics",       col:"var(--amber)",     to:"/placementdashboard/analytics"},
                       ].map(a => (
-                        <button
-                          key={a.label}
-                          className="pp-quick-btn" type="button"
-                          onClick={() => navigate(a.to)}
-                          aria-label={a.label}
-                        >
-                          <span className="pp-quick-ico" aria-hidden="true">{a.icon}</span>
+                        <button key={a.label} className="pp-quick-btn" onClick={() => navigate(a.to)}>
+                          <span className="pp-quick-ico">{a.icon}</span>
                           <span className="pp-quick-label" style={{ color:a.col }}>{a.label}</span>
                         </button>
                       ))}
                     </div>
                   </Panel>
 
-                  {/* glance stats */}
                   <Panel title="Stats at a Glance" icon={I.bar} delay={0.15}>
                     <div className="pp-glance-grid">
                       {[
-                        { label:"Total Students",  val:"316", color:"var(--teal)"      },
-                        { label:"Placed",           val:"214", color:"var(--teal)"      },
-                        { label:"Placement Rate",   val:"68%", color:"var(--indigo-ll)" },
-                        { label:"Avg. Package",     val:"21.4L",color:"var(--amber)"   },
-                        { label:"Active Companies", val:"32",  color:"var(--violet)"   },
-                        { label:"Upcoming Drives",  val:"3",   color:"var(--rose)"     },
+                        { label:"Total Students",  val:statsLoading?"…":totalStudents,         color:"var(--teal)"      },
+                        { label:"Placed",           val:statsLoading?"…":placedStudents,        color:"var(--teal)"      },
+                        { label:"Placement Rate",   val:statsLoading?"…":`${placementRate}%`,  color:"var(--indigo-ll)" },
+                        { label:"Avg PRI",          val:statsLoading?"…":Math.round(avgPri),   color:"var(--amber)"     },
+                        { label:"Drives",           val:recentDrives.length,                   color:"var(--violet)"    },
+                        { label:"PRI Excellent",    val:statsLoading?"…":(dashStats?.pri_distribution?.excellent??0), color:"var(--rose)" },
                       ].map(s => (
                         <div key={s.label} className="pp-glance-item">
                           <div className="pp-glance-val" style={{ color:s.color }}>{s.val}</div>
@@ -1216,9 +973,9 @@ export default function PlacementProfile() {
               </div>
             )}
 
-          </main>{/* /content */}
-        </div>{/* /main */}
-      </div>{/* /app */}
+          </main>
+        </div>
+      </div>
     </>
   );
 }

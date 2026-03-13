@@ -674,6 +674,7 @@ export default function StudentDashboard() {
         const [meData, dashData] = await Promise.allSettled([
           api.get("/auth/me"),
           api.get("/student/dashboard"),
+          
         ]);
         if (meData.status === "fulfilled") setUserName(meData.value.full_name || meData.value.email || "");
         if (dashData.status === "fulfilled") {

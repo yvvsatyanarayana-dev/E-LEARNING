@@ -92,7 +92,7 @@ const router = createBrowserRouter([
     element: <RoleRoute allowedRoles={["placement_officer","admin"]}><PlacementDashboard /></RoleRoute>,
   },
   {
-    path: "/placementdashboard/Analytics",
+    path: "/placementdashboard/analytics",
     element: <RoleRoute allowedRoles={["placement_officer","admin"]}><PlacementAnalytics /></RoleRoute>,
   },
   {

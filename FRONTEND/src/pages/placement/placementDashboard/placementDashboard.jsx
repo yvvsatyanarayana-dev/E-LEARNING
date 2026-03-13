@@ -1,273 +1,175 @@
+// placementDashboard.jsx — SmartCampus Placement Officer Dashboard
+// API calls wired directly using the shared api.js utility
+
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { clearAuth } from "../../../utils/auth.js";
+import api from "../../../utils/api.js";
 import "./placementDashboard.css";
 
 /* ════════════════════════════════════════════
-   PDF EXPORT UTILITY  (no external lib needed)
+   DATA MAPPERS  — API shape → UI shape
+════════════════════════════════════════════ */
+function mapApiDrive(d) {
+  const statusColor =
+    d.status === "Completed" ? "var(--teal)"
+    : d.status === "Ongoing"  ? "var(--amber)"
+    : d.status === "Cancelled"? "var(--rose)"
+    : "var(--indigo-l)";
+
+  return {
+    id:       d.id,
+    logo:     (d.company_name?.[0] ?? "?").toUpperCase(),
+    name:     d.company_name,
+    role:     d.role,
+    pkg:      d.package    ?? d.pkg    ?? "TBD",
+    date:     d.deadline
+      ? new Date(d.deadline).toLocaleDateString("en-IN", { day: "2-digit", month: "short" })
+      : d.date ?? "TBD",
+    applied:  d.applied_count  ?? d.applied  ?? 0,
+    eligible: d.eligible_count ?? d.eligible ?? 0,
+    pct: d.eligible_count
+      ? Math.round((d.applied_count ?? 0) / d.eligible_count * 100)
+      : (d.pct ?? 0),
+    color:  statusColor,
+    status: d.status ?? "Upcoming",
+  };
+}
+
+function mapApiStudent(s, i) {
+  const initials = (s.full_name ?? s.name ?? "?")
+    .split(" ").map(w => w[0]?.toUpperCase()).join("").slice(0, 2);
+
+  const placed    = s.placed_application;
+  const inProcess = s.in_process_application;
+
+  let placementStatus = "Not Ready";
+  let company = "—";
+  let pkg     = "—";
+
+  if (placed) {
+    placementStatus = "Placed";
+    company = placed.company_name ?? "—";
+    pkg     = placed.package ?? "—";
+  } else if (inProcess) {
+    placementStatus = "In Process";
+    company = inProcess.company_name ?? "—";
+  } else if ((s.pri_score ?? 0) >= 55) {
+    placementStatus = "Applied";
+  }
+
+  return {
+    id:         s.id,
+    name:       s.full_name ?? s.name,
+    init:       initials,
+    branch:     s.department ?? "—",
+    cgpa:       s.settings?.cgpa ?? s.cgpa ?? 0,
+    pri:        Math.round(s.pri_score ?? s.pri ?? 0),
+    skills:     (s.skills ?? s.skill_list ?? []).slice(0, 3),
+    interviews: s.mock_interview_count ?? s.interviews ?? 0,
+    company,
+    pkg,
+    status: placementStatus,
+  };
+}
+
+/* ════════════════════════════════════════════
+   PDF EXPORT UTILITY
 ════════════════════════════════════════════ */
 function generatePDF(data, format = "Full Report") {
   const { students, drives, settings, placementRate, placedStudents } = data;
   const now = new Date().toLocaleDateString("en-IN", { day: "2-digit", month: "long", year: "numeric" });
-
   const placedList = students.filter(s => s.status === "Placed");
-  const inProcess  = students.filter(s => s.status === "In Process");
-  const notReady   = students.filter(s => s.status === "Not Ready");
 
   const htmlContent = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8"/>
+<html><head><meta charset="UTF-8"/>
 <title>SmartCampus Placement Report</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
   *{box-sizing:border-box;margin:0;padding:0;}
-  body{font-family:'Plus Jakarta Sans',sans-serif;color:#1a1a2e;background:#fff;padding:40px;}
+  body{font-family:sans-serif;color:#1a1a2e;background:#fff;padding:40px;}
   .header{display:flex;justify-content:space-between;align-items:flex-start;padding-bottom:24px;border-bottom:3px solid #5b4ef8;margin-bottom:28px;}
-  .brand{display:flex;align-items:center;gap:12px;}
-  .brand-mark{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#5b4ef8,#9f7aea);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;}
-  .brand-name{font-size:20px;font-weight:800;color:#1a1a2e;letter-spacing:.04em;}
-  .brand-sub{font-size:11px;color:#6b6b80;margin-top:2px;}
-  .report-meta{text-align:right;}
-  .report-title{font-size:13px;font-weight:700;color:#5b4ef8;}
-  .report-date{font-size:11px;color:#6b6b80;margin-top:4px;}
-  .report-ay{font-size:10px;color:#9898b8;margin-top:2px;}
-  h2{font-size:15px;font-weight:800;color:#1a1a2e;margin:24px 0 14px;display:flex;align-items:center;gap:8px;}
-  h2::before{content:'';display:inline-block;width:4px;height:16px;background:#5b4ef8;border-radius:2px;}
+  .brand-mark{width:40px;height:40px;border-radius:10px;background:linear-gradient(135deg,#5b4ef8,#9f7aea);display:inline-flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:14px;margin-right:10px;}
+  h2{font-size:15px;font-weight:800;color:#1a1a2e;margin:24px 0 14px;}
   .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
   .stat-box{border-radius:10px;padding:16px;text-align:center;border:1px solid #e8e8f0;}
-  .stat-box.indigo{border-color:#5b4ef8;background:#f4f3ff;}
-  .stat-box.teal  {border-color:#27c9b0;background:#f0fdfb;}
-  .stat-box.amber {border-color:#f4a535;background:#fffbf0;}
-  .stat-box.violet{border-color:#9f7aea;background:#f9f7ff;}
-  .stat-num{font-size:28px;font-weight:800;line-height:1;margin-bottom:4px;}
-  .stat-box.indigo .stat-num{color:#5b4ef8;}
-  .stat-box.teal   .stat-num{color:#27c9b0;}
-  .stat-box.amber  .stat-num{color:#f4a535;}
-  .stat-box.violet .stat-num{color:#9f7aea;}
-  .stat-lbl{font-size:10px;color:#6b6b80;font-weight:600;text-transform:uppercase;letter-spacing:.06em;}
+  .stat-num{font-size:28px;font-weight:800;line-height:1;margin-bottom:4px;color:#5b4ef8;}
+  .stat-lbl{font-size:10px;color:#6b6b80;font-weight:600;text-transform:uppercase;}
   table{width:100%;border-collapse:collapse;margin-bottom:24px;font-size:11px;}
-  th{background:#f4f3ff;padding:8px 10px;text-align:left;font-weight:700;color:#5b4ef8;font-size:9px;letter-spacing:.08em;text-transform:uppercase;border-bottom:2px solid #5b4ef8;}
-  td{padding:8px 10px;border-bottom:1px solid #e8e8f0;color:#3a3a5c;vertical-align:middle;}
+  th{background:#f4f3ff;padding:8px 10px;text-align:left;font-weight:700;color:#5b4ef8;font-size:9px;text-transform:uppercase;border-bottom:2px solid #5b4ef8;}
+  td{padding:8px 10px;border-bottom:1px solid #e8e8f0;color:#3a3a5c;}
   tr:nth-child(even) td{background:#fafafa;}
-  .pill{display:inline-block;font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;}
-  .pill-teal  {background:#e0fdf8;color:#27c9b0;}
-  .pill-indigo{background:#ede9ff;color:#5b4ef8;}
-  .pill-amber {background:#fff8e6;color:#f4a535;}
-  .pill-rose  {background:#fff0f2;color:#f2445c;}
-  .drives-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:24px;}
-  .drive-box{border:1px solid #e8e8f0;border-radius:10px;padding:14px;}
-  .drive-box-name{font-size:13px;font-weight:800;color:#1a1a2e;margin-bottom:2px;}
-  .drive-box-role{font-size:10px;color:#6b6b80;margin-bottom:8px;}
-  .drive-box-pkg{font-size:18px;font-weight:800;color:#27c9b0;margin-bottom:4px;}
-  .drive-box-meta{font-size:9px;color:#9898b8;}
-  .bar-wrap{height:4px;background:#e8e8f0;border-radius:2px;margin-top:8px;overflow:hidden;}
-  .bar-fill{height:100%;border-radius:2px;background:#5b4ef8;}
-  .funnel-row{display:flex;align-items:center;margin-bottom:10px;gap:12px;}
-  .funnel-label{font-size:11px;color:#3a3a5c;width:200px;flex-shrink:0;}
-  .funnel-bar-bg{flex:1;height:8px;background:#e8e8f0;border-radius:4px;overflow:hidden;}
-  .funnel-bar-fill{height:100%;border-radius:4px;}
-  .funnel-count{font-size:11px;font-weight:700;width:60px;text-align:right;flex-shrink:0;}
   .footer{margin-top:40px;padding-top:16px;border-top:1px solid #e8e8f0;display:flex;justify-content:space-between;font-size:9px;color:#9898b8;}
-  .page-break{page-break-before:always;}
-</style>
-</head>
-<body>
+</style></head><body>
   <div class="header">
-    <div class="brand">
-      <div class="brand-mark">SC</div>
-      <div>
-        <div class="brand-name">SmartCampus</div>
-        <div class="brand-sub">Placement Management System</div>
-      </div>
-    </div>
-    <div class="report-meta">
-      <div class="report-title">📊 ${format}</div>
-      <div class="report-date">Generated: ${now}</div>
-      <div class="report-ay">AY ${settings.academicYear} · ${settings.semester}</div>
-      <div class="report-ay">Officer: ${settings.officerName}</div>
+    <div><span class="brand-mark">SC</span><strong>SmartCampus</strong> Placement Management System</div>
+    <div style="text-align:right">
+      <div style="font-size:13px;font-weight:700;color:#5b4ef8">📊 ${format}</div>
+      <div style="font-size:11px;color:#6b6b80;margin-top:4px">Generated: ${now}</div>
+      <div style="font-size:10px;color:#9898b8;margin-top:2px">Officer: ${settings.officerName}</div>
     </div>
   </div>
-
   <h2>Placement Summary</h2>
   <div class="stats-grid">
-    <div class="stat-box indigo">
-      <div class="stat-num">${students.length}</div>
-      <div class="stat-lbl">Total Students</div>
-    </div>
-    <div class="stat-box teal">
-      <div class="stat-num">${placedStudents}</div>
-      <div class="stat-lbl">Placed Students</div>
-    </div>
-    <div class="stat-box amber">
-      <div class="stat-num">${placementRate}%</div>
-      <div class="stat-lbl">Placement Rate</div>
-    </div>
-    <div class="stat-box violet">
-      <div class="stat-num">21.4L</div>
-      <div class="stat-lbl">Avg Package</div>
-    </div>
+    <div class="stat-box"><div class="stat-num">${students.length}</div><div class="stat-lbl">Total Students</div></div>
+    <div class="stat-box"><div class="stat-num">${placedStudents}</div><div class="stat-lbl">Placed</div></div>
+    <div class="stat-box"><div class="stat-num">${placementRate}%</div><div class="stat-lbl">Rate</div></div>
+    <div class="stat-box"><div class="stat-num">${drives.length}</div><div class="stat-lbl">Drives</div></div>
   </div>
-
-  <h2>Placement Funnel</h2>
-  <div style="margin-bottom:24px;">
-    ${[
-      {label:"Total Eligible",pct:100,count:316,color:"#9898b8"},
-      {label:"PRI ≥ 70 (Drive Ready)",pct:75,count:237,color:"#7b6ffa"},
-      {label:"Applied to Companies",pct:62,count:196,color:"#9f7aea"},
-      {label:"Interview Cleared",pct:50,count:158,color:"#f4a535"},
-      {label:"Offer Received",pct:68,count:placedStudents,color:"#27c9b0"},
-    ].map(f => `
-    <div class="funnel-row">
-      <div class="funnel-label">${f.label}</div>
-      <div class="funnel-bar-bg"><div class="funnel-bar-fill" style="width:${f.pct}%;background:${f.color}"></div></div>
-      <div class="funnel-count" style="color:${f.color}">${f.count}</div>
-    </div>`).join("")}
-  </div>
-
-  <h2>Placement Drives</h2>
-  <div class="drives-grid">
-    ${drives.map(d => `
-    <div class="drive-box">
-      <div class="drive-box-name">${d.name}</div>
-      <div class="drive-box-role">${d.role}</div>
-      <div class="drive-box-pkg">${d.pkg}</div>
-      <div class="drive-box-meta">${d.date} · ${d.applied}/${d.eligible} applied</div>
-      <span class="pill ${d.status === "Completed" ? "pill-teal" : d.status === "Upcoming" ? "pill-indigo" : "pill-amber"}">${d.status}</span>
-      <div class="bar-wrap"><div class="bar-fill" style="width:${d.pct}%"></div></div>
-    </div>`).join("")}
-  </div>
-
-  <div class="page-break"></div>
-  <h2>Student Placement Tracker</h2>
+  <h2>Student Tracker</h2>
   <table>
-    <thead>
-      <tr>
-        <th>Student Name</th><th>Branch</th><th>CGPA</th><th>PRI</th>
-        <th>Company</th><th>Package</th><th>Status</th>
-      </tr>
-    </thead>
-    <tbody>
-      ${students.map(s => `
-      <tr>
-        <td><strong>${s.name}</strong></td>
-        <td>${s.branch}</td>
-        <td>${s.cgpa}</td>
-        <td>${s.pri}/100</td>
-        <td>${s.company}</td>
-        <td>${s.pkg}</td>
-        <td><span class="pill ${
-          s.status === "Placed" ? "pill-teal" :
-          s.status === "In Process" ? "pill-indigo" :
-          s.status === "Applied" ? "pill-amber" : "pill-rose"
-        }">${s.status}</span></td>
-      </tr>`).join("")}
-    </tbody>
+    <thead><tr><th>Student</th><th>Branch</th><th>CGPA</th><th>PRI</th><th>Company</th><th>Package</th><th>Status</th></tr></thead>
+    <tbody>${students.map(s=>`<tr><td><strong>${s.name}</strong></td><td>${s.branch}</td><td>${s.cgpa}</td><td>${s.pri}/100</td><td>${s.company}</td><td>${s.pkg}</td><td>${s.status}</td></tr>`).join("")}</tbody>
   </table>
-
-  <h2>Branch-wise Placement</h2>
-  <table>
-    <thead><tr><th>Branch</th><th>Placement %</th><th>Status</th></tr></thead>
-    <tbody>
-      ${[
-        {branch:"CSE",pct:88,color:"#27c9b0"},
-        {branch:"IT",pct:76,color:"#7b6ffa"},
-        {branch:"ECE",pct:61,color:"#f4a535"},
-        {branch:"MECH",pct:42,color:"#f2445c"},
-      ].map(b => `
-      <tr>
-        <td><strong>${b.branch}</strong></td>
-        <td><div style="display:flex;align-items:center;gap:8px;">
-          <div style="width:120px;height:6px;background:#e8e8f0;border-radius:3px;overflow:hidden;">
-            <div style="width:${b.pct}%;height:100%;background:${b.color};border-radius:3px;"></div>
-          </div>
-          <span style="color:${b.color};font-weight:700;">${b.pct}%</span>
-        </div></td>
-        <td><span class="pill ${b.pct>=70?"pill-teal":b.pct>=50?"pill-amber":"pill-rose"}">${b.pct>=70?"On Track":b.pct>=50?"Moderate":"Needs Attention"}</span></td>
-      </tr>`).join("")}
-    </tbody>
-  </table>
-
   <div class="footer">
     <div>SmartCampus Placement Management System — Confidential</div>
     <div>${settings.officerName} · ${settings.officerDept} · ${now}</div>
   </div>
-</body>
-</html>`;
+</body></html>`;
 
   const blob = new Blob([htmlContent], { type: "text/html" });
   const url  = URL.createObjectURL(blob);
   const win  = window.open(url, "_blank");
-  if (win) {
-    setTimeout(() => { win.print(); }, 800);
-  } else {
-    const a = document.createElement("a");
-    a.href = url; a.download = `SmartCampus_PlacementReport_${Date.now()}.html`;
-    a.click();
-  }
+  if (win) { setTimeout(() => { win.print(); }, 800); }
+  else { const a = document.createElement("a"); a.href = url; a.download = `PlacementReport_${Date.now()}.html`; a.click(); }
   setTimeout(() => URL.revokeObjectURL(url), 5000);
 }
 
-/* CSV export */
 function exportCSV(students) {
   const header = "Name,Branch,CGPA,PRI,Skills,Interviews,Company,Package,Status\n";
   const rows = students.map(s =>
     `"${s.name}","${s.branch}",${s.cgpa},${s.pri},"${s.skills.join("/")}",${s.interviews},"${s.company}","${s.pkg}","${s.status}"`
   ).join("\n");
-  const blob = new Blob([header + rows], { type: "text/csv" });
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob); a.download = `PlacementData_${Date.now()}.csv`;
-  a.click();
+  a.href = URL.createObjectURL(new Blob([header + rows], { type: "text/csv" }));
+  a.download = `PlacementData_${Date.now()}.csv`; a.click();
 }
 
-/* Excel-like TSV export */
 function exportExcel(students) {
   const header = "Name\tBranch\tCGPA\tPRI\tSkills\tInterviews\tCompany\tPackage\tStatus\n";
   const rows = students.map(s =>
     `${s.name}\t${s.branch}\t${s.cgpa}\t${s.pri}\t${s.skills.join("/")}\t${s.interviews}\t${s.company}\t${s.pkg}\t${s.status}`
   ).join("\n");
-  const blob = new Blob(["\ufeff" + header + rows], { type: "application/vnd.ms-excel" });
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob); a.download = `PlacementData_${Date.now()}.xls`;
-  a.click();
+  a.href = URL.createObjectURL(new Blob(["\ufeff" + header + rows], { type: "application/vnd.ms-excel" }));
+  a.download = `PlacementData_${Date.now()}.xls`; a.click();
 }
 
 /* ════════════════════════════════════════════
-   INITIAL DATA
+   FALLBACK DATA  — shown while loading or on error
 ════════════════════════════════════════════ */
-const initialDrives = [
-  { id:1, logo:"A", name:"Amazon",  role:"SDE-1 · Full Time",    pkg:"26 LPA",  date:"Mar 15", applied:31, eligible:48,  pct:65,  color:"var(--indigo-l)", status:"Upcoming"  },
-  { id:2, logo:"T", name:"TCS",     role:"System Engineer",       pkg:"7 LPA",   date:"Mar 18", applied:98, eligible:120, pct:82,  color:"var(--amber)",    status:"Upcoming"  },
-  { id:3, logo:"Z", name:"Zoho",    role:"Software Developer",    pkg:"12 LPA",  date:"Mar 22", applied:52, eligible:65,  pct:80,  color:"var(--teal)",     status:"Upcoming"  },
-  { id:4, logo:"I", name:"Infosys", role:"Systems Analyst",       pkg:"6.5 LPA", date:"Mar 08", applied:84, eligible:110, pct:100, color:"var(--teal)",     status:"Completed" },
-  { id:5, logo:"G", name:"Google",  role:"SWE · L3",              pkg:"32 LPA",  date:"Feb 28", applied:9,  eligible:12,  pct:100, color:"var(--teal)",     status:"Completed" },
+const FALLBACK_TASKS = [
+  { id:1, txt:"Update Amazon drive eligibility list",  sub:"CS Dept",           due:"Today",    dueCls:"due-today", done:false },
+  { id:2, txt:"Send offer letter reminders — Infosys", sub:"22 students pending",due:"Today",   dueCls:"due-today", done:false },
+  { id:3, txt:"Review 14 student resumes",             sub:"Pre-Amazon drive",   due:"Tomorrow", dueCls:"due-soon",  done:false },
+  { id:4, txt:"Upload Zoho JD & eligibility criteria", sub:"Mar 22 Drive",       due:"2 days",   dueCls:"due-soon",  done:false },
+  { id:5, txt:"Generate Q4 Placement Analytics Report",sub:"All departments",    due:"5 days",   dueCls:"due-ok",    done:false },
 ];
 
-const initialStudents = [
-  { name:"Arjun Sharma",  init:"AS", branch:"CSE", cgpa:9.1, pri:87, skills:["React","Python","DSA"],   interviews:3, company:"Google",    pkg:"32 LPA", status:"Placed"     },
-  { name:"Priya Nair",    init:"PN", branch:"CSE", cgpa:8.7, pri:79, skills:["Java","Spring","SQL"],    interviews:5, company:"Infosys",   pkg:"—",      status:"In Process"  },
-  { name:"Rohan Mehta",   init:"RM", branch:"ECE", cgpa:7.9, pri:61, skills:["C++","Embedded"],         interviews:1, company:"—",         pkg:"—",      status:"Applied"     },
-  { name:"Sneha Reddy",   init:"SR", branch:"CSE", cgpa:9.4, pri:93, skills:["ML","Python","TF"],       interviews:2, company:"Microsoft", pkg:"28 LPA", status:"Placed"     },
-  { name:"Karthik V",     init:"KV", branch:"IT",  cgpa:8.2, pri:72, skills:["Node.js","MongoDB"],      interviews:4, company:"Wipro",     pkg:"—",      status:"In Process"  },
-  { name:"Divya Menon",   init:"DM", branch:"CSE", cgpa:7.1, pri:55, skills:["HTML","CSS"],             interviews:0, company:"—",         pkg:"—",      status:"Not Ready"   },
-  { name:"Aditya Patel",  init:"AP", branch:"MECH",cgpa:8.0, pri:68, skills:["AutoCAD","MATLAB"],       interviews:2, company:"L&T",       pkg:"—",      status:"Applied"     },
-  { name:"Lakshmi S",     init:"LS", branch:"CSE", cgpa:8.9, pri:84, skills:["Flutter","Firebase"],     interviews:3, company:"Swiggy",    pkg:"22 LPA", status:"Placed"     },
-];
-
-const initialTasks = [
-  { id:1, txt:"Update Amazon drive eligibility list",  sub:"CS Dept · 48 students",  due:"Today",    dueCls:"due-today", done:false },
-  { id:2, txt:"Send offer letter reminders — Infosys", sub:"22 students pending",     due:"Today",    dueCls:"due-today", done:false },
-  { id:3, txt:"Review 14 student resumes",             sub:"Pre-Amazon drive",        due:"Tomorrow", dueCls:"due-soon",  done:false },
-  { id:4, txt:"Upload Zoho JD & eligibility criteria", sub:"Mar 22 Drive",            due:"2 days",   dueCls:"due-soon",  done:false },
-  { id:5, txt:"Generate Q4 Placement Analytics Report",sub:"All departments",         due:"5 days",   dueCls:"due-ok",    done:false },
-];
-
-const initialNotifications = [
-  { id:1, icon:"🏢", title:"Amazon Drive",      msg:"31 students have applied for the SDE-1 role.",      time:"2m ago",  unread:true  },
-  { id:2, icon:"⭐", title:"Placement Milestone",msg:"214 students placed — 68% rate achieved!",          time:"1h ago",  unread:true  },
-  { id:3, icon:"📋", title:"Resume Reviews Due", msg:"14 student resumes pending review before Mar 15.",  time:"3h ago",  unread:true  },
-  { id:4, icon:"📢", title:"Zoho JD Uploaded",  msg:"Job description and criteria uploaded by Zoho HR.", time:"Yesterday",unread:false },
-  { id:5, icon:"✅", title:"Infosys Drive Done", msg:"84 students appeared, offers sent to 22.",          time:"2d ago",  unread:false },
+const FALLBACK_SCHEDULE = [
+  { from:"09:00", to:"10:00", name:"Amazon Pre-Placement Talk", room:"Seminar Hall · A Block",  tag:"Drive Prep", tagColor:"var(--indigo-ll)", tagBg:"rgba(91,78,248,.1)",   divColor:"var(--indigo-l)" },
+  { from:"11:00", to:"12:00", name:"Resume Review — CSE Batch", room:"Placement Office",        tag:"Review",     tagColor:"var(--teal)",      tagBg:"rgba(39,201,176,.1)",  divColor:"var(--teal)" },
+  { from:"14:00", to:"15:30", name:"Mock Interviews — Round 2", room:"Lab 3 · B Block",         tag:"Interview",  tagColor:"var(--amber)",     tagBg:"rgba(244,165,53,.1)",  divColor:"var(--amber)" },
+  { from:"16:00", to:"17:00", name:"Industry Connect — Webinar",room:"Online · Google Meet",    tag:"Online",     tagColor:"var(--violet)",    tagBg:"rgba(159,122,234,.1)", divColor:"var(--violet)" },
 ];
 
 const BRANCHES   = ["CSE","IT","ECE","EEE","MECH","CIVIL","BCA","MCA"];
@@ -275,16 +177,23 @@ const STATUSES_D = ["Upcoming","Ongoing","Completed","Cancelled"];
 const DRIVE_TYPES= ["Full Time","Internship","Internship + PPO","Part Time","Contract"];
 
 const statusMap = {
-  "Placed":     "badge-teal",  "In Process": "badge-indigo",
-  "Applied":    "badge-amber", "Not Ready":  "badge-rose",
-  "Upcoming":   "badge-indigo","Ongoing":    "badge-teal",
-  "Completed":  "badge-teal",  "Cancelled":  "badge-rose",
+  "Placed":    "badge-teal",  "In Process": "badge-indigo",
+  "Applied":   "badge-amber", "Not Ready":  "badge-rose",
+  "Upcoming":  "badge-indigo","Ongoing":    "badge-teal",
+  "Completed": "badge-teal",  "Cancelled":  "badge-rose",
 };
 
 const priColor  = s => s>=85?"var(--teal)":s>=70?"var(--indigo-ll)":s>=55?"var(--amber)":"var(--rose)";
 const cgpaColor = c => c>=9?"var(--teal)":c>=8?"var(--indigo-ll)":"var(--amber)";
 const pkgColor  = p => { const n=parseFloat(p)||0; return n>=20?"var(--teal)":n>=10?"var(--indigo-ll)":"var(--amber)"; };
-const driveBarColor = s => s==="Completed"?"var(--teal)":s==="Upcoming"?"var(--indigo-l)":s==="Ongoing"?"var(--amber)":"var(--rose)";
+
+const defaultSettings = {
+  officerName:"Placement Officer", officerDept:"Placement Officer",
+  academicYear:"2024-25", semester:"Semester 5",
+  showStats:true, showFunnel:true, showSchedule:true,
+  driveAlerts:true, studentAlerts:true, weeklyEmail:false,
+  exportFormat:"PDF",
+};
 
 /* ════════════════════════════════════════════
    MICRO COMPONENTS
@@ -347,9 +256,6 @@ const Toggle = ({ checked, onChange }) => (
   </label>
 );
 
-/* ════════════════════════════════════════════
-   BRANCH PICKER
-════════════════════════════════════════════ */
 function BranchPicker({ selected, onChange }) {
   return (
     <div className="pd-field">
@@ -370,7 +276,7 @@ function BranchPicker({ selected, onChange }) {
 }
 
 /* ════════════════════════════════════════════
-   ADD DRIVE MODAL
+   ADD DRIVE MODAL  — saves to backend
 ════════════════════════════════════════════ */
 const defaultDriveForm = {
   name:"", type:"Full Time", role:"", branches:[], pkg:"", minCgpa:"",
@@ -379,10 +285,12 @@ const defaultDriveForm = {
 };
 
 function AddDriveModal({ onClose, onAdd }) {
-  const [form, setForm]       = useState(defaultDriveForm);
-  const [step, setStep]       = useState(1);
-  const [errors, setErrors]   = useState({});
+  const [form,    setForm]    = useState(defaultDriveForm);
+  const [step,    setStep]    = useState(1);
+  const [errors,  setErrors]  = useState({});
+  const [saving,  setSaving]  = useState(false);
   const [success, setSuccess] = useState(false);
+  const [apiErr,  setApiErr]  = useState(null);
 
   const handle = e => {
     const { name, value } = e.target;
@@ -393,30 +301,48 @@ function AddDriveModal({ onClose, onAdd }) {
   const validate = () => {
     const e = {};
     if (step === 1) {
-      if (!form.name.trim()) e.name = "Company name required";
-      if (!form.role.trim()) e.role = "Role required";
+      if (!form.name.trim()) e.name     = "Company name required";
+      if (!form.role.trim()) e.role     = "Role required";
       if (form.branches.length === 0) e.branches = "Select branches";
     }
     if (step === 2) {
-      if (!form.pkg.trim()) e.pkg = "Package required";
-      if (!form.date)       e.date = "Drive date required";
-      if (!form.eligible)   e.eligible = "Eligible count required";
+      if (!form.pkg.trim())  e.pkg      = "Package required";
+      if (!form.date)        e.date     = "Drive date required";
+      if (!form.eligible)    e.eligible = "Eligible count required";
     }
     return e;
   };
 
   const next   = () => { const e = validate(); if (Object.keys(e).length) { setErrors(e); return; } setStep(s => s + 1); };
   const prev   = () => { setErrors({}); setStep(s => s - 1); };
-  const submit = () => {
-    const drive = {
-      id: Date.now(), logo: form.name[0]?.toUpperCase() || "?",
-      name: form.name, role: `${form.role} · ${form.type}`,
-      pkg: form.pkg, date: form.date ? new Date(form.date).toLocaleDateString("en-IN", { day:"2-digit", month:"short" }) : "TBD",
-      applied: 0, eligible: parseInt(form.eligible) || 0, pct: 0,
-      color: driveBarColor(form.status), status: form.status,
-    };
-    setSuccess(true);
-    setTimeout(() => { onAdd(drive); onClose(); }, 1500);
+
+  const submit = async () => {
+    setApiErr(null);
+    setSaving(true);
+    try {
+      // POST to backend — shape matches InternshipCreate schema
+      const created = await api.post("/placement/internships", {
+        company_name: form.name,
+        role:         `${form.role} · ${form.type}`,
+        deadline:     form.date || null,
+        package:      form.pkg,
+        eligible_count: parseInt(form.eligible) || 0,
+        min_cgpa:     parseFloat(form.minCgpa) || null,
+        location:     form.location || null,
+        description:  form.description || null,
+        status:       form.status,
+        branches:     form.branches,
+      });
+
+      // Map response to UI card shape
+      const card = mapApiDrive(created);
+      setSuccess(true);
+      setTimeout(() => { onAdd(card); onClose(); }, 1500);
+    } catch (err) {
+      setApiErr(err.message ?? "Failed to create drive. Please try again.");
+    } finally {
+      setSaving(false);
+    }
   };
 
   const LABELS = ["Company & Role", "Package & Schedule", "Status & Review"];
@@ -426,24 +352,23 @@ function AddDriveModal({ onClose, onAdd }) {
       <div className="pd-panel">
         <div className="pd-header">
           <div className="pd-header-left">
-            <div className="pd-modal-icon">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-            </div>
+            <div className="pd-modal-icon">{stepIcos[0]}</div>
             <div><div className="pd-modal-title">Add Placement Drive</div><div className="pd-modal-sub">Register a new company drive</div></div>
           </div>
           <button className="pd-close" onClick={onClose}><XIco/></button>
         </div>
 
+        {/* Step indicator */}
         <div className="pd-steps">
           {LABELS.map((label, i) => {
             const n = i + 1; const done = step > n; const act = step === n;
             return (
               <div key={label} className="pd-step-item">
-                <div className={`pd-step-circle${act ? " act" : ""}${done ? " done" : ""}`}>
+                <div className={`pd-step-circle${act?" act":""}${done?" done":""}`}>
                   {done ? <CheckIco/> : stepIcos[i]}
                 </div>
-                <span className={`pd-step-label${act ? " act" : ""}${done ? " done" : ""}`}>{label}</span>
-                {i < LABELS.length - 1 && <div className={`pd-step-line${done ? " done" : ""}`}/>}
+                <span className={`pd-step-label${act?" act":""}${done?" done":""}`}>{label}</span>
+                {i < LABELS.length - 1 && <div className={`pd-step-line${done?" done":""}`}/>}
               </div>
             );
           })}
@@ -457,6 +382,11 @@ function AddDriveModal({ onClose, onAdd }) {
           </div>
         ) : (
           <div className="pd-body">
+            {apiErr && (
+              <div className="pd-err" style={{ marginBottom:12 }}>
+                <ErrIco/>{apiErr}
+              </div>
+            )}
             {step === 1 && (
               <div>
                 <p className="pd-section-desc">Enter company and role details for this drive.</p>
@@ -470,21 +400,6 @@ function AddDriveModal({ onClose, onAdd }) {
                 <FInput label="Job Location" name="location" value={form.location} onChange={handle} placeholder="e.g. Bangalore / Remote" hint="(optional)"/>
                 <BranchPicker selected={form.branches} onChange={v => setForm(f => ({ ...f, branches: v }))}/>
                 {errors.branches && <div className="pd-err"><ErrIco/>{errors.branches}</div>}
-                {form.name && (
-                  <div className="pd-live-preview">
-                    <div className="pd-lp-label">Preview</div>
-                    <div style={{ display:"flex", alignItems:"center", gap:12 }}>
-                      <div style={{ width:38, height:38, borderRadius:10, background:"linear-gradient(135deg,rgba(91,78,248,.25),rgba(159,122,234,.2))", border:"1.5px solid rgba(91,78,248,.25)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, fontWeight:800, color:"var(--indigo-ll)", flexShrink:0 }}>
-                        {form.name[0]?.toUpperCase() || "?"}
-                      </div>
-                      <div>
-                        <div style={{ fontSize:13, fontWeight:700, color:"var(--text)" }}>{form.name}</div>
-                        <div style={{ fontSize:10, color:"var(--text3)", marginTop:2 }}>{form.role || "Role TBD"} · {form.type}</div>
-                        {form.branches.length > 0 && <div style={{ display:"flex", gap:4, marginTop:4, flexWrap:"wrap" }}>{form.branches.map(b => <span key={b} className="skill-chip">{b}</span>)}</div>}
-                      </div>
-                    </div>
-                  </div>
-                )}
               </div>
             )}
             {step === 2 && (
@@ -512,18 +427,9 @@ function AddDriveModal({ onClose, onAdd }) {
                 </div>
                 <div className="pd-field">
                   <label className="pd-label">Drive Description <span className="pd-hint">(optional)</span></label>
-                  <textarea className="pd-input" name="description" value={form.description} onChange={handle} placeholder="Roles, responsibilities, requirements…" rows={3} style={{ resize:"vertical", lineHeight:1.5 }}/>
+                  <textarea className="pd-input" name="description" value={form.description} onChange={handle}
+                    placeholder="Roles, responsibilities, requirements…" rows={3} style={{ resize:"vertical", lineHeight:1.5 }}/>
                 </div>
-                {(form.pkg || form.eligible) && (
-                  <div className="pd-live-preview">
-                    <div className="pd-lp-label">Drive Preview</div>
-                    <div style={{ display:"flex", gap:10, flexWrap:"wrap" }}>
-                      {form.pkg && <div className="pd-lp-stat" style={{ borderColor: pkgColor(form.pkg) }}><div style={{ fontFamily:"'Fraunces',serif", fontSize:18, color:pkgColor(form.pkg), lineHeight:1 }}>{form.pkg}</div><div style={{ fontSize:9, color:"var(--text3)", marginTop:3 }}>Package</div></div>}
-                      {form.eligible && <div className="pd-lp-stat" style={{ borderColor:"var(--indigo-ll)" }}><div style={{ fontFamily:"'Fraunces',serif", fontSize:18, color:"var(--indigo-ll)", lineHeight:1 }}>{form.eligible}</div><div style={{ fontSize:9, color:"var(--text3)", marginTop:3 }}>Eligible</div></div>}
-                      {form.minCgpa && <div className="pd-lp-stat" style={{ borderColor:"var(--amber)" }}><div style={{ fontFamily:"'Fraunces',serif", fontSize:18, color:"var(--amber)", lineHeight:1 }}>{form.minCgpa}</div><div style={{ fontSize:9, color:"var(--text3)", marginTop:3 }}>Min CGPA</div></div>}
-                    </div>
-                  </div>
-                )}
               </div>
             )}
             {step === 3 && (
@@ -531,9 +437,10 @@ function AddDriveModal({ onClose, onAdd }) {
                 <p className="pd-section-desc">Set drive status and add contact information.</p>
                 <FSelect label="Drive Status" name="status" value={form.status} onChange={handle} options={STATUSES_D} required/>
                 <div className="pd-grid-2">
-                  <FInput label="Contact Name" name="contactName" value={form.contactName} onChange={handle} placeholder="HR / Recruiter name" hint="(optional)"/>
+                  <FInput label="Contact Name"  name="contactName"  value={form.contactName}  onChange={handle} placeholder="HR / Recruiter name" hint="(optional)"/>
                   <FInput label="Contact Email" name="contactEmail" value={form.contactEmail} onChange={handle} type="email" placeholder="hr@company.com" hint="(optional)"/>
                 </div>
+                {/* Summary card */}
                 <div className="pd-summary-card">
                   <div className="pd-summary-hd">Drive Summary</div>
                   <div style={{ display:"flex", alignItems:"flex-start", gap:12, marginBottom:12 }}>
@@ -547,20 +454,11 @@ function AddDriveModal({ onClose, onAdd }) {
                     </div>
                     <Badge cls={statusMap[form.status]} dot>{form.status}</Badge>
                   </div>
-                  <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:8, marginBottom:10 }}>
-                    {[
-                      { val:form.pkg||"—", color:form.pkg?pkgColor(form.pkg):"var(--text3)", lbl:"Package" },
-                      { val:form.eligible||"—", color:"var(--indigo-ll)", lbl:"Eligible" },
-                      { val:form.minCgpa||"—", color:"var(--amber)", lbl:"Min CGPA" },
-                      { val:form.date||"—", color:"var(--text2)", lbl:"Date" },
-                    ].map(m => (
-                      <div key={m.lbl} style={{ background:"var(--surface)", borderRadius:8, padding:"8px", textAlign:"center", border:"1px solid var(--border)" }}>
-                        <div style={{ fontFamily:"'Fraunces',serif", fontSize:12, color:m.color, lineHeight:1, wordBreak:"break-all" }}>{m.val}</div>
-                        <div style={{ fontSize:9, color:"var(--text3)", marginTop:2 }}>{m.lbl}</div>
-                      </div>
-                    ))}
-                  </div>
-                  {form.branches.length > 0 && <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>{form.branches.map(b => <span key={b} className="skill-chip">{b}</span>)}</div>}
+                  {form.branches.length > 0 && (
+                    <div style={{ display:"flex", gap:4, flexWrap:"wrap" }}>
+                      {form.branches.map(b => <span key={b} className="skill-chip">{b}</span>)}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -576,10 +474,15 @@ function AddDriveModal({ onClose, onAdd }) {
               <span style={{ fontSize:10, color:"var(--text3)" }}>Step {step} of 3</span>
             </div>
             <div style={{ display:"flex", gap:8 }}>
-              <button className="btn btn-ghost" style={{ fontSize:11, padding:"9px 18px" }} onClick={step === 1 ? onClose : prev}>{step === 1 ? "Cancel" : "← Back"}</button>
+              <button className="btn btn-ghost" style={{ fontSize:11, padding:"9px 18px" }} onClick={step === 1 ? onClose : prev}>
+                {step === 1 ? "Cancel" : "← Back"}
+              </button>
               {step < 3
                 ? <button className="btn btn-solid" style={{ fontSize:11, padding:"9px 22px" }} onClick={next}>Continue →</button>
-                : <button className="btn btn-teal"  style={{ fontSize:11, padding:"9px 22px" }} onClick={submit}><CheckIco/>Add Drive</button>}
+                : <button className="btn btn-teal"  style={{ fontSize:11, padding:"9px 22px" }} onClick={submit} disabled={saving}>
+                    {saving ? <><div className="pd-spinner"/>&nbsp;Saving…</> : <><CheckIco/>Add Drive</>}
+                  </button>
+              }
             </div>
           </div>
         )}
@@ -589,12 +492,12 @@ function AddDriveModal({ onClose, onAdd }) {
 }
 
 /* ════════════════════════════════════════════
-   EXPORT MODAL  — real download
+   EXPORT MODAL
 ════════════════════════════════════════════ */
 function ExportModal({ onClose, exportData }) {
-  const [fmt, setFmt]         = useState("PDF");
+  const [fmt,     setFmt]     = useState("PDF");
   const [loading, setLoading] = useState(false);
-  const [done, setDone]       = useState(false);
+  const [done,    setDone]    = useState(false);
 
   const formats = [
     { id:"PDF",   icon:"📄", label:"PDF Report",  sub:"Print-ready report" },
@@ -634,7 +537,7 @@ function ExportModal({ onClose, exportData }) {
             </div>
           ) : (
             <>
-              <p className="pd-section-desc">Select your preferred export format. The report includes all student data, drives, and placement analytics.</p>
+              <p className="pd-section-desc">Select export format. The report includes all student data, drives and analytics.</p>
               <div className="export-format-grid">
                 {formats.map(f => (
                   <button key={f.id} className={`export-fmt-btn${fmt === f.id ? " active" : ""}`} onClick={() => setFmt(f.id)}>
@@ -643,9 +546,6 @@ function ExportModal({ onClose, exportData }) {
                     <span className="efmt-sub">{f.sub}</span>
                   </button>
                 ))}
-              </div>
-              <div style={{ background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:10, padding:"12px 14px", fontSize:11, color:"var(--text3)", lineHeight:1.6 }}>
-                <strong style={{ color:"var(--text2)" }}>Includes:</strong> Student tracker, placement drives, funnel analytics, branch-wise stats, PRI distribution & officer details.
               </div>
             </>
           )}
@@ -664,30 +564,44 @@ function ExportModal({ onClose, exportData }) {
 }
 
 /* ════════════════════════════════════════════
-   NOTIFY STUDENTS MODAL
+   NOTIFY STUDENTS MODAL  — POST to backend
 ════════════════════════════════════════════ */
 function NotifyModal({ onClose, students, onNotifSent }) {
-  const [subject,    setSubject]    = useState("");
-  const [message,    setMessage]    = useState("");
-  const [selected,   setSelected]   = useState(students.map(s => s.name));
-  const [type,       setType]       = useState("General");
-  const [loading,    setLoading]    = useState(false);
-  const [sent,       setSent]       = useState(false);
+  const [subject,  setSubject]  = useState("");
+  const [message,  setMessage]  = useState("");
+  const [selected, setSelected] = useState(students.map(s => s.id ?? s.name));
+  const [type,     setType]     = useState("General");
+  const [loading,  setLoading]  = useState(false);
+  const [sent,     setSent]     = useState(false);
+  const [apiErr,   setApiErr]   = useState(null);
 
-  const toggleAll = () => setSelected(selected.length === students.length ? [] : students.map(s => s.name));
-  const toggle    = name => setSelected(prev => prev.includes(name) ? prev.filter(n => n !== name) : [...prev, name]);
-
-  const send = () => {
-    if (!subject.trim() || !message.trim()) return;
-    setLoading(true);
-    setTimeout(() => {
-      setLoading(false); setSent(true);
-      onNotifSent({ subject, type, count: selected.length });
-      setTimeout(onClose, 2000);
-    }, 1200);
-  };
+  const toggleAll = () =>
+    setSelected(selected.length === students.length ? [] : students.map(s => s.id ?? s.name));
+  const toggle = id =>
+    setSelected(prev => prev.includes(id) ? prev.filter(n => n !== id) : [...prev, id]);
 
   const types = ["General","Drive Alert","Resume Deadline","Offer Letter","Interview Call","Congratulations"];
+
+  const send = async () => {
+    if (!subject.trim() || !message.trim() || selected.length === 0) return;
+    setApiErr(null);
+    setLoading(true);
+    try {
+      await api.post("/placement/notifications/send", {
+        student_ids: selected,
+        subject,
+        message,
+        type,
+      });
+      setSent(true);
+      onNotifSent({ subject, type, count: selected.length });
+      setTimeout(onClose, 2000);
+    } catch (err) {
+      setApiErr(err.message ?? "Failed to send notification.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <Overlay onClose={onClose}>
@@ -710,6 +624,7 @@ function NotifyModal({ onClose, students, onNotifSent }) {
             </div>
           ) : (
             <>
+              {apiErr && <div className="pd-err" style={{ marginBottom:10 }}><ErrIco/>{apiErr}</div>}
               <div className="pd-field">
                 <label className="pd-label">Notification Type</label>
                 <div style={{ display:"flex", flexWrap:"wrap", gap:6, marginTop:2 }}>
@@ -727,17 +642,22 @@ function NotifyModal({ onClose, students, onNotifSent }) {
               <div className="pd-field">
                 <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
                   <label className="pd-label">Recipients ({selected.length}/{students.length})</label>
-                  <button className="panel-act" onClick={toggleAll}>{selected.length === students.length ? "Deselect all" : "Select all"}</button>
+                  <button className="panel-act" onClick={toggleAll}>
+                    {selected.length === students.length ? "Deselect all" : "Select all"}
+                  </button>
                 </div>
                 <div className="notify-recipient-list">
-                  {students.map(s => (
-                    <div key={s.name} className="notify-recipient">
-                      <input type="checkbox" checked={selected.includes(s.name)} onChange={() => toggle(s.name)}/>
-                      <div className="stu-av" style={{ width:22, height:22, fontSize:8 }}>{s.init}</div>
-                      <span style={{ flex:1 }}>{s.name}</span>
-                      <Badge cls={statusMap[s.status]}>{s.status}</Badge>
-                    </div>
-                  ))}
+                  {students.map(s => {
+                    const key = s.id ?? s.name;
+                    return (
+                      <div key={key} className="notify-recipient">
+                        <input type="checkbox" checked={selected.includes(key)} onChange={() => toggle(key)}/>
+                        <div className="stu-av" style={{ width:22, height:22, fontSize:8 }}>{s.init}</div>
+                        <span style={{ flex:1 }}>{s.name}</span>
+                        <Badge cls={statusMap[s.status]}>{s.status}</Badge>
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             </>
@@ -763,14 +683,6 @@ function NotifyModal({ onClose, students, onNotifSent }) {
 /* ════════════════════════════════════════════
    SETTINGS MODAL
 ════════════════════════════════════════════ */
-const defaultSettings = {
-  officerName:"Ms. Kavitha R", officerDept:"Placement Officer",
-  academicYear:"2024-25", semester:"Semester 5",
-  showStats:true, showFunnel:true, showSchedule:true,
-  driveAlerts:true, studentAlerts:true, weeklyEmail:false,
-  exportFormat:"PDF",
-};
-
 function SettingsModal({ onClose, settings, onSave }) {
   const [tab,   setTab]   = useState("general");
   const [local, setLocal] = useState({ ...settings });
@@ -802,7 +714,7 @@ function SettingsModal({ onClose, settings, onSave }) {
               <div className="pd-section-label">Profile</div>
               <div className="pd-grid-2">
                 <FInput label="Officer Name" name="officerName" value={local.officerName} onChange={e => setVal("officerName", e.target.value)} placeholder="Name"/>
-                <FInput label="Role" name="officerDept" value={local.officerDept} onChange={e => setVal("officerDept", e.target.value)} placeholder="Role"/>
+                <FInput label="Role"         name="officerDept" value={local.officerDept} onChange={e => setVal("officerDept", e.target.value)} placeholder="Role"/>
               </div>
               <div className="pd-section-label" style={{ marginTop:16 }}>Academic</div>
               <div className="pd-grid-2">
@@ -840,9 +752,9 @@ function SettingsModal({ onClose, settings, onSave }) {
             <div>
               <div className="pd-section-label">Alerts</div>
               {[
-                { k:"driveAlerts",   l:"Drive Alerts",    d:"When new drives are added or updated" },
-                { k:"studentAlerts", l:"Student Alerts",  d:"Student placement status changes" },
-                { k:"weeklyEmail",   l:"Weekly Digest",   d:"Summary email every Monday" },
+                { k:"driveAlerts",   l:"Drive Alerts",   d:"When new drives are added or updated" },
+                { k:"studentAlerts", l:"Student Alerts", d:"Student placement status changes" },
+                { k:"weeklyEmail",   l:"Weekly Digest",  d:"Summary email every Monday" },
               ].map(r => (
                 <div key={r.k} className="pd-row">
                   <div><div className="pd-row-label">{r.l}</div><div className="pd-row-desc">{r.d}</div></div>
@@ -895,6 +807,9 @@ function NotificationsPanel({ items, onClose, onClearAll }) {
           </div>
         </div>
         <div className="pd-body" style={{ padding:"10px 14px" }}>
+          {items.length === 0 && (
+            <div style={{ textAlign:"center", padding:"30px 0", color:"var(--text3)", fontSize:12 }}>No notifications</div>
+          )}
           {items.map(n => (
             <div key={n.id} className="pd-notif-item" style={{ background:n.unread ? "rgba(91,78,248,.04)" : undefined }}>
               <div className="pd-notif-icon">{n.icon}</div>
@@ -919,12 +834,9 @@ function NotificationsPanel({ items, onClose, onClearAll }) {
 ════════════════════════════════════════════ */
 function QuickActionsPanel({ onClose, onAddDrive, onNotify, onExport }) {
   const actions = [
-    { icon:"🏢", label:"Add Drive",        sub:"Schedule a new placement drive",   color:"var(--indigo-ll)", action: () => { onClose(); onAddDrive(); } },
-    { icon:"📢", label:"Notify Students",  sub:"Send bulk notification",           color:"var(--teal)",      action: () => { onClose(); onNotify(); } },
-    { icon:"📄", label:"Export Report",    sub:"Download placement analytics",     color:"var(--amber)",     action: () => { onClose(); onExport(); } },
-    { icon:"👤", label:"View Profile",     sub:"Officer profile & activity",       color:"var(--violet)",    action: () => { onClose(); window.location.hash = "#/placementdashboard/profile"; } },
-    { icon:"📊", label:"Analytics",        sub:"Open the analytics dashboard",     color:"var(--indigo-l)",  action: () => onClose() },
-    { icon:"📋", label:"Resume Reviews",   sub:"Open pending resume review queue", color:"var(--rose)",      action: () => onClose() },
+    { icon:"🏢", label:"Add Drive",       sub:"Schedule a new placement drive",   color:"var(--indigo-ll)", action: () => { onClose(); onAddDrive(); } },
+    { icon:"📢", label:"Notify Students", sub:"Send bulk notification",           color:"var(--teal)",      action: () => { onClose(); onNotify(); } },
+    { icon:"📄", label:"Export Report",   sub:"Download placement analytics",     color:"var(--amber)",     action: () => { onClose(); onExport(); } },
   ];
   return (
     <Overlay onClose={onClose}>
@@ -957,7 +869,7 @@ function QuickActionsPanel({ onClose, onAddDrive, onNotify, onExport }) {
 /* ════════════════════════════════════════════
    DELETE DRIVE CONFIRM
 ════════════════════════════════════════════ */
-function DeleteDriveConfirm({ drive, onConfirm, onCancel }) {
+function DeleteDriveConfirm({ drive, onConfirm, onCancel, deleting }) {
   return (
     <Overlay onClose={onCancel}>
       <div className="pd-panel pd-panel-delete">
@@ -966,11 +878,13 @@ function DeleteDriveConfirm({ drive, onConfirm, onCancel }) {
         </div>
         <div style={{ fontFamily:"'Fraunces',serif", fontSize:18, color:"var(--text)", textAlign:"center", marginBottom:8 }}>Remove Drive?</div>
         <div style={{ fontSize:12, color:"var(--text3)", textAlign:"center", lineHeight:1.6, marginBottom:22, padding:"0 20px" }}>
-          This will remove the <strong style={{ color:"var(--text)" }}>{drive.name}</strong> placement drive permanently.
+          This will permanently remove the <strong style={{ color:"var(--text)" }}>{drive.name}</strong> placement drive.
         </div>
         <div style={{ display:"flex", gap:8, justifyContent:"center", paddingBottom:28 }}>
           <button className="btn btn-ghost" style={{ fontSize:11, padding:"9px 20px" }} onClick={onCancel}>Cancel</button>
-          <button className="btn btn-rose"  style={{ fontSize:11, padding:"9px 20px" }} onClick={onConfirm}><TrashIco/>&nbsp;Yes, Remove</button>
+          <button className="btn btn-rose"  style={{ fontSize:11, padding:"9px 20px" }} onClick={onConfirm} disabled={deleting}>
+            {deleting ? <><div className="pd-spinner"/>&nbsp;Removing…</> : <><TrashIco/>&nbsp;Yes, Remove</>}
+          </button>
         </div>
       </div>
     </Overlay>
@@ -989,8 +903,17 @@ function Toast({ icon, title, sub, onDone }) {
         <div style={{ fontSize:12, fontWeight:700, color:"var(--text)" }}>{title}</div>
         <div style={{ fontSize:10, color:"var(--text3)", marginTop:2 }}>{sub}</div>
       </div>
-      <button onClick={onDone} style={{ background:"none", border:"none", color:"var(--text3)", cursor:"none", marginLeft:4, fontSize:16 }}>×</button>
+      <button onClick={onDone} style={{ background:"none", border:"none", color:"var(--text3)", cursor:"pointer", marginLeft:4, fontSize:16 }}>×</button>
     </div>
+  );
+}
+
+/* ════════════════════════════════════════════
+   LOADING SKELETON
+════════════════════════════════════════════ */
+function Skeleton({ width = "100%", height = 14, style = {} }) {
+  return (
+    <div style={{ width, height, background:"var(--surface3)", borderRadius:6, animation:"pulse 1.5s ease-in-out infinite", ...style }}/>
   );
 }
 
@@ -1006,9 +929,6 @@ function SbLink({ active, badge, badgeCls, icon, children, to, onClick }) {
   );
 }
 
-/* ════════════════════════════════════════════
-   PANEL WRAPPER
-════════════════════════════════════════════ */
 const Panel = ({ title, subtitle, action, children, style, bodyStyle }) => (
   <div className="panel" style={style}>
     <div className="panel-hd">
@@ -1025,14 +945,22 @@ const Panel = ({ title, subtitle, action, children, style, bodyStyle }) => (
 export default function PlacementDashboard() {
   const navigate = useNavigate();
 
-  const [drives,        setDrives]       = useState(initialDrives);
-  const [students]                       = useState(initialStudents);
-  const [tasks,         setTasks]        = useState(initialTasks);
+  // ── UI state ─────────────────────────────────────────────────
   const [filter,        setFilter]       = useState("All");
   const [search,        setSearch]       = useState("");
-  const [notifs,        setNotifs]       = useState(initialNotifications);
   const [settings,      setSettings]     = useState(defaultSettings);
+  const [tasks,         setTasks]        = useState(FALLBACK_TASKS);
+  const [notifs,        setNotifs]       = useState([]);
 
+  // ── API data ──────────────────────────────────────────────────
+  const [loading,       setLoading]      = useState(true);
+  const [statsLoading,  setStatsLoading] = useState(true);
+  const [dashStats,     setDashStats]    = useState(null);   // from GET /placement/dashboard/stats
+  const [drives,        setDrives]       = useState([]);
+  const [students,      setStudents]     = useState([]);
+  const [officerName,   setOfficerName]  = useState("");
+
+  // ── Modal state ───────────────────────────────────────────────
   const [showAddDrive,  setShowAddDrive] = useState(false);
   const [showSettings,  setShowSettings] = useState(false);
   const [showNotif,     setShowNotif]    = useState(false);
@@ -1040,10 +968,12 @@ export default function PlacementDashboard() {
   const [showExport,    setShowExport]   = useState(false);
   const [showNotify,    setShowNotify]   = useState(false);
   const [deleteTarget,  setDeleteTarget] = useState(null);
+  const [deleting,      setDeleting]     = useState(false);
   const [toast,         setToast]        = useState(null);
 
-  /* ── CURSOR ── */
-  const curRef = useRef(null), ringRef = useRef(null);
+  // ── Cursor ────────────────────────────────────────────────────
+  const curRef  = useRef(null);
+  const ringRef = useRef(null);
   const mx = useRef(0), my = useRef(0), rx = useRef(0), ry = useRef(0);
 
   useEffect(() => {
@@ -1072,90 +1002,192 @@ export default function PlacementDashboard() {
     };
   }, []);
 
-  /* ── BODY SCROLL LOCK ── */
+  // ── Body scroll lock when any modal is open ───────────────────
   const anyModal = showAddDrive || showSettings || showNotif || showQuickAct || showExport || showNotify || !!deleteTarget;
-  useEffect(() => { document.body.style.overflow = anyModal ? "hidden" : ""; return () => { document.body.style.overflow = ""; }; }, [anyModal]);
+  useEffect(() => {
+    document.body.style.overflow = anyModal ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
+  }, [anyModal]);
 
-  /* ── COMPUTED ── */
-  const unreadCount    = notifs.filter(n => n.unread).length;
+  /* ════════════════════════════════════════════
+     FETCH — on mount, load everything in parallel
+  ════════════════════════════════════════════ */
+  useEffect(() => {
+    const fetchAll = async () => {
+      setLoading(true);
+      try {
+        const [meRes, statsRes, drivesRes, studentsRes] = await Promise.allSettled([
+          api.get("/auth/me"),
+          api.get("/placement/dashboard/stats"),
+          api.get("/placement/internships?limit=20"),
+          api.get("/placement/dashboard/students?limit=50"),
+        ]);
+
+        // Officer name
+        if (meRes.status === "fulfilled") {
+          const me = meRes.value;
+          setOfficerName(me.full_name ?? me.email ?? "");
+          setSettings(s => ({ ...s, officerName: me.full_name ?? s.officerName }));
+        }
+
+        // KPI stats
+        if (statsRes.status === "fulfilled") {
+          setDashStats(statsRes.value);
+        }
+
+        // Drives / internships
+        if (drivesRes.status === "fulfilled") {
+          const raw = Array.isArray(drivesRes.value) ? drivesRes.value : (drivesRes.value?.items ?? []);
+          setDrives(raw.map(mapApiDrive));
+        }
+
+        // Student tracker
+        if (studentsRes.status === "fulfilled") {
+          const raw = Array.isArray(studentsRes.value) ? studentsRes.value : (studentsRes.value?.items ?? []);
+          setStudents(raw.map((s, i) => mapApiStudent(s, i)));
+        }
+      } catch (err) {
+        console.error("Placement dashboard fetch error:", err);
+      } finally {
+        setLoading(false);
+        setStatsLoading(false);
+      }
+    };
+
+    fetchAll();
+  }, []);
+
+  // Re-fetch students when search or filter changes (debounced)
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      try {
+        const params = new URLSearchParams({ limit: "50" });
+        if (search) params.set("search", search);
+        if (filter !== "All") params.set("status", filter);
+        const raw = await api.get(`/placement/dashboard/students?${params}`);
+        const arr = Array.isArray(raw) ? raw : (raw?.items ?? []);
+        setStudents(arr.map((s, i) => mapApiStudent(s, i)));
+      } catch (err) {
+        console.error("Student filter error:", err);
+      }
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [search, filter]);
+
+  /* ════════════════════════════════════════════
+     COMPUTED from API data (with safe fallbacks)
+  ════════════════════════════════════════════ */
+  const placedStudents = dashStats?.placed_students  ?? students.filter(s => s.status === "Placed").length;
+  const placementRate  = dashStats?.placement_rate   ?? (students.length ? Math.round(placedStudents / students.length * 100) : 0);
   const upcomingDrives = drives.filter(d => d.status === "Upcoming").length;
-  const placedStudents = students.filter(s => s.status === "Placed").length;
-  const placementRate  = Math.round(placedStudents / students.length * 100);
   const pendingTasks   = tasks.filter(t => !t.done).length;
+  const unreadCount    = notifs.filter(n => n.unread).length;
 
-  const filteredStudents = students.filter(s => {
-    const mf = filter === "All" || s.status === filter;
-    const mq = s.name.toLowerCase().includes(search.toLowerCase()) || s.branch.toLowerCase().includes(search.toLowerCase());
-    return mf && mq;
-  });
+  const funnelData     = dashStats?.funnel ?? [
+    { label:"Total Eligible",         count: students.length, pct:100 },
+    { label:"PRI ≥ 70 (Drive Ready)", count: dashStats?.pri_distribution?.good ?? 0, pct:75 },
+    { label:"Applied to Companies",   count: 0, pct:0 },
+    { label:"Offer Received",         count: placedStudents, pct: placementRate },
+  ];
+
+  const branchStats    = dashStats?.branch_stats ?? [];
+
+  // Student list is already filtered server-side; client-side fallback only
+  const filteredStudents = students;
 
   const exportData = { students, drives, settings, placementRate, placedStudents };
 
-  /* ── HANDLERS ── */
-  const handleAddDrive = d => {
-    setDrives(prev => [d, ...prev]);
-    setNotifs(prev => [{ id: Date.now(), icon:"🏢", title:`Drive Added: ${d.name}`, msg:`${d.name} drive scheduled for ${d.date}.`, time:"Just now", unread:true }, ...prev]);
-    setToast({ icon:"🏢", title:"Drive Added!", sub:`${d.name} has been added to the schedule.` });
-  };
+  /* ════════════════════════════════════════════
+     HANDLERS
+  ════════════════════════════════════════════ */
+  // Called by AddDriveModal after successful POST — card already shaped by mapApiDrive
+  const handleAddDrive = useCallback((card) => {
+    setDrives(prev => [card, ...prev]);
+    setNotifs(prev => [{
+      id: Date.now(), icon:"🏢",
+      title: `Drive Added: ${card.name}`,
+      msg:   `${card.name} drive scheduled for ${card.date}.`,
+      time:  "Just now", unread: true,
+    }, ...prev]);
+    setToast({ icon:"🏢", title:"Drive Added!", sub:`${card.name} has been added to the schedule.` });
+  }, []);
 
-  const handleDeleteDrive = () => {
-    const name = deleteTarget.name;
-    setDrives(prev => prev.filter(d => d.id !== deleteTarget.id));
-    setDeleteTarget(null);
-    setToast({ icon:"🗑️", title:"Drive Removed", sub:`${name} has been removed.` });
-  };
+  // DELETE drive — calls backend then removes from local state
+  const handleDeleteDrive = useCallback(async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await api.delete(`/placement/internships/${deleteTarget.id}`);
+      setDrives(prev => prev.filter(d => d.id !== deleteTarget.id));
+      setToast({ icon:"🗑️", title:"Drive Removed", sub:`${deleteTarget.name} has been removed.` });
+    } catch (err) {
+      setToast({ icon:"❌", title:"Failed to Remove", sub: err.message ?? "Please try again." });
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
+    }
+  }, [deleteTarget]);
 
   const handleClearNotifs = () => setNotifs(prev => prev.map(n => ({ ...n, unread: false })));
+  const handleToggleTask  = id  => setTasks(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t));
 
-  const handleToggleTask = id => setTasks(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t));
-
-  const handleNotifSent = ({ subject, type, count }) => {
-    setNotifs(prev => [{ id: Date.now(), icon:"📢", title:`Notification Sent: ${type}`, msg:`"${subject}" sent to ${count} students.`, time:"Just now", unread:true }, ...prev]);
+  // Called by NotifyModal after successful POST
+  const handleNotifSent = useCallback(({ subject, type, count }) => {
+    setNotifs(prev => [{
+      id: Date.now(), icon:"📢",
+      title: `Notification Sent: ${type}`,
+      msg:   `"${subject}" sent to ${count} students.`,
+      time:  "Just now", unread: true,
+    }, ...prev]);
     setToast({ icon:"📨", title:"Notification Sent!", sub:`Sent to ${count} students.` });
-  };
+  }, []);
 
   const handleSignOut = () => {
     if (window.confirm("Sign out of SmartCampus?")) {
-      // clear stored token & user then redirect to login
       clearAuth();
       setToast({ icon:"👋", title:"Signed Out", sub:"You have been signed out successfully." });
       setTimeout(() => navigate("/login", { replace: true }), 1500);
     }
   };
 
-  /* ── ICON SVGS ── */
-  const GridIco   = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>;
-  const BarIco    = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>;
-  const UserIco   = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
-  const BriefIco  = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>;
-  const FileIco   = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>;
-  const StarIco   = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>;
-  const BoxIco    = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>;
-  const ZapIco    = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>;
-  const LogoutIco = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>;
-  const CalIco    = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>;
-  const CheckListIco = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>;
-  const FilterIco = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>;
-  const BellIco   = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>;
-  const GearIco   = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>;
-  const SearchIco = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color:"var(--text3)", flexShrink:0 }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
+  /* ════════════════════════════════════════════
+     INLINE SVG ICONS
+  ════════════════════════════════════════════ */
+  const GridIco    = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>;
+  const BarIco     = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>;
+  const UserIco    = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
+  const BriefIco   = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>;
+  const FileIco    = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>;
+  const StarIco    = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>;
+  const BoxIco     = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>;
+  const ZapIco     = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>;
+  const LogoutIco  = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>;
+  const CalIco     = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>;
+  const CheckListIco=() => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>;
+  const FilterIco  = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>;
+  const BellIco    = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>;
+  const GearIco    = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>;
+  const SearchIco  = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color:"var(--text3)", flexShrink:0 }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
 
+  /* ════════════════════════════════════════════
+     RENDER
+  ════════════════════════════════════════════ */
   return (
     <>
-      {/* CURSOR */}
+      {/* Cursor */}
       <div className="sc-cursor"      ref={curRef}  style={{ zIndex:99999 }}/>
       <div className="sc-cursor-ring" ref={ringRef} style={{ zIndex:99999 }}/>
       <div className="sc-noise"/>
 
-      {/* MODALS */}
-      {showAddDrive && <AddDriveModal       onClose={() => setShowAddDrive(false)} onAdd={handleAddDrive}/>}
-      {showSettings && <SettingsModal       onClose={() => setShowSettings(false)} settings={settings} onSave={setSettings}/>}
-      {showNotif    && <NotificationsPanel  onClose={() => setShowNotif(false)}    items={notifs} onClearAll={handleClearNotifs}/>}
-      {showQuickAct && <QuickActionsPanel   onClose={() => setShowQuickAct(false)} onAddDrive={() => setShowAddDrive(true)} onNotify={() => setShowNotify(true)} onExport={() => setShowExport(true)}/>}
-      {showExport   && <ExportModal         onClose={() => setShowExport(false)}   exportData={exportData}/>}
-      {showNotify   && <NotifyModal         onClose={() => setShowNotify(false)}   students={students} onNotifSent={handleNotifSent}/>}
-      {deleteTarget && <DeleteDriveConfirm  drive={deleteTarget} onConfirm={handleDeleteDrive} onCancel={() => setDeleteTarget(null)}/>}
-      {toast        && <Toast icon={toast.icon} title={toast.title} sub={toast.sub} onDone={() => setToast(null)}/>}
+      {/* Modals */}
+      {showAddDrive  && <AddDriveModal      onClose={() => setShowAddDrive(false)}  onAdd={handleAddDrive}/>}
+      {showSettings  && <SettingsModal      onClose={() => setShowSettings(false)}  settings={settings} onSave={setSettings}/>}
+      {showNotif     && <NotificationsPanel onClose={() => setShowNotif(false)}     items={notifs} onClearAll={handleClearNotifs}/>}
+      {showQuickAct  && <QuickActionsPanel  onClose={() => setShowQuickAct(false)}  onAddDrive={() => setShowAddDrive(true)} onNotify={() => setShowNotify(true)} onExport={() => setShowExport(true)}/>}
+      {showExport    && <ExportModal        onClose={() => setShowExport(false)}    exportData={exportData}/>}
+      {showNotify    && <NotifyModal        onClose={() => setShowNotify(false)}    students={students} onNotifSent={handleNotifSent}/>}
+      {deleteTarget  && <DeleteDriveConfirm drive={deleteTarget} onConfirm={handleDeleteDrive} onCancel={() => setDeleteTarget(null)} deleting={deleting}/>}
+      {toast         && <Toast icon={toast.icon} title={toast.title} sub={toast.sub} onDone={() => setToast(null)}/>}
 
       <div className="app">
         {/* ── SIDEBAR ── */}
@@ -1167,11 +1199,12 @@ export default function PlacementDashboard() {
             </Link>
           </div>
 
-          {/* clickable profile area */}
           <Link to="/placementdashboard/placementProfile" className="sb-user" style={{ textDecoration:"none" }}>
-            <div className="sb-avatar">{settings.officerName.trim().split(" ").map(w => w[0]).join("").slice(0, 2)}</div>
+            <div className="sb-avatar">
+              {(officerName || settings.officerName).trim().split(" ").map(w => w[0]).join("").slice(0, 2)}
+            </div>
             <div>
-              <div className="sb-uname">{settings.officerName}</div>
+              <div className="sb-uname">{officerName || settings.officerName}</div>
               <div className="sb-urole">{settings.officerDept}</div>
             </div>
           </Link>
@@ -1179,18 +1212,18 @@ export default function PlacementDashboard() {
           <nav className="sb-nav">
             <div className="sb-sec-label">Overview</div>
             <SbLink active to="/placementdashboard" icon={<GridIco/>}>Dashboard</SbLink>
-            <SbLink to="/placementdashboard/placementAnalytics" badge="New" icon={<BarIco/>}>Analytics</SbLink>
+            <SbLink to="/placementdashboard/analytics" badge="New" icon={<BarIco/>}>Analytics</SbLink>
 
             <div className="sb-sec-label">Placement</div>
-            <SbLink to="/placementdashboard/students"        badge="316" badgeCls="teal"  icon={<UserIco/>}>Students</SbLink>
-            <SbLink to="/placementdashboard/companies"       badge="8"   badgeCls="amber" icon={<BriefIco/>}>Companies</SbLink>
-            <SbLink to="/placementdashboard/drives"          badge={String(upcomingDrives)} badgeCls="rose" icon={<FileIco/>}>Drives</SbLink>
-            <SbLink to="/placementdashboard/offers-placed"   icon={<StarIco/>}>Offers &amp; Placed</SbLink>
-            <SbLink to="/placementdashboard/internships"     icon={<BoxIco/>}>Internships</SbLink>
+            <SbLink to="/placementdashboard/students"       badge={String(students.length)} badgeCls="teal"  icon={<UserIco/>}>Students</SbLink>
+            <SbLink to="/placementdashboard/companies"      badge="8"   badgeCls="amber" icon={<BriefIco/>}>Companies</SbLink>
+            <SbLink to="/placementdashboard/drives"         badge={String(upcomingDrives)} badgeCls="rose" icon={<FileIco/>}>Drives</SbLink>
+            <SbLink to="/placementdashboard/offers-placed"  icon={<StarIco/>}>Offers &amp; Placed</SbLink>
+            <SbLink to="/placementdashboard/internships"    icon={<BoxIco/>}>Internships</SbLink>
 
             <div className="sb-sec-label">Tools</div>
-            <SbLink to="/placementdashboard/ai-assistant"    icon={<ZapIco/>}>AI Assistant</SbLink>
-            <SbLink to="/placementdashboard/reports"         icon={<FileIco/>}>Reports</SbLink>
+            <SbLink to="/placementdashboard/ai-assistant"   icon={<ZapIco/>}>AI Assistant</SbLink>
+            <SbLink to="/placementdashboard/reports"        icon={<FileIco/>}>Reports</SbLink>
 
             <div className="sb-sec-label">Account</div>
             <SbLink to="/placementdashboard/placementProfile" icon={<UserIco/>}>My Profile</SbLink>
@@ -1199,13 +1232,13 @@ export default function PlacementDashboard() {
           <div className="sb-bottom">
             <div className="sb-pri">
               <div className="sb-pri-lbl">Placement Rate</div>
-              <div className="sb-pri-val">{placementRate}%</div>
+              <div className="sb-pri-val">{statsLoading ? "…" : `${placementRate}%`}</div>
               <div className="sb-pri-sub">AY {settings.academicYear} · {settings.semester}</div>
-              <div className="sb-pri-bar"><div className="sb-pri-fill" style={{ width:`${placementRate}%` }}/></div>
+              <div className="sb-pri-bar">
+                <div className="sb-pri-fill" style={{ width: statsLoading ? "0%" : `${placementRate}%`, transition:"width 1s ease" }}/>
+              </div>
             </div>
-            <button className="sb-logout" onClick={handleSignOut}>
-              <LogoutIco/>Sign Out
-            </button>
+            <button className="sb-logout" onClick={handleSignOut}><LogoutIco/>Sign Out</button>
           </div>
         </aside>
 
@@ -1216,10 +1249,11 @@ export default function PlacementDashboard() {
             <div className="tb-sep"/>
             <div className="tb-search">
               <SearchIco/>
-              <input type="text" placeholder="Search students, companies, drives…" value={search} onChange={e => setSearch(e.target.value)} style={{ cursor:"none" }}/>
+              <input type="text" placeholder="Search students, companies, drives…"
+                value={search} onChange={e => setSearch(e.target.value)} style={{ cursor:"none" }}/>
             </div>
             <div className="tb-right">
-              <span className="tb-date">Thu, 12 Mar</span>
+              <span className="tb-date">{new Date().toLocaleDateString("en-IN", { weekday:"short", day:"numeric", month:"short" })}</span>
               <button className="tb-icon-btn" onClick={() => setShowNotif(true)} title="Notifications">
                 <BellIco/>
                 {unreadCount > 0 && <span className="notif-dot"/>}
@@ -1227,7 +1261,7 @@ export default function PlacementDashboard() {
               <button className="tb-icon-btn" onClick={() => setShowSettings(true)} title="Settings"><GearIco/></button>
               <Link to="/placementdashboard/placementProfile" className="tb-icon-btn" title="Profile">
                 <div style={{ width:22, height:22, borderRadius:"50%", background:"linear-gradient(135deg,rgba(39,201,176,.4),rgba(91,78,248,.3))", display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, fontWeight:800, color:"var(--teal)" }}>
-                  {settings.officerName.trim().split(" ").map(w => w[0]).join("").slice(0,2)}
+                  {(officerName || settings.officerName).trim().split(" ").map(w => w[0]).join("").slice(0,2)}
                 </div>
               </Link>
               <button className="btn btn-solid" style={{ fontSize:10, padding:"8px 14px" }} onClick={() => setShowQuickAct(true)}>
@@ -1243,10 +1277,15 @@ export default function PlacementDashboard() {
                 <div className="greet-pip"/>
                 <span className="greet-pip-txt">AY {settings.academicYear} · {settings.semester}</span>
               </div>
-              <h1 className="greet-title">Good morning, <em>{settings.officerName.split(" ").slice(0,2).join(" ")}</em></h1>
+              <h1 className="greet-title">
+                Good morning, <em>{(officerName || settings.officerName).split(" ")[0]}</em>
+              </h1>
               <p className="greet-sub">
-                You have <strong>{upcomingDrives} drives</strong> scheduled and{" "}
-                <span className="rose">{students.filter(s => s.status === "Not Ready").length} students</span> need placement readiness attention.
+                {loading
+                  ? "Loading placement data…"
+                  : <>You have <strong>{upcomingDrives} drives</strong> scheduled and{" "}
+                    <span className="rose">{students.filter(s => s.status === "Not Ready").length} students</span> need placement readiness attention.</>
+                }
               </p>
               <div className="greet-actions">
                 <button className="btn btn-solid" onClick={() => setShowAddDrive(true)}>
@@ -1268,16 +1307,16 @@ export default function PlacementDashboard() {
             {settings.showStats && (
               <div className="stat-grid">
                 {[
-                  { color:"indigo", val:students.length,  label:"Total Students",  delta:"▲ +12 this semester", deltaType:"up",  icon:<UserIco/> },
-                  { color:"teal",   val:placedStudents,    label:"Placed Students", delta:`▲ ${placementRate}% rate`, deltaType:"up", icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg> },
-                  { color:"amber",  val:72,                label:"Avg PRI Score",   delta:"Target: 85 for excellent", deltaType:"neu", icon:<BarIco/> },
-                  { color:"violet", val:"21.4L",           label:"Avg Package",     delta:"▲ +3.2L vs last year", deltaType:"up",  icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg> },
+                  { color:"indigo", val: loading ? "…" : students.length,    label:"Total Students",  delta:"Registered this year",      icon:<UserIco/> },
+                  { color:"teal",   val: loading ? "…" : placedStudents,     label:"Placed Students", delta:`${loading?"…":placementRate}% rate`,  icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg> },
+                  { color:"amber",  val: loading ? "…" : (dashStats?.avg_pri ? Math.round(dashStats.avg_pri) : "—"), label:"Avg PRI Score", delta:"Target: 85 for excellent", icon:<BarIco/> },
+                  { color:"violet", val: loading ? "…" : drives.length,      label:"Total Drives",    delta:`${upcomingDrives} upcoming`,  icon:<BriefIco/> },
                 ].map(s => (
                   <div key={s.label} className={`stat-card sc-${s.color}`}>
                     <div className="stat-ic">{s.icon}</div>
                     <div className="stat-val" style={s.color !== "indigo" ? { color:`var(--${s.color})` } : {}}>{s.val}</div>
                     <div className="stat-lbl">{s.label}</div>
-                    <span className={`stat-delta delta-${s.deltaType}`}>{s.delta}</span>
+                    <span className="stat-delta">{s.delta}</span>
                   </div>
                 ))}
               </div>
@@ -1287,30 +1326,45 @@ export default function PlacementDashboard() {
             <Panel
               style={{ animationDelay:".25s" }}
               title={<><BriefIco/>Placement Drives</>}
-              subtitle={`${drives.filter(d => d.status === "Upcoming" || d.status === "Ongoing").length} upcoming · ${drives.filter(d => d.status === "Completed").length} completed`}
+              subtitle={`${drives.filter(d=>d.status==="Upcoming"||d.status==="Ongoing").length} upcoming · ${drives.filter(d=>d.status==="Completed").length} completed`}
               action={<Link to="/placementdashboard/drives" className="panel-act">Manage all →</Link>}
             >
-              <div className="drive-grid">
-                {drives.map(d => (
-                  <div key={d.id} className="drive-card" style={{ position:"relative" }}>
-                    <button className="pd-drive-del" onClick={() => setDeleteTarget(d)} title="Remove drive"><TrashIco/></button>
-                    <div className="dc-top">
-                      <div className="dc-logo">{d.logo}</div>
-                      <Badge cls={statusMap[d.status]} dot>{d.status}</Badge>
+              {loading ? (
+                <div className="drive-grid">
+                  {[1,2,3].map(i => (
+                    <div key={i} className="drive-card">
+                      <Skeleton height={38} width={38} style={{ borderRadius:10, marginBottom:12 }}/>
+                      <Skeleton height={14} style={{ marginBottom:6 }}/>
+                      <Skeleton height={10} width="70%" style={{ marginBottom:10 }}/>
+                      <Skeleton height={20} width="40%"/>
                     </div>
-                    <div className="drive-name">{d.name}</div>
-                    <div className="drive-role">{d.role}</div>
-                    <div className="drive-pkg">{d.pkg}</div>
-                    <div className="drive-meta">{d.date} · {d.applied}/{d.eligible} applied</div>
-                    <div className="mini-bar"><div className="mini-fill" style={{ width:`${d.pct}%`, background:d.color }}/></div>
-                  </div>
-                ))}
-                <div className="drive-card" style={{ display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:8, borderStyle:"dashed", borderColor:"rgba(91,78,248,.2)", opacity:.7, cursor:"none" }}
-                  onClick={() => setShowAddDrive(true)}>
-                  <div style={{ width:34, height:34, borderRadius:8, border:"1.5px dashed rgba(91,78,248,.4)", display:"flex", alignItems:"center", justifyContent:"center", color:"var(--indigo-ll)", fontSize:18 }}>+</div>
-                  <span style={{ fontSize:11, color:"var(--text3)" }}>Add New Drive</span>
+                  ))}
                 </div>
-              </div>
+              ) : (
+                <div className="drive-grid">
+                  {drives.map(d => (
+                    <div key={d.id} className="drive-card" style={{ position:"relative" }}>
+                      <button className="pd-drive-del" onClick={() => setDeleteTarget(d)} title="Remove drive"><TrashIco/></button>
+                      <div className="dc-top">
+                        <div className="dc-logo">{d.logo}</div>
+                        <Badge cls={statusMap[d.status]} dot>{d.status}</Badge>
+                      </div>
+                      <div className="drive-name">{d.name}</div>
+                      <div className="drive-role">{d.role}</div>
+                      <div className="drive-pkg">{d.pkg}</div>
+                      <div className="drive-meta">{d.date} · {d.applied}/{d.eligible} applied</div>
+                      <div className="mini-bar"><div className="mini-fill" style={{ width:`${d.pct}%`, background:d.color }}/></div>
+                    </div>
+                  ))}
+                  {/* Add Drive card */}
+                  <div className="drive-card"
+                    style={{ display:"flex", alignItems:"center", justifyContent:"center", flexDirection:"column", gap:8, borderStyle:"dashed", borderColor:"rgba(91,78,248,.2)", opacity:.7, cursor:"pointer" }}
+                    onClick={() => setShowAddDrive(true)}>
+                    <div style={{ width:34, height:34, borderRadius:8, border:"1.5px dashed rgba(91,78,248,.4)", display:"flex", alignItems:"center", justifyContent:"center", color:"var(--indigo-ll)", fontSize:18 }}>+</div>
+                    <span style={{ fontSize:11, color:"var(--text3)" }}>Add New Drive</span>
+                  </div>
+                </div>
+              )}
             </Panel>
 
             {/* FUNNEL + PRI */}
@@ -1323,40 +1377,47 @@ export default function PlacementDashboard() {
                   action={<button className="panel-act" onClick={() => setShowExport(true)}>Export →</button>}
                 >
                   <div className="funnel-row">
-                    {[
-                      { label:"Total Eligible",          count:"316", pct:100, color:"var(--muted)" },
-                      { label:"PRI ≥ 70 (Drive Ready)",  count:"237", pct:75,  color:"var(--indigo-l)" },
-                      { label:"Applied to Companies",     count:"196", pct:62,  color:"var(--violet)" },
-                      { label:"Interview Cleared",        count:"158", pct:50,  color:"var(--amber)" },
-                      { label:"Offer Received",           count:String(placedStudents), pct:placementRate, color:"var(--teal)" },
-                    ].map(f => (
-                      <div key={f.label} className="funnel-item">
-                        <div className="fi-header">
-                          <span className="fi-label">{f.label}</span>
-                          <span className="fi-count" style={{ color:f.color }}>{f.count} <small style={{ fontSize:10, color:"var(--text3)" }}>({f.pct}%)</small></span>
+                    {funnelData.map((f, i) => {
+                      const colors = ["var(--muted)","var(--indigo-l)","var(--violet)","var(--amber)","var(--teal)"];
+                      const color  = colors[i] ?? "var(--teal)";
+                      return (
+                        <div key={f.label} className="funnel-item">
+                          <div className="fi-header">
+                            <span className="fi-label">{f.label}</span>
+                            <span className="fi-count" style={{ color }}>
+                              {loading ? "…" : f.count}{" "}
+                              <small style={{ fontSize:10, color:"var(--text3)" }}>({loading?"…":f.pct}%)</small>
+                            </span>
+                          </div>
+                          <div className="fi-bar"><div className="fi-fill" style={{ width:`${loading?0:f.pct}%`, background:color, transition:"width 1s ease" }}/></div>
                         </div>
-                        <div className="fi-bar"><div className="fi-fill" style={{ width:`${f.pct}%`, background:f.color }}/></div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
+
+                  {/* Branch-wise */}
                   <div style={{ marginTop:20, borderTop:"1px solid var(--border)", paddingTop:16 }}>
                     <div style={{ fontSize:10, fontWeight:700, letterSpacing:".1em", textTransform:"uppercase", color:"var(--text3)", marginBottom:12 }}>Branch-wise Placement</div>
-                    {[
-                      { branch:"CSE", pct:88, color:"var(--teal)" },
-                      { branch:"IT",  pct:76, color:"var(--indigo-l)" },
-                      { branch:"ECE", pct:61, color:"var(--amber)" },
-                      { branch:"MECH",pct:42, color:"var(--rose)" },
-                    ].map(b => (
-                      <div key={b.branch} style={{ marginBottom:8 }}>
-                        <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4, fontSize:11 }}>
-                          <span style={{ color:"var(--text2)" }}>{b.branch}</span>
-                          <span style={{ color:b.color, fontWeight:600 }}>{b.pct}%</span>
-                        </div>
-                        <div style={{ height:4, background:"var(--surface3)", borderRadius:2, overflow:"hidden" }}>
-                          <div style={{ width:`${b.pct}%`, height:"100%", background:b.color, borderRadius:2 }}/>
-                        </div>
-                      </div>
-                    ))}
+                    {loading ? (
+                      [1,2,3,4].map(i => <Skeleton key={i} height={10} style={{ marginBottom:10 }}/>)
+                    ) : branchStats.length > 0 ? (
+                      branchStats.map(b => {
+                        const bColor = b.pct>=70?"var(--teal)":b.pct>=50?"var(--amber)":"var(--rose)";
+                        return (
+                          <div key={b.branch} style={{ marginBottom:8 }}>
+                            <div style={{ display:"flex", justifyContent:"space-between", marginBottom:4, fontSize:11 }}>
+                              <span style={{ color:"var(--text2)" }}>{b.branch}</span>
+                              <span style={{ color:bColor, fontWeight:600 }}>{b.pct}%</span>
+                            </div>
+                            <div style={{ height:4, background:"var(--surface3)", borderRadius:2, overflow:"hidden" }}>
+                              <div style={{ width:`${b.pct}%`, height:"100%", background:bColor, borderRadius:2, transition:"width 1s ease" }}/>
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div style={{ fontSize:11, color:"var(--text3)" }}>No branch data available.</div>
+                    )}
                   </div>
                 </Panel>
 
@@ -1367,13 +1428,13 @@ export default function PlacementDashboard() {
                 >
                   <div className="pri-boxes">
                     {[
-                      { val:86,  label:"Excellent",  range:"PRI 85–100", bg:"rgba(39,201,176,.07)",  border:"rgba(39,201,176,.15)",  color:"var(--teal)" },
-                      { val:142, label:"Good",        range:"PRI 70–84",  bg:"rgba(91,78,248,.08)",   border:"rgba(91,78,248,.15)",   color:"var(--indigo-ll)" },
-                      { val:64,  label:"Fair",        range:"PRI 55–69",  bg:"rgba(244,165,53,.07)",  border:"rgba(244,165,53,.15)",  color:"var(--amber)" },
-                      { val:24,  label:"Needs Work",  range:"PRI 0–54",   bg:"rgba(242,68,92,.07)",   border:"rgba(242,68,92,.15)",   color:"var(--rose)" },
+                      { key:"excellent", val: dashStats?.pri_distribution?.excellent ?? 0, label:"Excellent",  range:"PRI 85–100", bg:"rgba(39,201,176,.07)",  border:"rgba(39,201,176,.15)",  color:"var(--teal)" },
+                      { key:"good",      val: dashStats?.pri_distribution?.good      ?? 0, label:"Good",        range:"PRI 70–84",  bg:"rgba(91,78,248,.08)",   border:"rgba(91,78,248,.15)",   color:"var(--indigo-ll)" },
+                      { key:"fair",      val: dashStats?.pri_distribution?.fair      ?? 0, label:"Fair",        range:"PRI 55–69",  bg:"rgba(244,165,53,.07)",  border:"rgba(244,165,53,.15)",  color:"var(--amber)" },
+                      { key:"needs_work",val: dashStats?.pri_distribution?.needs_work?? 0, label:"Needs Work",  range:"PRI 0–54",   bg:"rgba(242,68,92,.07)",   border:"rgba(242,68,92,.15)",   color:"var(--rose)" },
                     ].map(p => (
-                      <div key={p.label} className="pri-box" style={{ background:p.bg, border:`1px solid ${p.border}` }}>
-                        <div className="pb-val" style={{ color:p.color }}>{p.val}</div>
+                      <div key={p.key} className="pri-box" style={{ background:p.bg, border:`1px solid ${p.border}` }}>
+                        <div className="pb-val" style={{ color:p.color }}>{loading?"…":p.val}</div>
                         <div className="pb-lbl" style={{ color:p.color }}>{p.label}</div>
                         <div className="pb-range">{p.range}</div>
                       </div>
@@ -1381,16 +1442,11 @@ export default function PlacementDashboard() {
                   </div>
                   <div className="pri-summary">
                     <div className="ps-lbl">Department Avg PRI</div>
-                    <div className="ps-val">72 <span style={{ fontSize:12, color:"var(--text3)", fontFamily:"'Plus Jakarta Sans',sans-serif" }}>/100</span></div>
-                    <div className="ps-sub">Target 85 for excellent tier · +4 pts vs last sem</div>
-                  </div>
-                  <div style={{ marginTop:14 }}>
-                    <div style={{ fontSize:10, fontWeight:700, letterSpacing:".1em", textTransform:"uppercase", color:"var(--text3)", marginBottom:10 }}>Top Skills in Demand</div>
-                    <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
-                      {["Data Structures","System Design","Python","React","SQL","Communication","Java","Docker"].map(sk => (
-                        <span key={sk} className="skill-chip">{sk}</span>
-                      ))}
+                    <div className="ps-val">
+                      {loading ? "…" : Math.round(dashStats?.avg_pri ?? 0)}{" "}
+                      <span style={{ fontSize:12, color:"var(--text3)", fontFamily:"'Plus Jakarta Sans',sans-serif" }}>/100</span>
                     </div>
+                    <div className="ps-sub">Target 85 for excellent tier</div>
                   </div>
                 </Panel>
               </div>
@@ -1406,35 +1462,41 @@ export default function PlacementDashboard() {
                 <div style={{ display:"flex", alignItems:"center", gap:8, flexWrap:"wrap" }}>
                   <div className="filter-row">
                     {["All","Placed","In Process","Applied","Not Ready"].map(f => (
-                      <button key={f} className={`filter-btn${filter === f ? " active" : ""}`} onClick={() => setFilter(f)}>{f}</button>
+                      <button key={f} className={`filter-btn${filter===f?" active":""}`} onClick={() => setFilter(f)}>{f}</button>
                     ))}
                   </div>
                 </div>
               }
             >
-              <table className="stu-table">
-                <thead>
-                  <tr>{["Student","Branch","CGPA","PRI Score","Skills","Interviews","Company","Package","Status"].map(h => <th key={h}>{h}</th>)}</tr>
-                </thead>
-                <tbody>
-                  {filteredStudents.map(s => (
-                    <tr key={s.name}>
-                      <td><div style={{ display:"flex", alignItems:"center", gap:10 }}><div className="stu-av">{s.init}</div><div className="stu-name">{s.name}</div></div></td>
-                      <td style={{ color:"var(--text3)" }}>{s.branch}</td>
-                      <td style={{ fontFamily:"'Fraunces',serif", fontSize:14, color:cgpaColor(s.cgpa) }}>{s.cgpa}</td>
-                      <td><span style={{ fontFamily:"'Fraunces',serif", fontSize:14, color:priColor(s.pri) }}>{s.pri}</span> <span style={{ fontSize:9, color:"var(--text3)" }}>/100</span></td>
-                      <td>{s.skills.map(sk => <span key={sk} className="skill-chip">{sk}</span>)}</td>
-                      <td style={{ textAlign:"center", color:"var(--text2)", fontFamily:"'Fraunces',serif", fontSize:14 }}>{s.interviews}</td>
-                      <td style={{ color:s.company !== "—" ? "var(--text)" : "var(--text3)", fontWeight:s.company !== "—" ? 600 : 400 }}>{s.company}</td>
-                      <td style={{ fontFamily:"'Fraunces',serif", fontSize:14, color:s.pkg !== "—" ? "var(--teal)" : "var(--text3)", fontWeight:600 }}>{s.pkg}</td>
-                      <td><Badge cls={statusMap[s.status]} dot>{s.status}</Badge></td>
-                    </tr>
-                  ))}
-                  {filteredStudents.length === 0 && (
-                    <tr><td colSpan={9} style={{ textAlign:"center", padding:"40px", color:"var(--text3)", fontSize:12 }}>No students match the current filter.</td></tr>
-                  )}
-                </tbody>
-              </table>
+              {loading ? (
+                <div style={{ padding:"20px 16px" }}>
+                  {[1,2,3,4].map(i => <Skeleton key={i} height={40} style={{ marginBottom:8 }}/>)}
+                </div>
+              ) : (
+                <table className="stu-table">
+                  <thead>
+                    <tr>{["Student","Branch","CGPA","PRI Score","Skills","Interviews","Company","Package","Status"].map(h => <th key={h}>{h}</th>)}</tr>
+                  </thead>
+                  <tbody>
+                    {filteredStudents.map(s => (
+                      <tr key={s.id ?? s.name}>
+                        <td><div style={{ display:"flex", alignItems:"center", gap:10 }}><div className="stu-av">{s.init}</div><div className="stu-name">{s.name}</div></div></td>
+                        <td style={{ color:"var(--text3)" }}>{s.branch}</td>
+                        <td style={{ fontFamily:"'Fraunces',serif", fontSize:14, color:cgpaColor(s.cgpa) }}>{s.cgpa}</td>
+                        <td><span style={{ fontFamily:"'Fraunces',serif", fontSize:14, color:priColor(s.pri) }}>{s.pri}</span><span style={{ fontSize:9, color:"var(--text3)" }}> /100</span></td>
+                        <td>{s.skills.map(sk => <span key={sk} className="skill-chip">{sk}</span>)}</td>
+                        <td style={{ textAlign:"center", color:"var(--text2)", fontFamily:"'Fraunces',serif", fontSize:14 }}>{s.interviews}</td>
+                        <td style={{ color:s.company!=="—"?"var(--text)":"var(--text3)", fontWeight:s.company!=="—"?600:400 }}>{s.company}</td>
+                        <td style={{ fontFamily:"'Fraunces',serif", fontSize:14, color:s.pkg!=="—"?"var(--teal)":"var(--text3)", fontWeight:600 }}>{s.pkg}</td>
+                        <td><Badge cls={statusMap[s.status]} dot>{s.status}</Badge></td>
+                      </tr>
+                    ))}
+                    {filteredStudents.length === 0 && (
+                      <tr><td colSpan={9} style={{ textAlign:"center", padding:"40px", color:"var(--text3)", fontSize:12 }}>No students match the current filter.</td></tr>
+                    )}
+                  </tbody>
+                </table>
+              )}
             </Panel>
 
             {/* BOTTOM ROW */}
@@ -1443,16 +1505,11 @@ export default function PlacementDashboard() {
                 <Panel
                   style={{ animationDelay:".45s" }}
                   title={<><CalIco/>Today's Schedule</>}
-                  subtitle="Thu, 12 Mar"
+                  subtitle={new Date().toLocaleDateString("en-IN", { weekday:"short", day:"numeric", month:"short" })}
                   action={<button className="panel-act">Full week →</button>}
                 >
                   <div className="sched-list">
-                    {[
-                      { from:"09:00", to:"10:00", name:"Amazon Pre-Placement Talk", room:"Seminar Hall · A Block",  tag:"Drive Prep", tagColor:"var(--indigo-ll)", tagBg:"rgba(91,78,248,.1)",    divColor:"var(--indigo-l)" },
-                      { from:"11:00", to:"12:00", name:"Resume Review — CSE Batch", room:"Placement Office",        tag:"Review",     tagColor:"var(--teal)",      tagBg:"rgba(39,201,176,.1)",   divColor:"var(--teal)" },
-                      { from:"14:00", to:"15:30", name:"Mock Interviews — Round 2", room:"Lab 3 · B Block",         tag:"Interview",  tagColor:"var(--amber)",     tagBg:"rgba(244,165,53,.1)",   divColor:"var(--amber)" },
-                      { from:"16:00", to:"17:00", name:"Industry Connect — Webinar",room:"Online · Google Meet",    tag:"Online",     tagColor:"var(--violet)",    tagBg:"rgba(159,122,234,.1)",  divColor:"var(--violet)" },
-                    ].map(s => (
+                    {FALLBACK_SCHEDULE.map(s => (
                       <div key={s.from} className="sched-item">
                         <div className="sched-time"><div className="st-from">{s.from}</div><div className="st-to">{s.to}</div></div>
                         <div className="sched-div" style={{ background:s.divColor }}/>
@@ -1475,16 +1532,14 @@ export default function PlacementDashboard() {
               >
                 <div className="task-list">
                   {tasks.map(t => (
-                    <div key={t.id} className="task-item" style={{ opacity:t.done ? .5 : 1, transition:"opacity .2s" }}>
-                      <div
-                        className="task-check"
-                        style={{ background:t.done ? "var(--teal)" : undefined, borderColor:t.done ? "var(--teal)" : undefined, display:"flex", alignItems:"center", justifyContent:"center", cursor:"none" }}
-                        onClick={() => handleToggleTask(t.id)}
-                      >
+                    <div key={t.id} className="task-item" style={{ opacity:t.done?.5:1, transition:"opacity .2s" }}>
+                      <div className="task-check"
+                        style={{ background:t.done?"var(--teal)":undefined, borderColor:t.done?"var(--teal)":undefined, display:"flex", alignItems:"center", justifyContent:"center", cursor:"pointer" }}
+                        onClick={() => handleToggleTask(t.id)}>
                         {t.done && <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>}
                       </div>
                       <div style={{ flex:1 }}>
-                        <div className="task-txt" style={{ textDecoration:t.done ? "line-through" : undefined }}>{t.txt}</div>
+                        <div className="task-txt" style={{ textDecoration:t.done?"line-through":undefined }}>{t.txt}</div>
                         <div className="task-course">{t.sub}</div>
                       </div>
                       {!t.done && <span className={`task-due ${t.dueCls}`}>{t.due}</span>}
@@ -1499,22 +1554,29 @@ export default function PlacementDashboard() {
                 subtitle="By PRI Score"
                 action={<Link to="/placementdashboard/students" className="panel-act">View all →</Link>}
               >
-                <div style={{ display:"flex", flexDirection:"column", gap:9 }}>
-                  {[...students].sort((a,b) => b.pri - a.pri).slice(0,4).map((p,i) => (
-                    <div key={p.name} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 12px", borderRadius:10, background:"var(--surface2)", border:"1px solid var(--border)" }}>
-                      <div style={{ fontFamily:"'Fraunces',serif", fontSize:14, color:i===0?"var(--amber)":"var(--text3)", width:16 }}>{i+1}</div>
-                      <div className="stu-av">{p.init}</div>
-                      <div style={{ flex:1 }}>
-                        <div style={{ fontSize:12, fontWeight:600 }}>{p.name}</div>
-                        <div style={{ fontSize:"9.5px", color:"var(--text3)", marginTop:1 }}>{p.branch} · {p.company !== "—" ? p.company : "Seeking"}</div>
+                {loading ? (
+                  [1,2,3].map(i => <Skeleton key={i} height={48} style={{ marginBottom:8, borderRadius:10 }}/>)
+                ) : (
+                  <div style={{ display:"flex", flexDirection:"column", gap:9 }}>
+                    {[...students].sort((a,b) => b.pri - a.pri).slice(0,4).map((p,i) => (
+                      <div key={p.id ?? p.name} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 12px", borderRadius:10, background:"var(--surface2)", border:"1px solid var(--border)" }}>
+                        <div style={{ fontFamily:"'Fraunces',serif", fontSize:14, color:i===0?"var(--amber)":"var(--text3)", width:16 }}>{i+1}</div>
+                        <div className="stu-av">{p.init}</div>
+                        <div style={{ flex:1 }}>
+                          <div style={{ fontSize:12, fontWeight:600 }}>{p.name}</div>
+                          <div style={{ fontSize:"9.5px", color:"var(--text3)", marginTop:1 }}>{p.branch} · {p.company!=="—"?p.company:"Seeking"}</div>
+                        </div>
+                        <div style={{ textAlign:"right" }}>
+                          <div style={{ fontFamily:"'Fraunces',serif", fontSize:16, color:priColor(p.pri) }}>{p.pri}</div>
+                          {p.pkg!=="—" && <Badge cls="badge-teal">{p.pkg}</Badge>}
+                        </div>
                       </div>
-                      <div style={{ textAlign:"right" }}>
-                        <div style={{ fontFamily:"'Fraunces',serif", fontSize:16, color:priColor(p.pri) }}>{p.pri}</div>
-                        {p.pkg !== "—" && <Badge cls="badge-teal">{p.pkg}</Badge>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                    {students.length === 0 && (
+                      <div style={{ fontSize:11, color:"var(--text3)", textAlign:"center", padding:"20px 0" }}>No student data yet.</div>
+                    )}
+                  </div>
+                )}
               </Panel>
             </div>
           </div>

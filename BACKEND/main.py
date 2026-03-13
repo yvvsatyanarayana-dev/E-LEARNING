@@ -17,6 +17,7 @@ from Models.Innovation import InnovationIdea, InnovationProject, InnovationHacka
 from Routes.AuthRoute import router as auth_router
 from Routes.StudentRoute import router as student_router
 from Routes.FacultyRoute import router as faculty_router
+from Routes.PlacementRoute import router as placement_router
 app = FastAPI(
     title=settings.APP_NAME,
     description="A comprehensive smart-campus platform API built with FastAPI and SQLAlchemy.",
@@ -42,6 +43,7 @@ PREFIX = "/api/v1"
 app.include_router(auth_router, prefix=PREFIX)
 app.include_router(student_router, prefix=PREFIX)
 app.include_router(faculty_router, prefix=PREFIX)
+app.include_router(placement_router, prefix=PREFIX)
 
 @app.get("/")
 async def root():
