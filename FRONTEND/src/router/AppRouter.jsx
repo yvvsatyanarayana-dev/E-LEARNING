@@ -5,16 +5,17 @@ import StudentDashboard from "../pages/Student/studentDashboard/studentDashboard
 import FacultyDashboard from "../pages/Faculty/facultyDashboard/facultyDashboard";
 import FacultyQuickaction from "../pages/Faculty/facultyQuickaction/facultyQuickaction";
 import FacultyNotification from "../pages/Faculty/facultyNotification/facultyNotification";
-import AdminDashboard from "../pages/admin/adminDashbaord/adminDashboard";
-import AdminAnalytics from "../pages/admin/adminAnalytics/adminAnalytics";
-import UserManagement from "../pages/admin/adminUserManagement/adminUserManagement";
-import CourseManagement from "../pages/admin/adminCourseManagement/adminCourseManagement";
-import Departments from "../pages/admin/adminDepartments/adminDepartments";
-import Placements from "../pages/admin/adminPlacements/adminPlacements";
-import Reports from "../pages/admin/adminReports/adminreports";
-import Notifications from "../pages/admin/adminNotifications/adminNotifications";
-import AuditLogs from "../pages/admin/adminAuditLogs/adminAuditLogs";
-import SystemConfig from "../pages/admin/adminSystemConfig/adminSystemConfig";
+
+import AdminDashboard from "../pages/Admin/AdminDashboard/AdminDashboard";
+import AdminAnalyticsMonitoring from "../pages/Admin/AdminAnalyticsMonitoring/AdminAnalyticsMonitoring";
+import AdminUserManagement from "../pages/Admin/AdminUserManagement/AdminUserManagement";
+import AdminCourseManagement from "../pages/Admin/AdminCourseManagement/AdminCourseManagement";
+import AdminReports from "../pages/Admin/AdminReports/AdminReports";
+import Department from "../pages/Admin/Department/Department";
+import Placement from "../pages/Admin/Placement/Placement";
+import ActivityLog from "../pages/Admin/ActivityLog/ActivityLog";
+import Security from "../pages/Admin/adminSecurity/adminSecurity";
+import Settings from "../pages/Admin/adminSettings/adminSettings";
 import RoleRoute from "./RoleRoute";
 import ErrorBoundary from "./ErrorBoundary";
 
@@ -155,39 +156,39 @@ const router = createBrowserRouter([
   },
   {
     path: "/admindashboard/adminAnalytics",
-    element: <RoleRoute allowedRoles={["admin"]}><AdminAnalytics /></RoleRoute>,
+    element: <RoleRoute allowedRoles={["admin"]}><AdminAnalyticsMonitoring /></RoleRoute>,
   },
   {
     path: "/admindashboard/userManagement",
-    element: <RoleRoute allowedRoles={["admin"]}><UserManagement /></RoleRoute>,
+    element: <RoleRoute allowedRoles={["admin"]}><AdminUserManagement /></RoleRoute>,
   },
   {
     path: "/admindashboard/courseManagement",
-    element: <RoleRoute allowedRoles={["admin"]}><CourseManagement /></RoleRoute>,
-  },
-  {
-    path: "/admindashboard/departments",
-    element: <RoleRoute allowedRoles={["admin"]}><Departments /></RoleRoute>,
-  },
-  {
-    path: "/admindashboard/placements",
-    element: <RoleRoute allowedRoles={["admin"]}><Placements /></RoleRoute>,
+    element: <RoleRoute allowedRoles={["admin"]}><AdminCourseManagement /></RoleRoute>,
   },
   {
     path: "/admindashboard/adminReports",
-    element: <RoleRoute allowedRoles={["admin"]}><Reports /></RoleRoute>,
+    element: <RoleRoute allowedRoles={["admin"]}><AdminReports /></RoleRoute>,
   },
   {
-    path: "/admindashboard/notifications",
-    element: <RoleRoute allowedRoles={["admin"]}><Notifications /></RoleRoute>,
+    path: "/admindashboard/department",
+    element: <RoleRoute allowedRoles={["admin"]}><Department /></RoleRoute>,
   },
   {
-    path: "/admindashboard/auditLogs",
-    element: <RoleRoute allowedRoles={["admin"]}><AuditLogs /></RoleRoute>,
+    path: "/admindashboard/placement",
+    element: <RoleRoute allowedRoles={["admin"]}><Placement /></RoleRoute>,
+  },
+  {
+    path: "/admindashboard/activitylog",
+    element: <RoleRoute allowedRoles={["admin"]}><ActivityLog /></RoleRoute>,
+  },
+  {
+    path: "/admindashboard/security",
+    element: <RoleRoute allowedRoles={["admin"]}><Security /></RoleRoute>,
   },
   {
     path: "/admindashboard/settings",
-    element: <RoleRoute allowedRoles={["admin"]}><SystemConfig /></RoleRoute>,
+    element: <RoleRoute allowedRoles={["admin"]}><Settings /></RoleRoute>,
   },
   // ──────── FALLBACK ROUTE ────────
   { path: "*", element: <Navigate to="/" replace /> },
