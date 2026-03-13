@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
+from fastapi.responses import StreamingResponse
+from datetime import datetime
 from sqlalchemy.orm import Session
 from Core.Database import get_db
 from Core.Security import get_current_user
@@ -107,6 +109,24 @@ def get_faculty_analytics(current_user: User = Depends(get_current_user), db: Se
 @router.get("/reports", response_model=FacultyReportResponse)
 def get_faculty_reports(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return faculty_service.get_reports(current_user, db)
+
+@router.get("/reports/export/{report_type}")
+def export_faculty_report(report_type: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    output = faculty_service.export_report(current_user, db, report_type)
+    
+    filename = f"{report_type}_report_{datetime.now().strftime('%Y%m%d')}.csv"
+    
+    # Ensure the stream starts from the beginning
+    output.seek(0)
+    
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}",
+            "Access-Control-Expose-Headers": "Content-Disposition"
+        }
+    )
 
 @router.get("/metadata", response_model=FacultyMetadataResponse)
 def get_faculty_metadata(db: Session = Depends(get_db)):

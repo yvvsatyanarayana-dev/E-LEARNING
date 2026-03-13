@@ -90,6 +90,36 @@ const api = {
             throw error;
         }
     },
+
+    async download(endpoint, options = {}) {
+        const token = localStorage.getItem("token");
+        const headers = { ...options.headers };
+        if (token) headers["Authorization"] = `Bearer ${token}`;
+
+        try {
+            const response = await fetch(`${BASE_URL}${endpoint}`, {
+                ...options,
+                method: "GET",
+                headers
+            });
+
+            if (response.status === 401) {
+                localStorage.removeItem("token");
+                localStorage.removeItem("user");
+                window.location.href = "/login";
+                throw new Error("Unauthorized");
+            }
+
+            if (!response.ok) {
+                throw new Error("Download failed");
+            }
+
+            return await response.blob();
+        } catch (error) {
+            console.error(`API Download Error (${endpoint}):`, error);
+            throw error;
+        }
+    }
 };
 
 

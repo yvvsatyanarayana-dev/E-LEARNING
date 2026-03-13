@@ -448,6 +448,7 @@ class FacultyReportCourseMetric(BaseModel):
 class FacultyReportResponse(BaseModel):
     stats: List[FacultyReportStats]
     courses: List[FacultyReportCourseMetric]
+    week_scores: List[Dict[str, Any]]
 class FacultyMetadataResponse(BaseModel):
     departments: List[str]
     groups: List[str]
