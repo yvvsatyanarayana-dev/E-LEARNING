@@ -1,8 +1,20 @@
+import PlacementAIAssistant from "../pages/placement/placementAIAssistant/placementAIAssistant";
 // AppRouter.jsx  — updated with Faculty Profile & Settings routes
 import { createBrowserRouter, RouterProvider, Navigate } from "react-router-dom";
 import SmartCampus from "../App";
 import StudentDashboard from "../pages/Student/studentDashboard/studentDashboard";
 import FacultyDashboard from "../pages/Faculty/facultyDashboard/facultyDashboard";
+import PlacementDashboard from "../pages/placement/placementDashboard/placementDashboard";
+import PlacementStudents from "../pages/placement/placementStudents/placementStudents";
+import PlacementCompanies from "../pages/placement/placementCompanies/placementCompanies";
+import PlacementDrives from "../pages/placement/placementDrives/placementDrives";
+import PlacementOffersPlaced from "../pages/placement/placementOffersPlaced/placementOffersPlaced";
+import PlacementInternships from "../pages/placement/placementInternships/placementInternships";
+import RoleRoute from "./RoleRoute";
+import PlacementAnalytics from "../pages/placement/placementAnalytics/placementAnalytics";
+import PlacementProfile from "../pages/placement/placementProfile/placementProfile";
+import PlacementReports from "../pages/placement/placementReports/placementReports";
+
 import FacultyQuickaction from "../pages/Faculty/facultyQuickaction/facultyQuickaction";
 import FacultyNotification from "../pages/Faculty/facultyNotification/facultyNotification";
 import AdminDashboard from "../pages/admin/adminDashbaord/adminDashboard";
@@ -31,6 +43,14 @@ const FD = (
 );
 
 const router = createBrowserRouter([
+    {
+      path: "/placementdashboard/ai-assistant",
+      element: <RoleRoute allowedRoles={["placement_officer","admin"]}><PlacementAIAssistant /></RoleRoute>,
+    },
+    {
+      path: "/placementdashboard/Reports",
+      element: <RoleRoute allowedRoles={["placement_officer","admin"]}><PlacementReports /></RoleRoute>,
+    },
   // ──────── AUTH ROUTES ────────
   { path: "/",                element: <SmartCampus />, errorElement: <ErrorBoundary /> },
   { path: "/login",           element: <SmartCampus defaultModal="login" />, errorElement: <ErrorBoundary /> },
@@ -143,12 +163,38 @@ const router = createBrowserRouter([
   // ──────── PLACEMENT DASHBOARD ROUTES ────────
   {
     path: "/placementdashboard",
-    element: <RoleRoute allowedRoles={["placement_officer","admin"]}><div>Placement Dashboard — coming soon</div></RoleRoute>,
+    element: <RoleRoute allowedRoles={["placement_officer","admin"]}><PlacementDashboard /></RoleRoute>,
+  },
+  {
+    path: "/placementdashboard/analytics",
+    element: <RoleRoute allowedRoles={["placement_officer","admin"]}><PlacementAnalytics /></RoleRoute>,
+  },
+  {
+    path: "/placementdashboard/students",
+    element: <RoleRoute allowedRoles={["placement_officer","admin"]}><PlacementStudents /></RoleRoute>,
+  },
+  {
+    path: "/placementdashboard/companies",
+    element: <RoleRoute allowedRoles={["placement_officer","admin"]}><PlacementCompanies /></RoleRoute>,
+  },
+  {
+    path: "/placementdashboard/drives",
+    element: <RoleRoute allowedRoles={["placement_officer","admin"]}><PlacementDrives /></RoleRoute>,
+  },
+  {
+    path: "/placementdashboard/offers-placed",
+    element: <RoleRoute allowedRoles={["placement_officer","admin"]}><PlacementOffersPlaced /></RoleRoute>,
+  },
+  {
+    path: "/placementdashboard/internships",
+    element: <RoleRoute allowedRoles={["placement_officer","admin"]}><PlacementInternships /></RoleRoute>,
+  },
+  {
+    path: "/placementdashboard/placementProfile",
+    element: <RoleRoute allowedRoles={["placement_officer","admin"]}><PlacementProfile /></RoleRoute>,
   },
 
-
-
-  // ──────── ADMIN DASHBOARD ROUTES ────────
+  //  ──────── ADMIN DASHBOARD ROUTE ────────
   {
     path: "/admindashboard",
     element: <RoleRoute allowedRoles={["admin"]}><AdminDashboard/></RoleRoute>,

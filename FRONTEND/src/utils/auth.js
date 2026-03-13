@@ -23,6 +23,11 @@ export async function authFetch(url, options = {}) {
 export const ROLE_REDIRECTS = {
   student: "/studentdashboard",
   faculty: "/facultydashboard",
-  placement_officer: "/placement/dashboard",
-  admin: "/admin/dashboard",
+  placement_officer: "/placementdashboard",
+  admin: "/admindashboard",
 };
+// remove authentication info from storage
+export function clearAuth() {
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+}
