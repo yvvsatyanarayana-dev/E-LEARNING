@@ -1,0 +1,13 @@
+.admin-activity-log {
+  padding: 2rem;
+}
+.admin-activity-log h2 {
+  color: #636e72;
+}
+.admin-activity-log ul {
+  margin-top: 1rem;
+}
+.log-time {
+  color: #b2bec3;
+  font-size: 0.9em;
+}

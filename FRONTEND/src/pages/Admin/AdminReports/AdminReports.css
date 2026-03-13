@@ -1,0 +1,13 @@
+.admin-reports {
+  padding: 2rem;
+}
+.admin-reports h2 {
+  color: #e67e22;
+}
+.admin-reports ul {
+  margin-top: 1rem;
+  padding-left: 1.5rem;
+}
+.admin-reports li {
+  margin-bottom: 0.5rem;
+}
