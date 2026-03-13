@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { clearAuth } from "../../utils/auth";
+import { clearAuth } from "../../../utils/auth.js";
 import "./placementDashboard.css";
 
 /* ════════════════════════════════════════════

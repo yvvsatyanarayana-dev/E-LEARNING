@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Link } from "react-router-dom";
 import "./PlacementAIAssistant.css";import { useNavigate } from "react-router-dom";
-import { clearAuth } from "../../utils/auth";
+import { clearAuth } from "../../../utils/auth.js";
 const SbLink = ({ active, badge, badgeCls, icon, children, to }) => (
   <Link to={to || "#"} className={`sb-link${active ? " active" : ""}`}>
     {icon}{children}
