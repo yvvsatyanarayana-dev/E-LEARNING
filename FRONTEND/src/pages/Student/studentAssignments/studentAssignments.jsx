@@ -449,7 +449,7 @@ function UploadModal({ asgmt, course, onClose }) {
             <div>
               <div className="as-ai-hint-title">Lucyna AI Tip</div>
               <div className="as-ai-hint-text">
-                Based on past submissions for this course, focus on code comments and edge-case testing — they account for 20% of marks.
+                {asgmt.aiTip || "Based on past submissions for this course, focus on code comments and edge-case testing — they account for 20% of marks."}
               </div>
             </div>
           </div>
@@ -642,7 +642,7 @@ function DetailDrawer({ asgmt, course, onClose, onSubmit }) {
             <div>
               <div className="as-ai-hint-title">Lucyna AI Suggestion</div>
               <div className="as-ai-hint-text">
-                Students who score above 80% on this type of assignment typically spend at least {asgmt.estimatedHours+1} hours and review the rubric 3× before submitting.
+                {asgmt.aiTip || `Students who score above 80% on this type of assignment typically spend at least ${asgmt.estimatedHours + 1} hours and review the rubric 3× before submitting.`}
               </div>
             </div>
           </div>
@@ -797,6 +797,7 @@ export default function StudentAssignments({ onBack }) {
             attachments: a.attachments || [],
             submissions: a.submission ? 1 : 0,
             classAvg: null,
+            aiTip: a.ai_tip,
             difficulty: a.difficulty || "Medium",
             estimatedHours: a.estimated_hours || 4,
             instructions: a.instructions && a.instructions.length ? a.instructions : [a.description],

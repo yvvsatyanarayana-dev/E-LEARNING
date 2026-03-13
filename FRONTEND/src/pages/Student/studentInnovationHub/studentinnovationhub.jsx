@@ -222,7 +222,8 @@ function SubmitIdeaModal({ onClose, onSuccess }) {
 }
 
 // ─── IDEA FEED TAB ────────────────────────────────────────────────
-function TabFeed({ initialIdeas, onRefresh }) {
+function TabFeed({ hubData, onRefresh }) {
+  const initialIdeas = hubData.ideas || [];
   const [ideas, setIdeas] = useState(initialIdeas);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("All");
@@ -280,9 +281,9 @@ function TabFeed({ initialIdeas, onRefresh }) {
         <div className="ih-hero-stats">
           {[
             { val: initialIdeas.length,       lbl: "Ideas Shared",   color: "var(--teal)"     },
-            { val: "38",                      lbl: "Active Projects", color: "var(--indigo-ll)"},
-            { val: "6",                       lbl: "Hackathons",      color: "var(--amber)"   },
-            { val: "312",                     lbl: "Collaborators",   color: "var(--violet)"  },
+            { val: hubData.projects?.length || 0,                      lbl: "Active Projects", color: "var(--indigo-ll)"},
+            { val: hubData.hackathons?.length || 0,                       lbl: "Hackathons",      color: "var(--amber)"   },
+            { val: hubData.collaborators?.length || 0,                     lbl: "Collaborators",   color: "var(--violet)"  },
           ].map(({ val, lbl, color }) => (
             <div key={lbl} className="ih-hero-stat">
               <div className="ih-hs-val" style={{ color }}>{val}</div>
@@ -339,6 +340,12 @@ function TabFeed({ initialIdeas, onRefresh }) {
 // ─── MY PROJECTS TAB ─────────────────────────────────────────────
 function TabProjects({ projects }) {
   const [expanded, setExpanded] = useState("p1");
+  const avgCompletion = projects.length
+    ? Math.round(projects.reduce((acc, p) => acc + (p.progress || 0), 0) / projects.length)
+    : 0;
+  const totalStars = projects.reduce((acc, p) => acc + (p.stars || 0), 0);
+  const openMilestones = projects.length; // Approximate 1 per active project
+
   return (
     <div className="ih-tab-content">
       <div className="ih-projects-header">
@@ -352,10 +359,10 @@ function TabProjects({ projects }) {
       {/* KPI strip */}
       <div className="ih-proj-kpis">
         {[
-          { val: "2",    lbl: "Active Projects",  color: "var(--indigo-ll)", cls: "sc-indigo" },
-          { val: "68%",  lbl: "Avg Completion",   color: "var(--teal)",      cls: "sc-teal"   },
-          { val: "3",    lbl: "Open Milestones",  color: "var(--amber)",     cls: "sc-amber"  },
-          { val: "60",   lbl: "Stars Received",   color: "var(--violet)",    cls: "sc-violet" },
+          { val: projects.length,    lbl: "Active Projects",  color: "var(--indigo-ll)", cls: "sc-indigo" },
+          { val: `${avgCompletion}%`,  lbl: "Avg Completion",   color: "var(--teal)",      cls: "sc-teal"   },
+          { val: openMilestones,    lbl: "Open Milestones",  color: "var(--amber)",     cls: "sc-amber"  },
+          { val: totalStars,   lbl: "Stars Received",   color: "var(--violet)",    cls: "sc-violet" },
         ].map(({ val, lbl, color, cls }) => (
           <div key={lbl} className={`san-kpi-card ${cls}`}>
             <div className="san-kpi-val" style={{ color }}>{val}</div>
@@ -499,10 +506,10 @@ function TabHackathons({ initialHacks }) {
       {/* ── KPI strip ── */}
       <div className="ih-hack-kpi-strip">
         {[
-          { val: "1",     lbl: "Registered",    color: "var(--teal)",      icon: <CheckCircle size={14}/> },
-          { val: "3",     lbl: "Open to Join",  color: "var(--indigo-ll)", icon: <Trophy size={14}/> },
-          { val: "\u20b92.5L", lbl: "Total Prizes",  color: "var(--amber)",     icon: <Award size={14}/> },
-          { val: "24",    lbl: "Days Min Left", color: "var(--rose)",      icon: <Clock size={14}/> },
+          { val: hacks.filter(h => h.registered).length,     lbl: "Registered",    color: "var(--teal)",      icon: <CheckCircle size={14}/> },
+          { val: hacks.filter(h => !h.registered).length,     lbl: "Open to Join",  color: "var(--indigo-ll)", icon: <Trophy size={14}/> },
+          { val: "₹50K+", lbl: "Total Prizes",  color: "var(--amber)",     icon: <Award size={14}/> },
+          { val: hacks.length > 0 ? Math.min(...hacks.map(h => h.daysLeft)) : 0,    lbl: "Days Min Left", color: "var(--rose)",      icon: <Clock size={14}/> },
         ].map(({ val, lbl, color, icon }) => (
           <div key={lbl} className="ih-hack-kpi">
             <div className="ih-hack-kpi-icon" style={{ color, background: `${color}14`, borderColor: `${color}28` }}>{icon}</div>
@@ -575,7 +582,7 @@ function TabHackathons({ initialHacks }) {
 }
 
 // ─── COLLABORATE TAB ──────────────────────────────────────────────
-function TabCollaborate({ collaborators }) {
+function TabCollaborate({ collaborators, userProfile }) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
 
@@ -603,12 +610,12 @@ function TabCollaborate({ collaborators }) {
           <button className="panel-act">Edit <ChevronRight size={11} /></button>
         </div>
         <div style={{ padding: "14px 20px", display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
-          <div className="ih-avatar" style={{ width: 48, height: 48, fontSize: 16 }}>AR</div>
+          <div className="ih-avatar" style={{ width: 48, height: 48, fontSize: 16, background: `${userProfile?.color || "var(--indigo-ll)"}22`, color: userProfile?.color || "var(--indigo-ll)" }}>{userProfile?.avatar || "ME"}</div>
           <div style={{ flex: 1 }}>
-            <div style={{ fontSize: 14, fontWeight: 600 }}>Arjun Reddy</div>
-            <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 2 }}>CSE · Sem 5 · Roll 21CS047</div>
+            <div style={{ fontSize: 14, fontWeight: 600 }}>{userProfile?.name || "My Profile"}</div>
+            <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 2 }}>{userProfile?.roll || "Innovation Hub Member"}</div>
             <div style={{ display: "flex", gap: 6, marginTop: 8, flexWrap: "wrap" }}>
-              {["Python", "React", "DSA", "FastAPI"].map(s => (
+              {(userProfile?.skills || ["Add Skills"]).map(s => (
                 <span key={s} className="ih-tag" style={{ background: "rgba(91,78,248,.1)", color: "var(--indigo-ll)", borderColor: "rgba(91,78,248,.2)" }}>{s}</span>
               ))}
             </div>
@@ -778,10 +785,10 @@ export default function StudentInnovationHub({ onBack }) {
         ))}
       </div>
 
-      {tab === "feed"        && <TabFeed initialIdeas={hubData.ideas} onRefresh={fetchData} />}
+      {tab === "feed"        && <TabFeed hubData={hubData} onRefresh={fetchData} />}
       {tab === "projects"    && <TabProjects projects={hubData.projects} />}
       {tab === "hackathons"  && <TabHackathons initialHacks={hubData.hackathons} />}
-      {tab === "collaborate" && <TabCollaborate collaborators={hubData.collaborators} />}
+      {tab === "collaborate" && <TabCollaborate collaborators={hubData.collaborators} userProfile={hubData.user_profile} />}
     </div>
   );
 }

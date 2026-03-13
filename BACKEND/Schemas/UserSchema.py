@@ -18,6 +18,8 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     password: str
     role: UserRole = UserRole.student
+    department: Optional[str] = None
+    target_group: Optional[str] = "All"
 
 
 class LoginRequest(BaseModel):
@@ -33,6 +35,8 @@ class UserResponse(BaseModel):
     email: EmailStr
     role: UserRole
     is_active: bool
+    department: Optional[str] = None
+    target_group: Optional[str] = "All"
     created_at: datetime
 
     class Config:

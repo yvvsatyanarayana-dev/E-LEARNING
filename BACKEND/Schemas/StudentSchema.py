@@ -145,6 +145,7 @@ class AssignmentResponse(BaseModel):
     due_date: Optional[datetime] = None
     created_at: datetime
     submission: Optional[SubmissionResponse] = None
+    ai_tip: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -161,6 +162,7 @@ class QuestionResponse(BaseModel):
     question_text: str
     type: str
     options: Optional[list] = None
+    correct_answer: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -624,6 +626,7 @@ class InnovationCollaboratorResponse(BaseModel):
 
 
 class InnovationHubResponse(BaseModel):
+    user_profile: Optional[InnovationCollaboratorResponse] = None
     ideas: List[InnovationIdeaResponse]
     projects: List[InnovationProjectResponse]
     hackathons: List[InnovationHackathonResponse]

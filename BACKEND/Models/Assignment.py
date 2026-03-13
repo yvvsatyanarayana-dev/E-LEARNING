@@ -21,6 +21,9 @@ class Assignment(Base):
     attachments = Column(Text, nullable=True)  # JSON string or comma-separated
     instructions = Column(Text, nullable=True)  # JSON string
     rubric      = Column(Text, nullable=True)  # JSON string
+    target_group= Column(String(50), nullable=True, default="All")
+    week        = Column(String(20), nullable=True)
+    unit        = Column(String(50), nullable=True)
     due_date    = Column(DateTime(timezone=True), nullable=True)
     created_at  = Column(DateTime(timezone=True), default=datetime.utcnow)
 

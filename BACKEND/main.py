@@ -1,4 +1,6 @@
+import os
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from Core.Config import settings
 from Core.Database import engine, Base
 from fastapi.middleware.cors import CORSMiddleware
@@ -44,6 +46,11 @@ app.include_router(auth_router, prefix=PREFIX)
 app.include_router(student_router, prefix=PREFIX)
 app.include_router(faculty_router, prefix=PREFIX)
 app.include_router(placement_router, prefix=PREFIX)
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOADS_DIR = os.path.join(BASE_DIR, "uploads")
+os.makedirs(UPLOADS_DIR, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
 
 @app.get("/")
 async def root():

@@ -1,5 +1,6 @@
 // allStudents.jsx  —  place at: src/pages/Faculty/allStudents/allStudents.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import api from "../../../utils/api";
 import "./allStudents.css";
 
 const IcoChevL  = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>;
@@ -19,28 +20,7 @@ const COURSES_META = {
   cs503: { code:"CS503", name:"Computer Architecture",       color:"var(--violet)",    rgb:"159,122,234", bg:"rgba(159,122,234,.1)", border:"rgba(159,122,234,.22)"},
 };
 
-const STUDENTS = [
-  { roll:"21CS001", name:"Aarav Shah",        course:"cs501", sem:5, batch:"A", cgpa:8.2, attendance:88, score:76, status:"good",    email:"aarav@college.edu"  },
-  { roll:"21CS008", name:"Dev Iyer",          course:"cs502", sem:5, batch:"B", cgpa:7.1, attendance:62, score:48, status:"at-risk", email:"dev@college.edu"    },
-  { roll:"21CS015", name:"Aisha Khan",        course:"cs501", sem:5, batch:"A", cgpa:8.5, attendance:91, score:82, status:"good",    email:"aisha@college.edu"  },
-  { roll:"21CS019", name:"Rohan Mehta",       course:"cs503", sem:3, batch:"B", cgpa:8.5, attendance:85, score:78, status:"good",    email:"rohan@college.edu"  },
-  { roll:"21CS021", name:"Preethi Rajan",     course:"cs502", sem:5, batch:"A", cgpa:7.8, attendance:71, score:65, status:"average", email:"preethi@college.edu"},
-  { roll:"21CS031", name:"Priya Nair",        course:"cs501", sem:5, batch:"A", cgpa:8.7, attendance:88, score:88, status:"good",    email:"priya@college.edu"  },
-  { roll:"21CS033", name:"Kiran Rao",         course:"cs501", sem:5, batch:"B", cgpa:6.8, attendance:58, score:42, status:"at-risk", email:"kiran@college.edu"  },
-  { roll:"21CS041", name:"Zara Sheikh",       course:"cs502", sem:5, batch:"A", cgpa:7.4, attendance:74, score:60, status:"average", email:"zara@college.edu"   },
-  { roll:"21CS047", name:"Arjun Reddy",       course:"cs501", sem:5, batch:"A", cgpa:8.9, attendance:92, score:95, status:"good",    email:"arjun@college.edu"  },
-  { roll:"21CS059", name:"Kartik Malhotra",   course:"cs502", sem:5, batch:"B", cgpa:7.2, attendance:68, score:55, status:"average", email:"kartik@college.edu" },
-  { roll:"21CS062", name:"Sneha Sharma",      course:"cs501", sem:5, batch:"A", cgpa:8.3, attendance:94, score:84, status:"good",    email:"sneha@college.edu"  },
-  { roll:"21CS073", name:"Ananya Das",        course:"cs502", sem:5, batch:"A", cgpa:8.0, attendance:80, score:72, status:"good",    email:"ananya@college.edu" },
-  { roll:"21CS088", name:"Siddharth Jain",    course:"cs502", sem:5, batch:"B", cgpa:8.4, attendance:82, score:80, status:"good",    email:"sid@college.edu"    },
-  { roll:"21CS101", name:"Meera Pillai",      course:"cs502", sem:5, batch:"A", cgpa:8.6, attendance:87, score:86, status:"good",    email:"meera@college.edu"  },
-  { roll:"21CS148", name:"Ajay Shetty",       course:"cs503", sem:3, batch:"B", cgpa:6.5, attendance:55, score:38, status:"at-risk", email:"ajay@college.edu"   },
-  { roll:"21CS160", name:"Tanvi Menon",       course:"cs503", sem:3, batch:"A", cgpa:7.6, attendance:76, score:62, status:"average", email:"tanvi@college.edu"  },
-  { roll:"21CS172", name:"Ravi Kumar",        course:"cs503", sem:3, batch:"B", cgpa:7.9, attendance:78, score:70, status:"average", email:"ravi@college.edu"   },
-  { roll:"21CS185", name:"Deepika Nair",      course:"cs503", sem:3, batch:"A", cgpa:8.1, attendance:84, score:80, status:"good",    email:"deepika@college.edu"},
-  { roll:"21CS201", name:"Vikram Singh",      course:"cs503", sem:3, batch:"A", cgpa:8.8, attendance:90, score:92, status:"good",    email:"vikram@college.edu" },
-  { roll:"21CS210", name:"Lakshmi Patel",     course:"cs501", sem:5, batch:"B", cgpa:7.0, attendance:65, score:50, status:"average", email:"lakshmi@college.edu"},
-];
+// STUDENTS data is now fetched from the API
 
 const STATUS_META = {
   good:    { label:"Good",    color:"var(--teal)",  bg:"rgba(39,201,176,.1)",  border:"rgba(39,201,176,.22)" },
@@ -57,7 +37,7 @@ function ProgressBar({ pct, color = "var(--indigo-l)", height = 4 }) {
 }
 
 function StudentCard({ s }) {
-  const c = COURSES_META[s.course];
+  const c = COURSES_META[s.course.toLowerCase()] || COURSES_META["cs501"];
   const sm = STATUS_META[s.status];
   const initials = s.name.split(" ").map(n=>n[0]).join("").slice(0,2);
   return (
@@ -99,14 +79,31 @@ function StudentCard({ s }) {
 }
 
 export default function AllStudents({ onBack }) {
+  const [students, setStudents] = useState([]);
+  const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState("");
   const [course, setCourse]     = useState("all");
   const [status, setStatus]     = useState("all");
   const [sort,   setSort]       = useState("name");
   const [view,   setView]       = useState("grid");
 
-  const filtered = STUDENTS.filter(s => {
-    if (course !== "all" && s.course !== course) return false;
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        const response = await api.get("/faculty/students");
+        setStudents(response);
+      } catch (err) {
+        console.error("Failed to fetch students:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchStudents();
+  }, []);
+
+  const safeStudents = Array.isArray(students) ? students : [];
+  const filtered = safeStudents.filter(s => {
+    if (course !== "all" && s.course.toLowerCase() !== course) return false;
     if (status !== "all" && s.status !== status) return false;
     if (search) {
       const q = search.toLowerCase();
@@ -121,9 +118,9 @@ export default function AllStudents({ onBack }) {
     return 0;
   });
 
-  const atRisk = STUDENTS.filter(s => s.status === "at-risk").length;
-  const avgAtt = Math.round(STUDENTS.reduce((a,s)=>a+s.attendance,0)/STUDENTS.length);
-  const avgScore= Math.round(STUDENTS.reduce((a,s)=>a+s.score,0)/STUDENTS.length);
+  const atRisk = safeStudents.filter(s => s.status === "at-risk").length;
+  const avgAtt = safeStudents.length ? Math.round(safeStudents.reduce((a,s)=>a+s.attendance,0)/safeStudents.length) : 0;
+  const avgScore = safeStudents.length ? Math.round(safeStudents.reduce((a,s)=>a+s.score,0)/safeStudents.length) : 0;
 
   return (
     <div className="stu-root">
@@ -146,11 +143,11 @@ export default function AllStudents({ onBack }) {
       {/* Stats */}
       <div className="stu-stat-strip">
         {[
-          { label:"Total Students", value: STUDENTS.length, cls:"sc-teal"   },
+          { label:"Total Students", value: safeStudents.length, cls:"sc-teal"   },
           { label:"At Risk",        value: atRisk,           cls:"sc-rose"   },
           { label:"Avg Attendance", value: `${avgAtt}%`,    cls:"sc-amber"  },
           { label:"Avg Score",      value: `${avgScore}%`,  cls:"sc-indigo" },
-          { label:"Courses",        value: 3,               cls:"sc-violet" },
+          { label:"Courses",        value: new Set(safeStudents.map(s => s.course)).size, cls:"sc-violet" },
         ].map(({ label, value, cls }) => (
           <div key={label} className={`stat-card ${cls}`}>
             <div className="stat-val">{value}</div>
@@ -204,7 +201,7 @@ export default function AllStudents({ onBack }) {
         </div>
       </div>
 
-      <div className="stu-results-bar">Showing <strong style={{color:"var(--text2)"}}>{filtered.length}</strong> of {STUDENTS.length} students</div>
+      <div className="stu-results-bar">Showing <strong style={{color:"var(--text2)"}}>{filtered.length}</strong> of {safeStudents.length} students</div>
 
       {/* Grid View */}
       {view === "grid" && (
@@ -220,7 +217,7 @@ export default function AllStudents({ onBack }) {
             <span>#</span><span>Student</span><span>Course</span><span>Batch</span><span>CGPA</span><span>Attendance</span><span>Score</span><span>Status</span>
           </div>
           {filtered.map((s,i) => {
-            const c  = COURSES_META[s.course];
+            const c  = COURSES_META[s.course.toLowerCase()] || COURSES_META["cs501"];
             const sm = STATUS_META[s.status];
             const initials = s.name.split(" ").map(n=>n[0]).join("").slice(0,2);
             return (

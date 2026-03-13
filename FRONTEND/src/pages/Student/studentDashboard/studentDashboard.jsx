@@ -116,17 +116,33 @@ const GRADE_STYLES = [
 function mapApiCourse(c, i) {
   const p = PALETTE_COLORS[i % PALETTE_COLORS.length];
   const g = GRADE_STYLES[i % GRADE_STYLES.length];
+  
   return {
-    id: c.course_id,
+    id: c.course_id || c.id || i,
+    code: c.code || "CS" + (c.course_id || c.id || i),
+    name: c.name || c.title || "Untitled Course",
+    instructor: c.faculty || c.faculty_name || "Faculty Name",
+    progress: c.progress || 0,
+    short: c.short || ((c.name || c.title) ? (c.name || c.title).substring(0,2).toUpperCase() : "CS"),
+    color: c.color || p?.color || "var(--indigo-l)",
+    rgb: c.rgb || p?.rgb || "91,78,248",
+    badgeStyle: g,
+    icon: <IcoBook width={18} height={18}/>,
+    academic: c.academic || "Sem 5 · 2024",
+    totalLectures: c.total_lectures || c.lesson_count || 0,
+    completedLectures: c.completed_lectures || 0,
+    nextLecture: c.next_lecture || "No upcoming lecture",
+    lastAccessed: c.last_accessed || "Never",
+    description: c.description || "",
+    syllabus: c.syllabus || [],
+    resources: c.resources || [],
     enrollment_id: c.enrollment_id,
-    name: c.title,
-    meta: `${c.faculty_name} · ${c.lesson_count} lessons`,
-    pct: Math.round(c.progress),
-    color: p.color, pctColor: p.pctColor, badgeStyle: p.badgeStyle,
+    meta: `${c.faculty_name || "Faculty"} · ${c.lesson_count || 0} lessons`,
+    pct: Math.round(c.progress || 0),
+    pctColor: p?.pctColor || "var(--indigo-ll)",
     gradeStyle: g, grade: c.enrollment_id > 0 ? (c.progress >= 90 ? "A+" : c.progress >= 80 ? "A" : c.progress >= 70 ? "A−" : c.progress >= 60 ? "B+" : "B") : "New",
     due: c.enrollment_id > 0 ? (c.assignment_count > 0 ? `${c.assignment_count} assignments` : "No pending") : "Available now",
     next: `${c.quiz_count} quiz${c.quiz_count !== 1 ? "zes" : ""}`,
-    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
   };
 }
 function mapApiSkill(s, i) {
@@ -137,6 +153,7 @@ function mapApiQuiz(a, i) {
   const p = PALETTE_COLORS[i % PALETTE_COLORS.length];
   const pct = Math.round(a.score);
   return {
+    id: a.quiz_id || i,
     name: a.title,
     score: `${pct}%`,
     pct,
@@ -155,6 +172,7 @@ function mapApiSchedule(s, i) {
   const end = `${endH}:${endM.toString().padStart(2, "0")}`;
   
   return {
+    id: s.schedule_id || i,
     from: start,
     to: end,
     name: s.subject,
@@ -515,7 +533,7 @@ function DashboardContent({ stats, courses, schedule, quizzes, skills, onNavigat
         <div className="panel-body">
           <div className="course-list">
             {courses.map(c => (
-              <Hoverable key={c.name} className="course-item">
+              <Hoverable key={c.id} className="course-item">
                 <div className="ci-badge" style={c.badgeStyle}>{c.icon}</div>
                 <div className="ci-info">
                   <div className="ci-name">{c.name}</div>
@@ -568,8 +586,8 @@ function DashboardContent({ stats, courses, schedule, quizzes, skills, onNavigat
           </div>
           <div className="panel-body">
             <div className="sched-list">
-              {schedule.map(s => (
-                <Hoverable key={s.from} className="sched-item">
+              {schedule.map((s, idx) => (
+                <Hoverable key={s.id || idx} className="sched-item">
                   <div className="sched-time"><div className="st-from" style={{ color: s.color }}>{s.from}</div><div className="st-to">{s.to}</div></div>
                   <div className="sched-div" style={{ background: s.color }} />
                   <div className="sched-info">

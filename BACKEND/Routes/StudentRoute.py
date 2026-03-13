@@ -115,10 +115,11 @@ def submit_assignment(
 @router.get("/quizzes", response_model=List[QuizResponse])
 def get_quizzes(
     course_id: Optional[int] = Query(None),
+    include_questions: bool = Query(False),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return student_service.get_quizzes(current_user, db, course_id)
+    return student_service.get_quizzes(current_user, db, course_id, include_questions)
 
 
 @router.get("/quizzes/{quiz_id}", response_model=QuizResponse)

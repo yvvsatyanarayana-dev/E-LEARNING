@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 function useRipple() {
   const addRipple = useCallback((e) => {
@@ -23,9 +23,43 @@ export default function RegisterModal({ open, onClose, onGoLogin }) {
   const [email, setEmail]       = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm]   = useState("");
+  const [dept, setDept]         = useState("Computer Science");
+  const [targetGroup, setTargetGroup] = useState("BCA");
   const [error, setError]       = useState("");
   const [success, setSuccess]   = useState("");
   const [loading, setLoading]   = useState(false);
+  const [metadata, setMetadata] = useState({ departments: [], groups: [] });
+
+  useEffect(() => {
+    if (open) {
+      const fetchMeta = async () => {
+        try {
+          const res = await fetch("http://localhost:8000/api/v1/faculty/metadata");
+          if (res.ok) {
+            const data = await res.json();
+            setMetadata(data);
+            if (data.departments.length > 0) setDept(data.departments[0]);
+            if (data.groups.length > 0) setTargetGroup(data.groups[0]);
+          }
+        } catch (err) {
+          console.error("Failed to fetch metadata:", err);
+        }
+      };
+      fetchMeta();
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) {
+      // Reset form on close
+      setFullName("");
+      setEmail("");
+      setPassword("");
+      setConfirm("");
+      setError("");
+      setSuccess("");
+    }
+  }, [open]);
 
   const roles = [
     { key: "student",           name: "Student",   desc: "Track your progress" },
@@ -33,6 +67,10 @@ export default function RegisterModal({ open, onClose, onGoLogin }) {
     { key: "placement_officer", name: "Placement", desc: "Readiness reports" },
     { key: "admin",             name: "Admin",     desc: "Full control" },
   ];
+
+  const departments = metadata.departments.map(d => ({ id: d, name: d }));
+
+  const groups = metadata.groups.map(g => ({ id: g, name: g === "All" ? "All Students" : g }));
 
   const handleRegister = async () => {
     setError("");
@@ -61,6 +99,8 @@ export default function RegisterModal({ open, onClose, onGoLogin }) {
           email,
           password,
           role: selected,
+          department: dept,
+          target_group: targetGroup,
         }),
       });
 
@@ -142,30 +182,62 @@ export default function RegisterModal({ open, onClose, onGoLogin }) {
           />
         </div>
 
-        {/* Password */}
-        <div className="form-group">
-          <label className="form-label">Password</label>
-          <input
-            className="form-input"
-            type="password"
-            placeholder="Min. 6 characters"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-          />
+        {/* Password Fields Row */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+          <div className="form-group">
+            <label className="form-label">Password</label>
+            <input
+              className="form-input"
+              type="password"
+              placeholder="Min. 6"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+            />
+          </div>
+          <div className="form-group">
+            <label className="form-label">Confirm</label>
+            <input
+              className="form-input"
+              type="password"
+              placeholder="Confirm"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleRegister()}
+            />
+          </div>
         </div>
 
-        {/* Confirm Password */}
-        <div className="form-group">
-          <label className="form-label">Confirm Password</label>
-          <input
-            className="form-input"
-            type="password"
-            placeholder="Re-enter your password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleRegister()}
-          />
-        </div>
+        {/* Student Specific: Dept & Group selection */}
+        {selected === "student" && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+            <div className="form-group">
+              <label className="form-label">Department</label>
+              <select 
+                className="form-input" 
+                value={dept} 
+                onChange={(e) => setDept(e.target.value)}
+                style={{ appearance: "auto" }}
+              >
+                {departments.map(d => (
+                  <option key={d.id} value={d.id}>{d.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="form-group">
+              <label className="form-label">Group</label>
+              <select 
+                className="form-input" 
+                value={targetGroup} 
+                onChange={(e) => setTargetGroup(e.target.value)}
+                style={{ appearance: "auto" }}
+              >
+                {groups.map(g => (
+                  <option key={g.id} value={g.id}>{g.name}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        )}
 
         {/* Error / Success */}
         {error   && <p style={{ color: "#ef4444", fontSize: 12, marginBottom: 8 }}>{error}</p>}
