@@ -2,6 +2,8 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, select
 import json, io, csv
 from typing import Optional, List, Dict, Any
+from Core.Database import get_db
+from Core.MeetingState import ACTIVE_MEETINGS
 from datetime import datetime, timezone, timedelta
 from Models.User import User, UserRole
 from Models.Course import Course, Enrollment
@@ -1396,11 +1398,123 @@ class FacultyService:
             writer.writerow(["Course Code", "Title", "Semester", "Students", "Lectures Done", "Total Lectures", "Avg Score %"])
             for c in courses:
                 s_count = db.query(func.count(Enrollment.id)).filter(Enrollment.course_id == c.id).scalar() or 0
-                l_total = len(c.lessons)
-                writer.writerow([f"CS{500+c.id}", c.title, c.semester or "Sem 5", s_count, l_total // 2, l_total, 75.0])
-
         else:
             writer.writerow(["No data available for this report type"])
-            
+
         output.seek(0)
         return output
+
+    # ── MEETING METHODS ──────────────────────────────────────────────
+
+    def get_meeting_groups(self, faculty: User, db: Session):
+        """Return student groups by target_group (BCA, MCA, etc.) with ALL students."""
+        COLORS = ["var(--indigo-l)", "var(--teal)", "var(--amber)", "var(--violet)", "var(--rose)"]
+        RGBS   = ["91,78,248",       "39,201,176",  "244,165,53",  "159,122,234", "242,68,92"]
+
+        # Get all students grouped by their target_group
+        rows = (
+            db.query(User.target_group, func.count(User.id).label("cnt"))
+            .filter(User.role == UserRole.student, User.target_group != None, User.target_group != "")
+            .group_by(User.target_group)
+            .order_by(User.target_group)
+            .all()
+        )
+
+        # Fallback: if no target_group data, fetch unique departments from courses
+        if not rows:
+            courses = db.query(Course).filter(Course.faculty_id == faculty.id).all()
+            depts = list({c.department or "Computer Science" for c in courses}) or ["BCA", "MCA"]
+            rows = [(dept, 0) for dept in depts]
+
+        groups = []
+        for i, (grp, cnt) in enumerate(rows):
+            idx = i % len(COLORS)
+            # Determine a short program code
+            code = "".join(w[0] for w in grp.upper().split()) if grp else "GRP"
+            
+            # Check if this group has an active meeting
+            active_meet = ACTIVE_MEETINGS.get(grp)
+
+            groups.append({
+                "id": i + 1,
+                "group_key": grp,
+                "name": grp,
+                "code": code,
+                "semester": "All Semesters",
+                "student_count": cnt,
+                "color": COLORS[idx],
+                "rgb": RGBS[idx],
+                "is_live": active_meet is not None,
+                "room_code": active_meet["room_code"] if active_meet else None,
+            })
+        return groups
+
+    def start_meeting(self, faculty: User, db: Session, course_id: int):
+        """Generate a unique room code for a department meeting (course_id used as group index)."""
+        import random, string
+
+        groups = self.get_meeting_groups(faculty, db)
+        # course_id here is actually the group sequential id (1-based index)
+        group = next((g for g in groups if g["id"] == course_id), None)
+
+        if not group:
+            # Fallback: use whatever group exists
+            group = groups[0] if groups else {
+                "name": "All Students", "group_key": "All", "code": "ALL",
+                "student_count": 0, "color": "var(--indigo-l)"
+            }
+
+        # Generate a Google Meet-style room code
+        # Generate a mock meeting link that won't throw a DNS error
+        import random, string
+        room_code = "-".join(
+            "".join(random.choices(string.ascii_lowercase, k=3))
+            for _ in range(3)
+        )
+
+        join_url = f"http://localhost:5173/studentdashboard/studentMeetings?room={room_code}"
+        
+        meet_details = {
+            "room_code": room_code,
+            "course_id": course_id,
+            "course_name": group["name"],
+            "course_code": group["code"],
+            "student_count": group["student_count"],
+            "faculty_name": faculty.full_name,
+            "started_at": datetime.now(timezone.utc).isoformat(),
+            "join_url": join_url,
+            "group_key": group["group_key"],
+        }
+        
+        # Save to active meetings in-memory dict
+        ACTIVE_MEETINGS[group["group_key"]] = meet_details
+
+        return meet_details
+
+    def end_meeting(self, faculty: User, group_key: str):
+        """End a live meeting and remove it from active tracking."""
+        if group_key in ACTIVE_MEETINGS:
+            del ACTIVE_MEETINGS[group_key]
+        return {"message": "Meeting ended", "group_key": group_key}
+
+    def get_meeting_history(self, faculty: User, db: Session):
+        """Return simulated meeting history per student program/department."""
+        import random
+        groups = self.get_meeting_groups(faculty, db)
+        history = []
+        for g in groups[:5]:
+            for _ in range(random.randint(1, 3)):
+                days_ago = random.randint(1, 30)
+                duration = random.choice([45, 60, 90, 120])
+                past_date = datetime.now(timezone.utc) - timedelta(days=days_ago)
+                attendees = max(1, int(g["student_count"] * random.uniform(0.6, 0.95)))
+                history.append({
+                    "course_name": g["name"],
+                    "course_code": g["code"],
+                    "date": past_date.strftime("%b %d, %Y"),
+                    "duration_min": duration,
+                    "attendees": attendees,
+                    "total_students": g["student_count"],
+                })
+        history.sort(key=lambda x: x["date"], reverse=True)
+        return history[:10]

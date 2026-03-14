@@ -32,6 +32,7 @@ from Schemas.StudentSchema import (
     MockInterviewsFullResponse, MockInterviewInsights, MockInterviewRadarItem, MockInterviewWeakArea,
     AIChatRequest, AIChatResponse
 )
+from Core.MeetingState import ACTIVE_MEETINGS
 
 
 def _require_student(user: User):
@@ -238,6 +239,13 @@ class StudentService:
                 "status": "excellent" if att.score >= 90 else "good" if att.score >= 70 else "average"
             })
 
+        # Active Meeting
+        active_meeting = None
+        if group and group in ACTIVE_MEETINGS:
+            active_meeting = ACTIVE_MEETINGS[group]
+        elif "All" in ACTIVE_MEETINGS:
+            active_meeting = ACTIVE_MEETINGS["All"]
+
         return DashboardResponse(
             user_id=student.id,
             full_name=student.full_name,
@@ -254,7 +262,8 @@ class StudentService:
             skill_scores=skill_scores,
             placement=pri_resp,
             schedule_today=schedule_today,
-            recent_quizzes=recent_quiz_list
+            recent_quizzes=recent_quiz_list,
+            active_meeting=active_meeting
         )
 
     # ─── Analytics ────────────────────────────────────────────────────────────

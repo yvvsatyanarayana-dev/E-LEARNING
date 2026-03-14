@@ -17,6 +17,7 @@ import FacultyProfile from "../facultyProfile/facultyProfile";
 import FacultySettings from "../facultySettings/facultySettings";
 import FacultyQuickaction from "../facultyQuickaction/facultyQuickaction";
 import FacultyNotification from "../facultyNotification/facultyNotification";
+import FacultyMeeting from "../facultyMeeting/facultyMeeting";
 import api from "../../../utils/api";
 
 // ─── ICONS ───────────────────────────────────────────────────────
@@ -58,6 +59,7 @@ const ROUTES = {
   VIDEO_LECTURES: "Video Lectures",
   ASSIGNMENTS: "Assignments",
   QUIZZES: "Quiz Manager",
+  MEETINGS: "Meetings",
   ALL_STUDENTS: "All Students",
   ATTENDANCE: "Attendance",
   GRADE_BOOK: "Grade Book",
@@ -76,6 +78,7 @@ const PAGE_PARAM_MAP = {
   "facultyassignments": ROUTES.ASSIGNMENTS,
   "facultyquizzes": ROUTES.QUIZZES,
   "facultyvideolectures": ROUTES.VIDEO_LECTURES,
+  "meetings": ROUTES.MEETINGS,
   "allstudents": ROUTES.ALL_STUDENTS,
   "attendance": ROUTES.ATTENDANCE,
   "gradebook": ROUTES.GRADE_BOOK,
@@ -95,6 +98,7 @@ const ROUTE_TO_URL = {
   [ROUTES.VIDEO_LECTURES]: "/facultydashboard/facultyVideoLectures",
   [ROUTES.ASSIGNMENTS]: "/facultydashboard/facultyAssignments",
   [ROUTES.QUIZZES]: "/facultydashboard/facultyQuizzes",
+  [ROUTES.MEETINGS]: "/facultydashboard/meetings",
   [ROUTES.ALL_STUDENTS]: "/facultydashboard/allStudents",
   [ROUTES.ATTENDANCE]: "/facultydashboard/attendance",
   [ROUTES.GRADE_BOOK]: "/facultydashboard/gradeBook",
@@ -124,6 +128,7 @@ const NAV_ITEMS = [
       { label: ROUTES.VIDEO_LECTURES, icon: <IcoVideo /> },
       { label: ROUTES.ASSIGNMENTS, icon: <IcoFile /> },
       { label: ROUTES.QUIZZES, icon: <IcoClock /> },
+      { label: ROUTES.MEETINGS, icon: <IcoVideo />, badge: "Live" },
     ]
   },
   {
@@ -506,6 +511,7 @@ export default function FacultyDashboard() {
       case ROUTES.VIDEO_LECTURES: return <FacultyVideoLectures onBack={() => navigate(ROUTES.DASHBOARD)} />;
       case ROUTES.ASSIGNMENTS: return <FacultyAssignments onBack={() => navigate(ROUTES.DASHBOARD)} />;
       case ROUTES.QUIZZES: return <FacultyQuizzes onBack={() => navigate(ROUTES.DASHBOARD)} />;
+      case ROUTES.MEETINGS: return <FacultyMeeting onBack={() => navigate(ROUTES.DASHBOARD)} />;
       case ROUTES.ALL_STUDENTS: return <AllStudents onBack={() => navigate(ROUTES.DASHBOARD)} />;
       case ROUTES.ATTENDANCE: return <Attendance onBack={() => navigate(ROUTES.DASHBOARD)} />;
       case ROUTES.GRADE_BOOK: return <GradeBook onBack={() => navigate(ROUTES.DASHBOARD)} />;

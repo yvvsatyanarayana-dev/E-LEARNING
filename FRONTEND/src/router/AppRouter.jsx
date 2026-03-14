@@ -77,6 +77,7 @@ const router = createBrowserRouter([
   { path: "/studentdashboard/studentSettings",           element: SD, errorElement: <ErrorBoundary /> },
   { path: "/studentdashboard/studentProfile",            element: SD, errorElement: <ErrorBoundary /> },
   { path: "/studentdashboard/studentResume",             element: SD, errorElement: <ErrorBoundary /> },
+  { path: "/studentdashboard/studentMeetings",           element: SD, errorElement: <ErrorBoundary /> },
 
   // ──────── FACULTY DASHBOARD ROUTES ────────
   {
@@ -156,6 +157,11 @@ const router = createBrowserRouter([
   },
   {
     path: "/facultydashboard/notifications",
+    element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+    errorElement: <ErrorBoundary />,
+  },
+  {
+    path: "/facultydashboard/meetings",
     element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
     errorElement: <ErrorBoundary />,
   },

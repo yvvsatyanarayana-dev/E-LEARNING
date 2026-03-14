@@ -146,3 +146,31 @@ def upload_file(file: UploadFile = File(...), current_user: User = Depends(get_c
         return {"url": f"http://127.0.0.1:8000/uploads/{filename}", "filename": file.filename}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
+
+# ── MEETING ROUTES ────────────────────────────────────────────────────
+
+@router.get("/meetings/groups")
+def get_meeting_groups(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Return faculty's courses as meeting groups with student counts."""
+    return faculty_service.get_meeting_groups(current_user, db)
+
+@router.post("/meetings/start")
+def start_meeting(body: dict, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Start or create a meeting room for a specific course group."""
+    course_id = body.get("course_id")
+    if not course_id:
+        raise HTTPException(status_code=400, detail="course_id is required")
+    return faculty_service.start_meeting(current_user, db, int(course_id))
+
+@router.post("/meetings/end")
+def end_meeting(body: dict, current_user: User = Depends(get_current_user)):
+    """End a live meeting room."""
+    group_key = body.get("group_key")
+    if not group_key:
+        raise HTTPException(status_code=400, detail="group_key is required")
+    return faculty_service.end_meeting(current_user, group_key)
+
+@router.get("/meetings/history")
+def get_meeting_history(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Return past meeting history for the faculty."""
+    return faculty_service.get_meeting_history(current_user, db)

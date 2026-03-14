@@ -454,6 +454,7 @@ class DashboardResponse(BaseModel):
     placement: Optional[PlacementReadinessResponse] = None
     schedule_today: List[dict] = []
     recent_quizzes: List[dict] = []
+    active_meeting: Optional[dict] = None
 
     class Config:
         from_attributes = True

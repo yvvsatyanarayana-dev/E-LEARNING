@@ -1,10 +1,13 @@
+import sys
 import os
+sys.path.append(os.path.dirname(os.path.abspath(__file__)))
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
-from Core.Config import settings
-from Core.Database import engine, Base
 from fastapi.middleware.cors import CORSMiddleware
 from Core.Config import settings
+from Core.Database import engine, Base
+
 # MODELS
 from Models.User import User, UserRole
 from Models.Assignment import Assignment, AssignmentSubmission
@@ -15,10 +18,13 @@ from Models.Quiz import Quiz, Question, QuizAttempt, QuestionType, DifficultyLev
 from Models.Project import Project, ProjectReview, ProjectStatus
 from Models.Community import Forum, ForumPost, StudyGroup, StudyGroupMember
 from Models.Innovation import InnovationIdea, InnovationProject, InnovationHackathon
-#ROUTES
+
+# ROUTES
 from Routes.AuthRoute import router as auth_router
 from Routes.StudentRoute import router as student_router
 from Routes.FacultyRoute import router as faculty_router
+from Sockets.MeetingSockets import app as socket_app  # Import SocketIO app
+
 from Routes.PlacementRoute import router as placement_router
 app = FastAPI(
     title=settings.APP_NAME,
@@ -51,6 +57,9 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOADS_DIR = os.path.join(BASE_DIR, "uploads")
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
+
+# Mount socket.io
+app.mount("/", socket_app)
 
 @app.get("/")
 async def root():
