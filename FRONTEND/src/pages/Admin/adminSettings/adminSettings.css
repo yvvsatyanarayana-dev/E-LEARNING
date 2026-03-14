@@ -1,9 +1,39 @@
-.admin-settings {
-  padding: 2rem;
-}
-.admin-settings h2 {
-  color: #6c5ce7;
-}
-.admin-settings ul {
-  margin-top: 1rem;
-}
+/* AdminSystemConfiguration.css */
+@import "../AdminUserManagement/AdminUserManagement.css";
+
+.sysconf-root { animation: reveal-in .5s ease both; }
+
+.sysconf-health-row { display:grid; grid-template-columns:repeat(6,1fr); gap:10px; margin-bottom:18px; }
+.sysconf-metric { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 16px; text-align:center; transition:transform .25s; }
+.sysconf-metric:hover { transform:translateY(-2px); }
+.sysconf-metric.sc-teal   { border-top:2px solid var(--teal); }
+.sysconf-metric.sc-amber  { border-top:2px solid var(--amber); }
+.sysconf-metric.sc-rose   { border-top:2px solid var(--rose); }
+.sysconf-metric.sc-indigo { border-top:2px solid var(--indigo-l); }
+.sysconf-metric.sc-violet { border-top:2px solid var(--violet); }
+.sysconf-metric-icon { font-size:18px; margin-bottom:8px; }
+.sysconf-metric-val { font-family:'Fraunces',serif; font-size:20px; font-weight:400; line-height:1; margin-bottom:4px; }
+.sysconf-metric-lbl { font-size:9.5px; color:var(--text3); }
+
+.sysconf-services { display:flex; flex-direction:column; gap:8px; }
+.sysconf-service-card { display:flex; align-items:center; gap:14px; background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:14px 18px; transition:border-color .25s; }
+.sysconf-service-card:hover { border-color:var(--border2); }
+.svc-down { border-color:rgba(242,68,92,.25)!important; }
+.svc-warn { border-color:rgba(244,165,53,.25)!important; }
+.svc-icon { font-size:20px; flex-shrink:0; }
+.svc-info { flex:1; }
+.svc-name { font-size:13px; font-weight:600; margin-bottom:2px; }
+.svc-version { font-size:10px; color:var(--text3); font-family:monospace; }
+.svc-stats { display:flex; gap:20px; }
+.svc-stat { display:flex; flex-direction:column; align-items:flex-end; gap:2px; }
+.svc-stat span { font-size:9.5px; color:var(--text3); }
+.svc-stat strong { font-size:12px; font-weight:600; color:var(--text2); }
+.sys-status { font-size:10px; font-weight:600; padding:4px 10px; border-radius:7px; display:flex; align-items:center; gap:5px; white-space:nowrap; }
+.sys-up   { background:rgba(39,201,176,.1); color:var(--teal); }
+.sys-warn { background:rgba(244,165,53,.1); color:var(--amber); }
+.sys-down { background:rgba(242,68,92,.1);  color:var(--rose); }
+
+.sysconf-db-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+
+@media (max-width:1100px) { .sysconf-health-row { grid-template-columns:repeat(3,1fr); } }
+@media (max-width:700px)  { .sysconf-health-row { grid-template-columns:repeat(2,1fr); } .sysconf-db-grid { grid-template-columns:1fr; } }
