@@ -61,7 +61,9 @@ function MeetingRoom({ meeting, onEnd }) {
 
   const [localStream, setLocalStream] = useState(null);
   const localStreamRef = useRef(null); // Keep a ref for unmount cleanup
+  const screenStreamRef = useRef(null); // Keep screen share stream so we can stop it
   const [remoteStreams, setRemoteStreams] = useState({}); // student_id -> MediaStream
+  const [studentNames, setStudentNames] = useState({}); // student_id -> name
   const [sockStatus, setSockStatus] = useState("Connecting...");
   const [webrtcStatus, setWebrtcStatus] = useState({}); // student_id -> status
   const iceCandidateQueue = useRef({}); // Buffer for early ICE candidates
@@ -69,6 +71,18 @@ function MeetingRoom({ meeting, onEnd }) {
   // STUN Servers for WebRTC
   const rtcConfig = {
     iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
+  };
+
+  const stopLocalMedia = () => {
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(t => t.stop());
+      localStreamRef.current = null;
+      setLocalStream(null);
+    }
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach(t => t.stop());
+      screenStreamRef.current = null;
+    }
   };
 
   useEffect(() => {
@@ -93,7 +107,10 @@ function MeetingRoom({ meeting, onEnd }) {
 
         s.on("connect", () => {
           setSockStatus("Connected");
-          s.emit("join_room", { room_code: meeting.room_code, role: "faculty" });
+          // Get faculty name
+          const user = JSON.parse(localStorage.getItem('user') || '{}');
+          const facultyName = user.name || user.email || 'Faculty';
+          s.emit("join_room", { room_code: meeting.room_code, role: "faculty", name: facultyName });
         });
         
         s.on("disconnect", () => {
@@ -104,8 +121,9 @@ function MeetingRoom({ meeting, onEnd }) {
         });
         s.on("connect_error", (err) => setSockStatus(`Error: ${err.message}`));
 
-        s.on("student_joined", async ({ student_id }) => {
-           console.log(`[Faculty] Student joined: ${student_id}`);
+        s.on("student_joined", async ({ student_id, student_name }) => {
+           console.log(`[Faculty] Student joined: ${student_id} (${student_name})`);
+           setStudentNames(prev => ({ ...prev, [student_id]: student_name || `Student ${student_id.slice(0,4)}` }));
            if (!peersRef.current[student_id]) {
              createPeerConnection(student_id, stream);
            }
@@ -130,6 +148,11 @@ function MeetingRoom({ meeting, onEnd }) {
             delete iceCandidateQueue.current[student_id];
           }
           setRemoteStreams(prev => {
+            const next = { ...prev };
+            delete next[student_id];
+            return next;
+          });
+          setStudentNames(prev => {
             const next = { ...prev };
             delete next[student_id];
             return next;
@@ -177,9 +200,7 @@ function MeetingRoom({ meeting, onEnd }) {
 
     return () => {
       clearInterval(timerRef.current);
-      if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach(t => t.stop());
-      }
+      stopLocalMedia();
       Object.values(peersRef.current).forEach(p => p.close());
       if (socketRef.current) socketRef.current.disconnect();
     };
@@ -275,11 +296,16 @@ function MeetingRoom({ meeting, onEnd }) {
         });
 
         if (localVideoRef.current) localVideoRef.current.srcObject = stream;
+        screenStreamRef.current = stream;
         setIsScreenSharing(true);
         setCamOn(true);
         
         screenVideoTrack.onended = () => {
           setIsScreenSharing(false);
+          if (screenStreamRef.current) {
+            screenStreamRef.current.getTracks().forEach(t => t.stop());
+            screenStreamRef.current = null;
+          }
           if (localStream) {
              const origVideoTrack = localStream.getVideoTracks()[0];
              Object.values(peersRef.current).forEach(peer => {
@@ -295,6 +321,10 @@ function MeetingRoom({ meeting, onEnd }) {
       }
     } else {
       setIsScreenSharing(false);
+      if (screenStreamRef.current) {
+        screenStreamRef.current.getTracks().forEach(t => t.stop());
+        screenStreamRef.current = null;
+      }
       if (localStream) {
          const origVideoTrack = localStream.getVideoTracks()[0];
          Object.values(peersRef.current).forEach(peer => {
@@ -308,11 +338,26 @@ function MeetingRoom({ meeting, onEnd }) {
   };
 
   const handleEnd = () => {
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(t => t.stop());
+    // Notify students before disconnecting, so their clients can cleanup
+    if (socketRef.current) {
+      socketRef.current.emit("meeting_ended", { room_code: meeting.room_code });
     }
-    Object.values(peersRef.current).forEach(p => p.close());
-    socketRef.current.disconnect();
+
+    stopLocalMedia();
+
+    Object.values(peersRef.current).forEach(p => {
+      p.getSenders().forEach(sender => {
+        if (sender.track) sender.track.stop();
+      });
+      p.close();
+    });
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = null;
+    }
+    setCamOn(false);
+    setMicOn(false);
+    setIsScreenSharing(false);
+    if (socketRef.current) socketRef.current.disconnect();
     onEnd();
   };
 
@@ -409,7 +454,7 @@ function MeetingRoom({ meeting, onEnd }) {
                 {Object.entries(remoteStreams).map(([sid, stream]) => (
                 <div key={sid} className="mtg-student-cam">
                   <RemoteVideoPlayer stream={stream} />
-                  <div className="mtg-cam-name">Student {sid.slice(0,4)}</div>
+                  <div className="mtg-cam-name">{studentNames[sid] || `Student ${sid.slice(0,4)}`}</div>
                 </div>
               ))}
               </div>

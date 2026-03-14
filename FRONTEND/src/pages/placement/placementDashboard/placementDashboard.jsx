@@ -73,6 +73,45 @@ function mapApiStudent(s, i) {
   };
 }
 
+function mapApiTask(t) {
+  const isOverdue = t.due_date && new Date(t.due_date) < new Date() && !t.done;
+  const isSoon = t.due_date && new Date(t.due_date) < new Date(Date.now() + 86400000 * 2);
+
+  return {
+    id: t.id,
+    txt: t.text,
+    sub: t.category,
+    due: t.due_date ? new Date(t.due_date).toLocaleDateString("en-IN", { day:"numeric", month:"short" }) : "No date",
+    dueCls: isOverdue ? "due-today" : isSoon ? "due-soon" : "due-ok",
+    done: t.done
+  };
+}
+
+function mapApiEvent(e) {
+  const [from, to] = (e.time || "00:00-00:00").split("-");
+  
+  const typeMap = {
+    "Meeting": { color: "var(--indigo-l)", tagBg:"rgba(91,78,248,.1)", tagColor:"var(--indigo-ll)" },
+    "Interview": { color: "var(--amber)", tagBg:"rgba(244,165,53,.1)", tagColor:"var(--amber)" },
+    "Drive Prep": { color: "var(--violet)", tagBg:"rgba(159,122,234,.1)", tagColor:"var(--violet)" },
+    "Review": { color: "var(--teal)", tagBg:"rgba(39,201,176,.1)", tagColor:"var(--teal)" },
+  };
+
+  const style = typeMap[e.type] || typeMap["Meeting"];
+
+  return {
+    id: e.id,
+    from: from || "00:00",
+    to: to || "00:00",
+    name: e.title,
+    room: e.company || "TBD",
+    tag: e.type,
+    tagColor: style.tagColor,
+    tagBg: style.tagBg,
+    divColor: style.color
+  };
+}
+
 /* ════════════════════════════════════════════
    PDF EXPORT UTILITY
 ════════════════════════════════════════════ */
@@ -949,7 +988,8 @@ export default function PlacementDashboard() {
   const [filter,        setFilter]       = useState("All");
   const [search,        setSearch]       = useState("");
   const [settings,      setSettings]     = useState(defaultSettings);
-  const [tasks,         setTasks]        = useState(FALLBACK_TASKS);
+  const [tasks,         setTasks]        = useState([]);
+  const [schedule,      setSchedule]     = useState([]);
   const [notifs,        setNotifs]       = useState([]);
 
   // ── API data ──────────────────────────────────────────────────
@@ -1016,12 +1056,16 @@ export default function PlacementDashboard() {
     const fetchAll = async () => {
       setLoading(true);
       try {
-        const [meRes, statsRes, drivesRes, studentsRes] = await Promise.allSettled([
+        const results = await Promise.allSettled([
           api.get("/auth/me"),
           api.get("/placement/dashboard/stats"),
           api.get("/placement/internships?limit=20"),
           api.get("/placement/dashboard/students?limit=50"),
+          api.get("/placement/dashboard/tasks"),
+          api.get("/placement/dashboard/events"),
         ]);
+
+        const [meRes, statsRes, drivesRes, studentsRes, tasksRes, eventsRes] = results;
 
         // Officer name
         if (meRes.status === "fulfilled") {
@@ -1045,6 +1089,18 @@ export default function PlacementDashboard() {
         if (studentsRes.status === "fulfilled") {
           const raw = Array.isArray(studentsRes.value) ? studentsRes.value : (studentsRes.value?.items ?? []);
           setStudents(raw.map((s, i) => mapApiStudent(s, i)));
+        }
+
+        // Tasks
+        if (tasksRes.status === "fulfilled") {
+          const raw = tasksRes.value || [];
+          setTasks(raw.map(mapApiTask));
+        }
+
+        // Events
+        if (eventsRes.status === "fulfilled") {
+          const raw = eventsRes.value || [];
+          setSchedule(raw.map(mapApiEvent));
         }
       } catch (err) {
         console.error("Placement dashboard fetch error:", err);
@@ -1129,7 +1185,23 @@ export default function PlacementDashboard() {
   }, [deleteTarget]);
 
   const handleClearNotifs = () => setNotifs(prev => prev.map(n => ({ ...n, unread: false })));
-  const handleToggleTask  = id  => setTasks(prev => prev.map(t => t.id === id ? { ...t, done: !t.done } : t));
+  
+  const handleToggleTask  = async (id) => {
+    const task = tasks.find(t => t.id === id);
+    if (!task) return;
+    const newDone = !task.done;
+    
+    // Optimistic update
+    setTasks(prev => prev.map(t => t.id === id ? { ...t, done: newDone } : t));
+    
+    try {
+      await api.patch(`/placement/dashboard/tasks/${id}`, { done: newDone });
+    } catch (err) {
+      console.error("Failed to toggle task:", err);
+      // Revert on error
+      setTasks(prev => prev.map(t => t.id === id ? { ...t, done: !newDone } : t));
+    }
+  };
 
   // Called by NotifyModal after successful POST
   const handleNotifSent = useCallback(({ subject, type, count }) => {
@@ -1509,8 +1581,8 @@ export default function PlacementDashboard() {
                   action={<button className="panel-act">Full week →</button>}
                 >
                   <div className="sched-list">
-                    {FALLBACK_SCHEDULE.map(s => (
-                      <div key={s.from} className="sched-item">
+                    {schedule.length > 0 ? schedule.map(s => (
+                      <div key={s.id} className="sched-item">
                         <div className="sched-time"><div className="st-from">{s.from}</div><div className="st-to">{s.to}</div></div>
                         <div className="sched-div" style={{ background:s.divColor }}/>
                         <div className="sched-info">
@@ -1519,7 +1591,9 @@ export default function PlacementDashboard() {
                           <span className="si-tag" style={{ background:s.tagBg, color:s.tagColor }}>{s.tag}</span>
                         </div>
                       </div>
-                    ))}
+                    )) : (
+                      <div style={{ textAlign:"center", padding:"20px 0", color:"var(--text3)", fontSize:11 }}>No events for today.</div>
+                    )}
                   </div>
                 </Panel>
               )}

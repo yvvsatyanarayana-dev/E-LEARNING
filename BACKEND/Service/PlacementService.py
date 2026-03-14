@@ -21,6 +21,8 @@ from Models.Placement import (
     MockInterviewRoundType,
     MockInterviewQuestion,
     ApplicationStatus,
+    PlacementTask,
+    PlacementEvent,
 )
 from Models.User import User          # adjust import to your project layout
 from Schemas.PlacementSchema import (
@@ -29,6 +31,10 @@ from Schemas.PlacementSchema import (
     InternshipUpdate,
     InternshipApplicationCreate,
     ApplicationStatusUpdate,
+    PlacementTaskCreate,
+    PlacementTaskUpdate,
+    PlacementEventCreate,
+    PlacementEventUpdate,
 )
 
 
@@ -59,6 +65,15 @@ def _recalc_pri(pr: PlacementReadiness) -> float:
     return round(min(pri, 100), 2)
 
 
+def _get_month_group(db: Session, column):
+    """DB-agnostic month grouping (YYYY-MM)."""
+    dialect = db.bind.dialect.name
+    if dialect == "postgresql":
+        return func.to_char(column, "YYYY-MM")
+    # Default to SQLite/strftime
+    return func.strftime("%Y-%m", column)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Dashboard Analytics
 # ─────────────────────────────────────────────────────────────────────────────
@@ -78,7 +93,7 @@ def get_dashboard_stats(db: Session) -> dict:
         .scalar() or 0
     )
 
-    placement_rate = round(placed_count / total_students * 100, 1) if total_students else 0
+    placement_rate = round(float(placed_count) / total_students * 100, 1) if total_students else 0.0
 
     avg_pri = (
         db.query(func.avg(PlacementReadiness.pri_score)).scalar() or 0.0
@@ -125,21 +140,56 @@ def get_dashboard_stats(db: Session) -> dict:
     offers_count    = placed_count
 
     funnel = [
-        {"label": "Total Eligible",         "count": total_students, "pct": 100},
-        {"label": "PRI ≥ 70 (Drive Ready)", "count": drive_ready,    "pct": round(drive_ready / total_students * 100, 1) if total_students else 0},
-        {"label": "Applied to Companies",   "count": applied_count,  "pct": round(applied_count / total_students * 100, 1) if total_students else 0},
-        {"label": "Offer Received",         "count": offers_count,   "pct": round(offers_count / total_students * 100, 1) if total_students else 0},
+        {"label": "Total Eligible",         "count": total_students, "pct": 100.0},
+        {"label": "PRI ≥ 70 (Drive Ready)", "count": drive_ready,    "pct": round(float(drive_ready) / total_students * 100.0, 1) if total_students else 0.0},
+        {"label": "Applied to Companies",   "count": applied_count,  "pct": round(float(applied_count) / total_students * 100.0, 1) if total_students else 0.0},
+        {"label": "Offer Received",         "count": offers_count,   "pct": round(float(offers_count) / total_students * 100.0, 1) if total_students else 0.0},
     ]
 
     return {
         "total_students":  total_students,
         "placed_students": placed_count,
         "placement_rate":  placement_rate,
-        "avg_pri":         round(avg_pri, 1),
+        "avg_pri":         round(float(avg_pri), 1),
         "pri_distribution": dist,
         "branch_stats":    branch_stats,
         "funnel":          funnel,
     }
+
+
+def get_dashboard_trends(db: Session):
+    """Monthly placement trends: Placed, Applied, Interviews."""
+    month_col = _get_month_group(db, InternshipApplication.applied_at)
+    results = db.query(
+        month_col.label("month"),
+        func.count(InternshipApplication.id).label("applied"),
+        func.count(case((InternshipApplication.status == ApplicationStatus.selected, 1))).label("placed")
+    ).group_by(month_col).order_by(month_col).all()
+
+    # Interviews trend from MockInterview
+    int_month_col = _get_month_group(db, MockInterview.created_at)
+    interviews = db.query(
+        int_month_col.label("month"),
+        func.count(MockInterview.id).label("count")
+    ).group_by(int_month_col).all()
+    int_map = {r.month: r.count for r in interviews}
+
+    trend = []
+    for r in results:
+        trend.append({
+            "month": r.month,
+            "placed": r.placed,
+            "applied": r.applied,
+            "interviews": int_map.get(r.month, 0)
+        })
+
+    # If no data, return a small default to avoid empty charts
+    if not trend:
+        # Get current month
+        m = datetime.utcnow().strftime("%Y-%m")
+        trend = [{"month": m, "placed": 0, "applied": 0, "interviews": 0}]
+
+    return trend
 
 
 def get_student_placement_list(db: Session, branch: Optional[str] = None,
@@ -225,8 +275,8 @@ def get_student_placement_list(db: Session, branch: Optional[str] = None,
             "branch":   user.department or "—",
             "roll":     user.roll_number or "—",
             "cgpa":     user.settings.get("cgpa", 0.0) if user.settings else 0.0,
-            "pri":      round(pri_score, 1),
-            "skills":   skills[:3],
+            "pri":      round(float(pri_score), 1),
+            "skills":   list(skills)[:3],
             "interviews": interviews,
             "company":  company,
             "pkg":      "—",          # extend when offer table exists
@@ -234,6 +284,64 @@ def get_student_placement_list(db: Session, branch: Optional[str] = None,
         })
 
     return result
+
+
+def create_placement_student(db: Session, data: dict) -> dict:
+    """Helper to create a student user and initialize placement readiness."""
+    # Check if user exists
+    existing = db.query(User).filter(User.email == data["email"]).first()
+    if existing:
+        raise ValueError("User with this email already exists")
+
+    new_user = User(
+        full_name=data["full_name"],
+        email=data["email"],
+        password=data.get("password", "SmartCampus123!"), # Default password
+        role="student",
+        phone=data.get("phone"),
+        department=data.get("department"),
+        roll_number=data.get("roll_number"),
+        skills=data.get("skills", []),
+        settings=data.get("settings", {}),
+    )
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    # Init readiness
+    pr = PlacementReadiness(
+        student_id=new_user.id,
+        pri_score=data.get("pri_score", 0.0)
+    )
+    db.add(pr)
+    db.commit()
+    
+    return {
+        "id": new_user.id,
+        "full_name": new_user.full_name,
+        "email": new_user.email,
+        "department": new_user.department,
+        "roll_number": new_user.roll_number,
+        "pri_score": pr.pri_score
+    }
+
+
+def delete_placement_student(db: Session, student_id: int) -> bool:
+    """Permanently remove a student and their placement data."""
+    user = db.query(User).filter(User.id == student_id, User.role == "student").first()
+    if not user:
+        return False
+    
+    # cascade deletes should handle readiness, applications if set in model
+    # but let's be safe if they aren't
+    db.query(PlacementReadiness).filter_by(student_id=student_id).delete()
+    db.query(InternshipApplication).filter_by(student_id=student_id).delete()
+    db.query(SkillScore).filter_by(student_id=student_id).delete()
+    db.query(MockInterview).filter_by(student_id=student_id).delete()
+    
+    db.delete(user)
+    db.commit()
+    return True
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -315,9 +423,7 @@ def delete_skill_score(db: Session, student_id: int, skill_name: str) -> bool:
 
 def create_internship(db: Session, officer_id: int, data: InternshipCreate) -> Internship:
     intern = Internship(
-        company_name=data.company_name,
-        role=data.role,
-        deadline=data.deadline,
+        **data.model_dump(),
         added_by=officer_id,
     )
     db.add(intern)
@@ -398,6 +504,15 @@ def get_internship_applications(db: Session, internship_id: int) -> List[Interns
         .order_by(InternshipApplication.applied_at.desc())
         .all()
     )
+
+
+def list_all_applications(db: Session, skip: int = 0, limit: int = 50,
+                         status: Optional[str] = None) -> List[InternshipApplication]:
+    """List all student applications across all drives (officer view)."""
+    q = db.query(InternshipApplication)
+    if status:
+        q = q.filter(InternshipApplication.status == status)
+    return q.order_by(InternshipApplication.applied_at.desc()).offset(skip).limit(limit).all()
 
 
 def update_application_status(db: Session, application_id: int,
@@ -519,7 +634,7 @@ def toggle_resume_check(db: Session, student_id: int, check_id: int) -> ResumeCh
     # Update resume_score = % checks completed
     total   = db.query(func.count(ResumeCheck.id)).filter_by(student_id=student_id).scalar() or 1
     done_ct = db.query(func.count(ResumeCheck.id)).filter_by(student_id=student_id, done=True).scalar() or 0
-    update_readiness(db, student_id, resume_score=round(done_ct / total * 100, 2))
+    update_readiness(db, student_id, resume_score=round(float(done_ct) / total * 100.0, 2))
     return rc
 
 
@@ -535,3 +650,61 @@ def build_drive_notification(internship: Internship) -> dict:
         "time":  "Just now",
         "unread": True,
     }
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Placement Officer Dashboard: Tasks & Events
+# ─────────────────────────────────────────────────────────────────────────────
+
+def get_placement_tasks(db: Session, officer_id: int) -> List[PlacementTask]:
+    return db.query(PlacementTask).filter_by(officer_id=officer_id).order_by(PlacementTask.created_at.desc()).all()
+
+def create_placement_task(db: Session, officer_id: int, data: PlacementTaskCreate) -> PlacementTask:
+    task = PlacementTask(**data.model_dump(), officer_id=officer_id)
+    db.add(task)
+    db.commit()
+    db.refresh(task)
+    return task
+
+def update_placement_task(db: Session, officer_id: int, task_id: int, data: PlacementTaskUpdate) -> PlacementTask:
+    task = db.query(PlacementTask).filter_by(id=task_id, officer_id=officer_id).first()
+    _require(task, "Task")
+    for k, v in data.model_dump(exclude_unset=True).items():
+        setattr(task, k, v)
+    db.commit()
+    db.refresh(task)
+    return task
+
+def delete_placement_task(db: Session, officer_id: int, task_id: int) -> bool:
+    task = db.query(PlacementTask).filter_by(id=task_id, officer_id=officer_id).first()
+    if not task: return False
+    db.delete(task)
+    db.commit()
+    return True
+
+# Events
+def get_placement_events(db: Session, officer_id: int) -> List[PlacementEvent]:
+    return db.query(PlacementEvent).filter_by(officer_id=officer_id).order_by(PlacementEvent.created_at.asc()).all()
+
+def create_placement_event(db: Session, officer_id: int, data: PlacementEventCreate) -> PlacementEvent:
+    ev = PlacementEvent(**data.model_dump(), officer_id=officer_id)
+    db.add(ev)
+    db.commit()
+    db.refresh(ev)
+    return ev
+
+def update_placement_event(db: Session, officer_id: int, event_id: int, data: PlacementEventUpdate) -> PlacementEvent:
+    ev = db.query(PlacementEvent).filter_by(id=event_id, officer_id=officer_id).first()
+    _require(ev, "Event")
+    for k, v in data.model_dump(exclude_unset=True).items():
+        setattr(ev, k, v)
+    db.commit()
+    db.refresh(ev)
+    return ev
+
+def delete_placement_event(db: Session, officer_id: int, event_id: int) -> bool:
+    ev = db.query(PlacementEvent).filter_by(id=event_id, officer_id=officer_id).first()
+    if not ev: return False
+    db.delete(ev)
+    db.commit()
+    return True

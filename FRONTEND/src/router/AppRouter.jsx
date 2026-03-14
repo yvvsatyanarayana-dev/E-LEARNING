@@ -27,7 +27,6 @@ import Reports from "../pages/admin/adminReports/adminreports";
 import Notifications from "../pages/admin/adminNotifications/adminNotifications";
 import AuditLogs from "../pages/admin/adminAuditLogs/adminAuditLogs";
 import SystemConfig from "../pages/admin/adminSystemConfig/adminSystemConfig";
-import RoleRoute from "./RoleRoute";
 import ErrorBoundary from "./ErrorBoundary";
 
 const SD = (

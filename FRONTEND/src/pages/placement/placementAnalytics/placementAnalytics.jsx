@@ -133,14 +133,14 @@ function deriveBranchStats(students, dashBranchStats = []) {
 ════════════════════════════════════════════ */
 const MONTH_LABELS = ["Aug","Sep","Oct","Nov","Dec","Jan","Feb","Mar"];
 const FALLBACK_MONTHLY = [
-  { m:"Aug", placed:12, applied:40,  interviews:28  },
-  { m:"Sep", placed:18, applied:55,  interviews:38  },
-  { m:"Oct", placed:25, applied:70,  interviews:52  },
-  { m:"Nov", placed:34, applied:88,  interviews:61  },
-  { m:"Dec", placed:42, applied:95,  interviews:74  },
-  { m:"Jan", placed:58, applied:110, interviews:88  },
-  { m:"Feb", placed:71, applied:118, interviews:96  },
-  { m:"Mar", placed:85, applied:125, interviews:104 },
+  { month:"Aug", placed:12, applied:40,  interviews:28  },
+  { month:"Sep", placed:18, applied:55,  interviews:38  },
+  { month:"Oct", placed:25, applied:70,  interviews:52  },
+  { month:"Nov", placed:34, applied:88,  interviews:61  },
+  { month:"Dec", placed:42, applied:95,  interviews:74  },
+  { month:"Jan", placed:58, applied:110, interviews:88  },
+  { month:"Feb", placed:71, applied:118, interviews:96  },
+  { month:"Mar", placed:85, applied:125, interviews:104 },
 ];
 function deriveMonthlyTrend(students) {
   // Try to build from student placement dates
@@ -164,7 +164,7 @@ function deriveMonthlyTrend(students) {
     const ratio  = (i + 1) / MONTH_LABELS.length;
     const growth = Math.pow(ratio, 1.4);          // accelerating curve
     return {
-      m,
+      month:      m,
       placed:     Math.round(placed     * growth),
       applied:    Math.round(applied    * growth),
       interviews: Math.round(interviews * growth),
@@ -296,12 +296,15 @@ export default function PlacementAnalytics() {
     const fetchAll = async () => {
       setLoading(true);
       try {
-        const [meRes, statsRes, studentsRes, drivesRes] = await Promise.allSettled([
+        const results = await Promise.allSettled([
           api.get("/auth/me"),
           api.get("/placement/dashboard/stats"),
           api.get("/placement/dashboard/students?limit=200"),
           api.get("/placement/internships?limit=50"),
+          api.get("/placement/dashboard/trends"),
         ]);
+
+        const [meRes, statsRes, studentsRes, drivesRes, trendsRes] = results;
 
         // Officer name
         if (meRes.status === "fulfilled") {
@@ -337,8 +340,12 @@ export default function PlacementAnalytics() {
 
         /* ── Derive all analytics from the data we have ── */
 
-        // Monthly trend (from student counts)
-        setMonthData(deriveMonthlyTrend(studentList));
+        // Monthly trend
+        if (trendsRes.status === "fulfilled" && Array.isArray(trendsRes.value) && trendsRes.value.length > 0) {
+          setMonthData(trendsRes.value);
+        } else {
+          setMonthData(deriveMonthlyTrend(studentList));
+        }
 
         // Top companies (from placed students + drives)
         const companies = deriveTopCompanies(studentList, driveList);
@@ -570,10 +577,10 @@ export default function PlacementAnalytics() {
                         const val = d[activeMetric];
                         const h   = (val / maxVal) * 160;
                         return (
-                          <div key={d.m} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:5 }}>
+                          <div key={d.month} style={{ flex:1, display:"flex", flexDirection:"column", alignItems:"center", gap:5 }}>
                             <span style={{ fontSize:9, color:"var(--text3)", fontFamily:"'Fraunces',serif" }}>{val}</span>
                             <div style={{ width:"100%", height:h, background:metricColor[activeMetric], borderRadius:"4px 4px 0 0", opacity:.85, transition:"height .5s ease", minHeight:4 }}/>
-                            <span style={{ fontSize:9, color:"var(--text3)" }}>{d.m}</span>
+                            <span style={{ fontSize:9, color:"var(--text3)" }}>{d.month}</span>
                           </div>
                         );
                       })}

@@ -66,6 +66,19 @@ class Internship(Base):
     logo_color   = Column(String(50), nullable=True)   # hex or var
     tag          = Column(String(50), nullable=True)    # "Open", "Closing", "Applied"
     tag_color    = Column(String(50), nullable=True)    # "teal", "amber", etc.
+    
+    # New Fields for detailed Company/Drive info
+    sector         = Column(String(100), nullable=True)
+    website        = Column(String(200), nullable=True)
+    bond           = Column(String(100), nullable=True)
+    contact_name   = Column(String(100), nullable=True)
+    contact_email  = Column(String(150), nullable=True)
+    contact_phone  = Column(String(20), nullable=True)
+    min_cgpa       = Column(Float, default=0.0)
+    branches       = Column(JSON, nullable=True) # Reusing JSON or String based on preference, JSON better
+    rounds         = Column(JSON, nullable=True) # List of round names
+    pkg_lpa        = Column(Float, nullable=True) # Numeric package for analytics
+
     added_by     = Column(Integer, ForeignKey("users.id"), nullable=False)  # placement officer
     deadline     = Column(DateTime(timezone=True), nullable=True)
     created_at   = Column(DateTime(timezone=True), default=datetime.utcnow)
@@ -169,3 +182,32 @@ class MockInterviewQuestion(Base):
     title      = Column(String(200), nullable=False)
     asked      = Column(JSON, nullable=False) # List of company names
     times      = Column(Integer, default=0)
+
+
+class PlacementTask(Base):
+    __tablename__ = "placement_tasks"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    officer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    text       = Column(String(500), nullable=False)
+    done       = Column(Boolean, default=False)
+    category   = Column(String(50), default="General") # "Follow-up", "Urgent", etc.
+    due_date   = Column(DateTime(timezone=True), nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+
+    officer    = relationship("User")
+
+
+class PlacementEvent(Base):
+    __tablename__ = "placement_events"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    officer_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    time       = Column(String(50), nullable=False) # "10:00 AM"
+    title      = Column(String(200), nullable=False)
+    type       = Column(String(50), default="Meeting") # "Meeting", "Drive", "Interview"
+    company    = Column(String(100), nullable=True)
+    status     = Column(String(50), default="Upcoming")
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+
+    officer    = relationship("User")

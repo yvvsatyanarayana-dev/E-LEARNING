@@ -28,12 +28,18 @@ from Schemas.PlacementSchema import (
     PlacementReadinessResponse,
     SkillScoreCreate,
     SkillScoreResponse,
+    PlacementTaskCreate,
+    PlacementTaskUpdate,
+    PlacementTaskResponse,
+    PlacementEventCreate,
+    PlacementEventUpdate,
+    PlacementEventResponse,
 )
 
 # ── adjust to your auth utilities ────────────────────────────────────────────
 from Core.Dependencies import get_current_user, require_roles   # noqa: E402
 
-router = APIRouter(prefix="/api/placement", tags=["Placement"])
+router = APIRouter(prefix="/placement", tags=["Placement"])
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -82,6 +88,16 @@ def dashboard_stats(
     return svc.get_dashboard_stats(db)
 
 
+@router.get("/dashboard/trends", summary="Monthly placement trends")
+def dashboard_trends(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    return svc.get_dashboard_trends(db)
+
+
 @router.get("/dashboard/students", summary="Student placement tracker list")
 def student_tracker(
     branch: Optional[str] = Query(None, description="Filter by department / branch"),
@@ -102,6 +118,39 @@ def student_tracker(
     return svc.get_student_placement_list(
         db, branch=branch, status=placement_status, search=search, skip=skip, limit=limit
     )
+
+
+@router.post("/students", summary="Register new student (officer)")
+def create_student(
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """
+    Create a new student user and initialize placement readiness.
+    Accessible to placement officers and admins.
+    """
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    return _safe(svc.create_placement_student, db, payload)
+
+
+@router.delete("/students/{student_id}", status_code=status.HTTP_204_NO_CONTENT,
+               summary="Remove a student (officer)")
+def delete_student(
+    student_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """
+    Permanently remove a student from the placement system.
+    Accessible to placement officers and admins.
+    """
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    removed = svc.delete_placement_student(db, student_id)
+    if not removed:
+        _404("Student not found")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -267,6 +316,18 @@ def delete_internship(
 # ─────────────────────────────────────────────────────────────────────────────
 # Applications
 # ─────────────────────────────────────────────────────────────────────────────
+@router.get("/applications", response_model=List[InternshipApplicationResponse],
+            summary="List all applications (officer)")
+def list_apps(
+    status: Optional[str] = Query(None),
+    skip:   int           = Query(0,  ge=0),
+    limit:  int           = Query(50, ge=1, le=200),
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    return svc.list_all_applications(db, skip=skip, limit=limit, status=status)
 
 @router.get("/applications/me", response_model=List[InternshipApplicationResponse],
             summary="My applications")
@@ -476,3 +537,109 @@ def toggle_check(
     rc = _safe(svc.toggle_resume_check, db, current_user.id, check_id)
     return {"id": rc.id, "label": rc.label, "done": rc.done,
             "message": "Resume score updated and PRI recalculated"}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Officer Dashboard: Tasks & Events
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.get("/dashboard/tasks", response_model=List[PlacementTaskResponse],
+            summary="Officer's placement tasks")
+def get_tasks(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    return svc.get_placement_tasks(db, current_user.id)
+
+
+@router.post("/dashboard/tasks", response_model=PlacementTaskResponse,
+             status_code=status.HTTP_201_CREATED,
+             summary="Add a placement task")
+def create_task(
+    payload: PlacementTaskCreate,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    return svc.create_placement_task(db, current_user.id, payload)
+
+
+@router.patch("/dashboard/tasks/{task_id}", response_model=PlacementTaskResponse,
+              summary="Update a placement task")
+def update_task(
+    task_id: int,
+    payload: PlacementTaskUpdate,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    return _safe(svc.update_placement_task, db, current_user.id, task_id, payload)
+
+
+@router.delete("/dashboard/tasks/{task_id}", status_code=status.HTTP_204_NO_CONTENT,
+               summary="Delete a placement task")
+def delete_task(
+    task_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    removed = svc.delete_placement_task(db, current_user.id, task_id)
+    if not removed: _404("Task not found")
+
+
+# ── Events ──
+
+@router.get("/dashboard/events", response_model=List[PlacementEventResponse],
+            summary="Officer's placement events")
+def get_events(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    return svc.get_placement_events(db, current_user.id)
+
+
+@router.post("/dashboard/events", response_model=PlacementEventResponse,
+             status_code=status.HTTP_201_CREATED,
+             summary="Add a placement event")
+def create_event(
+    payload: PlacementEventCreate,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    return svc.create_placement_event(db, current_user.id, payload)
+
+
+@router.patch("/dashboard/events/{event_id}", response_model=PlacementEventResponse,
+              summary="Update a placement event")
+def update_event(
+    event_id: int,
+    payload: PlacementEventUpdate,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    return _safe(svc.update_placement_event, db, current_user.id, event_id, payload)
+
+
+@router.delete("/dashboard/events/{event_id}", status_code=status.HTTP_204_NO_CONTENT,
+               summary="Delete a placement event")
+def delete_event(
+    event_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    removed = svc.delete_placement_event(db, current_user.id, event_id)
+    if not removed: _404("Event not found")
