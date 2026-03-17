@@ -15,25 +15,37 @@
 }
 
 .rp-back-pill {
-  display: flex; 
-  align-items: center; 
-  gap: 8px; 
-  padding: 8px 14px; 
-  border-radius: 8px; 
-  background: var(--surface2); 
-  border: 1px solid var(--border2); 
-  color: var(--text2); 
-  font-size: 12px; 
-  font-weight: 500; 
-  cursor: pointer; 
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  color: var(--text2);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
   transition: all 0.2s;
   margin-bottom: 14px;
 }
-
 .rp-back-pill:hover {
   background: var(--surface3);
   color: var(--text);
   border-color: var(--border3);
+}
+
+/* ── BACK PILL SVG FIX ───────────────────────────────────────────── */
+.rp-back-pill svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: block;
+  flex-shrink: 0;
 }
 
 .rp-main-title {
@@ -80,11 +92,23 @@
   box-shadow: 0 0 18px rgba(91, 78, 248, 0.3);
   transition: all 0.2s;
 }
-
 .rp-export-all:hover {
   background: var(--indigo-l);
   transform: translateY(-1px);
   box-shadow: 0 0 26px rgba(91, 78, 248, 0.45);
+}
+
+/* ── EXPORT BTN SVG FIX ──────────────────────────────────────────── */
+.rp-export-all svg {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: block;
+  flex-shrink: 0;
 }
 
 /* Summary Section */
@@ -104,22 +128,17 @@
   overflow: hidden;
   transition: border-color 0.25s, transform 0.25s;
 }
-
 .summary-tile:hover {
   border-color: var(--border2);
   transform: translateY(-2px);
 }
-
 .summary-tile::before {
   content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
+  top: 0; left: 0; right: 0;
   height: 2px;
   border-radius: 2px 2px 0 0;
 }
-
 .summary-tile.sc-indigo::before { background: var(--indigo-l); }
 .summary-tile.sc-teal::before   { background: var(--teal); }
 .summary-tile.sc-amber::before  { background: var(--amber); }
@@ -149,8 +168,7 @@
 
 .tile-bg-icon {
   position: absolute;
-  bottom: -10px;
-  right: -5px;
+  bottom: -10px; right: -5px;
   font-size: 50px;
   opacity: 0.04;
   color: var(--text);
@@ -176,8 +194,8 @@
 
 /* Report Tiles */
 .report-tiles {
-  display: flex; 
-  flex-direction: column; 
+  display: flex;
+  flex-direction: column;
   gap: 8px;
 }
 
@@ -192,12 +210,10 @@
   cursor: pointer;
   transition: all 0.2s;
 }
-
 .report-tile:hover {
   background: var(--surface2);
   border-color: var(--border2);
 }
-
 .report-tile.active {
   border-color: rgba(91, 78, 248, 0.4);
   background: rgba(91, 78, 248, 0.05);
@@ -212,12 +228,24 @@
   justify-content: center;
   flex-shrink: 0;
 }
+.tile-icon-box.sc-teal   { background: rgba(39,201,176,.1);  color: var(--teal);      }
+.tile-icon-box.sc-indigo { background: rgba(91,78,248,.12);  color: var(--indigo-ll); }
+.tile-icon-box.sc-violet { background: rgba(159,122,234,.1); color: var(--violet);    }
+.tile-icon-box.sc-amber  { background: rgba(244,165,53,.1);  color: var(--amber);     }
+.tile-icon-box.sc-rose   { background: rgba(242,68,92,.1);   color: var(--rose);      }
 
-.tile-icon-box.sc-teal   { background: rgba(39,201,176,.1); color: var(--teal); }
-.tile-icon-box.sc-indigo { background: rgba(91,78,248,.12); color: var(--indigo-ll); }
-.tile-icon-box.sc-violet { background: rgba(159,122,234,.1); color: var(--violet); }
-.tile-icon-box.sc-amber  { background: rgba(244,165,53,.1); color: var(--amber); }
-.tile-icon-box.sc-rose   { background: rgba(242,68,92,.1); color: var(--rose); }
+/* ── TILE ICON BOX SVG FIX ───────────────────────────────────────── */
+.tile-icon-box svg {
+  width: 20px;
+  height: 20px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: block;
+  flex-shrink: 0;
+}
 
 .tile-body {
   flex: 1;
@@ -248,11 +276,24 @@
   justify-content: center;
   transition: all 0.2s;
 }
-
 .report-tile:hover .tile-dl-btn {
   color: var(--indigo-ll);
   border-color: rgba(91, 78, 248, 0.3);
 }
+
+/* ── DOWNLOAD BTN SVG FIX ────────────────────────────────────────── */
+.tile-dl-btn svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: block;
+  flex-shrink: 0;
+}
+.report-tile:hover .tile-dl-btn svg { stroke: var(--indigo-ll); }
 
 /* Analytics Sidebar */
 .rp-side-analytics {

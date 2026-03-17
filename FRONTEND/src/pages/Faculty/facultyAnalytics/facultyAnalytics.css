@@ -50,6 +50,22 @@
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* ── ICON BTN SVG FIX ── */
+.an-icon-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: block;
+  flex-shrink: 0;
+}
+.an-icon-btn:hover svg {
+  stroke: var(--text);
+}
+
 /* ── PERIOD PILLS ── */
 .period-pills {
   display: flex;

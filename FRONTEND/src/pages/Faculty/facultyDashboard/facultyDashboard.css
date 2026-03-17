@@ -344,264 +344,264 @@ body.c-click .fc-cursor  { width:5px; height:5px; background:#fff; }
 
 /* ── HAMBURGER BUTTON (hidden on desktop) ── */
 .tb-hamburger {
-  display: none;
-  width: 34px;
-  height: 34px;
-  border-radius: 8px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  align-items: center;
-  justify-content: center;
-  cursor: none;
-  color: var(--text2);
-  transition: background .2s, border-color .2s;
-  flex-shrink: 0;
+  display: none; width: 34px; height: 34px; border-radius: 8px;
+  background: var(--surface2); border: 1px solid var(--border);
+  align-items: center; justify-content: center;
+  cursor: none; color: var(--text2);
+  transition: background .2s, border-color .2s; flex-shrink: 0;
 }
 .tb-hamburger:hover { background: var(--surface3); border-color: var(--border2); color: var(--text); }
 
 /* ── SIDEBAR MOBILE CLOSE BUTTON (hidden on desktop) ── */
 .sb-mobile-close {
-  display: none;
-  width: 28px;
-  height: 28px;
-  border-radius: 7px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
-  align-items: center;
-  justify-content: center;
-  cursor: none;
-  color: var(--text3);
+  display: none; width: 28px; height: 28px; border-radius: 7px;
+  background: var(--surface2); border: 1px solid var(--border);
+  align-items: center; justify-content: center;
+  cursor: none; color: var(--text3);
   transition: background .2s, color .2s;
-  margin-left: auto;
-  flex-shrink: 0;
+  margin-left: auto; flex-shrink: 0;
 }
 .sb-mobile-close:hover { background: var(--surface3); color: var(--text); }
 
 /* ── SIDEBAR OVERLAY (mobile backdrop) ── */
 .sb-overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, .6);
-  backdrop-filter: blur(4px);
-  z-index: 99;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity .3s ease;
+  display: none; position: fixed; inset: 0;
+  background: rgba(0, 0, 0, .6); backdrop-filter: blur(4px);
+  z-index: 99; opacity: 0; pointer-events: none; transition: opacity .3s ease;
 }
-.sb-overlay.visible {
-  opacity: 1;
-  pointer-events: all;
-}
+.sb-overlay.visible { opacity: 1; pointer-events: all; }
 
 /* ── AI PANEL: UPDATED INPUT ROW ── */
-.lp-input-wrap {
-  flex: 1;
-  position: relative;
-  display: flex;
-  align-items: center;
-}
-.lp-input-wrap .lp-input {
-  width: 100%;
-  padding-right: 32px; /* space for X button */
-}
+.lp-input-wrap { flex: 1; position: relative; display: flex; align-items: center; }
+.lp-input-wrap .lp-input { width: 100%; padding-right: 32px; }
 .lp-clear {
-  position: absolute;
-  right: 8px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--surface3);
-  border: 1px solid var(--border2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: none;
-  color: var(--text3);
-  transition: background .18s, color .18s;
-  flex-shrink: 0;
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  width: 18px; height: 18px; border-radius: 50%;
+  background: var(--surface3); border: 1px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  cursor: none; color: var(--text3); transition: background .18s, color .18s; flex-shrink: 0;
 }
 .lp-clear:hover { background: rgba(242,68,92,.15); color: var(--rose); border-color: rgba(242,68,92,.3); }
-
 .lp-attach {
-  width: 36px;
-  height: 36px;
-  border-radius: 9px;
-  flex-shrink: 0;
-  background: var(--surface2);
-  border: 1px solid var(--border2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: none;
-  color: var(--text3);
-  transition: background .2s, color .2s, border-color .2s;
+  width: 36px; height: 36px; border-radius: 9px; flex-shrink: 0;
+  background: var(--surface2); border: 1px solid var(--border2);
+  display: flex; align-items: center; justify-content: center;
+  cursor: none; color: var(--text3); transition: background .2s, color .2s, border-color .2s;
 }
-.lp-attach:hover {
-  background: var(--surface3);
-  border-color: rgba(91,78,248,.3);
-  color: var(--indigo-ll);
+.lp-attach:hover { background: var(--surface3); border-color: rgba(91,78,248,.3); color: var(--indigo-ll); }
+
+/* ── LOGOUT BUTTON ── */
+.sb-logout {
+  display: flex; align-items: center; gap: 9px; width: 100%;
+  padding: 9px 12px; margin-top: 4px;
+  background: transparent; border: 1px solid rgba(242, 68, 92, 0.2);
+  border-radius: 8px; color: var(--rose);
+  font-size: 12px; font-weight: 500; letter-spacing: 0.01em;
+  cursor: pointer; transition: background 0.18s, border-color 0.18s, transform 0.12s;
+  font-family: inherit;
 }
+.sb-logout svg { stroke: var(--rose); flex-shrink: 0; transition: transform 0.18s; }
+.sb-logout:hover { background: rgba(242, 68, 92, 0.08); border-color: rgba(242, 68, 92, 0.45); transform: translateX(2px); }
+.sb-logout:hover svg { transform: translateX(3px); }
+.sb-logout:active { transform: scale(0.97); }
 
 /* ═══════════════════════════════════════════════════
    RESPONSIVE BREAKPOINTS
 ═══════════════════════════════════════════════════ */
-
-/* ── TABLET: ≤ 1100px ── */
 @media (max-width: 1100px) {
   .course-faculty-grid { grid-template-columns: 1fr 1fr; }
   .three-col-grid      { grid-template-columns: 1fr 1fr; }
   .stat-grid           { grid-template-columns: repeat(2, 1fr); }
 }
-
-/* ── SMALL TABLET: ≤ 900px ── */
 @media (max-width: 900px) {
   .two-col-grid        { grid-template-columns: 1fr; }
   .course-faculty-grid { grid-template-columns: 1fr; }
   .three-col-grid      { grid-template-columns: 1fr; }
-
-  .lucyna-panel {
-    width: calc(100vw - 32px);
-    right: 16px;
-    bottom: 92px;
-  }
+  .lucyna-panel { width: calc(100vw - 32px); right: 16px; bottom: 92px; }
 }
-
-/* ── MOBILE: ≤ 768px ── */
 @media (max-width: 768px) {
-  /* Show hamburger, hide sidebar by default */
   .tb-hamburger        { display: flex; }
   .sb-mobile-close     { display: flex; }
   .sb-overlay          { display: block; }
-
-  /* Sidebar: slide in from left */
-  .sidebar {
-    transform: translateX(-100%);
-    transition: transform .32s cubic-bezier(.16, 1, .3, 1);
-    z-index: 200;
-  }
-  .sidebar.sb-open {
-    transform: translateX(0);
-  }
-
-  /* Main takes full width */
+  .sidebar { transform: translateX(-100%); transition: transform .32s cubic-bezier(.16, 1, .3, 1); z-index: 200; }
+  .sidebar.sb-open { transform: translateX(0); }
   .main { margin-left: 0; }
-
-  /* Topbar adjustments */
   .topbar      { padding: 0 14px; gap: 8px; }
   .tb-sep      { display: none; }
   .tb-date     { display: none; }
   .tb-search   { flex: 1; flex-basis: 0; min-width: 0; }
   .tb-right    { gap: 6px; }
   .btn-solid .btn-text-hidden { display: none; }
-
-  /* Hide "Quick Actions" text label on mobile, show only icon */
   .tb-right .btn-solid span { display: none; }
-
-  /* Content padding */
   .content { padding: 18px 14px 80px; }
-
-  /* Greeting */
   .greet-title  { font-size: 22px; }
   .greet-actions { flex-wrap: wrap; gap: 6px; }
   .greet-actions .btn { font-size: 11px; padding: 7px 12px; }
-
-  /* Stat grid: 2 columns */
   .stat-grid { grid-template-columns: 1fr 1fr; gap: 10px; }
   .stat-val  { font-size: 22px; }
-
-  /* Courses: single col */
   .course-faculty-grid { grid-template-columns: 1fr; }
-
-  /* Grids: single col */
   .two-col-grid        { grid-template-columns: 1fr; gap: 12px; }
   .three-col-grid      { grid-template-columns: 1fr; gap: 12px; }
-
-  /* AI Panel: full-width near bottom */
-  .lucyna-panel {
-    width: calc(100vw - 24px);
-    right: 12px;
-    left: 12px;
-    bottom: 86px;
-    border-radius: 18px;
-  }
-  .lucyna-fab {
-    bottom: 18px;
-    right: 18px;
-    width: 52px;
-    height: 52px;
-  }
-
-  /* Panel body padding */
+  .lucyna-panel { width: calc(100vw - 24px); right: 12px; left: 12px; bottom: 86px; border-radius: 18px; }
+  .lucyna-fab   { bottom: 18px; right: 18px; width: 52px; height: 52px; }
   .panel-body { padding: 12px 14px; }
   .panel-hd   { padding: 12px 14px; }
 }
-
-/* ── SMALL MOBILE: ≤ 480px ── */
 @media (max-width: 480px) {
   .stat-grid { grid-template-columns: 1fr 1fr; gap: 8px; }
   .stat-card { padding: 14px 14px; }
   .stat-val  { font-size: 20px; }
   .stat-lbl  { font-size: 10px; }
-
   .greet-title  { font-size: 20px; }
   .greet-sub    { font-size: 12px; }
-
   .tb-search    { display: none; }
-
   .cfc-stats { gap: 0; }
-
   .lp-messages { max-height: 220px; }
-
-  /* Stack course card actions vertically */
   .cfc-actions { flex-wrap: wrap; }
 }
-
-/* ── LARGE DESKTOP: ≥ 1400px ── */
 @media (min-width: 1400px) {
   .course-faculty-grid { grid-template-columns: repeat(3, 1fr); }
   .three-col-grid      { grid-template-columns: repeat(3, 1fr); }
   .stat-grid           { grid-template-columns: repeat(4, 1fr); }
   .content             { padding: 30px 40px 80px; }
 }
-/* ── LOGOUT BUTTON ─────────────────────────────────────────── */
-.sb-logout {
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  width: 100%;
-  padding: 9px 12px;
-  margin-top: 4px;
-  background: transparent;
-  border: 1px solid rgba(242, 68, 92, 0.2);
-  border-radius: 8px;
-  color: var(--rose);
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.01em;
-  cursor: pointer;
-  transition: background 0.18s, border-color 0.18s, transform 0.12s;
-  font-family: inherit;
+
+/* ═══════════════════════════════════════════════════
+   GLOBAL SVG FIX — stroke: currentColor for all icon buttons
+   Fixes missing icons in topbar, sidebar, AI panel, stat cards, buttons etc.
+═══════════════════════════════════════════════════ */
+
+/* Topbar icon buttons (bell, user, etc.) */
+.tb-icon-btn svg {
+  width: 16px; height: 16px;
+  stroke: currentColor; fill: none;
+  stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+  display: block; flex-shrink: 0;
+}
+.tb-icon-btn:hover svg { stroke: var(--text); }
+
+/* Topbar search icon */
+.tb-search svg {
+  width: 13px; height: 13px;
+  stroke: var(--text3); fill: none;
+  stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  display: block; flex-shrink: 0;
 }
 
-.sb-logout svg {
-  stroke: var(--rose);
-  flex-shrink: 0;
-  transition: transform 0.18s;
+/* Hamburger & sidebar mobile close */
+.tb-hamburger svg,
+.sb-mobile-close svg {
+  width: 16px; height: 16px;
+  stroke: currentColor; fill: none;
+  stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  display: block; flex-shrink: 0;
 }
 
-.sb-logout:hover {
-  background: rgba(242, 68, 92, 0.08);
-  border-color: rgba(242, 68, 92, 0.45);
-  transform: translateX(2px);
+/* Sidebar nav links */
+.sb-link svg {
+  width: 16px; height: 16px;
+  stroke: currentColor; fill: none;
+  stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+  display: block; flex-shrink: 0;
 }
 
-.sb-logout:hover svg {
-  transform: translateX(3px);
+/* Stat card icons */
+.stat-ic svg {
+  width: 17px; height: 17px;
+  stroke: currentColor; fill: none;
+  stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+  display: block; flex-shrink: 0;
 }
 
-.sb-logout:active {
-  transform: scale(0.97);
+/* Buttons (btn-solid, btn-ghost, btn-primary) */
+.btn svg {
+  width: 14px; height: 14px;
+  stroke: currentColor; fill: none;
+  stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  display: block; flex-shrink: 0;
+}
+
+/* Panel header actions */
+.panel-act svg {
+  width: 12px; height: 12px;
+  stroke: currentColor; fill: none;
+  stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  display: block; flex-shrink: 0;
+}
+
+/* AI FAB icon */
+.lucyna-fab svg {
+  width: 22px; height: 22px;
+  stroke: #fff; fill: none;
+  stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  display: block; flex-shrink: 0;
+}
+
+/* AI Panel — orb icon */
+.lp-orb svg {
+  width: 18px; height: 18px;
+  stroke: #fff; fill: none;
+  stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  display: block; flex-shrink: 0;
+  position: relative; z-index: 1;
+}
+
+/* AI Panel — close button */
+.lp-close svg {
+  width: 13px; height: 13px;
+  stroke: currentColor; fill: none;
+  stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round;
+  display: block; flex-shrink: 0;
+}
+.lp-close:hover svg { stroke: var(--text); }
+
+/* AI Panel — send button */
+.lp-send svg {
+  width: 15px; height: 15px;
+  stroke: #fff; fill: none;
+  stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  display: block; flex-shrink: 0;
+}
+
+/* AI Panel — attach button */
+.lp-attach svg {
+  width: 15px; height: 15px;
+  stroke: currentColor; fill: none;
+  stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+  display: block; flex-shrink: 0;
+}
+.lp-attach:hover svg { stroke: var(--indigo-ll); }
+
+/* AI Panel — clear (X) button inside input */
+.lp-clear svg {
+  width: 9px; height: 9px;
+  stroke: currentColor; fill: none;
+  stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;
+  display: block; flex-shrink: 0;
+}
+.lp-clear:hover svg { stroke: var(--rose); }
+
+/* Task check icons */
+.task-check svg {
+  width: 10px; height: 10px;
+  stroke: var(--teal); fill: none;
+  stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round;
+  display: block; flex-shrink: 0;
+}
+
+/* Course faculty card actions */
+.cfc-actions .btn svg,
+.ci-badge svg {
+  width: 15px; height: 15px;
+  stroke: currentColor; fill: none;
+  stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round;
+  display: block; flex-shrink: 0;
+}
+
+/* Delta arrows */
+.stat-delta svg {
+  width: 10px; height: 10px;
+  stroke: currentColor; fill: none;
+  stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round;
+  display: block; flex-shrink: 0;
 }

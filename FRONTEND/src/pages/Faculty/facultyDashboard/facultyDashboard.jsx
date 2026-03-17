@@ -19,6 +19,7 @@ import FacultyQuickaction from "../facultyQuickaction/facultyQuickaction";
 import FacultyNotification from "../facultyNotification/facultyNotification";
 import FacultyMeeting from "../facultyMeeting/facultyMeeting";
 import api from "../../../utils/api";
+import lucynaJpg from "../../../assets/Cyberpunk 2077.jpg";
 
 // ─── ICONS ───────────────────────────────────────────────────────
 const IcoDashboard = (p) => <svg {...p} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>;
@@ -415,9 +416,10 @@ function AiPanel({ open, onClose, insights = [] }) {
 
 function AiFab({ onClick }) {
   return (
-    <button className="lucyna-fab" onClick={onClick} aria-label="Open AI Assistant">
-      <div className="lucyna-fab-ring" /><div className="lucyna-fab-dot" />
-      <IcoBrain /><span className="lucyna-fab-tip">AI Assistant</span>
+    <button className="lucyna-fab" onClick={onClick} aria-label="Open Lucyna AI">
+      <div className="lucyna-fab-ring"/><div className="lucyna-fab-dot"/>
+      <img src={lucynaJpg} alt="Lucyna" className="lucyna-fab-img"/>
+      <span className="lucyna-fab-tip">Ask Lucyna AI</span>
     </button>
   );
 }
