@@ -8,6 +8,7 @@ import StudentProfile from "../studentProfile/studentProfile";
 import StudentResume from "../studentResume/studentResume";
 import NotificationPanel from "../studentNotificationPanel/NotificationPanel";
 import StudentMeetings from "../studentMeetings/studentMeetings";
+import StudentPlacementMeetings from "../studentPlacementMeetings/studentPlacementMeetings";
 import "../studentSettings/studentSettings.css";
 import "../studentProfile/studentProfile.css";
 import "../studentResume/studentResume.css";
@@ -79,6 +80,7 @@ const ROUTES = {
   SETTINGS:       "Settings",
   PROFILE:        "Profile",
   RESUME:         "Resume",
+  PLACEMENT_MEETINGS: "Placement Meetings",
 };
 
 const PAGE_PARAM_MAP = {
@@ -97,6 +99,7 @@ const PAGE_PARAM_MAP = {
   "studentsettings":      "Settings",
   "studentprofile":       "Profile",
   "studentresume":        "Resume",
+  "studentplacementmeetings": "Placement Meetings",
 };
 
 const ROUTABLE = new Set(Object.values(ROUTES));
@@ -194,29 +197,31 @@ const AI_RESPONSES = [
   "Your CGPA of 8.4 puts you in the <strong style='color:var(--teal)'>top 15%</strong>. Improving Crypto would push you to the top 10%.",
 ];
 
-const NAV_ITEMS = [
-  { section:"Overview", links:[
-    {label:ROUTES.DASHBOARD, icon:<IcoDashboard/>},
-    {label:ROUTES.ANALYTICS, icon:<IcoBar/>, badge:"New"},
-  ]},
-  { section:"Learning", links:[
-    {label:ROUTES.MY_COURSES,     icon:<IcoBook/>,  badge:"6"},
-    {label:ROUTES.VIDEO_LECTURES, icon:<IcoVideo/>},
-    {label:ROUTES.ASSIGNMENTS,    icon:<IcoFile/>,  badge:"3", badgeClass:"rose"},
-    {label:ROUTES.QUIZZES,        icon:<IcoClock/>, badge:"1"},
-    {label:ROUTES.MEETINGS,       icon:<IcoVideo/>},
-  ]},
-  { section:"Campus", links:[
-    {label:ROUTES.INNOVATION_HUB, icon:<IcoSun/>},
-    {label:ROUTES.STUDY_GROUPS,   icon:<IcoUsers/>},
-    {label:ROUTES.SCHEDULE,       icon:<IcoCal/>},
-  ]},
-  { section:"Career", links:[
-    {label:ROUTES.PLACEMENT_PREP,  icon:<IcoAward/>},
-    {label:ROUTES.INTERNSHIPS,     icon:<IcoBrief/>},
-    {label:ROUTES.MOCK_INTERVIEW,  icon:<IcoPen/>},
-  ]},
-];
+function buildNavItems(hasActivePlacementMeeting) {
+  return [
+    { section:"Overview", links:[
+      {label:ROUTES.DASHBOARD, icon:<IcoDashboard/>},
+      {label:ROUTES.ANALYTICS, icon:<IcoBar/>, badge:"New"},
+    ]},
+    { section:"Learning", links:[
+      {label:ROUTES.MY_COURSES,     icon:<IcoBook/>,  badge:"6"},
+      {label:ROUTES.VIDEO_LECTURES, icon:<IcoVideo/>},
+      {label:ROUTES.ASSIGNMENTS,    icon:<IcoFile/>,  badge:"3", badgeClass:"rose"},
+      {label:ROUTES.QUIZZES,        icon:<IcoClock/>, badge:"1"},
+      {label:ROUTES.MEETINGS,       icon:<IcoVideo/>, badge: hasActivePlacementMeeting ? "LIVE" : undefined, badgeClass: hasActivePlacementMeeting ? "rose" : undefined},
+    ]},
+    { section:"Campus", links:[
+      {label:ROUTES.INNOVATION_HUB, icon:<IcoSun/>},
+      {label:ROUTES.STUDY_GROUPS,   icon:<IcoUsers/>},
+      {label:ROUTES.SCHEDULE,       icon:<IcoCal/>},
+    ]},
+    { section:"Career", links:[
+      {label:ROUTES.PLACEMENT_PREP,  icon:<IcoAward/>},
+      {label:ROUTES.INTERNSHIPS,     icon:<IcoBrief/>},
+      {label:ROUTES.MOCK_INTERVIEW,  icon:<IcoPen/>},
+    ]},
+  ];
+}
 
 // ─── HELPERS ────────────────────────────────────────────────────
 function addRipple(e, el) {
@@ -283,10 +288,11 @@ function AnimatedProgressBar({pct,color,height=3,delay=500}){
 }
 
 // ─── SIDEBAR ─────────────────────────────────────────────────────
-function Sidebar({activePage,onNavigate,mobileOpen,onMobileClose,onNavigateSettings,onNavigateProfile,userName,priScore}){
+function Sidebar({activePage, onNavigate, mobileOpen, onMobileClose, onNavigateSettings, onNavigateProfile, userName, priScore, hasActivePlacementMeeting}){
   const logoutNavigate=useNavigate();
   const [priW,setPriW]=useState(0);
   useEffect(()=>{const t=setTimeout(()=>setPriW(Math.round(priScore||0)),600);return()=>clearTimeout(t);},[priScore]);
+  const NAV_ITEMS = buildNavItems(hasActivePlacementMeeting);
 
   const handleLogout=()=>{
     localStorage.removeItem("token");localStorage.removeItem("user");
@@ -488,7 +494,7 @@ function LucynaFab({onClick}){
 }
 
 // ─── DASHBOARD CONTENT ──────────────────────────────────────────
-function DashboardContent({ stats, courses, schedule, quizzes, skills, activeMeeting, onNavigateToAnalytics, onNavigateToMyCourses, onNavigateToVideoLectures, onNavigateToAssignments, onNavigateToQuizzes, userName, onEnroll }) {
+function DashboardContent({ stats, courses, schedule, quizzes, skills, activeMeeting, activePlacementMeeting, onNavigateToAnalytics, onNavigateToMyCourses, onNavigateToVideoLectures, onNavigateToAssignments, onNavigateToQuizzes, onNavigateToPlacementMeetings, userName, onEnroll }) {
   const enrolledCount = courses.filter(c => c.enrollment_id > 0).length;
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
@@ -499,7 +505,7 @@ function DashboardContent({ stats, courses, schedule, quizzes, skills, activeMee
       {activeMeeting && (
         <div style={{
           background: "linear-gradient(135deg, var(--rose) 0%, var(--rose-l) 100%)",
-          color: "white", padding: "16px 24px", borderRadius: "12px", marginBottom: "24px",
+          color: "white", padding: "16px 24px", borderRadius: "12px", marginBottom: "12px",
           display: "flex", alignItems: "center", justifyContent: "space-between",
           boxShadow: "0 8px 24px rgba(242,68,92,0.25)"
         }}>
@@ -518,6 +524,31 @@ function DashboardContent({ stats, courses, schedule, quizzes, skills, activeMee
           }}>
             Join Now
           </a>
+        </div>
+      )}
+
+      {activePlacementMeeting && (
+        <div style={{
+          background: "linear-gradient(135deg, var(--teal) 0%, var(--teal-l) 100%)",
+          color: "white", padding: "16px 24px", borderRadius: "12px", marginBottom: "24px",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          boxShadow: "0 8px 24px rgba(39,201,176,0.25)"
+        }}>
+          <div>
+            <h2 style={{ fontSize: "18px", margin: "0 0 4px 0", fontWeight: "600", display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ width: 8, height: 8, background: "#fff", borderRadius: "50%", animation: "pulse 1.5s infinite" }} />
+              Live Placement Session: {activePlacementMeeting.department}
+            </h2>
+            <p style={{ margin: 0, fontSize: "13px", opacity: 0.9 }}>
+              Officer {activePlacementMeeting.officer_name} is hosting a virtual session.
+            </p>
+          </div>
+          <button onClick={() => onNavigateToPlacementMeetings()} style={{
+            background: "white", color: "var(--teal)", padding: "10px 20px", borderRadius: "8px",
+            border: "none", fontWeight: "600", fontSize: "14px", transition: "all 0.2s", cursor: "pointer"
+          }}>
+            Join Session
+          </button>
         </div>
       )}
 
@@ -706,6 +737,7 @@ export default function StudentDashboard() {
   const [quizzes,     setQuizzes]     = useState([]);
   const [skills,      setSkills]      = useState([]);
   const [activeMeeting, setActiveMeeting]= useState(null);
+  const [activePlacementMeeting, setActivePlacementMeeting]= useState(null);
 
   useEffect(() => {
     const pathParts = location.pathname.split("/").filter(Boolean);
@@ -722,13 +754,12 @@ export default function StudentDashboard() {
   useCursor();
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchData = async (isInitial = false) => {
       try {
-        setLoading(true);
+        if (isInitial) setLoading(true);
         const [meData, dashData] = await Promise.allSettled([
           api.get("/auth/me"),
           api.get("/student/dashboard"),
-          
         ]);
         if (meData.status === "fulfilled") setUserName(meData.value.full_name || meData.value.email || "");
         if (dashData.status === "fulfilled") {
@@ -738,15 +769,19 @@ export default function StudentDashboard() {
           if (d.skill_scores) setSkills(d.skill_scores.map(mapApiSkill));
           if (d.schedule_today) setSchedule(d.schedule_today.map(mapApiSchedule));
           if (d.recent_quizzes) setQuizzes(d.recent_quizzes.map(mapApiQuiz));
-          if (d.active_meeting) setActiveMeeting(d.active_meeting);
+          setActiveMeeting(d.active_meeting || null);
+          setActivePlacementMeeting(d.active_placement_meeting || null);
           if (d.full_name && !userName) setUserName(d.full_name);
         }
       } catch (err) {
         console.error("Dashboard fetch failed:", err);
-        setError("Could not load dashboard data.");
-      } finally { setLoading(false); }
+        if (isInitial) setError("Could not load dashboard data.");
+      } finally { if (isInitial) setLoading(false); }
     };
-    fetchData();
+    fetchData(true);
+    // Poll for active meeting updates every 15 seconds
+    const pollInterval = setInterval(() => fetchData(false), 15000);
+    return () => clearInterval(pollInterval);
   }, []);
 
   const handleEnroll = async (courseId) => {
@@ -782,6 +817,7 @@ export default function StudentDashboard() {
     [ROUTES.SETTINGS]:        "/studentdashboard/studentSettings",
     [ROUTES.PROFILE]:         "/studentdashboard/studentProfile",
     [ROUTES.RESUME]:          "/studentdashboard/studentResume",
+    [ROUTES.PLACEMENT_MEETINGS]: "/studentdashboard/studentPlacementMeetings",
   };
 
   const navigate = (targetPage) => {
@@ -810,6 +846,7 @@ export default function StudentDashboard() {
           onNavigateProfile={()=>navigate(ROUTES.PROFILE)}
           userName={userName}
           priScore={stats.pri_score||0}
+          hasActivePlacementMeeting={!!activePlacementMeeting}
         />
         <main className="main">
           <Topbar
@@ -830,12 +867,14 @@ export default function StudentDashboard() {
 
           {activePage === ROUTES.DASHBOARD && (
             <DashboardContent
-              stats={stats} courses={courses} schedule={schedule} quizzes={quizzes} skills={skills} activeMeeting={activeMeeting}
+              stats={stats} courses={courses} schedule={schedule} quizzes={quizzes} skills={skills} 
+              activeMeeting={activeMeeting} activePlacementMeeting={activePlacementMeeting}
               onNavigateToAnalytics={()=>navigate(ROUTES.ANALYTICS)}
               onNavigateToMyCourses={()=>navigate(ROUTES.MY_COURSES)}
               onNavigateToVideoLectures={()=>navigate(ROUTES.VIDEO_LECTURES)}
               onNavigateToAssignments={()=>navigate(ROUTES.ASSIGNMENTS)}
               onNavigateToQuizzes={()=>navigate(ROUTES.QUIZZES)}
+              onNavigateToPlacementMeetings={()=>navigate(ROUTES.PLACEMENT_MEETINGS)}
               userName={userName}
               onEnroll={handleEnroll}
             />
@@ -846,12 +885,13 @@ export default function StudentDashboard() {
           {activePage === ROUTES.ASSIGNMENTS    && <StudentAssignments  onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
           {activePage === ROUTES.QUIZZES        && <StudentQuizzes      onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
           {activePage === ROUTES.STUDY_GROUPS   && <StudentStudyGroups  onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
-          {activePage === ROUTES.MEETINGS       && <StudentMeetings     onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
+          {activePage === ROUTES.MEETINGS       && <StudentMeetings     onBack={()=>navigate(ROUTES.DASHBOARD)} onNavigate={navigate} />}
           {activePage === ROUTES.SCHEDULE       && <StudentSchedule     onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
           {activePage === ROUTES.INNOVATION_HUB && <StudentInnovationHub onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
           {activePage === ROUTES.PLACEMENT_PREP && <StudentPlacementPrep onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
           {activePage === ROUTES.INTERNSHIPS    && <StudentInternships  onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
           {activePage === ROUTES.MOCK_INTERVIEW && <StudentMockInterview onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
+          {activePage === ROUTES.PLACEMENT_MEETINGS && <StudentPlacementMeetings onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
 
           {/* ── NEW PAGES ── */}
           {activePage === ROUTES.SETTINGS && (

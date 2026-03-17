@@ -4,10 +4,10 @@ Business logic for placement readiness, drives, internships,
 mock interviews, skill scores, and dashboard analytics.
 """
 
-from datetime import datetime
-from typing import List, Optional
+from datetime import datetime, timezone, timedelta
+from typing import List, Optional, Dict, Any
 
-from sqlalchemy import func, case, distinct
+from sqlalchemy import func, case, distinct, select
 from sqlalchemy.orm import Session
 
 from Models.Placement import (
@@ -24,7 +24,8 @@ from Models.Placement import (
     PlacementTask,
     PlacementEvent,
 )
-from Models.User import User          # adjust import to your project layout
+from Core.MeetingState import ACTIVE_MEETINGS
+from Models.User import User, UserRole          # adjust import to your project layout
 from Schemas.PlacementSchema import (
     SkillScoreCreate,
     InternshipCreate,
@@ -708,3 +709,105 @@ def delete_placement_event(db: Session, officer_id: int, event_id: int) -> bool:
     db.delete(ev)
     db.commit()
     return True
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Placement Meetings
+# ─────────────────────────────────────────────────────────────────────────────
+
+def get_meeting_groups(db: Session) -> List[dict]:
+    """Return available departments/groups for placement sessions."""
+    from Models.User import User
+    depts = [r[0] for r in db.query(distinct(User.department)).filter(User.department != None).all()]
+    if "All" not in depts:
+        depts.append("All")
+    
+    groups = []
+    COLORS = ["var(--teal)", "var(--indigo-ll)", "var(--amber)", "var(--rose)", "var(--violet)"]
+    RGBS = ["39,201,176", "91,78,248", "255,191,0", "255,64,129", "124,77,255"]
+    
+    for idx, dept in enumerate(depts):
+        if dept == "All":
+            count = db.query(func.count(User.id)).filter(User.role == "student", User.is_active == True).scalar()
+        else:
+            count = db.query(func.count(User.id)).filter(User.role == "student", User.department == dept, User.is_active == True).scalar()
+            
+        active_meet = ACTIVE_MEETINGS.get(dept)
+        is_live = False
+        room_code = None
+        if active_meet and active_meet.get("type") == "placement":
+            is_live = True
+            room_code = active_meet.get("room_code")
+            
+        groups.append({
+            "id": idx + 1,
+            "group_key": dept,
+            "name": f"{dept} Students" if dept != "All" else "All Students",
+            "code": dept[:3].upper() if dept != "All" else "ALL",
+            "semester": "All Years",
+            "student_count": count or 0,
+            "color": COLORS[idx % len(COLORS)],
+            "rgb": RGBS[idx % len(RGBS)],
+            "is_live": is_live,
+            "room_code": room_code,
+        })
+    return groups
+
+def start_meeting(officer: User, db: Session, group_id: int):
+    """Start a placement session for a group."""
+    import random, string
+    groups = get_meeting_groups(db)
+    group = next((g for g in groups if g["id"] == group_id), None)
+    if not group:
+        group = groups[0] if groups else {
+            "name": "All Students", "group_key": "All", "code": "ALL",
+            "student_count": 0, "color": "var(--indigo-l)"
+        }
+        
+    room_code = "-".join("".join(random.choices(string.ascii_lowercase, k=3)) for _ in range(3))
+    # Correct join URL for placement meetings - using the student dashboard page param
+    join_url = f"http://localhost:5173/studentdashboard?page=studentplacementmeetings&room={room_code}"
+    
+    meet_details = {
+        "room_code": room_code,
+        "group_id": group_id,
+        "course_name": group["name"],
+        "course_code": group["code"],
+        "student_count": group["student_count"],
+        "officer_name": officer.full_name,
+        "officer_email": officer.email,
+        "started_at": datetime.now(timezone.utc).isoformat(),
+        "join_url": join_url,
+        "group_key": group["group_key"],
+        "type": "placement",
+        "department": group["group_key"]
+    }
+    
+    ACTIVE_MEETINGS[group["group_key"]] = meet_details
+    return meet_details
+
+def end_meeting(group_key: str):
+    """End an active placement session."""
+    if group_key in ACTIVE_MEETINGS:
+        del ACTIVE_MEETINGS[group_key]
+    return {"message": "Placement session ended", "group_key": group_key}
+
+def get_meeting_history(db: Session):
+    """Return simulated meeting history."""
+    import random
+    groups = get_meeting_groups(db)
+    history = []
+    for g in groups[:min(5, len(groups))]:
+        for _ in range(random.randint(1, 2)):
+            days_ago = random.randint(1, 15)
+            duration = random.choice([30, 45, 60, 90])
+            past_date = datetime.now(timezone.utc) - timedelta(days=days_ago)
+            history.append({
+                "course_name": g["name"],
+                "course_code": g["code"],
+                "date": past_date.strftime("%b %d, %Y"),
+                "duration_min": duration,
+                "attendees": int(g["student_count"] * random.uniform(0.5, 0.9)),
+                "total_students": g["student_count"],
+            })
+    history.sort(key=lambda x: x["date"], reverse=True)
+    return history[:10]

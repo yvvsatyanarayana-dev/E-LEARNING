@@ -643,3 +643,52 @@ def delete_event(
         _403()
     removed = svc.delete_placement_event(db, current_user.id, event_id)
     if not removed: _404("Event not found")
+
+# ── MEETING ROUTES ────────────────────────────────────────────────────
+
+@router.get("/meetings/groups")
+def get_meeting_groups(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    """Return student groups available for placement sessions."""
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    return svc.get_meeting_groups(db)
+
+@router.post("/meetings/start")
+def start_meeting(
+    body: dict,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    """Start a placement session for a specific group."""
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    group_id = body.get("course_id") # Consistent with faculty-style payload
+    if not group_id:
+        _400("course_id (group sequential ID) is required")
+    return svc.start_meeting(current_user, db, int(group_id))
+
+@router.post("/meetings/end")
+def end_meeting(
+    body: dict,
+    current_user=Depends(get_current_user)
+):
+    """End an active placement session."""
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    group_key = body.get("group_key")
+    if not group_key:
+        _400("group_key is required")
+    return svc.end_meeting(group_key)
+
+@router.get("/meetings/history")
+def get_meeting_history(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user)
+):
+    """Return past placement session history."""
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    return svc.get_meeting_history(db)

@@ -1,9 +1,8 @@
 import socketio
 import logging
 
-# Allow all origins for the underlying WebSocket handshake,
-# but we rely on FastAPI for the actual HTTP CORS headers.
-sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins='*')
+# Let FastAPI handle CORS headers
+sio = socketio.AsyncServer(async_mode='asgi', cors_allowed_origins=[])
 app = socketio.ASGIApp(sio)
 
 # room_code -> { faculty: sid, students: {sid: name}, faculty_name: name }

@@ -871,11 +871,12 @@ function NotificationsPanel({ items, onClose, onClearAll }) {
 /* ════════════════════════════════════════════
    QUICK ACTIONS PANEL
 ════════════════════════════════════════════ */
-function QuickActionsPanel({ onClose, onAddDrive, onNotify, onExport }) {
+function QuickActionsPanel({ onClose, onAddDrive, onNotify, onExport, onNavigate }) {
   const actions = [
     { icon:"🏢", label:"Add Drive",       sub:"Schedule a new placement drive",   color:"var(--indigo-ll)", action: () => { onClose(); onAddDrive(); } },
     { icon:"📢", label:"Notify Students", sub:"Send bulk notification",           color:"var(--teal)",      action: () => { onClose(); onNotify(); } },
     { icon:"📄", label:"Export Report",   sub:"Download placement analytics",     color:"var(--amber)",     action: () => { onClose(); onExport(); } },
+    { icon:"🎥", label:"Virtual Meeting", sub:"Start a placement session",       color:"var(--rose)",      action: () => { onClose(); onNavigate("/placementdashboard/meetings"); } },
   ];
   return (
     <Overlay onClose={onClose}>
@@ -1240,6 +1241,7 @@ export default function PlacementDashboard() {
   const BellIco    = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>;
   const GearIco    = () => <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>;
   const SearchIco  = () => <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color:"var(--text3)", flexShrink:0 }}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
+  const IcoVideo   = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" /></svg>;
 
   /* ════════════════════════════════════════════
      RENDER
@@ -1255,7 +1257,7 @@ export default function PlacementDashboard() {
       {showAddDrive  && <AddDriveModal      onClose={() => setShowAddDrive(false)}  onAdd={handleAddDrive}/>}
       {showSettings  && <SettingsModal      onClose={() => setShowSettings(false)}  settings={settings} onSave={setSettings}/>}
       {showNotif     && <NotificationsPanel onClose={() => setShowNotif(false)}     items={notifs} onClearAll={handleClearNotifs}/>}
-      {showQuickAct  && <QuickActionsPanel  onClose={() => setShowQuickAct(false)}  onAddDrive={() => setShowAddDrive(true)} onNotify={() => setShowNotify(true)} onExport={() => setShowExport(true)}/>}
+      {showQuickAct  && <QuickActionsPanel  onClose={() => setShowQuickAct(false)}  onAddDrive={() => setShowAddDrive(true)} onNotify={() => setShowNotify(true)} onExport={() => setShowExport(true)} onNavigate={navigate}/>}
       {showExport    && <ExportModal        onClose={() => setShowExport(false)}    exportData={exportData}/>}
       {showNotify    && <NotifyModal        onClose={() => setShowNotify(false)}    students={students} onNotifSent={handleNotifSent}/>}
       {deleteTarget  && <DeleteDriveConfirm drive={deleteTarget} onConfirm={handleDeleteDrive} onCancel={() => setDeleteTarget(null)} deleting={deleting}/>}
@@ -1290,6 +1292,7 @@ export default function PlacementDashboard() {
             <SbLink to="/placementdashboard/students"       badge={String(students.length)} badgeCls="teal"  icon={<UserIco/>}>Students</SbLink>
             <SbLink to="/placementdashboard/companies"      badge="8"   badgeCls="amber" icon={<BriefIco/>}>Companies</SbLink>
             <SbLink to="/placementdashboard/drives"         badge={String(upcomingDrives)} badgeCls="rose" icon={<FileIco/>}>Drives</SbLink>
+            <SbLink to="/placementdashboard/meetings"       icon={<IcoVideo/>}>Virtual Meeting</SbLink>
             <SbLink to="/placementdashboard/offers-placed"  icon={<StarIco/>}>Offers &amp; Placed</SbLink>
             <SbLink to="/placementdashboard/internships"    icon={<BoxIco/>}>Internships</SbLink>
 

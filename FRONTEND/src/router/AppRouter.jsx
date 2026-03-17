@@ -14,6 +14,9 @@ import RoleRoute from "./RoleRoute";
 import PlacementAnalytics from "../pages/placement/placementAnalytics/placementAnalytics";
 import PlacementProfile from "../pages/placement/placementProfile/placementProfile";
 import PlacementReports from "../pages/placement/placementReports/placementReports";
+import PlacementMeeting from "../pages/placement/placementMeeting/placementMeeting";
+import StudentPlacementMeetings from "../pages/Student/studentPlacementMeetings/studentPlacementMeetings";
+
 
 import FacultyQuickaction from "../pages/Faculty/facultyQuickaction/facultyQuickaction";
 import FacultyNotification from "../pages/Faculty/facultyNotification/facultyNotification";
@@ -77,6 +80,7 @@ const router = createBrowserRouter([
   { path: "/studentdashboard/studentProfile",            element: SD, errorElement: <ErrorBoundary /> },
   { path: "/studentdashboard/studentResume",             element: SD, errorElement: <ErrorBoundary /> },
   { path: "/studentdashboard/studentMeetings",           element: SD, errorElement: <ErrorBoundary /> },
+  { path: "/studentdashboard/studentPlacementMeetings",  element: SD, errorElement: <ErrorBoundary /> },
 
   // ──────── FACULTY DASHBOARD ROUTES ────────
   {
@@ -198,6 +202,11 @@ const router = createBrowserRouter([
     path: "/placementdashboard/placementProfile",
     element: <RoleRoute allowedRoles={["placement_officer","admin"]}><PlacementProfile /></RoleRoute>,
   },
+  {
+    path: "/placementdashboard/meetings",
+    element: <RoleRoute allowedRoles={["placement_officer","admin"]}><PlacementMeeting /></RoleRoute>,
+  },
+
 
   //  ──────── ADMIN DASHBOARD ROUTE ────────
   {

@@ -1,40 +1,97 @@
 import React, { useState, useEffect, useRef } from "react";
 import io from "socket.io-client";
 import api from "../../../utils/api";
-import "./studentMeetings.css";
+import { 
+  Camera, CameraOff, Mic, MicOff, PhoneOff, 
+  Users, Settings, MessageSquare, Monitor,
+  MoreVertical, Shield, Activity, Info,
+  Grid, Video, ChevronLeft, Clock
+} from 'lucide-react';
+import "../../placement/placementMeeting/placementMeeting.css";
 
-// ─── ICONS ──────────────────────────────────────────────────────────
-const IcoChevL  = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>;
-const IcoVideo  = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>;
-const IcoVideoOff=(p)=> <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M16 16v1a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h2m5.66 0H14a2 2 0 0 1 2 2v3.34l1 1L23 7v10"/><line x1="1" y1="1" x2="23" y2="23"/></svg>;
-const IcoMic    = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>;
-const IcoMicOff = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>;
-const IcoPhone  = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.72 12 19.79 19.79 0 0 1 1.61 3.41 2 2 0 0 1 3.6 1.21h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9c1.07 1.88 2.58 3.39 4.46 4.46l1.85-1.85a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 13.92z"/></svg>;
-const IcoUsers  = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
-const IcoClock  = (p) => <svg {...p} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
-
-const RemoteVideoPlayer = ({ stream }) => {
+const RemoteVideoPlayer = ({ stream, label }) => {
   const videoRef = useRef(null);
+  const [isMuted, setIsMuted] = useState(true);
+  
   useEffect(() => {
-    if (videoRef.current && stream && videoRef.current.srcObject !== stream) {
-      videoRef.current.srcObject = stream;
+    const video = videoRef.current;
+    if (!video || !stream) return;
+
+    const logPrefix = `[RemotePlayer:${label || stream.id.slice(0,5)}]`;
+    
+    if (video.srcObject !== stream) {
+      console.log(`${logPrefix} Attaching stream (${stream.getTracks().length} tracks)`);
+      video.srcObject = stream;
     }
+
+    const playVideo = async () => {
+      try {
+        await video.play();
+        console.log(`${logPrefix} Playback started (muted: ${video.muted})`);
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.warn(`${logPrefix} Playback failed:`, err.message);
+        }
+      }
+    };
+
+    playVideo();
+
+    const onAddTrack = (e) => {
+      console.log(`${logPrefix} New track: ${e.track.kind}`);
+      playVideo();
+    };
+
+    stream.addEventListener('addtrack', onAddTrack);
+    return () => stream.removeEventListener('addtrack', onAddTrack);
   }, [stream]);
+
   return (
-    <video 
-      ref={videoRef} 
-      autoPlay 
-      playsInline 
-      style={{ width: "100%", height: "100%", objectFit: "cover", position: "absolute", top: 0, left: 0 }} 
-    />
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      <video 
+        ref={videoRef} 
+        autoPlay 
+        playsInline 
+        muted={isMuted}
+        style={{ width: "100%", height: "100%", objectFit: "cover", backgroundColor: '#000' }} 
+      />
+      {isMuted && (
+        <button 
+          onClick={() => setIsMuted(false)}
+          className="unmute-btn"
+          style={{
+            position: 'absolute',
+            bottom: '20px',
+            right: '20px',
+            padding: '8px 16px',
+            backgroundColor: 'rgba(99, 102, 241, 0.9)',
+            color: 'white',
+            border: 'none',
+            borderRadius: '20px',
+            fontSize: '12px',
+            fontWeight: '600',
+            cursor: 'pointer',
+            zIndex: 10,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+            backdropFilter: 'blur(4px)'
+          }}
+        >
+          <Mic size={14} /> Unmute {label || 'Faculty'}
+        </button>
+      )}
+    </div>
   );
 };
 
-// ─── STUDENT MEETING ROOM ───────────────────────────────────────────
 function StudentMeetingRoom({ meeting, onLeave }) {
   const [micOn,  setMicOn]  = useState(true);
   const [camOn,  setCamOn]  = useState(true);
   const [elapsed, setElapsed] = useState(0);
+  const [activeTab, setActiveTab] = useState('participants');
+
   const timerRef = useRef(null);
   const localVideoRef = useRef(null);
   const peerRef = useRef(null); 
@@ -45,14 +102,55 @@ function StudentMeetingRoom({ meeting, onLeave }) {
   const localStreamRef = useRef(null);
   const [remoteStream, setRemoteStream] = useState(null);
   const [sockStatus, setSockStatus] = useState("Connecting...");
-  const [webrtcStatus, setWebrtcStatus] = useState("Waiting...");
+  const [webrtcStatus, setWebrtcStatus] = useState({ conn: "new", ice: "new" });
   const iceCandidateQueue = useRef([]); 
+  const isProcessingSignal = useRef(false); // Signal lock
+  const lastProcessedOfferSdp = useRef(null); // SDP deduplication
+  const initDone = useRef(false); // Guard against React StrictMode double-init
 
-  const rtcConfig = {
-    iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
-  };
+  // Custom Cursor Refs
+  const curRef = useRef(null);
+  const ringRef = useRef(null);
+  const mx = useRef(0), my = useRef(0);
+  const tx = useRef(0), ty = useRef(0);
+  const rafRef = useRef(null);
+
+  const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+
+  // Custom Cursor Effect
+  useEffect(() => {
+    const onMove = (e) => {
+      mx.current = e.clientX;
+      my.current = e.clientY;
+      if (curRef.current) {
+        curRef.current.style.left = `${e.clientX}px`;
+        curRef.current.style.top = `${e.clientY}px`;
+      }
+    };
+    window.addEventListener("mousemove", onMove);
+
+    const tick = () => {
+      tx.current += (mx.current - tx.current) * 0.15;
+      ty.current += (my.current - ty.current) * 0.15;
+      if (ringRef.current) {
+        ringRef.current.style.left = `${tx.current}px`;
+        ringRef.current.style.top = `${ty.current}px`;
+      }
+      rafRef.current = requestAnimationFrame(tick);
+    };
+    rafRef.current = requestAnimationFrame(tick);
+
+    return () => {
+      window.removeEventListener("mousemove", onMove);
+      cancelAnimationFrame(rafRef.current);
+    };
+  }, []);
 
   useEffect(() => {
+    // Prevent React StrictMode from running init twice
+    if (initDone.current) return;
+    initDone.current = true;
+
     timerRef.current = setInterval(() => setElapsed(s => s+1), 1000);
 
     const init = async () => {
@@ -71,7 +169,6 @@ function StudentMeetingRoom({ meeting, onLeave }) {
 
         s.on("connect", () => {
           setSockStatus("Connected");
-          // Get user name from auth or local storage
           const user = JSON.parse(localStorage.getItem('user') || '{}');
           const studentName = user.name || user.email || 'Student';
           s.emit("join_room", { room_code: meeting.room_code, role: "student", name: studentName });
@@ -85,9 +182,7 @@ function StudentMeetingRoom({ meeting, onLeave }) {
         });
 
         s.on("faculty_disconnected", () => {
-          if (localStreamRef.current) {
-             localStreamRef.current.getTracks().forEach(t => t.stop());
-          }
+          if (localStreamRef.current) localStreamRef.current.getTracks().forEach(t => t.stop());
           if (peerRef.current) peerRef.current.close();
           setRemoteStream(null);
           alert("The faculty has ended the meeting.");
@@ -95,23 +190,17 @@ function StudentMeetingRoom({ meeting, onLeave }) {
         });
 
         s.on("meeting_ended", () => {
-          // Stop all media tracks immediately
           if (localStreamRef.current) {
-            localStreamRef.current.getTracks().forEach(t => {
-              t.stop();
-            });
+            localStreamRef.current.getTracks().forEach(t => t.stop());
             localStreamRef.current = null;
           }
-          if (localVideoRef.current) {
-            localVideoRef.current.srcObject = null;
-          }
+          if (localVideoRef.current) localVideoRef.current.srcObject = null;
           if (peerRef.current) {
             peerRef.current.getSenders().forEach(s => { if (s.track) s.track.stop(); });
             peerRef.current.close();
           }
           setRemoteStream(null);
           setLocalStream(null);
-          setJoined(false);
           alert("Meeting ended by host.");
           onLeave();
         });
@@ -122,28 +211,44 @@ function StudentMeetingRoom({ meeting, onLeave }) {
 
           try {
             if (signal.type === "offer") {
-              console.log("[Student] Received offer from faculty");
-              // If we already have a connection, close old one to accept new (simpler for now)
-              if (peerRef.current) {
-                peerRef.current.close();
+              // Deduplicate: skip if this exact offer SDP was already processed
+              if (signal.sdp && signal.sdp === lastProcessedOfferSdp.current) {
+                console.log("[Student] Dropping duplicate offer (same SDP)");
+                return;
               }
+              if (peerRef.current && (peerRef.current.connectionState === 'connected' || peerRef.current.connectionState === 'connecting')) {
+                 console.log("[Student] Skipping offer for active peer");
+                 return;
+              }
+              if (isProcessingSignal.current) return;
+              
+              isProcessingSignal.current = true;
+              lastProcessedOfferSdp.current = signal.sdp;
+              console.log("[Student] Processing offer from faculty:", from);
               await handleOffer(from, signal, stream);
+              isProcessingSignal.current = false;
             } else if (signal.type === "answer") {
-              console.log("[Student] Received answer from faculty");
-              // Signaling Guard: Only set if not already stable
-              if (peerRef.current && peerRef.current.signalingState !== "stable") {
-                 await peerRef.current.setRemoteDescription(new RTCSessionDescription(signal));
+              if (isProcessingSignal.current) return;
+              isProcessingSignal.current = true;
+              
+              const peer = peerRef.current;
+              if (peer && peer.signalingState === "have-local-offer") {
+                 console.log("[Student] Processing answer for faculty:", from);
+                 await peer.setRemoteDescription(new RTCSessionDescription(signal));
               }
+              isProcessingSignal.current = false;
             } else if (signal.candidate) {
               const candidate = new RTCIceCandidate(signal);
-              if (peerRef.current && peerRef.current.remoteDescription && peerRef.current.remoteDescription.type) {
-                  await peerRef.current.addIceCandidate(candidate);
+              const peer = peerRef.current;
+              if (peer && peer.remoteDescription && peer.remoteDescription.type) {
+                await peer.addIceCandidate(candidate).catch(() => {});
               } else {
-                  iceCandidateQueue.current.push(candidate);
+                iceCandidateQueue.current.push(candidate);
               }
             }
           } catch (err) {
-             console.error("[Student] Error processing signal:", err);
+            console.error("[Student] Signal handling error:", err);
+            isProcessingSignal.current = false;
           }
         });
     };
@@ -160,17 +265,40 @@ function StudentMeetingRoom({ meeting, onLeave }) {
       if (peerRef.current) {
         peerRef.current.getSenders().forEach(s => { if (s.track) s.track.stop(); });
         peerRef.current.close();
+        peerRef.current = null;
       }
       if (socketRef.current) socketRef.current.disconnect();
     };
   }, []);
 
+  useEffect(() => {
+    if (localVideoRef.current && localStream) {
+      localVideoRef.current.srcObject = localStream;
+    }
+  }, [localStream]);
+
   const handleOffer = async (facultyId, offer, stream) => {
+    // PROTECT ACTIVE CONNECTION
+    if (peerRef.current) {
+       if (peerRef.current.connectionState === "connected" || peerRef.current.connectionState === "connecting") {
+          console.log("[Student] Peer active, skipping creation");
+          return;
+       }
+       peerRef.current.close();
+    }
+
+    console.log("[Student] Initializing PeerConnection");
     const peer = new RTCPeerConnection(rtcConfig);
     peerRef.current = peer;
     
-    peer.onconnectionstatechange = () => setWebrtcStatus(peer.connectionState);
-    peer.oniceconnectionstatechange = () => setWebrtcStatus("ICE: " + peer.iceConnectionState);
+    peer.onconnectionstatechange = () => {
+      console.log("[Student] ConnectionState:", peer.connectionState);
+      setWebrtcStatus(prev => ({ ...prev, conn: peer.connectionState }));
+    };
+    peer.oniceconnectionstatechange = () => {
+      console.log("[Student] ICEState:", peer.iceConnectionState);
+      setWebrtcStatus(prev => ({ ...prev, ice: peer.iceConnectionState }));
+    };
 
     const currentStream = stream || localStreamRef.current;
     if (currentStream) {
@@ -180,8 +308,17 @@ function StudentMeetingRoom({ meeting, onLeave }) {
     }
 
     peer.ontrack = (event) => {
-      console.log("[Student] Received track from faculty");
-      setRemoteStream(event.streams[0]);
+      console.log("[Student] Track received from faculty:", event.track.kind);
+      setRemoteStream(prev => {
+        if (prev) {
+          if (!prev.getTracks().find(t => t.id === event.track.id)) {
+            prev.addTrack(event.track);
+            return new MediaStream(prev.getTracks());
+          }
+          return prev;
+        }
+        return event.streams[0] || new MediaStream([event.track]);
+      });
     };
 
     peer.onicecandidate = (event) => {
@@ -196,11 +333,10 @@ function StudentMeetingRoom({ meeting, onLeave }) {
 
     await peer.setRemoteDescription(new RTCSessionDescription(offer));
     
-    // Process buffered candidates 
-    for (const candidate of iceCandidateQueue.current) {
-        await peer.addIceCandidate(candidate);
+    while (iceCandidateQueue.current.length > 0) {
+        const candidate = iceCandidateQueue.current.shift();
+        try { await peer.addIceCandidate(candidate); } catch (e) {}
     }
-    iceCandidateQueue.current = [];
 
     const answer = await peer.createAnswer();
     await peer.setLocalDescription(answer);
@@ -212,169 +348,206 @@ function StudentMeetingRoom({ meeting, onLeave }) {
     });
   };
 
-  useEffect(() => {
-    if (localVideoRef.current && localStream) {
-      localVideoRef.current.srcObject = localStream;
-    }
-  }, [localStream]);
-
   const toggleCam = () => {
     if (localStream) {
-      const videoTracks = localStream.getVideoTracks();
-      videoTracks.forEach(t => t.enabled = !camOn);
+      localStream.getVideoTracks().forEach(t => t.enabled = !camOn);
       setCamOn(!camOn);
     }
   };
 
   const toggleMic = () => {
     if (localStream) {
-      const audioTracks = localStream.getAudioTracks();
-      audioTracks.forEach(t => t.enabled = !micOn);
+      localStream.getAudioTracks().forEach(t => t.enabled = !micOn);
       setMicOn(!micOn);
     }
   };
 
   const handleLeave = () => {
-    if (localStreamRef.current) {
-      localStreamRef.current.getTracks().forEach(t => t.stop());
-    }
+    if (localStreamRef.current) localStreamRef.current.getTracks().forEach(t => t.stop());
     if (peerRef.current) peerRef.current.close();
-    socketRef.current.disconnect();
+    if (socketRef.current) socketRef.current.disconnect();
     onLeave();
   };
 
-  const fmtTime = (s) => {
-    const h = Math.floor(s/3600), m = Math.floor((s%3600)/60), ss = s%60;
-    return h > 0
-      ? `${h}:${String(m).padStart(2,"0")}:${String(ss).padStart(2,"0")}`
-      : `${String(m).padStart(2,"0")}:${String(ss).padStart(2,"0")}`;
+  const formatTime = (seconds) => {
+    const hrs = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hrs > 0 ? hrs + ':' : ''}${mins < 10 ? '0' + mins : mins}:${secs < 10 ? '0' + secs : secs}`;
   };
 
   return (
-    <div className="mtg-room">
-      {/* ─── HEADER BAR ─────────────────────────────────────────────── */}
-      <div className="mtg-room-bar">
-        <div className="mtg-room-info">
-          <div className="mtg-live-dot" />
-          <span className="mtg-course-name">{meeting.course_name} (Student)</span>
-          <span className="mtg-sep">·</span>
-          <span className="mtg-timer">{fmtTime(elapsed)}</span>
+    <div className="placement-meeting-container">
+      <div className="sc-cursor" ref={curRef} style={{ zIndex: 99999 }} />
+      <div className="sc-cursor-ring" ref={ringRef} style={{ zIndex: 99999 }} />
+      <div className="sc-noise" />
+
+      {/* Header */}
+      <div className="meeting-header">
+        <div className="left-section">
+          <div className="live-pill">
+            <span className="pulse"></span>
+            LIVE SESSION
+          </div>
+          <div className="meeting-info">
+            <h1>{meeting.course_name}</h1>
+            <span className="room-code">Room: {meeting.room_code}</span>
+          </div>
         </div>
-        <div className="mtg-room-code-block">
-          <span className="mtg-room-code-label">Host</span>
-          <span className="mtg-room-code">{meeting.faculty_name}</span>
+        
+        <div className="center-section">
+          <div className="timer-badge">
+            <Activity size={16} />
+            {formatTime(elapsed)}
+          </div>
+        </div>
+
+        <div className="right-section">
+          <button className="icon-btn secondary"><Info size={20} /></button>
+          <button className="icon-btn secondary"><Settings size={20} /></button>
+          <div className="connection-status" title={`ICE: ${webrtcStatus.ice}`}>
+            <div className={`status-dot ${sockStatus === 'Connected' ? 'stable' : 'warning'}`}></div>
+            {sockStatus === 'Connected' ? 'Stable' : 'Connecting...'}
+          </div>
         </div>
       </div>
 
-      {/* ─── MAIN STAGE ─────────────────────────────────────────────── */}
-      <div className="mtg-stage">
-        {/* Main Area: Faculty Video */}
-        <div className="mtg-faculty-tile" style={{ position: "relative", overflow: "hidden", background: "var(--surface2)", display: "flex", alignItems: "center", justifyContent: "center" }}>
-           {remoteStream ? (
-             <RemoteVideoPlayer stream={remoteStream} />
-           ) : (
-             <div className="mtg-tile-avatar" style={{ 
-               width: 120, height: 120, fontSize: 40,
-               display: "flex", alignItems: "center", justifyContent: "center", borderRadius: "50%",
-               background: "linear-gradient(135deg, var(--indigo), var(--violet))", color: "#fff"
-             }}>
-                {meeting.faculty_name?.split(" ").map(x => x[0]).join("").slice(0,2)}
-             </div>
-           )}
-           
-           <div className="mtg-tile-meta" style={{ zIndex: 10 }}>
-             <span className="mtg-tile-name">{meeting.faculty_name} (Faculty)</span>
-           </div>
+      {/* Main Content */}
+      <div className="meeting-content">
+        <div className="stage-area">
+          <div className="video-grid-manager">
+             {/* Remote Streams Grid */}
+             <div className="remote-grid">
+              {remoteStream ? (
+                <div className="remote-tile">
+                  <RemoteVideoPlayer stream={remoteStream} label={meeting?.faculty_name || 'Faculty'} />
+                  <div className="tile-overlay">
+                    <span className="user-label">{meeting?.faculty_name || 'Faculty'} (Faculty)</span>
+                  </div>
+                </div>
+              ) : (
+                <div className="empty-grid-placeholder">
+                  <div className="placeholder-content">
+                    <Video size={48} />
+                    <p>Waiting for instructor to share their camera...</p>
+                    <span className="invite-hint">Stand by for {meeting.faculty_name}'s broadcast.</span>
+                  </div>
+                </div>
+              )}
+            </div>
 
-           {!remoteStream && (
-             <div className="mtg-cam-off" style={{ zIndex: 5 }}>
-                <IcoVideoOff style={{width: 48, height: 48, color: "var(--text3)", opacity: 0.5}}/>
-                <span style={{ marginTop: 12 }}>Faculty camera is off</span>
-             </div>
-           )}
-        </div>
-
-        {/* Sidebar: You + Class Info */}
-        <div className="mtg-side">
-          <div style={{ background: "var(--surface3)", padding: "12px", borderRadius: "10px", fontSize: "11px", color: "var(--text2)", border: "1px solid var(--border)" }}>
-            <strong>Connection Status:</strong><br/>
-            Socket: {sockStatus}<br/>
-            WebRTC: {webrtcStatus}
-          </div>
-
-          <div className="mtg-faculty-tile" style={{ height: "220px", position: "relative", overflow: "hidden", borderRadius: "14px", border: "1px solid var(--border)" }}>
-            {camOn && localStream ? (
-              <video 
-                ref={localVideoRef} 
-                autoPlay 
-                playsInline 
-                muted 
-                style={{ 
-                  width: "100%", height: "100%", objectFit: "cover", 
-                  filter: camOn ? "none" : "blur(10px) grayscale(100%)",
-                  transition: "filter 0.3s"
-                }} 
+            {/* Local Stream (PIP or Side) */}
+            <div className={`local-tile ${remoteStream ? 'pip' : 'full'}`}>
+              <video
+                muted
+                autoPlay
+                playsInline
+                ref={localVideoRef}
+                className={!camOn ? 'hidden' : ''}
               />
-            ) : (
-              <div className="mtg-tile-avatar" style={{ scale: "0.8" }}>ST</div>
-            )}
-            
-            <div className="mtg-tile-meta" style={{ zIndex: 10 }}>
-              <span className="mtg-tile-name">You (Student)</span>
-              {!micOn && <span className="mtg-muted-badge">Muted</span>}
-            </div>
-
-            {/* Privacy Overlay */}
-            {!camOn && localStream && (
-              <div className="mtg-privacy-overlay" style={{
-                position: "absolute", inset: 0, background: "rgba(0,0,0,0.8)",
-                display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", zIndex: 5, color: "#fff"
-              }}>
-                <IcoVideoOff style={{ width: 32, height: 32, marginBottom: 8, opacity: 0.5 }} />
-                <span style={{ fontSize: "11px", fontWeight: 500 }}>Microphone only</span>
-              </div>
-            )}
-          </div>
-
-          <div className="mtg-info-card">
-            <div className="mtg-ic-title">Class Details</div>
-            <div className="mtg-ic-row"><span className="mtg-ic-label">Course</span><span className="mtg-ic-val">{meeting.course_name}</span></div>
-            <div className="mtg-ic-row"><span className="mtg-ic-label">Code</span><span className="mtg-ic-val">{meeting.course_code}</span></div>
-            <div className="mtg-divider"/>
-            <div className="mtg-student-count-card" style={{ border: "none", padding: 0 }}>
-              <IcoUsers style={{width:20,height:20,color:"var(--teal)"}}/>
-              <div>
-                <div className="mtg-sc-num" style={{ fontSize: 22 }}>{meeting.student_count}</div>
-                <div className="mtg-sc-lbl">Classmates</div>
+              {!camOn && (
+                <div className="avatar-placeholder">
+                  <div className="avatar">ST</div>
+                </div>
+              )}
+              <div className="tile-overlay">
+                <span className="user-label">You (Student)</span>
+                {!micOn && <MicOff size={14} className="status-icon" />}
               </div>
             </div>
           </div>
         </div>
+
+        {/* Sidebar */}
+        <div className="meeting-sidebar">
+          <div className="sidebar-tabs">
+            <button 
+              className={`tab-btn ${activeTab === 'participants' ? 'active' : ''}`}
+              onClick={() => setActiveTab('participants')}
+            >
+              <Users size={18} />
+              <span>Participants</span>
+            </button>
+            <button 
+              className={`tab-btn ${activeTab === 'chat' ? 'active' : ''}`}
+              onClick={() => setActiveTab('chat')}
+            >
+              <MessageSquare size={18} />
+              <span>Chat</span>
+            </button>
+          </div>
+
+          <div className="tab-content">
+            {activeTab === 'participants' && (
+              <div className="participants-list">
+                <div className="participant-item">
+                  <div className="p-avatar">FA</div>
+                  <div className="p-info">
+                    <span className="name">{meeting.faculty_name || 'Faculty'}</span>
+                    <span className="role">Instructor</span>
+                  </div>
+                  <div className="p-actions">
+                    <Shield size={16} className="mod-icon" />
+                  </div>
+                </div>
+                <div className="participant-item me">
+                  <div className="p-avatar">ST</div>
+                  <div className="p-info">
+                    <span className="name">You (Student)</span>
+                    <span className="role">Participant</span>
+                  </div>
+                </div>
+              </div>
+            )}
+            {activeTab === 'chat' && (
+              <div className="chat-placeholder">
+                <p>Chat is currently disabled for this session.</p>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
 
-      {/* ─── CONTROLS BAR ────────────────────────────────────────────── */}
-      <div className="mtg-controls">
-        <button className={`mtg-ctrl-btn ${!micOn?"mtg-ctrl-off":""}`} onClick={toggleMic}>
-          {micOn ? <IcoMic style={{width:22,height:22}}/> : <IcoMicOff style={{width:22,height:22}}/>}
-          <span>{micOn?"Mute":"Unmute"}</span>
-        </button>
+      {/* Controls */}
+      <div className="meeting-controls">
+        <div className="ctrl-group">
+          <button className={`ctrl-btn ${!micOn ? 'danger' : ''}`} onClick={toggleMic} disabled={!localStream}>
+            {!micOn ? <MicOff size={22} /> : <Mic size={22} />}
+            <span className="label">{!micOn ? 'Unmute' : 'Mute'}</span>
+          </button>
+          <button className={`ctrl-btn ${!camOn ? 'danger' : ''}`} onClick={toggleCam} disabled={!localStream}>
+            {!camOn ? <CameraOff size={22} /> : <Camera size={22} />}
+            <span className="label">{!camOn ? 'Start Cam' : 'Stop Cam'}</span>
+          </button>
+        </div>
 
-        <button className={`mtg-ctrl-btn ${!camOn?"mtg-ctrl-off":""}`} onClick={toggleCam}>
-          {camOn ? <IcoVideo style={{width:22,height:22}}/> : <IcoVideoOff style={{width:22,height:22}}/>}
-          <span>{camOn?"Stop Video":"Start Video"}</span>
-        </button>
+        <div className="ctrl-group">
+          <button className="ctrl-btn" disabled={true}>
+            <Monitor size={22} />
+            <span className="label">Present</span>
+          </button>
+          <button className="ctrl-btn">
+            <Grid size={22} />
+            <span className="label">Layout</span>
+          </button>
+          <button className="ctrl-btn danger end-call" onClick={handleLeave}>
+            <PhoneOff size={24} />
+            <span>Leave</span>
+          </button>
+        </div>
 
-        <button className="mtg-ctrl-btn mtg-ctrl-end" onClick={handleLeave}>
-          <IcoPhone style={{width:22,height:22,transform:"rotate(135deg)"}}/>
-          <span>Leave Room</span>
-        </button>
+        <div className="ctrl-group">
+          <button className="icon-btn"><Settings size={20} /></button>
+          <button className="icon-btn"><MoreVertical size={20} /></button>
+        </div>
       </div>
     </div>
   );
 }
 
-export default function StudentMeetings({ onBack }) {
+export default function StudentMeetings({ onBack, onNavigate }) {
   const [activeMeeting, setActiveMeeting] = useState(null);
+  const [activePlacementMeeting, setActivePlacementMeeting] = useState(null);
   const [loading, setLoading] = useState(true);
   const [joined, setJoined] = useState(false);
 
@@ -388,6 +561,9 @@ export default function StudentMeetings({ onBack }) {
           const urlParams = new URLSearchParams(window.location.search);
           if (urlParams.get("room") === data.active_meeting.room_code) setJoined(true);
         }
+        if (data?.active_placement_meeting) {
+          setActivePlacementMeeting(data.active_placement_meeting);
+        }
       } catch (err) {
         console.error("Fetch meeting error:", err);
       } finally {
@@ -400,44 +576,75 @@ export default function StudentMeetings({ onBack }) {
   if (joined && activeMeeting) return <StudentMeetingRoom meeting={activeMeeting} onLeave={() => setJoined(false)} />;
 
   return (
-    <div className="content student-meetings-page">
-      <div className="breadcrumb">
-        <button onClick={onBack} className="rp-back-pill" style={{ border: "none", background: "none", cursor: "pointer", color: "var(--text2)", display: "flex", alignItems: "center", gap: 6 }}>
-          <IcoChevL width={16} height={16} /> Dashboard
+    <div className="content student-meetings-page" style={{ padding: '24px' }}>
+      <div className="breadcrumb" style={{ marginBottom: '24px' }}>
+        <button onClick={onBack} className="btn btn-ghost" style={{ border: "none", background: "none", cursor: "pointer", color: "var(--text2)", display: "flex", alignItems: "center", gap: 6, fontWeight: 500 }}>
+          <ChevronLeft size={16} /> Dashboard
         </button>
       </div>
 
-      <div className="page-header">
-        <h1 className="page-title">
-          <span className="page-title-icon"><IcoVideo /></span>
+      <div className="page-header" style={{ marginBottom: '32px' }}>
+        <h1 className="page-title" style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '28px', color: 'var(--text1)' }}>
+          <span className="page-title-icon" style={{ background: 'var(--indigo-l)', color: 'var(--indigo)', padding: '10px', borderRadius: '12px', display: 'flex' }}><Video size={24} /></span>
           <span>Virtual Classroom</span>
         </h1>
-        <p className="page-sub">Join your scheduled and live lecture sessions.</p>
+        <p className="page-sub" style={{ color: 'var(--text2)', marginTop: '8px', fontSize: '15px' }}>Join your scheduled and live lecture sessions.</p>
       </div>
 
       {loading ? (
-        <div className="loading-state"><div className="sc-spinner"></div><p>Syncing sessions...</p></div>
-      ) : activeMeeting ? (
-        <div className="active-meeting-card">
-          <div className="amc-header">
-            <div className="amc-live-badge"><span className="amc-pulse-dot"></span> LIVE</div>
-            <div className="amc-time"><IcoClock /> Started at {new Date(activeMeeting.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-          </div>
-          <div className="amc-body">
-            <h2 className="amc-title">{activeMeeting.course_name}</h2>
-            <p className="amc-faculty">Instructor: <strong>{activeMeeting.faculty_name}</strong></p>
-            <div className="amc-actions">
-              <button onClick={() => setJoined(true)} className="btn-join-meeting" style={{ border: "none", cursor: "pointer" }}>
-                <IcoVideo width={18} height={18} /> Join Now
-              </button>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '64px', color: 'var(--text3)' }}><div className="spinner" style={{ marginBottom: '16px' }}/><p>Syncing sessions...</p></div>
+      ) : (activeMeeting || activePlacementMeeting) ? (
+        <div className="meetings-grid" style={{ display: "grid", gap: "20px", gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))' }}>
+          {activeMeeting && (
+            <div style={{ background: 'var(--surface2)', borderRadius: '16px', padding: '24px', borderLeft: '4px solid var(--indigo)', border: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <div style={{ background: 'rgba(91,78,248,0.1)', color: 'var(--indigo)', display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 600 }}>
+                  <span style={{ width: 8, height: 8, background: 'var(--indigo)', borderRadius: '50%', boxShadow: '0 0 8px var(--indigo)' }}></span> LIVE
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', color: 'var(--text3)' }}>
+                  <Clock size={14} /> {new Date(activeMeeting.started_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                </div>
+              </div>
+              <div>
+                <div style={{ background: 'var(--surface3)', color: 'var(--text2)', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: '700', width: 'fit-content', marginBottom: '8px' }}>CLASSROOM SESSION</div>
+                <h2 style={{ fontSize: '20px', color: 'var(--text1)', marginBottom: '8px' }}>{activeMeeting.course_name}</h2>
+                <p style={{ color: 'var(--text2)', fontSize: '14px', marginBottom: '24px' }}>Instructor: <strong style={{color:'var(--text1)'}}>{activeMeeting.faculty_name}</strong></p>
+                <div>
+                  <button onClick={() => setJoined(true)} style={{ background: 'var(--indigo)', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 500, width: '100%', justifyContent: 'center' }}>
+                    <Video size={18} /> Join Now
+                  </button>
+                </div>
+              </div>
             </div>
-          </div>
+          )}
+
+          {activePlacementMeeting && (
+            <div style={{ background: 'var(--surface2)', borderRadius: '16px', padding: '24px', borderLeft: '4px solid var(--teal)', border: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <div style={{ background: 'rgba(39,201,176,0.1)', color: 'var(--teal)', display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: 600 }}>
+                  <span style={{ width: 8, height: 8, background: 'var(--teal)', borderRadius: '50%', boxShadow: '0 0 8px var(--teal)' }}></span> LIVE
+                </div>
+              </div>
+              <div>
+                <div style={{ background: 'rgba(39,201,176,0.1)', color: 'var(--teal)', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', fontWeight: '700', width: 'fit-content', marginBottom: '8px' }}>PLACEMENT BRIEFING</div>
+                <h2 style={{ fontSize: '20px', color: 'var(--text1)', marginBottom: '8px' }}>{activePlacementMeeting.department} Placement Session</h2>
+                <p style={{ color: 'var(--text2)', fontSize: '14px', marginBottom: '24px' }}>Officer: <strong style={{color:'var(--text1)'}}>{activePlacementMeeting.officer_name}</strong></p>
+                <div>
+                  <button onClick={() => onNavigate("Placement Meetings")} style={{ background: 'var(--teal)', color: '#fff', border: 'none', padding: '10px 20px', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 500, width: '100%', justifyContent: 'center' }}>
+                    <Video size={18} /> Join Placement Session
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       ) : (
-        <div className="empty-state">
-          <div className="es-icon"><IcoVideo width={48} height={48} /></div>
-          <h3>Quiet Classroom</h3>
-          <p>There are no live meetings for your section right now.</p>
+        <div style={{ background: 'var(--surface2)', borderRadius: '16px', padding: '64px 24px', textAlign: 'center', border: '1px dashed var(--border)', color: 'var(--text3)', maxWidth: '600px', margin: '0 auto' }}>
+          <div style={{ background: 'var(--surface3)', padding: '20px', borderRadius: '50%', display: 'inline-flex', marginBottom: '20px' }}>
+            <Video size={48} />
+          </div>
+          <h3 style={{ color: 'var(--text1)', fontSize: '18px', marginBottom: '8px' }}>Quiet Classroom</h3>
+          <p style={{ maxWidth: '400px', margin: '0 auto', fontSize: '14px', lineHeight: 1.5 }}>There are no live meetings for your section right now.</p>
         </div>
       )}
     </div>

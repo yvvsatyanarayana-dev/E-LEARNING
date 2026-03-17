@@ -242,9 +242,26 @@ class StudentService:
         # Active Meeting
         active_meeting = None
         if group and group in ACTIVE_MEETINGS:
-            active_meeting = ACTIVE_MEETINGS[group]
+            meeting = ACTIVE_MEETINGS[group]
+            if meeting.get("type") == "faculty":
+                active_meeting = meeting
         elif "All" in ACTIVE_MEETINGS:
-            active_meeting = ACTIVE_MEETINGS["All"]
+            meeting = ACTIVE_MEETINGS["All"]
+            if meeting.get("type") == "faculty":
+                active_meeting = meeting
+
+        # Active Placement Meeting
+        active_placement_meeting = None
+        # Check student department and "All"
+        dept = student.department
+        if dept and dept in ACTIVE_MEETINGS:
+            meeting = ACTIVE_MEETINGS[dept]
+            if meeting.get("type") == "placement":
+                active_placement_meeting = meeting
+        elif "All" in ACTIVE_MEETINGS:
+            meeting = ACTIVE_MEETINGS["All"]
+            if meeting.get("type") == "placement":
+                active_placement_meeting = meeting
 
         return DashboardResponse(
             user_id=student.id,
@@ -263,7 +280,8 @@ class StudentService:
             placement=pri_resp,
             schedule_today=schedule_today,
             recent_quizzes=recent_quiz_list,
-            active_meeting=active_meeting
+            active_meeting=active_meeting,
+            active_placement_meeting=active_placement_meeting
         )
 
     # ─── Analytics ────────────────────────────────────────────────────────────

@@ -1484,6 +1484,7 @@ class FacultyService:
             "started_at": datetime.now(timezone.utc).isoformat(),
             "join_url": join_url,
             "group_key": group["group_key"],
+            "type": "faculty",
         }
         
         # Save to active meetings in-memory dict
