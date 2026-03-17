@@ -101,6 +101,9 @@ function PlacementMeetingRoom({ meeting, onEnd }) {
   const [activeTab, setActiveTab] = useState('participants');
   const [sockStatus, setSockStatus] = useState('Connecting...');
   const [copied, setCopied] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const chatEndRef = useRef(null);
 
   const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
@@ -120,6 +123,10 @@ function PlacementMeetingRoom({ meeting, onEnd }) {
     rafRef.current = requestAnimationFrame(tick);
     return () => { window.removeEventListener('mousemove', onMove); cancelAnimationFrame(rafRef.current); };
   }, []);
+
+  useEffect(() => {
+    if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   // Main init
   useEffect(() => {
@@ -151,6 +158,10 @@ function PlacementMeetingRoom({ meeting, onEnd }) {
       });
 
       s.on('disconnect', () => setSockStatus('Disconnected'));
+
+      s.on('chat_message', (msg) => {
+        setMessages(prev => [...prev, msg]);
+      });
 
       s.on('student_joined', async ({ student_id, student_name }) => {
         console.log('[PlacementOfficer] Student joined:', student_id);
@@ -326,6 +337,21 @@ function PlacementMeetingRoom({ meeting, onEnd }) {
     return `${h > 0 ? h + ':' : ''}${m < 10 ? '0' + m : m}:${sec < 10 ? '0' + sec : sec}`;
   };
 
+  const sendMessage = (e) => {
+    e.preventDefault();
+    if (!newMessage.trim() || !socketRef.current) return;
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const msgData = {
+      room_code: meeting.room_code,
+      sender: user.name || user.email || 'Officer',
+      text: newMessage,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    socketRef.current.emit('chat_message', msgData);
+    setMessages(prev => [...prev, { ...msgData, isMine: true }]);
+    setNewMessage('');
+  };
+
   return (
     <div className="placement-meeting-container">
       <div className="sc-cursor" ref={curRef} style={{ zIndex: 99999 }} />
@@ -423,7 +449,32 @@ function PlacementMeetingRoom({ meeting, onEnd }) {
               </div>
             )}
             {activeTab === 'chat' && (
-              <div className="chat-placeholder"><p>Chat is currently disabled for this session.</p></div>
+              <div className="chat-container">
+                <div className="chat-messages">
+                  {messages.length === 0 ? (
+                    <div className="chat-placeholder"><p>No messages yet. Start the conversation!</p></div>
+                  ) : (
+                    messages.map((m, i) => (
+                      <div key={i} className={`message ${m.isMine ? 'mine' : ''}`}>
+                        <div className="msg-header">
+                          {m.isMine ? 'You' : m.sender} &bull; {m.time}
+                        </div>
+                        <div className="msg-bubble">{m.text}</div>
+                      </div>
+                    ))
+                  )}
+                  <div ref={chatEndRef} />
+                </div>
+                <form onSubmit={sendMessage} className="chat-input-area">
+                  <input
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Type a message..."
+                  />
+                  <button type="submit" disabled={!newMessage.trim()} className="btn btn-solid send-btn">Send</button>
+                </form>
+              </div>
             )}
           </div>
         </div>
@@ -445,7 +496,13 @@ function PlacementMeetingRoom({ meeting, onEnd }) {
           <button className={`ctrl-btn ${isScreenSharing ? 'active' : ''}`} onClick={toggleScreenShare} disabled={!localStream}>
             <Monitor size={22} /><span className="label">{isScreenSharing ? 'Stop Share' : 'Present'}</span>
           </button>
-          <button className="ctrl-btn danger end-call" onClick={onEnd}>
+          <button className="ctrl-btn danger end-call" onClick={() => {
+            if (localStreamRef.current) { localStreamRef.current.getTracks().forEach(t => t.stop()); localStreamRef.current = null; }
+            if (socketRef.current) { socketRef.current.disconnect(); socketRef.current = null; }
+            Object.values(peersRef.current).forEach(p => p.close());
+            peersRef.current = {};
+            onEnd();
+          }}>
             <PhoneOff size={24} /><span>End Session</span>
           </button>
         </div>

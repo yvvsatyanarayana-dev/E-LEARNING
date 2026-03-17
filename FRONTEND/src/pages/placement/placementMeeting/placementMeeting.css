@@ -1,6 +1,7 @@
 .placement-meeting-container {
   height: 100vh;
-  width: 100vw;
+  width: 100%;
+  flex: 1;
   background-color: #0c0e12;
   color: white;
   display: flex;
@@ -52,9 +53,17 @@
 }
 
 @keyframes pulse {
-  0% { box-shadow: 0 0 0 0px rgba(242, 68, 92, 0.4); }
-  70% { box-shadow: 0 0 0 10px rgba(242, 68, 92, 0); }
-  100% { box-shadow: 0 0 0 0px rgba(242, 68, 92, 0); }
+  0% {
+    box-shadow: 0 0 0 0px rgba(242, 68, 92, 0.4);
+  }
+
+  70% {
+    box-shadow: 0 0 0 10px rgba(242, 68, 92, 0);
+  }
+
+  100% {
+    box-shadow: 0 0 0 0px rgba(242, 68, 92, 0);
+  }
 }
 
 .meeting-info h1 {
@@ -94,8 +103,13 @@
   background: #ccc;
 }
 
-.status-dot.stable { background: #10b981; }
-.status-dot.warning { background: #f59e0b; }
+.status-dot.stable {
+  background: #10b981;
+}
+
+.status-dot.warning {
+  background: #f59e0b;
+}
 
 .connection-status {
   display: flex;
@@ -179,8 +193,8 @@
   position: absolute;
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 10px 25px rgba(0,0,0,0.5);
-  border: 2px solid rgba(255,255,255,0.1);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+  border: 2px solid rgba(255, 255, 255, 0.1);
   background: #1e293b;
   transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
 }
@@ -357,7 +371,7 @@
 }
 
 .icon-btn:hover {
-  background: rgba(255,255,255,0.05);
+  background: rgba(255, 255, 255, 0.05);
   color: white;
 }
 
@@ -369,19 +383,20 @@
 /* Sidebar */
 .meeting-sidebar {
   width: 360px;
+  flex-shrink: 0;
   background: #12151b;
   border-radius: 16px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 8px 32px rgba(0,0,0,0.3);
-  border: 1px solid rgba(255,255,255,0.05);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .sidebar-tabs {
   display: flex;
   padding: 12px;
   gap: 8px;
-  border-bottom: 1px solid rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .tab-btn {
@@ -422,7 +437,7 @@
 }
 
 .participant-item:hover {
-  background: rgba(255,255,255,0.03);
+  background: rgba(255, 255, 255, 0.03);
 }
 
 .p-avatar {
@@ -449,7 +464,8 @@
   color: #e2e8f0;
 }
 
-.p-info .email, .p-info .role {
+.p-info .email,
+.p-info .role {
   font-size: 11px;
   color: #64748b;
 }
@@ -457,6 +473,7 @@
 .mod-icon {
   color: #6366f1;
 }
+
 /* Glassmorphism Panels */
 .glass-panel {
   background: rgba(18, 21, 27, 0.6) !important;
@@ -475,9 +492,20 @@
 }
 
 @keyframes orb-pulse {
-  0% { transform: scale(0.8); opacity: 0.3; }
-  50% { transform: scale(1.2); opacity: 0.6; }
-  100% { transform: scale(0.8); opacity: 0.3; }
+  0% {
+    transform: scale(0.8);
+    opacity: 0.3;
+  }
+
+  50% {
+    transform: scale(1.2);
+    opacity: 0.6;
+  }
+
+  100% {
+    transform: scale(0.8);
+    opacity: 0.3;
+  }
 }
 
 /* Local Video Enhancements */
@@ -519,12 +547,25 @@
   background: #64748b;
 }
 
-.act-dot.join { background: #10b981; }
+.act-dot.join {
+  background: #10b981;
+}
 
 /* Control Group Alignment */
-.ctrl-group.left { flex: 1; }
-.ctrl-group.center { flex: 0; display: flex; gap: 12px; }
-.ctrl-group.right { flex: 1; justify-content: flex-end; }
+.ctrl-group.left {
+  flex: 1;
+}
+
+.ctrl-group.center {
+  flex: 0;
+  display: flex;
+  gap: 12px;
+}
+
+.ctrl-group.right {
+  flex: 1;
+  justify-content: flex-end;
+}
 
 .recording-indicator {
   display: flex;
@@ -547,8 +588,13 @@
 }
 
 @keyframes rec-blink {
-  from { opacity: 1; }
-  to { opacity: 0.3; }
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0.3;
+  }
 }
 
 /* Shadow Rose for End Call */
@@ -577,11 +623,115 @@
 }
 
 @keyframes reveal-up {
-  from { transform: translateY(10px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(10px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
+
+/* Chat Container Styles */
+.chat-container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.chat-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #64748b;
+  font-size: 13px;
+  text-align: center;
+  padding: 20px;
+}
+
+.message {
+  align-self: flex-start;
+  max-width: 85%;
+  animation: reveal-up 0.2s ease-out;
+}
+
+.message.mine {
+  align-self: flex-end;
+}
+
+.message .msg-header {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-bottom: 4px;
+}
+
+.message.mine .msg-header {
+  text-align: right;
+}
+
+.message .msg-bubble {
+  background: rgba(255, 255, 255, 0.05);
+  padding: 8px 12px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.4;
+  color: #e2e8f0;
+}
+
+.message.mine .msg-bubble {
+  background: var(--indigo);
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.message:not(.mine) .msg-bubble {
+  border-bottom-left-radius: 4px;
+}
+
+.chat-input-area {
+  padding: 16px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  gap: 8px;
+}
+
+.chat-input-area input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  padding: 8px 12px;
+  color: white;
+  outline: none;
+  font-family: inherit;
+  font-size: 13px;
+  transition: all 0.2s;
+}
+
+.chat-input-area input:focus {
+  border-color: var(--indigo);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.chat-input-area .send-btn {
+  padding: 8px 16px;
+  min-width: unset;
+}
+
 /* Setup Mode Styles */
 .setup-mode {
+  min-height: 100vh;
   justify-content: center;
   align-items: center;
   background: radial-gradient(circle at center, #1a1e26 0%, #0c0e12 100%);
@@ -603,8 +753,15 @@
 }
 
 @keyframes setup-appear {
-  from { opacity: 0; transform: translateY(20px) scale(0.95); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  from {
+    opacity: 0;
+    transform: translateY(20px) scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .setup-header {
@@ -774,7 +931,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* ─── RESPONSIVE DESIGN ──────────────────────────────────────────── */

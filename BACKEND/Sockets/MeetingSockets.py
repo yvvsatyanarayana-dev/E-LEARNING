@@ -68,7 +68,12 @@ async def signal(sid, data):
         if room_code:
             data["from"] = sid
             await sio.emit("signal", data, room=room_code, skip_sid=sid)
-
+@sio.event
+async def chat_message(sid, data):
+    room_code = data.get("room_code")
+    if room_code:
+        data["from"] = sid
+        await sio.emit("chat_message", data, room=room_code, skip_sid=sid)
 
 @sio.event
 async def meeting_ended(sid, data):

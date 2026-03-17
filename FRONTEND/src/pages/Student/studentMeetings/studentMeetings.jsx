@@ -103,6 +103,9 @@ function StudentMeetingRoom({ meeting, onLeave }) {
   const [remoteStream, setRemoteStream] = useState(null);
   const [sockStatus, setSockStatus] = useState("Connecting...");
   const [webrtcStatus, setWebrtcStatus] = useState({ conn: "new", ice: "new" });
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const chatEndRef = useRef(null);
   const iceCandidateQueue = useRef([]); 
   const isProcessingSignal = useRef(false); // Signal lock
   const lastProcessedOfferSdp = useRef(null); // SDP deduplication
@@ -116,6 +119,10 @@ function StudentMeetingRoom({ meeting, onLeave }) {
   const rafRef = useRef(null);
 
   const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+
+  useEffect(() => {
+    if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   // Custom Cursor Effect
   useEffect(() => {
@@ -203,6 +210,10 @@ function StudentMeetingRoom({ meeting, onLeave }) {
           setLocalStream(null);
           alert("Meeting ended by host.");
           onLeave();
+        });
+
+        s.on("chat_message", (msg) => {
+          setMessages(prev => [...prev, msg]);
         });
 
         s.on("signal", async (data) => {
@@ -376,6 +387,21 @@ function StudentMeetingRoom({ meeting, onLeave }) {
     return `${hrs > 0 ? hrs + ':' : ''}${mins < 10 ? '0' + mins : mins}:${secs < 10 ? '0' + secs : secs}`;
   };
 
+  const sendMessage = (e) => {
+    e.preventDefault();
+    if (!newMessage.trim() || !socketRef.current) return;
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const msgData = {
+      room_code: meeting.room_code,
+      sender: user.name || user.email || 'Student',
+      text: newMessage,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    socketRef.current.emit('chat_message', msgData);
+    setMessages(prev => [...prev, { ...msgData, isMine: true }]);
+    setNewMessage('');
+  };
+
   return (
     <div className="placement-meeting-container">
       <div className="sc-cursor" ref={curRef} style={{ zIndex: 99999 }} />
@@ -500,8 +526,31 @@ function StudentMeetingRoom({ meeting, onLeave }) {
               </div>
             )}
             {activeTab === 'chat' && (
-              <div className="chat-placeholder">
-                <p>Chat is currently disabled for this session.</p>
+              <div className="chat-container">
+                <div className="chat-messages">
+                  {messages.length === 0 ? (
+                    <div className="chat-placeholder"><p>No messages yet. Start the conversation!</p></div>
+                  ) : (
+                    messages.map((m, i) => (
+                      <div key={i} className={`message ${m.isMine ? 'mine' : ''}`}>
+                        <div className="msg-header">
+                          {m.isMine ? 'You' : m.sender} &bull; {m.time}
+                        </div>
+                        <div className="msg-bubble">{m.text}</div>
+                      </div>
+                    ))
+                  )}
+                  <div ref={chatEndRef} />
+                </div>
+                <form onSubmit={sendMessage} className="chat-input-area">
+                  <input
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Type a message..."
+                  />
+                  <button type="submit" disabled={!newMessage.trim()} className="btn btn-solid send-btn">Send</button>
+                </form>
               </div>
             )}
           </div>

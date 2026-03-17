@@ -112,6 +112,10 @@ function MeetingRoom({ meeting, onEnd }) {
   const pendingConnections = useRef(new Set()); // Guard against double-creation
   const initDone = useRef(false); // Guard against React StrictMode double-init
 
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const chatEndRef = useRef(null);
+
   // Custom Cursor Refs
   const curRef = useRef(null);
   const ringRef = useRef(null);
@@ -120,6 +124,10 @@ function MeetingRoom({ meeting, onEnd }) {
   const rafRef = useRef(null);
 
   const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+
+  useEffect(() => {
+    if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   // Custom Cursor Effect
   useEffect(() => {
@@ -204,6 +212,10 @@ function MeetingRoom({ meeting, onEnd }) {
              await createPeerConnection(student_id, stream);
              pendingConnections.current.delete(student_id);
            }
+        });
+
+        s.on("chat_message", (msg) => {
+          setMessages(prev => [...prev, msg]);
         });
 
         s.on("room_state", async ({ students }) => {
@@ -462,6 +474,21 @@ function MeetingRoom({ meeting, onEnd }) {
     setTimeout(() => setCopied(false), 2200);
   };
 
+  const sendMessage = (e) => {
+    e.preventDefault();
+    if (!newMessage.trim() || !socketRef.current) return;
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const msgData = {
+      room_code: meeting.room_code,
+      sender: user.name || user.email || 'Faculty',
+      text: newMessage,
+      time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    socketRef.current.emit('chat_message', msgData);
+    setMessages(prev => [...prev, { ...msgData, isMine: true }]);
+    setNewMessage('');
+  };
+
   return (
     <div className="placement-meeting-container">
       <div className="sc-cursor" ref={curRef} style={{ zIndex: 99999 }} />
@@ -592,8 +619,31 @@ function MeetingRoom({ meeting, onEnd }) {
               </div>
             )}
             {activeTab === 'chat' && (
-              <div className="chat-placeholder">
-                <p>Chat is currently disabled for this virtual class.</p>
+              <div className="chat-container">
+                <div className="chat-messages">
+                  {messages.length === 0 ? (
+                    <div className="chat-placeholder"><p>No messages yet. Start the conversation!</p></div>
+                  ) : (
+                    messages.map((m, i) => (
+                      <div key={i} className={`message ${m.isMine ? 'mine' : ''}`}>
+                        <div className="msg-header">
+                          {m.isMine ? 'You' : m.sender} &bull; {m.time}
+                        </div>
+                        <div className="msg-bubble">{m.text}</div>
+                      </div>
+                    ))
+                  )}
+                  <div ref={chatEndRef} />
+                </div>
+                <form onSubmit={sendMessage} className="chat-input-area">
+                  <input
+                    type="text"
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Type a message..."
+                  />
+                  <button type="submit" disabled={!newMessage.trim()} className="btn btn-solid send-btn">Send</button>
+                </form>
               </div>
             )}
           </div>
