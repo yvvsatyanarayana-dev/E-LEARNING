@@ -219,6 +219,7 @@ function buildNavItems(hasActivePlacementMeeting) {
       {label:ROUTES.PLACEMENT_PREP,  icon:<IcoAward/>},
       {label:ROUTES.INTERNSHIPS,     icon:<IcoBrief/>},
       {label:ROUTES.MOCK_INTERVIEW,  icon:<IcoPen/>},
+      {label:ROUTES.PLACEMENT_MEETINGS, icon:<IcoVideo/>, badge: hasActivePlacementMeeting ? "LIVE" : undefined, badgeClass: hasActivePlacementMeeting ? "rose" : undefined},
     ]},
   ];
 }
