@@ -157,9 +157,9 @@ export default function AdminDashboard() {
   const [userSearch,  setUserSearch] = useState("");
   const [userPage,    setUserPage]   = useState(1);
 
+  const pageRef       = useRef(null);
   const cursorRef     = useRef(null);
   const cursorRingRef = useRef(null);
-  const pageRef       = useRef(null);
 
   // Derive active tab from URL so it stays in sync on direct navigation
   const active = getActiveId(location.pathname);
@@ -189,32 +189,14 @@ export default function AdminDashboard() {
 
   // Cursor animation effect
   useEffect(() => {
-    const cursor     = cursorRef.current;
-    const cursorRing = cursorRingRef.current;
+    const cursor = cursorRef.current; const cursorRing = cursorRingRef.current;
     if (!cursor || !cursorRing) return;
-
     let mouseX = 0, mouseY = 0, ringX = 0, ringY = 0;
-
-    const onMove = (e) => {
-      mouseX = e.clientX;
-      mouseY = e.clientY;
-      cursor.style.transform = `translate(${mouseX}px,${mouseY}px)`;
-    };
-
+    const onMove = (e) => { mouseX = e.clientX; mouseY = e.clientY; cursor.style.transform = `translate(${mouseX}px,${mouseY}px)`; };
     let raf;
-    const animate = () => {
-      ringX += (mouseX - ringX) * 0.12;
-      ringY += (mouseY - ringY) * 0.12;
-      cursorRing.style.transform = `translate(${ringX}px,${ringY}px)`;
-      raf = requestAnimationFrame(animate);
-    };
-
-    window.addEventListener("mousemove", onMove);
-    raf = requestAnimationFrame(animate);
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      cancelAnimationFrame(raf);
-    };
+    const animate = () => { ringX += (mouseX - ringX) * 0.12; ringY += (mouseY - ringY) * 0.12; cursorRing.style.transform = `translate(${ringX}px,${ringY}px)`; raf = requestAnimationFrame(animate); };
+    window.addEventListener("mousemove", onMove); raf = requestAnimationFrame(animate);
+    return () => { window.removeEventListener("mousemove", onMove); cancelAnimationFrame(raf); };
   }, []);
 
   // Animate progress bars on mount
@@ -229,7 +211,7 @@ export default function AdminDashboard() {
   return (
     <>
       {/* Custom cursor */}
-      <div className="sc-cursor"     ref={cursorRef} />
+      <div className="sc-cursor" ref={cursorRef} />
       <div className="sc-cursor-ring" ref={cursorRingRef} />
       <div className="sc-noise" />
 
@@ -331,10 +313,10 @@ export default function AdminDashboard() {
             <div className="tb-right">
               <span className="tb-role-tag">Admin</span>
               <span className="tb-date">{now}</span>
-              <button className="tb-icon-btn tooltip" data-tip="Refresh">
+              <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="tb-icon-btn tooltip" data-tip="Refresh">
                 <I n="refresh" size={15} />
               </button>
-              <button className="tb-icon-btn tooltip" data-tip="Notifications">
+              <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="tb-icon-btn tooltip" data-tip="Notifications">
                 <I n="bell" size={15} />
                 <span className="notif-dot" />
               </button>
@@ -506,8 +488,8 @@ export default function AdminDashboard() {
                           <td style={{ color:"var(--text3)", fontSize:"10px" }}>{u.joined}</td>
                           <td>
                             <div style={{ display:"flex", gap:"5px" }}>
-                              <button className="ut-action tooltip" data-tip="Edit"><I n="edit" size={11} /></button>
-                              <button className="ut-action tooltip" data-tip="Remove"><I n="trash" size={11} /></button>
+                              <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="ut-action tooltip" data-tip="Edit"><I n="edit" size={11} /></button>
+                              <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="ut-action tooltip" data-tip="Remove"><I n="trash" size={11} /></button>
                             </div>
                           </td>
                         </tr>

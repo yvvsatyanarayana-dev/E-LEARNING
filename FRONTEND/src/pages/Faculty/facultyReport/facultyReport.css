@@ -1,7 +1,7 @@
 /* reports.css */
 .rp-root { padding:26px 30px 100px; flex:1; animation:reveal-in .45s ease both; }
 .rp-page-hd { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:22px; flex-wrap:wrap; }
-.rp-back-btn { display:inline-flex; align-items:center; gap:5px; background:none; border:none; color:var(--text2); font-size:13px; cursor:pointer; margin-bottom:4px; padding:0; transition:color .18s; font-family:'Plus Jakarta Sans',sans-serif; }
+.rp-back-btn { display:inline-flex; align-items:center; gap:5px; background:none; border:none; color:var(--text2); font-size:13px; cursor: none;margin-bottom:4px; padding:0; transition:color .18s; font-family:'Plus Jakarta Sans',sans-serif; }
 .rp-back-btn:hover { color:var(--text); }
 .rp-hd-right { display:flex; align-items:center; gap:8px; padding-top:8px; }
 .rp-stat-strip { display:grid; grid-template-columns:repeat(5,1fr); gap:12px; margin-bottom:20px; }
@@ -11,7 +11,7 @@
 .rp-section-title { font-size:10px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--text3); margin-bottom:10px; }
 
 .rp-type-grid { display:flex; flex-direction:column; gap:8px; }
-.rp-type-card { display:flex; align-items:center; gap:14px; padding:14px 16px; background:var(--surface); border:1px solid var(--border); border-radius:12px; cursor:pointer; transition:border-color .2s,background .2s; }
+.rp-type-card { display:flex; align-items:center; gap:14px; padding:14px 16px; background:var(--surface); border:1px solid var(--border); border-radius:12px; cursor: none;transition:border-color .2s,background .2s; }
 .rp-type-card:hover { border-color:var(--border2); }
 .rp-type-card--active { border-color:rgba(91,78,248,.3); background:rgba(91,78,248,.04); }
 .rp-type-icon { width:36px; height:36px; border-radius:9px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }

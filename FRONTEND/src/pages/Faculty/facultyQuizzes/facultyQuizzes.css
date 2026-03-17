@@ -27,8 +27,7 @@
   border: none;
   color: var(--text2);
   font-size: 13px;
-  cursor: pointer;
-  margin-bottom: 4px;
+  cursor: none;margin-bottom: 4px;
   padding: 0;
   transition: color .18s;
   font-family: 'Plus Jakarta Sans', sans-serif;
@@ -69,8 +68,7 @@
   color: var(--text2);
   font-size: 12px;
   font-weight: 600;
-  cursor: pointer;
-  transition: all .18s;
+  cursor: none;transition: all .18s;
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 .qz-ctab:hover { border-color: var(--border2); color: var(--text); }
@@ -122,8 +120,7 @@
 .qz-search-inp::placeholder { color: var(--text3); }
 .qz-search-clear {
   background: none; border: none;
-  color: var(--text3); cursor: pointer;
-  display: flex; align-items: center;
+  color: var(--text3); cursor: none;display: flex; align-items: center;
   padding: 2px; border-radius: 4px;
   transition: color .18s;
 }
@@ -144,8 +141,7 @@
   color: var(--text2);
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 11.5px;
-  cursor: pointer;
-  outline: none;
+  cursor: none;outline: none;
   transition: border-color .18s;
 }
 .qz-select:hover { border-color: var(--border2); }
@@ -161,8 +157,7 @@
   width: 36px; height: 36px;
   display: flex; align-items: center; justify-content: center;
   background: none; border: none;
-  color: var(--text3); cursor: pointer;
-  transition: background .18s, color .18s;
+  color: var(--text3); cursor: none;transition: background .18s, color .18s;
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 .qz-vbtn:hover  { background: var(--surface3); color: var(--text2); }
@@ -220,8 +215,7 @@
   padding: 16px;
   position: relative;
   overflow: hidden;
-  cursor: pointer;
-  transition: border-color .22s, transform .22s, box-shadow .22s;
+  cursor: none;transition: border-color .22s, transform .22s, box-shadow .22s;
   animation: reveal-in .45s ease both;
   display: flex;
   flex-direction: column;
@@ -425,8 +419,7 @@
   align-items: center;
   padding: 12px 20px;
   border-bottom: 1px solid var(--border);
-  cursor: pointer;
-  transition: background .18s;
+  cursor: none;transition: background .18s;
 }
 .qz-row:last-child { border-bottom: none; }
 .qz-row:hover { background: rgba(255,255,255,.025); }
@@ -445,8 +438,7 @@
   background: var(--surface2);
   border: 1px solid var(--border);
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  color: var(--text3);
+  cursor: none;color: var(--text3);
   transition: background .18s, color .18s;
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
@@ -505,7 +497,7 @@
   background: var(--surface2);
   border: 1px solid var(--border);
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer; color: var(--text3);
+  cursor: none;color: var(--text3);
   transition: background .18s, color .18s;
   flex-shrink: 0;
   font-family: 'Plus Jakarta Sans', sans-serif;
@@ -591,7 +583,7 @@
 .qz-input:focus { border-color: rgba(91,78,248,.42); }
 .qz-input::placeholder { color: var(--text3); }
 .qz-textarea { resize: vertical; min-height: 64px; line-height: 1.55; }
-select.qz-input { cursor: pointer; }
+select.qz-input { cursor: none;}
 
 /* Settings toggles */
 .qz-settings-grid {
@@ -608,8 +600,7 @@ select.qz-input { cursor: pointer; }
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  cursor: pointer;
-  padding: 4px 0;
+  cursor: none;padding: 4px 0;
 }
 .qz-setting-lbl { font-size: 12px; font-weight: 600; }
 .qz-setting-sub { font-size: 10px; color: var(--text3); margin-top: 2px; }
@@ -702,8 +693,7 @@ select.qz-input { cursor: pointer; }
   border: 1px solid rgba(242,68,92,.15);
   color: var(--rose);
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  transition: background .18s;
+  cursor: none;transition: background .18s;
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 .qz-q-del:hover { background: rgba(242,68,92,.22); }
@@ -718,8 +708,7 @@ select.qz-input { cursor: pointer; }
   border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--surface3);
-  cursor: pointer;
-  transition: border-color .18s, background .18s;
+  cursor: none;transition: border-color .18s, background .18s;
 }
 .qz-option-row:hover { border-color: var(--border2); }
 .qz-option-row--correct { border-color: rgba(39,201,176,.3); background: rgba(39,201,176,.06); }
@@ -762,8 +751,7 @@ select.qz-input { cursor: pointer; }
   color: var(--text2);
   font-size: 12px;
   font-weight: 600;
-  cursor: pointer;
-  text-align: center;
+  cursor: none;text-align: center;
   transition: border-color .18s, background .18s, color .18s;
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
@@ -786,8 +774,7 @@ select.qz-input { cursor: pointer; }
   color: var(--indigo-ll);
   font-size: 11.5px;
   font-weight: 600;
-  cursor: pointer;
-  transition: background .18s, border-color .18s;
+  cursor: none;transition: background .18s, border-color .18s;
   font-family: 'Plus Jakarta Sans', sans-serif;
   align-self: flex-start;
 }
@@ -854,8 +841,7 @@ select.qz-input { cursor: pointer; }
   padding: 12px 14px;
   border: 1px solid var(--border);
   border-radius: 10px;
-  cursor: pointer;
-  background: var(--surface2);
+  cursor: none;background: var(--surface2);
   transition: border-color .18s, background .18s;
 }
 .qz-pub-opt:hover { border-color: var(--border2); }
@@ -912,7 +898,7 @@ select.qz-input { cursor: pointer; }
   gap: 5px;
   background: none; border: none;
   color: var(--text3); font-size: 11.5px;
-  cursor: pointer; margin-bottom: 8px; padding: 0;
+  cursor: none;margin-bottom: 8px; padding: 0;
   transition: color .18s;
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
@@ -934,8 +920,7 @@ select.qz-input { cursor: pointer; }
   color: var(--text3);
   background: none; border: none;
   border-bottom: 2px solid transparent;
-  cursor: pointer;
-  transition: color .18s;
+  cursor: none;transition: color .18s;
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 .qz-drawer-tab:hover { color: var(--text2); }
@@ -1019,8 +1004,7 @@ select.qz-input { cursor: pointer; }
   color: var(--rose);
   font-size: 12px;
   font-weight: 600;
-  cursor: pointer;
-  transition: background .18s, border-color .18s;
+  cursor: none;transition: background .18s, border-color .18s;
   font-family: 'Plus Jakarta Sans', sans-serif;
   justify-content: center;
 }
@@ -1052,8 +1036,7 @@ select.qz-input { cursor: pointer; }
   padding: 4px 10px; border-radius: 8px;
   border: 1px solid var(--border);
   background: var(--surface2);
-  color: var(--text3); cursor: pointer;
-  transition: all .18s;
+  color: var(--text3); cursor: none;transition: all .18s;
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 .qz-sub-pill.active { font-weight: 700; }

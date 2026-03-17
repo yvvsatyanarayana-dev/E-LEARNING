@@ -34,8 +34,7 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 12px;
   font-weight: 600;
-  cursor: pointer;
-  transition: background .18s, transform .15s, box-shadow .18s;
+  cursor: none;transition: background .18s, transform .15s, box-shadow .18s;
   box-shadow: 0 0 18px rgba(91, 78, 248, .28);
   white-space: nowrap;
 }
@@ -58,8 +57,7 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 12px;
   font-weight: 500;
-  cursor: pointer;
-  transition: all .18s;
+  cursor: none;transition: all .18s;
   white-space: nowrap;
 }
 .ih-btn-ghost:hover {
@@ -194,8 +192,7 @@
   color: var(--indigo-ll);
   font-size: 11px;
   font-weight: 500;
-  cursor: pointer;
-  transition: all .18s;
+  cursor: none;transition: all .18s;
 }
 .ih-trend-tag:hover {
   background: rgba(91,78,248,.15);
@@ -238,8 +235,7 @@
 .ih-search-clear {
   background: none;
   border: none;
-  cursor: pointer;
-  color: var(--text3);
+  cursor: none;color: var(--text3);
   display: flex;
   padding: 0;
   transition: color .15s;
@@ -260,8 +256,7 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 11px;
   font-weight: 500;
-  cursor: pointer;
-  transition: all .18s;
+  cursor: none;transition: all .18s;
   white-space: nowrap;
 }
 .ih-cat-pill:hover { color: var(--text2); border-color: var(--border3); }
@@ -417,8 +412,7 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 11px;
   font-weight: 500;
-  cursor: pointer;
-  transition: all .18s;
+  cursor: none;transition: all .18s;
 }
 .ih-action-btn:hover { border-color: var(--border3); color: var(--text2); background: var(--surface3); }
 .ih-action-btn.active-rose  { color: var(--rose);      border-color: rgba(242,68,92,.25);  background: rgba(242,68,92,.08); }
@@ -437,8 +431,7 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 11.5px;
   font-weight: 600;
-  cursor: pointer;
-  transition: background .18s, transform .15s;
+  cursor: none;transition: background .18s, transform .15s;
   white-space: nowrap;
 }
 .ih-join-btn:hover { background: var(--indigo-l); transform: translateY(-1px); }
@@ -484,8 +477,7 @@
   background: var(--surface2);
   border: 1px solid var(--border);
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  color: var(--text3);
+  cursor: none;color: var(--text3);
   transition: background .18s, color .18s;
   flex-shrink: 0;
 }
@@ -512,7 +504,7 @@
 .ih-input:focus { border-color: rgba(91,78,248,.45); }
 .ih-input::placeholder { color: var(--text3); }
 .ih-textarea { resize: vertical; min-height: 90px; line-height: 1.55; }
-.ih-select { cursor: pointer; }
+.ih-select { cursor: none;}
 .ih-select option { background: var(--surface2); }
 
 .ih-modal-footer {
@@ -532,8 +524,7 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 12px;
   font-weight: 500;
-  cursor: pointer;
-  transition: all .18s;
+  cursor: none;transition: all .18s;
 }
 .ih-modal-cancel:hover { background: var(--surface3); color: var(--text); }
 .ih-modal-submit {
@@ -548,8 +539,7 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 12px;
   font-weight: 600;
-  cursor: pointer;
-  transition: background .18s, transform .15s;
+  cursor: none;transition: background .18s, transform .15s;
   box-shadow: 0 0 18px rgba(91,78,248,.3);
 }
 .ih-modal-submit:hover { background: var(--indigo-l); transform: translateY(-1px); }
@@ -575,7 +565,7 @@
 
 /* reuses .san-kpi-card from StudentAnalytics.css */
 
-.ih-proj-card { cursor: default; }
+.ih-proj-card { cursor: none; }
 
 .ih-proj-card-header {
   display: flex;
@@ -583,8 +573,7 @@
   justify-content: space-between;
   gap: 16px;
   padding: 16px 20px;
-  cursor: pointer;
-  transition: background .18s;
+  cursor: none;transition: background .18s;
   border-radius: 14px 14px 0 0;
 }
 .ih-proj-card-header:hover { background: rgba(255,255,255,.02); }
@@ -772,8 +761,7 @@
   color: #fff;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 12px; font-weight: 600;
-  cursor: pointer;
-  transition: opacity .18s, transform .15s;
+  cursor: none;transition: opacity .18s, transform .15s;
 }
 .ih-register-btn:hover { opacity: .86; transform: translateY(-1px); }
 
@@ -787,7 +775,7 @@
   color: var(--teal);
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 12px; font-weight: 600;
-  cursor: default;
+  cursor: none;
 }
 
 /* ─────────────────────────────────────────────────────────────────
@@ -907,8 +895,7 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 11.5px;
   font-weight: 500;
-  cursor: pointer;
-  transition: all .18s;
+  cursor: none;transition: all .18s;
   flex-shrink: 0;
 }
 .ih-back-btn:hover {
@@ -987,8 +974,7 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 12.5px;
   font-weight: 500;
-  cursor: pointer;
-  transition: all .18s;
+  cursor: none;transition: all .18s;
   white-space: nowrap;
   margin-bottom: -1px;
 }

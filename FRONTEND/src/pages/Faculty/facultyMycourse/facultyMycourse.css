@@ -22,8 +22,7 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 12px; font-weight: 600; color: var(--indigo-ll);
   background: rgba(91,78,248,.08); border: 1px solid rgba(91,78,248,.18);
-  border-radius: 8px; padding: 6px 12px; cursor: none;
-  transition: all .2s;
+  border-radius: 8px; padding: 6px 12px; cursor: none;transition: all .2s;
 }
 .fcd-back-btn:hover { background: rgba(91,78,248,.15); border-color: rgba(91,78,248,.3); transform: translateX(-2px); }
 
@@ -59,7 +58,7 @@
 .fcc-sort-pill {
   font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; font-weight: 500;
   padding: 5px 12px; border-radius: 7px; border: none; background: none;
-  color: var(--text3); cursor: none; transition: all .18s; white-space: nowrap;
+  color: var(--text3); cursor: none;transition: all .18s; white-space: nowrap;
 }
 .fcc-sort-pill:hover  { color: var(--text2); }
 .fcc-sort-pill.active { background: var(--surface3); color: var(--indigo-ll); font-weight: 600; }
@@ -72,7 +71,7 @@
 }
 .fcc-summary-item {
   flex: 1; padding: 14px 18px; text-align: center;
-  border-right: 1px solid var(--border); transition: background .18s; cursor: default;
+  border-right: 1px solid var(--border); transition: background .18s; cursor: none;
 }
 .fcc-summary-item:last-child { border-right: none; }
 .fcc-summary-item:hover { background: var(--surface2); }
@@ -89,8 +88,7 @@
 /* ── COURSE CARD ── */
 .fcc-card {
   position: relative; background: var(--surface); border: 1px solid var(--border);
-  border-radius: 16px; overflow: hidden; cursor: none;
-  transition: border-color .25s, transform .25s, box-shadow .25s;
+  border-radius: 16px; overflow: hidden; cursor: none;transition: border-color .25s, transform .25s, box-shadow .25s;
   animation: reveal-in .42s ease both;
   display: flex; flex-direction: column;
 }
@@ -159,7 +157,7 @@
   font-family: 'Plus Jakarta Sans', sans-serif; font-size: 11px; font-weight: 600;
   padding: 6px 12px; border-radius: 8px;
   background: var(--surface2); border: 1px solid var(--border2);
-  color: var(--text2); cursor: none; transition: all .18s; white-space: nowrap;
+  color: var(--text2); cursor: none;transition: all .18s; white-space: nowrap;
 }
 .fcc-action-btn:hover { border-color: var(--border3); color: var(--text); background: var(--surface3); }
 .fcc-action-btn.fcc-action-primary { font-weight: 700; }
@@ -167,7 +165,7 @@
 .fcd-link-btn {
   display: inline-flex; align-items: center; gap: 5px;
   font-size: 11px; font-weight: 600; color: var(--indigo-ll);
-  background: none; border: none; cursor: none; transition: color .18s;
+  background: none; border: none; cursor: none;transition: color .18s;
 }
 .fcd-link-btn:hover { color: var(--indigo-l); }
 
@@ -218,7 +216,7 @@
 .fcd-tab {
   font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12.5px; font-weight: 500;
   padding: 10px 18px; border: none; background: none; color: var(--text3);
-  cursor: none; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  cursor: none;border-bottom: 2px solid transparent; margin-bottom: -1px;
   display: flex; align-items: center; gap: 7px; transition: all .18s;
   border-radius: 8px 8px 0 0;
 }
@@ -252,7 +250,7 @@
 .fcd-kpi-card {
   background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
   padding: 14px 16px; display: flex; flex-direction: column; align-items: flex-start;
-  transition: border-color .2s, transform .2s; cursor: default;
+  transition: border-color .2s, transform .2s; cursor: none;
   animation: reveal-in .4s ease both;
 }
 .fcd-kpi-card:hover { border-color: var(--border2); transform: translateY(-2px); }
@@ -304,7 +302,7 @@
   display: grid; grid-template-columns: 36px 1fr 56px 68px 110px 72px 60px;
   gap: 8px; padding: 11px 18px;
   border-bottom: 1px solid var(--border); align-items: center;
-  transition: background .18s; cursor: default;
+  transition: background .18s; cursor: none;
 }
 .fcd-lec-row:last-child { border-bottom: none; }
 .fcd-lec-row:hover { background: rgba(255,255,255,.025); }
@@ -324,14 +322,14 @@
 .fcd-lec-views { display: flex; align-items: center; gap: 6px; font-size: 11px; font-weight: 600; }
 .fcd-lec-status { display: flex; align-items: center; gap: 4px; font-size: 9.5px; font-weight: 700; }
 .fcd-lec-status.done     { color: var(--teal); }
-.fcd-lec-status.upcoming { color: var(--indigo-ll); cursor: none; }
+.fcd-lec-status.upcoming { color: var(--indigo-ll); cursor: none;}
 
 /* ── ROW ACTIONS ── */
 .fcd-row-actions { display: flex; gap: 4px; align-items: center; }
 .fcd-row-btn {
   width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--border2);
   background: var(--surface2); display: flex; align-items: center; justify-content: center;
-  cursor: none; color: var(--text3); transition: all .18s;
+  cursor: none;color: var(--text3); transition: all .18s;
 }
 .fcd-row-btn:hover { border-color: var(--border3); color: var(--text); background: var(--surface3); }
 .fcd-row-btn.fcd-row-btn-primary { font-weight: 700; }
@@ -340,7 +338,7 @@
 .fcd-asgmt-row {
   display: flex; align-items: center; gap: 12px;
   padding: 13px 18px; border-bottom: 1px solid var(--border);
-  transition: background .18s; cursor: default;
+  transition: background .18s; cursor: none;
 }
 .fcd-asgmt-row:last-child { border-bottom: none; }
 .fcd-asgmt-row:hover { background: rgba(255,255,255,.025); }
@@ -395,7 +393,7 @@
 .fcd-filter-pill {
   font-size: 11px; font-weight: 500; padding: 5px 12px; border-radius: 20px;
   border: 1px solid var(--border2); background: var(--surface2); color: var(--text3);
-  cursor: none; transition: all .18s;
+  cursor: none;transition: all .18s;
 }
 .fcd-filter-pill:hover  { border-color: var(--border3); color: var(--text2); }
 .fcd-filter-pill.active { font-weight: 700; }
@@ -410,7 +408,7 @@
 .fcd-stu-row {
   display: grid; grid-template-columns: 2fr 1.4fr 0.9fr 0.7fr 0.9fr 0.9fr;
   gap: 8px; padding: 12px 18px; border-bottom: 1px solid var(--border);
-  align-items: center; transition: background .18s; cursor: default;
+  align-items: center; transition: background .18s; cursor: none;
 }
 .fcd-stu-row:last-child { border-bottom: none; }
 .fcd-stu-row:hover { background: rgba(255,255,255,.025); }

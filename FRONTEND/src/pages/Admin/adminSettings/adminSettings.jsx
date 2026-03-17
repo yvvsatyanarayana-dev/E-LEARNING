@@ -1,245 +1,288 @@
-import { useState } from "react";
+// adminSettings.jsx — SMART CAMPUS Admin Panel
+import { useState, useEffect, useRef } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import "./adminSettings.css";
 
-export default function AdminSettings() {
-  const [tab, setTab] = useState("profile");
-  const [notifs, setNotifs] = useState({
-    securityAlerts:true, newUsers:true, systemErrors:true,
-    courseUpdates:false, weeklyReport:true, loginAlerts:true,
-  });
-  const [appearance, setAppearance] = useState({ theme:"dark", accentColor:"indigo", density:"default" });
-  const [saved, setSaved] = useState(false);
+const Icon = ({ d, size = 16, stroke = "currentColor", fill = "none", strokeWidth = 1.6 }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">{d}</svg>
+);
+const icons = {
+  grid:<><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></>,
+  users:<><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></>,
+  book:<><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></>,
+  bar:<><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></>,
+  settings:<><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></>,
+  bell:<><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></>,
+  search:<><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></>,
+  logout:<><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></>,
+  menu:<><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></>,
+  x:<><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></>,
+  plus:<><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></>,
+  edit:<><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></>,
+  trash:<><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></>,
+  shield:<><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></>,
+  zap:<><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></>,
+  cpu:<><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></>,
+  db:<><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></>,
+  wifi:<><path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/></>,
+  award:<><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></>,
+  trend:<><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></>,
+  layers:<><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></>,
+  globe:<><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></>,
+  check:<><polyline points="20 6 9 17 4 12"/></>,
+  info:<><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></>,
+  chevronR:<><polyline points="9 18 15 12 9 6"/></>,
+  chevronL:<><polyline points="15 18 9 12 15 6"/></>,
+  moreH:<><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></>,
+  userPlus:<><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></>,
+  download:<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>,
+  refresh:<><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></>,
+  briefcase:<><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></>,
+  activity:<><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></>,
+};
+const I = ({ n, size = 16 }) => <Icon size={size} d={icons[n]} />;
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(()=>setSaved(false), 2500);
-  };
+const NAV = [
+  { section:"Overview", items:[
+    { id:"dashboard", label:"Dashboard",       icon:"grid",      routePath:"",               badge:null },
+    { id:"analytics", label:"Analytics",       icon:"bar",       routePath:"adminAnalytics",  badge:null },
+  ]},
+  { section:"Management", items:[
+    { id:"users",       label:"User Management", icon:"users",     routePath:"userManagement",   badge:"1.3k" },
+    { id:"courses",     label:"Courses",         icon:"book",      routePath:"courseManagement", badge:"47" },
+    { id:"departments", label:"Departments",     icon:"layers",    routePath:"department",       badge:null },
+    { id:"placement",   label:"Placement",       icon:"briefcase", routePath:"placement",        badge:"3", badgeType:"teal" },
+  ]},
+  { section:"Platform", items:[
+    { id:"reports",   label:"Reports",      icon:"download", routePath:"adminReports", badge:null },
+    { id:"activity",  label:"Activity Log", icon:"activity", routePath:"activitylog",  badge:"12", badgeType:"rose" },
+    { id:"security",  label:"Security",     icon:"shield",   routePath:"security",     badge:null },
+    { id:"settings",  label:"Settings",     icon:"settings", routePath:"settings",     badge:null },
+  ]},
+];
 
-  const TABS = ["profile","notifications","appearance","platform","advanced"];
+const getActiveId = (pathname) => {
+  for (const sec of NAV) {
+    for (const item of sec.items) {
+      if (item.routePath === "") {
+        if (pathname === "/admindashboard" || pathname === "/admindashboard/") return item.id;
+      } else { if (pathname.includes(item.routePath)) return item.id; }
+    }
+  }
+  return "dashboard";
+};
+
+export default function adminSettings() {
+  const navigate        = useNavigate();
+  const location        = useLocation();
+  const [sidebarOpen, setSidebar] = useState(false);
+  const pageRef       = useRef(null);
+  const cursorRef     = useRef(null);
+  const cursorRingRef = useRef(null);
+  const active = getActiveId(location.pathname);
+  const now    = new Date().toLocaleDateString();
+
+  useEffect(() => {
+    const cursor = cursorRef.current; const cursorRing = cursorRingRef.current;
+    if (!cursor || !cursorRing) return;
+    let mouseX = 0, mouseY = 0, ringX = 0, ringY = 0;
+    const onMove = (e) => { mouseX = e.clientX; mouseY = e.clientY; cursor.style.transform = `translate(${mouseX}px,${mouseY}px)`; };
+    let raf;
+    const animate = () => { ringX += (mouseX - ringX) * 0.12; ringY += (mouseY - ringY) * 0.12; cursorRing.style.transform = `translate(${ringX}px,${ringY}px)`; raf = requestAnimationFrame(animate); };
+    window.addEventListener("mousemove", onMove); raf = requestAnimationFrame(animate);
+    return () => { window.removeEventListener("mousemove", onMove); cancelAnimationFrame(raf); };
+  }, []);
+
+  useEffect(() => {
+    const fills = document.querySelectorAll("[data-width]");
+    const timeout = setTimeout(() => { fills.forEach(el => { el.style.width = el.dataset.width; }); }, 300);
+    return () => clearTimeout(timeout);
+  }, [active]);
 
   return (
-    <div className="set-root">
-      <div className="um-header">
-        <div>
-          <div className="um-breadcrumb">Platform → Settings</div>
-          <h1 className="um-title">Platform <em>Settings</em></h1>
-          <p className="um-sub">Configure platform behaviour, appearance and preferences</p>
-        </div>
-        <button className={`btn btn-solid btn-sm ${saved?"btn-saved":""}`} onClick={handleSave}>
-          {saved ? (
-            <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>Saved!</>
-          ) : (
-            <><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>Save Changes</>
-          )}
-        </button>
-      </div>
+    <>
+      <div className="sc-cursor" ref={cursorRef} />
+      <div className="sc-cursor-ring" ref={cursorRingRef} />
+      <div className="sc-noise" />
+      <div className="app" ref={pageRef}>
+        <div className={`sb-overlay ${sidebarOpen ? "visible" : ""}`} onClick={() => setSidebar(false)} />
 
-      <div className="set-layout">
-        {/* Sidebar Tabs */}
-        <div className="set-sidebar">
-          {TABS.map(t=>(
-            <button key={t} className={`set-tab-btn ${tab===t?"active":""}`} onClick={()=>setTab(t)}>
-              {t === "profile"       && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>}
-              {t === "notifications" && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>}
-              {t === "appearance"    && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>}
-              {t === "platform"      && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>}
-              {t === "advanced"      && <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 0 0 4.93 19.07M4.93 4.93a10 10 0 0 0 0 14.14"/></svg>}
-              {t.charAt(0).toUpperCase()+t.slice(1)}
-            </button>
-          ))}
-        </div>
-
-        {/* Content */}
-        <div className="set-content">
-          {tab === "profile" && (
-            <div className="set-section">
-              <div className="set-section-title">Admin Profile</div>
-              <div className="set-avatar-row">
-                <div className="set-avatar">SA</div>
-                <div>
-                  <div style={{fontSize:13,fontWeight:600,marginBottom:4}}>Super Admin</div>
-                  <div style={{fontSize:11,color:"var(--text3)",marginBottom:8}}>System Administrator</div>
-                  <button className="btn btn-ghost btn-sm">Change Avatar</button>
-                </div>
+        {/* ── SIDEBAR ── */}
+        <aside className={`sidebar ${sidebarOpen ? "sb-open" : ""}`}>
+          <div className="sb-top">
+            <a href="/admindashboard" className="sb-brand" onClick={e => { e.preventDefault(); navigate("/admindashboard"); }}>
+              <div className="sb-mark">SC</div><span className="sb-name">Smart Campus</span>
+            </a>
+            <button className="sb-mobile-close" onClick={() => setSidebar(false)}><I n="x" size={14} /></button>
+          </div>
+          <div className="sb-user">
+            <div className="sb-avatar">SA</div>
+            <div><div className="sb-uname">Super Admin</div><div className="sb-urole">System Administrator</div></div>
+          </div>
+          <nav className="sb-nav">
+            {NAV.map(sec => (
+              <div key={sec.section}>
+                <div className="sb-sec-label">{sec.section}</div>
+                {sec.items.map(item => (
+                  <a key={item.id}
+                    href={item.routePath === "" ? "/admindashboard" : `/admindashboard/${item.routePath}`}
+                    className={`sb-link ${active === item.id ? "active" : ""}`}
+                    onClick={e => { e.preventDefault(); navigate(item.routePath === "" ? "/admindashboard" : `/admindashboard/${item.routePath}`); setSidebar(false); }}>
+                    <I n={item.icon} size={15} />{item.label}
+                    {item.badge && <span className={`sb-badge ${item.badgeType || ""}`}>{item.badge}</span>}
+                  </a>
+                ))}
               </div>
-              <div className="set-form">
-                <div className="set-form-row">
-                  <div className="um-form-group" style={{flex:1}}>
-                    <label>First Name</label>
-                    <input className="filter-input set-input" defaultValue="Super"/>
-                  </div>
-                  <div className="um-form-group" style={{flex:1}}>
-                    <label>Last Name</label>
-                    <input className="filter-input set-input" defaultValue="Admin"/>
-                  </div>
-                </div>
-                <div className="um-form-group">
-                  <label>Email Address</label>
-                  <input className="filter-input set-input" defaultValue="admin@smartcampus.edu"/>
-                </div>
-                <div className="um-form-group">
-                  <label>Institution Name</label>
-                  <input className="filter-input set-input" defaultValue="SMART CAMPUS University"/>
-                </div>
-                <div className="set-form-row">
-                  <div className="um-form-group" style={{flex:1}}>
-                    <label>Phone</label>
-                    <input className="filter-input set-input" defaultValue="+91 98765 43210"/>
-                  </div>
-                  <div className="um-form-group" style={{flex:1}}>
-                    <label>Timezone</label>
-                    <select className="filter-select set-input"><option>Asia/Kolkata (IST)</option><option>UTC</option></select>
-                  </div>
-                </div>
-              </div>
-              <div className="set-divider"/>
-              <div className="set-section-title">Change Password</div>
-              <div className="set-form">
-                <div className="um-form-group"><label>Current Password</label><input className="filter-input set-input" type="password" placeholder="••••••••"/></div>
-                <div className="set-form-row">
-                  <div className="um-form-group" style={{flex:1}}><label>New Password</label><input className="filter-input set-input" type="password" placeholder="••••••••"/></div>
-                  <div className="um-form-group" style={{flex:1}}><label>Confirm Password</label><input className="filter-input set-input" type="password" placeholder="••••••••"/></div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {tab === "notifications" && (
-            <div className="set-section">
-              <div className="set-section-title">Notification Preferences</div>
-              <p className="set-section-desc">Control which alerts and updates you receive.</p>
-              {Object.entries(notifs).map(([key,val])=>(
-                <div key={key} className="set-notif-row">
-                  <div>
-                    <div className="set-notif-name">{key.replace(/([A-Z])/g,' $1').replace(/^./,s=>s.toUpperCase())}</div>
-                    <div className="set-notif-desc">
-                      {key==="securityAlerts"   && "Get notified of suspicious activity and threats"}
-                      {key==="newUsers"          && "When new user accounts are created or registered"}
-                      {key==="systemErrors"      && "Critical errors and system failures"}
-                      {key==="courseUpdates"     && "When faculty publish or modify courses"}
-                      {key==="weeklyReport"      && "Automated weekly analytics summary"}
-                      {key==="loginAlerts"       && "Login from new device or location"}
-                    </div>
-                  </div>
-                  <button className={`sec-toggle ${val?"sec-toggle-on":"sec-toggle-off"}`} onClick={()=>setNotifs(n=>({...n,[key]:!n[key]}))}>
-                    <span className="sec-toggle-thumb"/>
-                  </button>
+            ))}
+          </nav>
+          <div className="sb-bottom">
+            <div className="sb-health">
+              <div className="sb-health-lbl">System Health</div>
+              {[["Uptime","99.8%"],["CPU","34%"],["Memory","61%"]].map(([n,v]) => (
+                <div key={n}>
+                  <div className="sb-health-row"><span className="sb-health-name">{n}</span><span className="sb-health-val">{v}</span></div>
+                  <div className="sb-health-bar"><div className="sb-health-fill" data-width={v} style={{ width:0 }} /></div>
                 </div>
               ))}
             </div>
-          )}
+            <button className="sb-logout" onClick={() => navigate("/login")}><I n="logout" size={14} /> Sign Out</button>
+          </div>
+        </aside>
 
-          {tab === "appearance" && (
-            <div className="set-section">
-              <div className="set-section-title">Appearance</div>
-              <div className="um-form-group" style={{marginBottom:20}}>
-                <label>Theme</label>
-                <div className="set-theme-options">
-                  {["dark","light","auto"].map(t=>(
-                    <button key={t} className={`set-theme-btn ${appearance.theme===t?"active":""}`} onClick={()=>setAppearance(a=>({...a,theme:t}))}>
-                      {t==="dark"?"🌙":t==="light"?"☀️":"⚙️"} {t.charAt(0).toUpperCase()+t.slice(1)}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="um-form-group" style={{marginBottom:20}}>
-                <label>Accent Color</label>
-                <div className="set-accent-options">
-                  {[
-                    {name:"indigo",color:"#7b6ffa"},
-                    {name:"teal",color:"#27c9b0"},
-                    {name:"rose",color:"#f2445c"},
-                    {name:"amber",color:"#f4a535"},
-                    {name:"violet",color:"#9f7aea"},
-                  ].map(c=>(
-                    <button key={c.name} className={`set-accent-btn ${appearance.accentColor===c.name?"active":""}`}
-                      style={{"--ac":c.color}} onClick={()=>setAppearance(a=>({...a,accentColor:c.name}))}>
-                      <div className="set-accent-swatch" style={{background:c.color}}/>
-                      {c.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-              <div className="um-form-group">
-                <label>UI Density</label>
-                <div className="set-density-options">
-                  {["compact","default","comfortable"].map(d=>(
-                    <button key={d} className={`set-density-btn ${appearance.density===d?"active":""}`} onClick={()=>setAppearance(a=>({...a,density:d}))}>
-                      {d.charAt(0).toUpperCase()+d.slice(1)}
-                    </button>
-                  ))}
-                </div>
+        {/* ── MAIN ── */}
+        <div className="main">
+          <header className="topbar">
+            <button className="tb-hamburger" onClick={() => setSidebar(true)}><I n="menu" size={16} /></button>
+            <span className="tb-page">Settings</span>
+            <div className="tb-sep" />
+            <div className="tb-search"><I n="search" size={14} /><input placeholder="Search users, courses…" /></div>
+            <div className="tb-right">
+              <span className="tb-role-tag">Admin</span>
+              <span className="tb-date">{now}</span>
+              <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="tb-icon-btn tooltip" data-tip="Refresh"><I n="refresh" size={15} /></button>
+              <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="tb-icon-btn tooltip" data-tip="Notifications"><I n="bell" size={15} /><span className="notif-dot" /></button>
+              <button className="tb-icon-btn tooltip" data-tip="Settings" onClick={() => navigate("/admindashboard/settings")}><I n="settings" size={15} /></button>
+            </div>
+          </header>
+
+          <main className="content">
+            {/* ── GREETING ── */}
+            <div className="greet-row">
+              <div className="greet-tag"><div className="greet-pip" /><span className="greet-pip-txt">Settings</span></div>
+              <h1 className="greet-title">Platform <em>Settings.</em></h1>
+              <p className="greet-sub">Configure global settings, notifications, and integrations</p>
+              <div className="greet-actions">
+                <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="btn btn-solid"><I n="check" size={14} /> Save Changes</button>
+                <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="btn btn-ghost"><I n="refresh" size={14} /> Reset Defaults</button>
               </div>
             </div>
-          )}
 
-          {tab === "platform" && (
-            <div className="set-section">
-              <div className="set-section-title">Platform Configuration</div>
-              <div className="set-form">
-                <div className="um-form-group">
-                  <label>Institution Full Name</label>
-                  <input className="filter-input set-input" defaultValue="SMART CAMPUS University of Technology"/>
-                </div>
-                <div className="set-form-row">
-                  <div className="um-form-group" style={{flex:1}}><label>Academic Year</label><input className="filter-input set-input" defaultValue="2025–2026"/></div>
-                  <div className="um-form-group" style={{flex:1}}><label>Current Semester</label><select className="filter-select set-input"><option>Semester IV</option><option>Semester V</option></select></div>
-                </div>
-                <div className="um-form-group"><label>Default Language</label><select className="filter-select set-input"><option>English</option><option>Hindi</option><option>Tamil</option></select></div>
-                <div className="um-form-group"><label>Max File Upload Size</label><select className="filter-select set-input"><option>50 MB</option><option>100 MB</option><option>250 MB</option></select></div>
-              </div>
-              <div className="set-divider"/>
-              <div className="set-section-title">Feature Flags</div>
+            {/* STAT CARDS */}
+            <div className="stat-grid">
               {[
-                { name:"AI Academic Assistant", desc:"Enable Claude-powered Q&A for students", enabled:true },
-                { name:"WebRTC Live Sessions",  desc:"Enable real-time video lectures", enabled:true },
-                { name:"Placement Module",      desc:"Show placement readiness features", enabled:true },
-                { name:"Innovation Hub",        desc:"Enable hackathon and idea submission", enabled:false },
-              ].map((f,i)=>(
-                <div key={i} className="set-notif-row">
-                  <div>
-                    <div className="set-notif-name">{f.name}</div>
-                    <div className="set-notif-desc">{f.desc}</div>
-                  </div>
-                  <div className={`sec-toggle ${f.enabled?"sec-toggle-on":"sec-toggle-off"}`}>
-                    <span className="sec-toggle-thumb" style={{left:f.enabled?19:3}}/>
-                  </div>
+                { accent:"sc-teal",   icon:"check",    val:"5/6",   lbl:"Integrations Active",  delta:"1 pending" },
+                { accent:"sc-indigo", icon:"bell",     val:"4",     lbl:"Active Notifications", delta:"configured" },
+                { accent:"sc-amber",  icon:"cpu",      val:"Dark",  lbl:"Current Theme",        delta:"deep space" },
+                { accent:"sc-rose",   icon:"shield",   val:"2FA",   lbl:"Auth Method",          delta:"enforced" },
+              ].map((s, i) => (
+                <div key={i} className={`stat-card ${s.accent}`} style={{ animationDelay:`${i * 80}ms`, cursor:"default" }}>
+                  <div className="stat-ic"><I n={s.icon} size={16} /></div>
+                  <div className="stat-val">{s.val}</div>
+                  <div className="stat-lbl">{s.lbl}</div>
+                  <span className="stat-delta delta-neu">· {s.delta}</span>
                 </div>
               ))}
             </div>
-          )}
 
-          {tab === "advanced" && (
-            <div className="set-section">
-              <div className="set-section-title">Advanced Settings</div>
-              <div className="set-danger-zone">
-                <div className="set-danger-title">⚠️ Danger Zone</div>
-                <div className="set-danger-item">
-                  <div>
-                    <div style={{fontWeight:600,fontSize:12,marginBottom:3}}>Clear All Sessions</div>
-                    <div style={{fontSize:11,color:"var(--text3)"}}>Force logout all active users immediately</div>
-                  </div>
-                  <button className="btn btn-rose btn-sm">Clear Sessions</button>
+            {/* TABS + CONTENT */}
+            <div className="panel">
+              <div className="panel-hd">
+                <div className="panel-ttl"><I n="settings" size={15} /> Configuration</div>
+                <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="btn btn-solid btn-sm"><I n="check" size={12} /> Save Changes</button>
+              </div>
+              <div className="panel-body" style={{ padding:0 }}>
+                <div className="tab-row" style={{ padding:"0 20px" }}>
+                  {["General","Notifications","Appearance","Integrations","Advanced"].map(t => (
+                    <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} key={t} className={`tab-btn ${t === "General" ? "active" : ""}`}>{t}</button>
+                  ))}
                 </div>
-                <div className="set-danger-item">
-                  <div>
-                    <div style={{fontWeight:600,fontSize:12,marginBottom:3}}>Reset Platform Analytics</div>
-                    <div style={{fontSize:11,color:"var(--text3)"}}>This will clear all cached analytics data</div>
+                <div style={{ padding:"20px" }}>
+                  <div style={{ fontSize:"10px", fontWeight:700, letterSpacing:".12em", textTransform:"uppercase", color:"var(--text3)", marginBottom:"14px" }}>Campus Information</div>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"14px" }}>
+                    {[
+                      { label:"Campus Name",    val:"Smart Campus Institute of Technology" },
+                      { label:"Admin Email",    val:"admin@college.edu" },
+                      { label:"Timezone",       val:"Asia/Kolkata" },
+                      { label:"Language",       val:"English" },
+                      { label:"Semester Start", val:"2025-01-06" },
+                      { label:"Semester End",   val:"2025-05-30" },
+                    ].map(f => (
+                      <div key={f.label}>
+                        <label style={{ fontSize:"11px", fontWeight:600, color:"var(--text2)", display:"block", marginBottom:"5px" }}>{f.label}</label>
+                        <input className="filter-input" style={{ width:"100%" }} defaultValue={f.val} />
+                      </div>
+                    ))}
                   </div>
-                  <button className="btn btn-rose btn-sm">Reset Analytics</button>
-                </div>
-                <div className="set-danger-item">
-                  <div>
-                    <div style={{fontWeight:600,fontSize:12,marginBottom:3}}>Maintenance Mode</div>
-                    <div style={{fontSize:11,color:"var(--text3)"}}>Take the platform offline for maintenance</div>
-                  </div>
-                  <button className="btn btn-rose btn-sm">Enable</button>
                 </div>
               </div>
             </div>
-          )}
+
+            {/* NOTIFICATIONS */}
+            <div className="main-grid">
+              <div className="panel">
+                <div className="panel-hd">
+                  <div className="panel-ttl"><I n="bell" size={15} /> Notification Preferences</div>
+                </div>
+                <div className="panel-body">
+                  {[
+                    { label:"New user registration",      on:true  },
+                    { label:"Course published/updated",   on:true  },
+                    { label:"System health alerts",       on:true  },
+                    { label:"Placement drive scheduled",  on:true  },
+                    { label:"Weekly activity digest",     on:false },
+                    { label:"Security alerts",            on:true  },
+                  ].map((n, i) => (
+                    <div key={i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 0", borderBottom:"1px solid var(--border)" }}>
+                      <div style={{ fontSize:"12.5px", fontWeight:500 }}>{n.label}</div>
+                      <div style={{ width:38, height:20, borderRadius:10, background: n.on ? "rgba(39,201,176,.25)" : "var(--surface3)", border:`1px solid ${n.on ? "var(--teal)" : "var(--border2)"}`, cursor:"pointer", position:"relative" }}>
+                        <div style={{ position:"absolute", top:2, left: n.on ? 20 : 2, width:14, height:14, borderRadius:"50%", background: n.on ? "var(--teal)" : "var(--text3)", transition:"left .2s" }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="panel">
+                <div className="panel-hd">
+                  <div className="panel-ttl"><I n="globe" size={15} /> Integrations</div>
+                </div>
+                <div className="panel-body">
+                  {[
+                    { name:"Google SSO",      icon:"globe",  status:"connected",    color:"var(--teal)" },
+                    { name:"Zoom Meetings",   icon:"wifi",   status:"connected",    color:"var(--teal)" },
+                    { name:"AWS S3 Storage",  icon:"db",     status:"connected",    color:"var(--teal)" },
+                    { name:"Razorpay",        icon:"zap",    status:"disconnected", color:"var(--text3)" },
+                    { label:"SendGrid Email",  icon:"globe",  status:"connected",    color:"var(--teal)" },
+                  ].map((intg, i) => (
+                    <div key={i} style={{ display:"flex", alignItems:"center", gap:"12px", padding:"10px 0", borderBottom:"1px solid var(--border)" }}>
+                      <div style={{ width:34, height:34, borderRadius:9, background:"var(--surface3)", color:"var(--text2)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                        <I n={intg.icon} size={15} />
+                      </div>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:"12.5px", fontWeight:600 }}>{intg.name}</div>
+                        <div style={{ fontSize:"10.5px", color:intg.color, marginTop:"2px" }}>{intg.status === "connected" ? "● Connected" : "○ Not connected"}</div>
+                      </div>
+                      <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className={`btn btn-sm ${intg.status === "connected" ? "btn-ghost" : "btn-solid"}`}>
+                        {intg.status === "connected" ? "Disconnect" : "Connect"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </main>
         </div>
       </div>
-    </div>
+    </>
   );
 }

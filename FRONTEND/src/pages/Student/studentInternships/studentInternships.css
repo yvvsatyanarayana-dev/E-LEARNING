@@ -25,7 +25,7 @@
   display: inline-flex; align-items: center; gap: 5px;
   padding: 8px 12px; background: var(--surface2); border: 1px solid var(--border);
   border-radius: 8px; color: var(--text3); font-size: 11px; font-weight: 600;
-  font-family: inherit; cursor: pointer; transition: border-color .2s, color .2s;
+  font-family: inherit; cursor: none;transition: border-color .2s, color .2s;
   white-space: nowrap; margin-top: 4px;
 }
 .int-back:hover { border-color: var(--border2); color: var(--text); }
@@ -55,7 +55,7 @@
   padding: 10px 16px 11px; background: none; border: none;
   border-bottom: 2px solid transparent; color: var(--text3);
   font-family: inherit; font-size: 12px; font-weight: 500;
-  cursor: pointer; transition: color .2s, border-color .2s;
+  cursor: none;transition: color .2s, border-color .2s;
   white-space: nowrap; margin-bottom: -1px;
 }
 .int-tab:hover { color: var(--text2); }
@@ -72,7 +72,7 @@
 .int-btn-solid, .int-btn-ghost {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 16px; border-radius: 8px; font-family: inherit;
-  font-size: 12px; font-weight: 600; cursor: pointer; transition: all .2s;
+  font-size: 12px; font-weight: 600; cursor: none;transition: all .2s;
   letter-spacing: .02em;
 }
 .int-btn-solid {
@@ -132,7 +132,7 @@
 .int-search-clear {
   width: 20px; height: 20px; border-radius: 50%; background: var(--surface3);
   border: 1px solid var(--border2); display: flex; align-items: center; justify-content: center;
-  cursor: pointer; color: var(--text3); transition: background .18s, color .18s; flex-shrink: 0;
+  cursor: none;color: var(--text3); transition: background .18s, color .18s; flex-shrink: 0;
 }
 .int-search-clear:hover { background: rgba(242,68,92,.15); color: var(--rose); }
 
@@ -143,7 +143,7 @@
 .int-chip {
   padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 500;
   background: var(--surface2); border: 1px solid var(--border2); color: var(--text3);
-  cursor: pointer; transition: all .18s; font-family: inherit;
+  cursor: none;transition: all .18s; font-family: inherit;
 }
 .int-chip:hover { border-color: var(--border3); color: var(--text2); }
 .int-chip.active { background: rgba(91,78,248,.1); border-color: rgba(91,78,248,.3); color: var(--indigo-ll); }
@@ -158,8 +158,7 @@
   background: var(--surface); border: 1px solid var(--border); border-radius: 14px;
   padding: 18px; display: flex; flex-direction: column; gap: 12px;
   transition: border-color .2s, transform .2s; animation: int-reveal .5s ease both;
-  cursor: pointer;
-}
+  cursor: none;}
 .int-card:hover { border-color: rgba(91,78,248,.22); transform: translateY(-2px); }
 
 .int-card-top { display: flex; align-items: center; gap: 10px; }
@@ -197,7 +196,7 @@
   display: inline-flex; align-items: center; gap: 3px;
   margin-left: auto; font-size: 10px; font-weight: 600;
   color: var(--indigo-ll); background: none; border: none;
-  cursor: pointer; font-family: inherit; transition: color .2s;
+  cursor: none;font-family: inherit; transition: color .2s;
 }
 .int-card-cta:hover { color: var(--indigo-l); }
 
@@ -221,7 +220,7 @@
   width: 30px; height: 30px; border-radius: 8px;
   background: var(--surface2); border: 1px solid var(--border);
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer; color: var(--text3); transition: background .2s, color .2s;
+  cursor: none;color: var(--text3); transition: background .2s, color .2s;
 }
 .int-drawer-close:hover { background: var(--surface3); color: var(--text); }
 

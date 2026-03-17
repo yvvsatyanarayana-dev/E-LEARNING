@@ -120,8 +120,7 @@
   border: 1px solid var(--border);
   border-radius: 14px;
   padding: 16px;
-  cursor: pointer;
-  display: flex;
+  cursor: none;display: flex;
   flex-direction: column;
   gap: 9px;
   overflow: hidden;
@@ -244,8 +243,7 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 11.5px;
   font-weight: 700;
-  cursor: pointer;
-  white-space: nowrap;
+  cursor: none;white-space: nowrap;
   transition: opacity .15s, transform .15s;
 }
 .as-card-btn:hover { opacity: .85; transform: translateY(-1px); }
@@ -283,8 +281,7 @@
   border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
-  cursor: pointer;
-  transition: border-color .2s, transform .18s;
+  cursor: none;transition: border-color .2s, transform .18s;
 }
 .as-row:hover {
   border-color: rgba(var(--card-rgb), .3);
@@ -376,8 +373,7 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 11.5px;
   font-weight: 600;
-  cursor: pointer;
-  white-space: nowrap;
+  cursor: none;white-space: nowrap;
   flex-shrink: 0;
   transition: all .15s;
 }
@@ -620,15 +616,13 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 12px;
   color: var(--text2);
-  cursor: pointer;
-  transition: background .15s, border-color .15s;
+  cursor: none;transition: background .15s, border-color .15s;
   text-align: left;
 }
 .as-attach-item:hover { background: var(--surface3); border-color: var(--border2); }
 .as-attach-dl-btn {
   display: flex; align-items: center;
-  background: none; border: none; cursor: pointer;
-  padding: 4px 8px; border-radius: 6px;
+  background: none; border: none; cursor: none;padding: 4px 8px; border-radius: 6px;
   transition: background .15s;
 }
 .as-attach-dl-btn:hover { background: var(--surface3); }
@@ -717,7 +711,7 @@
   border: 1px solid var(--border);
   color: var(--text2);
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer; transition: background .15s;
+  cursor: none;transition: background .15s;
 }
 .as-modal-close:hover { background: var(--surface3); }
 
@@ -757,8 +751,7 @@
   padding: 30px 20px;
   border: 2px dashed var(--border2);
   border-radius: 12px;
-  cursor: pointer;
-  transition: border-color .18s, background .18s;
+  cursor: none;transition: border-color .18s, background .18s;
   text-align: center;
 }
 .as-dropzone:hover { border-color: var(--indigo-l); background: rgba(91,78,248,.03); }
@@ -788,8 +781,7 @@
 .as-file-size { margin-left: auto; font-size: 10.5px; color: var(--text3); }
 .as-file-remove {
   display: flex; align-items: center;
-  background: none; border: none; cursor: pointer;
-  color: var(--text3); padding: 2px;
+  background: none; border: none; cursor: none;color: var(--text3); padding: 2px;
   transition: color .15s;
 }
 .as-file-remove:hover { color: var(--rose); }
@@ -830,8 +822,7 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 13px;
   font-weight: 700;
-  cursor: pointer;
-  transition: opacity .15s, transform .15s;
+  cursor: none;transition: opacity .15s, transform .15s;
 }
 .as-modal-btn:hover { opacity: .88; transform: translateY(-1px); }
 .as-modal-btn:disabled { cursor: not-allowed; transform: none; }
@@ -872,7 +863,7 @@
   padding: 9px 16px;
   border-bottom: 1px solid var(--border);
   transition: background .15s;
-  cursor: default;
+  cursor: none;
 }
 .as-tl-row:last-child { border-bottom: none; }
 .as-tl-row:hover { background: rgba(255,255,255,.02); }
@@ -925,8 +916,7 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 11px;
   font-weight: 700;
-  cursor: pointer;
-  width: 100%;
+  cursor: none;width: 100%;
   transition: background .15s;
 }
 .as-ai-tip-btn:hover { background: rgba(91,78,248,.08); }

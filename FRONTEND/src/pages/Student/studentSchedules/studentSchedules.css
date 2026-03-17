@@ -83,8 +83,7 @@
     font-size: 12px;
     font-weight: 600;
     color: var(--text2);
-    cursor: pointer;
-    transition: all .15s;
+    cursor: none;transition: all .15s;
 }
 
 .sch-day-pill:hover {
@@ -271,8 +270,7 @@
     right: 2px;
     border-radius: 6px;
     padding: 4px 6px;
-    cursor: pointer;
-    overflow: hidden;
+    cursor: none;overflow: hidden;
     z-index: 2;
     transition: filter .15s, transform .12s;
     display: flex;
@@ -372,8 +370,7 @@
 .sch-dt-item {
     display: flex;
     align-items: flex-start;
-    cursor: pointer;
-    transition: opacity .15s;
+    cursor: none;transition: opacity .15s;
 }
 
 .sch-dt-item:hover {
@@ -549,8 +546,7 @@
     border: 1px solid var(--border);
     border-radius: 11px;
     overflow: hidden;
-    cursor: pointer;
-    transition: border-color .18s, transform .15s;
+    cursor: none;transition: border-color .18s, transform .15s;
 }
 
 .sch-lv-item:hover {

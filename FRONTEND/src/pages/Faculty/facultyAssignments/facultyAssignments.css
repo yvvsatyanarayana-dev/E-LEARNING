@@ -28,8 +28,7 @@
   border: none;
   color: var(--text2);
   font-size: 13px;
-  cursor: pointer;
-  margin-bottom: 4px;
+  cursor: none;margin-bottom: 4px;
   padding: 0;
   transition: color .18s;
   font-family: 'Plus Jakarta Sans', sans-serif;
@@ -71,8 +70,7 @@
   color: var(--text2);
   font-size: 12px;
   font-weight: 600;
-  cursor: pointer;
-  transition: all .18s;
+  cursor: none;transition: all .18s;
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 .as-ctab:hover { border-color: var(--border2); color: var(--text); }
@@ -128,8 +126,7 @@
   background: none;
   border: none;
   color: var(--text3);
-  cursor: pointer;
-  display: flex;
+  cursor: none;display: flex;
   align-items: center;
   padding: 2px;
   border-radius: 4px;
@@ -153,8 +150,7 @@
   color: var(--text2);
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 11.5px;
-  cursor: pointer;
-  outline: none;
+  cursor: none;outline: none;
   transition: border-color .18s;
 }
 .as-select:hover { border-color: var(--border2); }
@@ -171,8 +167,7 @@
   width: 36px; height: 36px;
   display: flex; align-items: center; justify-content: center;
   background: none; border: none;
-  color: var(--text3); cursor: pointer;
-  transition: background .18s, color .18s;
+  color: var(--text3); cursor: none;transition: background .18s, color .18s;
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 .as-vbtn:hover { background: var(--surface3); color: var(--text2); }
@@ -229,8 +224,7 @@
   padding: 16px;
   position: relative;
   overflow: hidden;
-  cursor: pointer;
-  transition: border-color .22s, transform .22s, box-shadow .22s;
+  cursor: none;transition: border-color .22s, transform .22s, box-shadow .22s;
   animation: reveal-in .45s ease both;
   display: flex;
   flex-direction: column;
@@ -338,8 +332,7 @@
   color: var(--rose);
   font-size: 11px;
   font-weight: 700;
-  cursor: pointer;
-  transition: background .18s, border-color .18s;
+  cursor: none;transition: background .18s, border-color .18s;
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 .as-card-grade-btn:hover { background: rgba(242,68,92,.18); border-color: rgba(242,68,92,.38); }
@@ -432,8 +425,7 @@
   align-items: center;
   padding: 12px 20px;
   border-bottom: 1px solid var(--border);
-  cursor: pointer;
-  transition: background .18s;
+  cursor: none;transition: background .18s;
 }
 .as-row:last-child { border-bottom: none; }
 .as-row:hover { background: rgba(255,255,255,.025); }
@@ -450,8 +442,7 @@
   background: var(--surface2);
   border: 1px solid var(--border);
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  color: var(--text3);
+  cursor: none;color: var(--text3);
   transition: background .18s, color .18s;
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
@@ -509,8 +500,7 @@
   background: var(--surface2);
   border: 1px solid var(--border);
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  color: var(--text3);
+  cursor: none;color: var(--text3);
   transition: background .18s, color .18s;
   flex-shrink: 0;
   font-family: 'Plus Jakarta Sans', sans-serif;
@@ -600,7 +590,7 @@
 .as-input:focus { border-color: rgba(91,78,248,.42); }
 .as-input::placeholder { color: var(--text3); }
 .as-textarea { resize: vertical; min-height: 80px; line-height: 1.55; }
-select.as-input { cursor: pointer; }
+select.as-input { cursor: none;}
 
 /* Rubric builder */
 .as-rubric-info {
@@ -632,8 +622,7 @@ select.as-input { cursor: pointer; }
   border: 1px solid rgba(242,68,92,.15);
   color: var(--rose);
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer;
-  transition: background .18s;
+  cursor: none;transition: background .18s;
   flex-shrink: 0;
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
@@ -649,8 +638,7 @@ select.as-input { cursor: pointer; }
   color: var(--indigo-ll);
   font-size: 11.5px;
   font-weight: 600;
-  cursor: pointer;
-  transition: background .18s, border-color .18s;
+  cursor: none;transition: background .18s, border-color .18s;
   font-family: 'Plus Jakarta Sans', sans-serif;
   margin-bottom: 4px;
 }
@@ -707,8 +695,7 @@ select.as-input { cursor: pointer; }
   margin-left: auto;
   flex-shrink: 0;
   position: relative;
-  cursor: pointer;
-  transition: background .2s;
+  cursor: none;transition: background .2s;
 }
 .as-toggle--on {
   background: var(--teal);
@@ -742,8 +729,7 @@ select.as-input { cursor: pointer; }
   padding: 12px 14px;
   border: 1px solid var(--border);
   border-radius: 10px;
-  cursor: pointer;
-  background: var(--surface2);
+  cursor: none;background: var(--surface2);
   transition: border-color .18s, background .18s;
 }
 .as-pub-opt:hover { border-color: var(--border2); }
@@ -808,8 +794,7 @@ select.as-input { cursor: pointer; }
   border: none;
   color: var(--text3);
   font-size: 11.5px;
-  cursor: pointer;
-  margin-bottom: 8px;
+  cursor: none;margin-bottom: 8px;
   padding: 0;
   transition: color .18s;
   font-family: 'Plus Jakarta Sans', sans-serif;
@@ -833,8 +818,7 @@ select.as-input { cursor: pointer; }
   background: none;
   border: none;
   border-bottom: 2px solid transparent;
-  cursor: pointer;
-  transition: color .18s;
+  cursor: none;transition: color .18s;
   font-family: 'Plus Jakarta Sans', sans-serif;
   text-transform: capitalize;
 }
@@ -914,8 +898,7 @@ select.as-input { cursor: pointer; }
   color: var(--rose);
   font-size: 12px;
   font-weight: 600;
-  cursor: pointer;
-  transition: background .18s, border-color .18s;
+  cursor: none;transition: background .18s, border-color .18s;
   font-family: 'Plus Jakarta Sans', sans-serif;
   justify-content: center;
 }
@@ -956,8 +939,7 @@ select.as-input { cursor: pointer; }
   border: 1px solid var(--border);
   background: var(--surface2);
   color: var(--text3);
-  cursor: pointer;
-  transition: all .18s;
+  cursor: none;transition: all .18s;
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 .as-sub-pill.active { font-weight: 700; }
@@ -1023,7 +1005,7 @@ select.as-input { cursor: pointer; }
   background: var(--surface3);
   border: 1px solid var(--border2);
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer; color: var(--text3);
+  cursor: none;color: var(--text3);
   transition: background .18s;
   font-family: 'Plus Jakarta Sans', sans-serif;
 }

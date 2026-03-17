@@ -25,7 +25,7 @@
   display: inline-flex; align-items: center; gap: 5px;
   padding: 8px 12px; background: var(--surface2); border: 1px solid var(--border);
   border-radius: 8px; color: var(--text3); font-size: 11px; font-weight: 600;
-  font-family: inherit; cursor: pointer; transition: border-color .2s, color .2s;
+  font-family: inherit; cursor: none;transition: border-color .2s, color .2s;
   white-space: nowrap; margin-top: 4px;
 }
 .mi-back:hover { border-color: var(--border2); color: var(--text); }
@@ -58,7 +58,7 @@
   padding: 10px 16px 11px; background: none; border: none;
   border-bottom: 2px solid transparent; color: var(--text3);
   font-family: inherit; font-size: 12px; font-weight: 500;
-  cursor: pointer; transition: color .2s, border-color .2s;
+  cursor: none;transition: color .2s, border-color .2s;
   white-space: nowrap; margin-bottom: -1px;
 }
 .mi-tab:hover { color: var(--text2); }
@@ -74,7 +74,7 @@
 .mi-btn-solid, .mi-btn-ghost {
   display: inline-flex; align-items: center; gap: 6px;
   padding: 8px 16px; border-radius: 8px; font-family: inherit;
-  font-size: 12px; font-weight: 600; cursor: pointer; transition: all .2s;
+  font-size: 12px; font-weight: 600; cursor: none;transition: all .2s;
   letter-spacing: .02em;
 }
 .mi-btn-solid { background: var(--indigo); color: #fff; border: none; box-shadow: 0 0 16px rgba(91,78,248,.3); }
@@ -100,7 +100,7 @@
 .mi-round-card {
   background: var(--surface); border: 2px solid var(--border); border-radius: 14px;
   padding: 20px; display: flex; flex-direction: column; gap: 10px;
-  cursor: pointer; transition: border-color .2s, transform .2s, background .2s;
+  cursor: none;transition: border-color .2s, transform .2s, background .2s;
   animation: mi-reveal .5s ease both; position: relative;
 }
 .mi-round-card:hover { border-color: rgba(91,78,248,.3); transform: translateY(-2px); background: var(--surface2); }
@@ -137,15 +137,14 @@
 .mi-ct-logo {
   width: 32px; height: 32px; border-radius: 8px;
   display: flex; align-items: center; justify-content: center;
-  font-size: 13px; font-weight: 700; cursor: pointer;
-  border: 1.5px solid transparent; transition: border-color .2s;
+  font-size: 13px; font-weight: 700; cursor: none;border: 1.5px solid transparent; transition: border-color .2s;
 }
 .mi-ct-logo:hover { border-color: rgba(255,255,255,.15); }
 
 .mi-start-btn {
   display: inline-flex; align-items: center; gap: 8px;
   padding: 14px 28px; border-radius: 10px; font-family: inherit;
-  font-size: 13px; font-weight: 700; cursor: pointer; transition: all .25s;
+  font-size: 13px; font-weight: 700; cursor: none;transition: all .25s;
   background: var(--surface2); border: 2px solid var(--border2); color: var(--text3);
 }
 .mi-start-btn.ready {
@@ -153,7 +152,7 @@
   box-shadow: 0 0 30px rgba(91,78,248,.4);
 }
 .mi-start-btn.ready:hover { background: var(--indigo-l); transform: translateY(-2px); box-shadow: 0 0 40px rgba(91,78,248,.55); }
-.mi-start-btn:disabled { cursor: default; }
+.mi-start-btn:disabled { cursor: none; }
 
 /* ══════ HISTORY ══════ */
 .mi-history-layout { display: flex; flex-direction: column; gap: 12px; }
@@ -183,7 +182,7 @@
   display: inline-flex; align-items: center; gap: 4px;
   padding: 6px 14px; background: var(--surface2); border: 1px solid var(--border2);
   border-radius: 8px; font-family: inherit; font-size: 11px; font-weight: 600;
-  color: var(--indigo-ll); cursor: pointer; transition: background .2s;
+  color: var(--indigo-ll); cursor: none;transition: background .2s;
 }
 .mi-review-btn:hover { background: rgba(91,78,248,.1); border-color: rgba(91,78,248,.3); }
 
@@ -218,7 +217,7 @@
   margin-left: auto; width: 32px; height: 32px; border-radius: 8px;
   background: var(--surface2); border: 1px solid var(--border);
   display: flex; align-items: center; justify-content: center;
-  cursor: pointer; color: var(--text3); transition: background .2s, color .2s; flex-shrink: 0;
+  cursor: none;color: var(--text3); transition: background .2s, color .2s; flex-shrink: 0;
 }
 .mi-modal-close:hover { background: var(--surface3); color: var(--text); }
 
@@ -279,7 +278,7 @@
 .mi-bank-chip {
   padding: 5px 12px; border-radius: 20px; font-size: 11px; font-weight: 500;
   background: var(--surface2); border: 1px solid var(--border2); color: var(--text3);
-  cursor: pointer; transition: all .18s; font-family: inherit;
+  cursor: none;transition: all .18s; font-family: inherit;
 }
 .mi-bank-chip:hover { border-color: rgba(91,78,248,.3); color: var(--indigo-ll); background: rgba(91,78,248,.07); }
 
@@ -314,7 +313,7 @@
   padding: 5px 12px; background: rgba(91,78,248,.1);
   border: 1px solid rgba(91,78,248,.2); border-radius: 7px;
   font-family: inherit; font-size: 10px; font-weight: 600;
-  color: var(--indigo-ll); cursor: pointer; transition: background .2s;
+  color: var(--indigo-ll); cursor: none;transition: background .2s;
   white-space: nowrap;
 }
 .mi-bt-btn:hover { background: rgba(91,78,248,.18); }
@@ -364,7 +363,7 @@
   display: inline-flex; align-items: center; gap: 5px;
   padding: 6px 12px; background: var(--surface2); border: 1px solid var(--border);
   border-radius: 7px; color: var(--text3); font-size: 11px; font-weight: 600;
-  font-family: inherit; cursor: pointer; transition: all .2s;
+  font-family: inherit; cursor: none;transition: all .2s;
 }
 .mi-sim-exit:hover { border-color: var(--border2); color: var(--text); }
 
@@ -443,8 +442,7 @@
 .mi-sim-input::placeholder { color: var(--text3); }
 .mi-sim-send {
   width: 38px; height: 38px; border-radius: 9px; flex-shrink: 0;
-  background: var(--indigo); border: none; cursor: pointer;
-  display: flex; align-items: center; justify-content: center;
+  background: var(--indigo); border: none; cursor: none;display: flex; align-items: center; justify-content: center;
   transition: background .2s; box-shadow: 0 0 14px rgba(91,78,248,.3);
 }
 .mi-sim-send:hover { background: var(--indigo-l); }
@@ -462,14 +460,14 @@
 .mi-lang-btn {
   padding: 4px 10px; background: var(--surface2); border: 1px solid var(--border2);
   border-radius: 6px; font-family: inherit; font-size: 10.5px; font-weight: 500;
-  color: var(--text3); cursor: pointer; transition: all .18s;
+  color: var(--text3); cursor: none;transition: all .18s;
 }
 .mi-lang-btn:hover { border-color: rgba(91,78,248,.3); color: var(--indigo-ll); }
 .mi-run-btn {
   margin-left: auto; display: inline-flex; align-items: center; gap: 5px;
   padding: 6px 14px; background: var(--teal); border: none; border-radius: 7px;
   font-family: inherit; font-size: 11px; font-weight: 700; color: var(--bg);
-  cursor: pointer; transition: opacity .2s;
+  cursor: none;transition: opacity .2s;
 }
 .mi-run-btn:hover { opacity: .85; }
 

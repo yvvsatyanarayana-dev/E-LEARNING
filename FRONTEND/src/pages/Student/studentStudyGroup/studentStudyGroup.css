@@ -25,8 +25,7 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 13px;
   font-weight: 700;
-  cursor: pointer;
-  flex-shrink: 0;
+  cursor: none;flex-shrink: 0;
   transition: opacity .15s, transform .15s;
   box-shadow: 0 4px 14px rgba(91, 78, 248, .25);
 }
@@ -83,8 +82,7 @@
   border: 1px solid var(--border);
   border-radius: 16px;
   padding: 18px;
-  cursor: pointer;
-  display: flex;
+  cursor: none;display: flex;
   flex-direction: column;
   gap: 10px;
   overflow: hidden;
@@ -254,8 +252,7 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 12.5px;
   font-weight: 700;
-  cursor: pointer;
-  margin-top: auto;
+  cursor: none;margin-top: auto;
   transition: opacity .15s, transform .15s;
 }
 
@@ -372,8 +369,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  transition: background .15s, border-color .15s;
+  cursor: none;transition: background .15s, border-color .15s;
 }
 
 .sg-icon-btn:hover {
@@ -401,8 +397,7 @@
   font-size: 12.5px;
   font-weight: 600;
   color: var(--text3);
-  cursor: pointer;
-  transition: color .15s, border-color .15s;
+  cursor: none;transition: color .15s, border-color .15s;
   white-space: nowrap;
 }
 
@@ -461,8 +456,7 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 12.5px;
   font-weight: 500;
-  cursor: pointer;
-  transition: background .15s, color .15s;
+  cursor: none;transition: background .15s, color .15s;
   text-align: left;
   width: 100%;
 }
@@ -511,8 +505,7 @@
 .sg-voice-leave {
   background: none;
   border: none;
-  cursor: pointer;
-  color: var(--rose);
+  cursor: none;color: var(--rose);
   margin-left: auto;
   display: flex;
   align-items: center;
@@ -600,7 +593,7 @@
   font-size: 13px;
   color: var(--text1);
   line-height: 1.5;
-  cursor: default;
+  cursor: none;
   transition: background .15s;
   word-break: break-word;
 }
@@ -631,8 +624,7 @@
   border: 1px solid var(--border);
   border-radius: 20px;
   font-size: 12px;
-  cursor: pointer;
-  transition: background .12s;
+  cursor: none;transition: background .12s;
 }
 
 .sg-reaction-btn span {
@@ -662,8 +654,7 @@
   font-size: 18px;
   background: none;
   border: none;
-  cursor: pointer;
-  width: 32px;
+  cursor: none;width: 32px;
   height: 32px;
   border-radius: 8px;
   display: flex;
@@ -717,8 +708,7 @@
   background: none;
   border: none;
   color: var(--text3);
-  cursor: pointer;
-  padding: 4px;
+  cursor: none;padding: 4px;
   border-radius: 6px;
   display: flex;
   align-items: center;
@@ -739,8 +729,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  transition: all .15s;
+  cursor: none;transition: all .15s;
   flex-shrink: 0;
 }
 
@@ -785,7 +774,7 @@
   padding: 5px 4px;
   border-radius: 8px;
   transition: background .12s;
-  cursor: default;
+  cursor: none;
 }
 
 .sg-ols-member:hover {
@@ -894,8 +883,7 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 13px;
   font-weight: 700;
-  cursor: pointer;
-  transition: opacity .15s, transform .15s;
+  cursor: none;transition: opacity .15s, transform .15s;
 }
 
 .sg-vr-btn:hover {
@@ -914,8 +902,7 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 12px;
   font-weight: 700;
-  cursor: pointer;
-  transition: opacity .15s;
+  cursor: none;transition: opacity .15s;
 }
 
 .sg-voice-join-btn:hover {
@@ -964,8 +951,7 @@
 
 .sg-mc-invite {
   border-style: dashed;
-  cursor: pointer;
-  justify-content: center;
+  cursor: none;justify-content: center;
 }
 
 .sg-mc-top {
@@ -1038,8 +1024,7 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 11px;
   font-weight: 700;
-  cursor: pointer;
-  margin-top: 5px;
+  cursor: none;margin-top: 5px;
   transition: background .15s;
 }
 
@@ -1086,8 +1071,7 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 12px;
   font-weight: 700;
-  cursor: pointer;
-  transition: opacity .15s, transform .15s;
+  cursor: none;transition: opacity .15s, transform .15s;
 }
 
 .sg-new-session-btn:hover {
@@ -1185,8 +1169,7 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 11.5px;
   font-weight: 700;
-  cursor: pointer;
-  transition: opacity .15s;
+  cursor: none;transition: opacity .15s;
 }
 
 .sg-join-btn:hover {
@@ -1323,8 +1306,7 @@
   background: var(--surface2);
   border: 1.5px solid var(--border);
   border-radius: 11px;
-  cursor: pointer;
-  font-family: 'Plus Jakarta Sans', sans-serif;
+  cursor: none;font-family: 'Plus Jakarta Sans', sans-serif;
   transition: border-color .15s, background .15s;
   text-align: left;
 }
@@ -1360,8 +1342,7 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 12.5px;
   font-weight: 700;
-  cursor: pointer;
-  flex-shrink: 0;
+  cursor: none;flex-shrink: 0;
   transition: opacity .15s, transform .15s;
 }
 
