@@ -1,7 +1,7 @@
-// AdminReports.jsx — SMART CAMPUS Admin Panel
+// adminSettings.jsx — SMART CAMPUS Admin Panel
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import "./AdminReports.css";
+import "./adminSettings.css";
 
 const Icon = ({ d, size = 16, stroke = "currentColor", fill = "none", strokeWidth = 1.6 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">{d}</svg>
@@ -72,7 +72,7 @@ const getActiveId = (pathname) => {
   return "dashboard";
 };
 
-export default function AdminReports() {
+export default function adminSettings() {
   const navigate        = useNavigate();
   const location        = useLocation();
   const [sidebarOpen, setSidebar] = useState(false);
@@ -81,17 +81,6 @@ export default function AdminReports() {
   const cursorRingRef = useRef(null);
   const active = getActiveId(location.pathname);
   const now    = new Date().toLocaleDateString();
-
-  const handleExportReport = () => {
-    const csvContent = "data:text/csv;charset=utf-8,Report Name,Date,Status\nSample Report,2025-01-15,Generated";
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "admin_report.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
 
   useEffect(() => {
     const cursor = cursorRef.current; const cursorRing = cursorRingRef.current;
@@ -164,7 +153,7 @@ export default function AdminReports() {
         <div className="main">
           <header className="topbar">
             <button className="tb-hamburger" onClick={() => setSidebar(true)}><I n="menu" size={16} /></button>
-            <span className="tb-page">Reports</span>
+            <span className="tb-page">Settings</span>
             <div className="tb-sep" />
             <div className="tb-search"><I n="search" size={14} /><input placeholder="Search users, courses…" /></div>
             <div className="tb-right">
@@ -179,22 +168,22 @@ export default function AdminReports() {
           <main className="content">
             {/* ── GREETING ── */}
             <div className="greet-row">
-              <div className="greet-tag"><div className="greet-pip" /><span className="greet-pip-txt">Reports</span></div>
-              <h1 className="greet-title">Download <em>Reports.</em></h1>
-              <p className="greet-sub">Generate and export platform reports &nbsp;·&nbsp; Last generated: Jan 15, 2025</p>
+              <div className="greet-tag"><div className="greet-pip" /><span className="greet-pip-txt">Settings</span></div>
+              <h1 className="greet-title">Platform <em>Settings.</em></h1>
+              <p className="greet-sub">Configure global settings, notifications, and integrations</p>
               <div className="greet-actions">
-                <button onClick={handleExportReport} className="btn btn-solid"><I n="plus" size={14} /> Generate Report</button>
-                <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="btn btn-ghost"><I n="refresh" size={14} /> Schedule Auto</button>
+                <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="btn btn-solid"><I n="check" size={14} /> Save Changes</button>
+                <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="btn btn-ghost"><I n="refresh" size={14} /> Reset Defaults</button>
               </div>
             </div>
 
             {/* STAT CARDS */}
             <div className="stat-grid">
               {[
-                { accent:"sc-indigo", icon:"download", val:"24",  lbl:"Reports Generated",   delta:"this month" },
-                { accent:"sc-teal",   icon:"users",    val:"6",   lbl:"Report Types",        delta:"available" },
-                { accent:"sc-amber",  icon:"db",       val:"18 MB",lbl:"Total Export Size",  delta:"last 30 days" },
-                { accent:"sc-rose",   icon:"activity", val:"3",   lbl:"Scheduled Reports",   delta:"auto-running" },
+                { accent:"sc-teal",   icon:"check",    val:"5/6",   lbl:"Integrations Active",  delta:"1 pending" },
+                { accent:"sc-indigo", icon:"bell",     val:"4",     lbl:"Active Notifications", delta:"configured" },
+                { accent:"sc-amber",  icon:"cpu",      val:"Dark",  lbl:"Current Theme",        delta:"deep space" },
+                { accent:"sc-rose",   icon:"shield",   val:"2FA",   lbl:"Auth Method",          delta:"enforced" },
               ].map((s, i) => (
                 <div key={i} className={`stat-card ${s.accent}`} style={{ animationDelay:`${i * 80}ms`, cursor:"default" }}>
                   <div className="stat-ic"><I n={s.icon} size={16} /></div>
@@ -205,65 +194,90 @@ export default function AdminReports() {
               ))}
             </div>
 
-            {/* QUICK GENERATE */}
+            {/* TABS + CONTENT */}
             <div className="panel">
               <div className="panel-hd">
-                <div className="panel-ttl"><I n="zap" size={15} /> Quick Generate</div>
-                <span style={{ fontSize:"10px", color:"var(--text3)" }}>Instant report creation</span>
+                <div className="panel-ttl"><I n="settings" size={15} /> Configuration</div>
+                <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="btn btn-solid btn-sm"><I n="check" size={12} /> Save Changes</button>
               </div>
-              <div className="panel-body">
-                <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"10px" }}>
-                  {[
-                    { label:"User Growth Report",    icon:"users",     color:"rgba(91,78,248,.12)",   tc:"var(--indigo-ll)" },
-                    { label:"Course Analytics",      icon:"book",      color:"rgba(39,201,176,.1)",   tc:"var(--teal)" },
-                    { label:"Placement Stats",       icon:"briefcase", color:"rgba(244,165,53,.1)",   tc:"var(--amber)" },
-                    { label:"Security Audit",        icon:"shield",    color:"rgba(242,68,92,.1)",    tc:"var(--rose)" },
-                  ].map((q, i) => (
-                    <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} key={i} style={{ background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:"12px", padding:"16px", textAlign:"center", cursor:"pointer", transition:"all .2s", width:"100%" }}>
-                      <div style={{ width:34, height:34, borderRadius:9, background:q.color, color:q.tc, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 8px" }}>
-                        <I n={q.icon} size={15} />
-                      </div>
-                      <div style={{ fontSize:"11px", fontWeight:600, color:q.tc }}>{q.label}</div>
-                    </button>
+              <div className="panel-body" style={{ padding:0 }}>
+                <div className="tab-row" style={{ padding:"0 20px" }}>
+                  {["General","Notifications","Appearance","Integrations","Advanced"].map(t => (
+                    <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} key={t} className={`tab-btn ${t === "General" ? "active" : ""}`}>{t}</button>
                   ))}
+                </div>
+                <div style={{ padding:"20px" }}>
+                  <div style={{ fontSize:"10px", fontWeight:700, letterSpacing:".12em", textTransform:"uppercase", color:"var(--text3)", marginBottom:"14px" }}>Campus Information</div>
+                  <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"14px" }}>
+                    {[
+                      { label:"Campus Name",    val:"Smart Campus Institute of Technology" },
+                      { label:"Admin Email",    val:"admin@college.edu" },
+                      { label:"Timezone",       val:"Asia/Kolkata" },
+                      { label:"Language",       val:"English" },
+                      { label:"Semester Start", val:"2025-01-06" },
+                      { label:"Semester End",   val:"2025-05-30" },
+                    ].map(f => (
+                      <div key={f.label}>
+                        <label style={{ fontSize:"11px", fontWeight:600, color:"var(--text2)", display:"block", marginBottom:"5px" }}>{f.label}</label>
+                        <input className="filter-input" style={{ width:"100%" }} defaultValue={f.val} />
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* REPORT LIBRARY */}
-            <div className="panel">
-              <div className="panel-hd">
-                <div className="panel-ttl"><I n="download" size={15} /> Report Library <span>6 files</span></div>
-                <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="btn btn-ghost btn-sm"><I n="search" size={12} /> Filter</button>
-              </div>
-              <div className="panel-body">
-                <div className="filter-row">
-                  <div className="tb-search" style={{ flex:"1", height:"32px" }}><I n="search" size={13} /><input placeholder="Search reports…" /></div>
+            {/* NOTIFICATIONS */}
+            <div className="main-grid">
+              <div className="panel">
+                <div className="panel-hd">
+                  <div className="panel-ttl"><I n="bell" size={15} /> Notification Preferences</div>
                 </div>
-                {[
-                  { name:"Monthly Enrollment Report",  desc:"Student enrollment trends across departments",    size:"2.4 MB", date:"Jan 2025", type:"PDF",  icon:"users",    color:"var(--rose)" },
-                  { name:"Course Completion Summary",  desc:"Completion rates and engagement per course",       size:"1.8 MB", date:"Jan 2025", type:"XLSX", icon:"book",     color:"var(--teal)" },
-                  { name:"Placement Outcome Report",   desc:"Offer letters, companies, package distributions",  size:"3.1 MB", date:"Dec 2024", type:"PDF",  icon:"briefcase",color:"var(--amber)" },
-                  { name:"Faculty Performance Review", desc:"Teaching hours, student ratings, assessments",     size:"1.2 MB", date:"Dec 2024", type:"PDF",  icon:"award",    color:"var(--violet)" },
-                  { name:"System Audit Log Export",    desc:"Full audit trail — logins, changes, alerts",       size:"5.6 MB", date:"Dec 2024", type:"CSV",  icon:"shield",   color:"var(--indigo-ll)" },
-                  { name:"Financial Summary Q4 2024",  desc:"Revenue, expenses, and budget utilization",        size:"2.9 MB", date:"Dec 2024", type:"XLSX", icon:"bar",      color:"var(--teal)" },
-                ].map((r, i) => (
-                  <div key={i} style={{ display:"flex", alignItems:"center", gap:"14px", padding:"13px 0", borderBottom:"1px solid var(--border)" }}>
-                    <div style={{ width:38, height:38, borderRadius:10, background:`rgba(0,0,0,.2)`, color:r.color, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, border:`1px solid ${r.color}22` }}>
-                      <I n={r.icon} size={15} />
-                    </div>
-                    <div style={{ flex:1 }}>
-                      <div style={{ fontSize:"13px", fontWeight:600, color:"var(--text)", marginBottom:"3px" }}>{r.name}</div>
-                      <div style={{ fontSize:"11px", color:"var(--text3)", marginBottom:"5px" }}>{r.desc}</div>
-                      <div style={{ display:"flex", gap:"10px", alignItems:"center" }}>
-                        <span style={{ fontSize:"9px", fontWeight:700, padding:"2px 7px", borderRadius:"4px", background:"rgba(91,78,248,.1)", color:"var(--indigo-ll)", border:"1px solid rgba(91,78,248,.2)" }}>{r.type}</span>
-                        <span style={{ fontSize:"10px", color:"var(--text3)" }}>{r.size}</span>
-                        <span style={{ fontSize:"10px", color:"var(--text3)" }}>{r.date}</span>
+                <div className="panel-body">
+                  {[
+                    { label:"New user registration",      on:true  },
+                    { label:"Course published/updated",   on:true  },
+                    { label:"System health alerts",       on:true  },
+                    { label:"Placement drive scheduled",  on:true  },
+                    { label:"Weekly activity digest",     on:false },
+                    { label:"Security alerts",            on:true  },
+                  ].map((n, i) => (
+                    <div key={i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"12px 0", borderBottom:"1px solid var(--border)" }}>
+                      <div style={{ fontSize:"12.5px", fontWeight:500 }}>{n.label}</div>
+                      <div style={{ width:38, height:20, borderRadius:10, background: n.on ? "rgba(39,201,176,.25)" : "var(--surface3)", border:`1px solid ${n.on ? "var(--teal)" : "var(--border2)"}`, cursor:"pointer", position:"relative" }}>
+                        <div style={{ position:"absolute", top:2, left: n.on ? 20 : 2, width:14, height:14, borderRadius:"50%", background: n.on ? "var(--teal)" : "var(--text3)", transition:"left .2s" }} />
                       </div>
                     </div>
-                    <button onClick={handleExportReport} className="btn btn-ghost btn-sm"><I n="download" size={12} /> Download</button>
-                  </div>
-                ))}
+                  ))}
+                </div>
+              </div>
+
+              <div className="panel">
+                <div className="panel-hd">
+                  <div className="panel-ttl"><I n="globe" size={15} /> Integrations</div>
+                </div>
+                <div className="panel-body">
+                  {[
+                    { name:"Google SSO",      icon:"globe",  status:"connected",    color:"var(--teal)" },
+                    { name:"Zoom Meetings",   icon:"wifi",   status:"connected",    color:"var(--teal)" },
+                    { name:"AWS S3 Storage",  icon:"db",     status:"connected",    color:"var(--teal)" },
+                    { name:"Razorpay",        icon:"zap",    status:"disconnected", color:"var(--text3)" },
+                    { label:"SendGrid Email",  icon:"globe",  status:"connected",    color:"var(--teal)" },
+                  ].map((intg, i) => (
+                    <div key={i} style={{ display:"flex", alignItems:"center", gap:"12px", padding:"10px 0", borderBottom:"1px solid var(--border)" }}>
+                      <div style={{ width:34, height:34, borderRadius:9, background:"var(--surface3)", color:"var(--text2)", display:"flex", alignItems:"center", justifyContent:"center" }}>
+                        <I n={intg.icon} size={15} />
+                      </div>
+                      <div style={{ flex:1 }}>
+                        <div style={{ fontSize:"12.5px", fontWeight:600 }}>{intg.name}</div>
+                        <div style={{ fontSize:"10.5px", color:intg.color, marginTop:"2px" }}>{intg.status === "connected" ? "● Connected" : "○ Not connected"}</div>
+                      </div>
+                      <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className={`btn btn-sm ${intg.status === "connected" ? "btn-ghost" : "btn-solid"}`}>
+                        {intg.status === "connected" ? "Disconnect" : "Connect"}
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </main>

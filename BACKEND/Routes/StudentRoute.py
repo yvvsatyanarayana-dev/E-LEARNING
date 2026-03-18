@@ -13,7 +13,12 @@ from Schemas.StudentSchema import (
     LessonResponse, AssignmentResponse, QuizResponse,
     QuizAttemptResponse, StudyGroupResponse, NotificationResponse,
     ScheduleFullResponse, PlacementFullResponse, InternshipResponse,
-    MockInterviewsFullResponse, InnovationHubResponse, InternshipsOverviewResponse,
+    MockInterviewsFullResponse,
+    StudyGroupResourceResponse, # New
+    AICourseSuggestionResponse, # New
+    AIStudyPlanResponse, # New
+    ResumeFullResponse, # New
+    InnovationHubResponse, InternshipsOverviewResponse,
     CourseDetailResponse, AIChatRequest, AIChatResponse
 )
 
@@ -43,11 +48,19 @@ def get_analytics(
 # ─── Courses ─────────────────────────────────────────────────────────────────
 
 @router.get("/courses", response_model=List[EnrolledCourseResponse])
-def get_courses(
+def get_enrolled_courses( # Renamed function
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return student_service.get_courses(current_user, db)
+    return student_service.get_enrolled_courses(current_user, db) # Updated service call
+
+
+@router.get("/courses/ai-suggestions", response_model=List[AICourseSuggestionResponse]) # New endpoint
+def get_courses_ai_suggestions(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return student_service.get_courses_ai_suggestions(current_user, db)
 
 
 @router.get("/courses/{course_id}", response_model=CourseDetailResponse)
@@ -160,6 +173,15 @@ def join_study_group(
     return student_service.join_study_group(group_id, current_user, db)
 
 
+@router.get("/study-groups/{id}/resources", response_model=List[StudyGroupResourceResponse]) # New endpoint
+def get_study_group_resources(
+    id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return student_service.get_study_group_resources(id, current_user, db)
+
+
 # ─── Placement ───────────────────────────────────────────────────────────────
 
 @router.get("/schedule", response_model=ScheduleFullResponse)
@@ -168,6 +190,14 @@ def get_schedule(
     db: Session = Depends(get_db),
 ):
     return student_service.get_schedule(current_user, db)
+
+
+@router.get("/schedule/ai-plan", response_model=AIStudyPlanResponse)
+def get_schedule_ai_plan(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return student_service.get_schedule_ai_plan(current_user, db)
 
 
 # ─── Innovation Hub ─────────────────────────────────────────────────────────
@@ -249,9 +279,9 @@ def get_mock_interviews(
 
 # ─── Resume ──────────────────────────────────────────────────────────────────
 
-@router.get("/resume")
+@router.get("/resume", response_model=ResumeFullResponse)
 def get_resume(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db),
 ):
-    return student_service.get_resume(current_user, db)
+    return student_service.get_resume_full(current_user, db)

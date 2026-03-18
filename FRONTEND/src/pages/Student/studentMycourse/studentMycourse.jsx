@@ -469,6 +469,7 @@ export default function StudentMyCourses({ onBack }) {
   const [openCourse, setOpenCourse] = useState(null);
   const [coursesState, setCoursesState] = useState([]);
   const [deadlines, setDeadlines] = useState([]);
+  const [aiSuggestions, setAiSuggestions] = useState([]);
 
   const handleEnroll = async (courseId) => {
     try {
@@ -488,7 +489,7 @@ export default function StudentMyCourses({ onBack }) {
         const rgb = ["91,78,248", "20,184,166", "245,158,11", "139,92,246", "244,63,94"];
         return {
           id: c.course_id,
-          code: "CS" + (c.course_id || c.id || idx),
+          code: "CS" + (c.course_id || c.id || i),
           name: c.title,
           short: c.title.substring(0, 4),
           faculty: c.faculty_name,
@@ -497,7 +498,7 @@ export default function StudentMyCourses({ onBack }) {
           colorRgb: rgb[i % rgb.length],
           credits: 4,
           progress: c.progress,
-          attendance: Math.floor(Math.random() * 20 + 80),
+          attendance: c.attendance || 0,
           score: Math.floor(c.progress * 0.9 + 5),
           rating: 4.5,
           totalLectures: c.lesson_count,
@@ -514,6 +515,14 @@ export default function StudentMyCourses({ onBack }) {
         };
       });
       setCoursesState(mapped);
+
+      // Fetch AI Suggestions
+      try {
+        const suggestionsData = await api.get("/student/courses/ai-suggestions");
+        setAiSuggestions(Array.isArray(suggestionsData) ? suggestionsData : []);
+      } catch (err) {
+        console.error("Failed to fetch AI suggestions:", err);
+      }
 
       // Fetch Assignments for Deadlines
       const assignmentsData = await api.get("/student/assignments");
@@ -646,21 +655,26 @@ export default function StudentMyCourses({ onBack }) {
                 AI Study Suggestions
               </div>
             </div>
-            <div className="panel-body">
+             <div className="panel-body">
               <div className="mc-ai-suggestions">
-                {[
-                  { course: "Crypto", color: "var(--rose)", tip: "Away 3 days — pick up RSA this session.", Icon: CircleAlert },
-                  { course: "ML", color: "var(--amber)", tip: "SVM unlocks tomorrow. Review Linear Regression first.", Icon: Target },
-                  { course: "DBMS", color: "var(--teal)", tip: "Quiz tomorrow — revise ACID properties tonight.", Icon: Award },
-                ].map(({ course, color, tip, Icon }, i) => (
-                  <div key={i} className="mc-ai-tip">
-                    <span className="mc-ai-tip-icon"><Icon size={14} style={{ color }} /></span>
-                    <div>
-                      <span className="mc-ai-tip-course" style={{ color }}>{course}</span>
-                      <p className="mc-ai-tip-text">{tip}</p>
-                    </div>
-                  </div>
-                ))}
+                {aiSuggestions.length === 0 ? (
+                  <p style={{ padding: "10px 0", color: "var(--text3)", fontSize: 12 }}>No suggestions available.</p>
+                ) : (
+                  aiSuggestions.map((s, i) => {
+                    const SuggestIcon = s.type === "alert" ? CircleAlert : s.type === "target" ? Target : Award;
+                    return (
+                      <div key={i} className="mc-ai-tip">
+                        <span className="mc-ai-tip-icon">
+                          <SuggestIcon size={14} style={{ color: s.color || "var(--indigo-ll)" }} />
+                        </span>
+                        <div>
+                          <span className="mc-ai-tip-course" style={{ color: s.color || "var(--indigo-ll)" }}>{s.course}</span>
+                          <p className="mc-ai-tip-text">{s.tip}</p>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </div>
           </div>

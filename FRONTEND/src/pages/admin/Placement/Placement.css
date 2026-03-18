@@ -1,4 +1,4 @@
-/* AdminUserManagement.css — SMART CAMPUS Admin Panel */
+/* Placement.css — SMART CAMPUS Admin Panel */
 
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&display=swap');
 
@@ -91,7 +91,7 @@ html,body { scroll-behavior:smooth; background:var(--bg); color:var(--text); fon
 .greet-actions { display:flex; gap:8px; margin-top:14px; flex-wrap:wrap; }
 
 .stat-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:18px; }
-.stat-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px 20px; position:relative; overflow:hidden; transition:border-color .25s,transform .25s; cursor: none; animation:reveal-in .5s ease both; }
+.stat-card { background:var(--surface); border:1px solid var(--border); border-radius:14px; padding:18px 20px; position:relative; overflow:hidden; transition:border-color .25s,transform .25s; cursor:none; animation:reveal-in .5s ease both; }
 .stat-card:hover { border-color:var(--border2); transform:translateY(-2px); }
 .stat-card::before { content:''; position:absolute; top:0; left:0; right:0; height:2px; border-radius:2px 2px 0 0; }
 .sc-indigo::before { background:var(--indigo-l); } .sc-teal::before { background:var(--teal); } .sc-amber::before { background:var(--amber); } .sc-rose::before { background:var(--rose); } .sc-violet::before { background:var(--violet); }
@@ -197,7 +197,7 @@ html,body { scroll-behavior:smooth; background:var(--bg); color:var(--text); fon
 .tooltip::after { content:attr(data-tip); position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%); background:var(--surface2); border:1px solid var(--border2); border-radius:6px; padding:4px 9px; font-size:10px; white-space:nowrap; color:var(--text2); opacity:0; pointer-events:none; transition:opacity .18s; z-index:200; }
 .tooltip:hover::after { opacity:1; }
 
-/* ── PAGE-SPECIFIC: AdminUserManagement ── */
+/* ── PAGE-SPECIFIC: Placement ── */
 .al-list { display:flex; flex-direction:column; }
 .al-item { display:flex; align-items:center; gap:14px; padding:12px 0; border-bottom:1px solid var(--border); animation:reveal-in .4s ease both; transition:background .15s; }
 .al-item:last-child { border-bottom:none; }
@@ -213,3 +213,6 @@ html,body { scroll-behavior:smooth; background:var(--bg); color:var(--text); fon
 @media (max-width:768px) { .tb-hamburger{display:flex} .sb-mobile-close{display:flex} .sb-overlay{display:block} .sidebar{transform:translateX(-100%)} .sidebar.sb-open{transform:translateX(0)} .main{margin-left:0} .topbar{padding:0 14px;gap:8px} .tb-sep,.tb-date,.tb-role-tag{display:none} .tb-search{flex:1;min-width:0} .content{padding:18px 14px 80px} .greet-title{font-size:22px} .stat-grid{grid-template-columns:1fr 1fr;gap:10px} }
 @media (max-width:480px) { .stat-grid{grid-template-columns:1fr 1fr;gap:8px} .stat-card{padding:14px} .stat-val{font-size:20px} .tb-search{display:none} .greet-title{font-size:19px} }
 @media (min-width:1400px) { .content{padding:30px 40px 80px} .main-grid-3{grid-template-columns:1fr 1fr 1fr} }
+
+/* Placement drives responsive */
+@media(max-width:1200px){ .plc-grid{grid-template-columns:repeat(2,1fr)} }

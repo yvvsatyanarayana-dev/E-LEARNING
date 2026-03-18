@@ -67,5 +67,24 @@ class AuthService:
 
         return {"message": "Password changed successfully"}
 
+    def get_sessions(self, current_user: User, db: Session) -> list:
+        """Returns active login sessions for the current user (Mocked)."""
+        return [
+            {
+                "id": "s1",
+                "device": "Chrome · Windows",
+                "location": "Bengaluru, India",
+                "time": "Active now",
+                "is_current": True
+            },
+            {
+                "id": "s2",
+                "device": "Safari · iPhone",
+                "location": "Mumbai, India",
+                "time": "2 days ago",
+                "is_current": False
+            }
+        ]
+
 
 auth_service = AuthService()

@@ -9,6 +9,7 @@ from Schemas.UserSchema import (
     UserResponse,
     TokenResponse,
     ChangePasswordRequest,
+    UserSessionResponse,
 )
 from Service.Auth import auth_service
 
@@ -56,3 +57,15 @@ def change_password(
     - New password must be different from old
     """
     return auth_service.change_password(data, current_user, db)
+
+
+@router.get("/sessions", response_model=list[UserSessionResponse])
+def get_sessions(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Get active login sessions for the current user.
+    - Used in Settings page to show security history
+    """
+    return auth_service.get_sessions(current_user, db)

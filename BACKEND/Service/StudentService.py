@@ -11,7 +11,7 @@ from Models.Lesson import Lesson, WatchHistory
 from Models.Assignment import Assignment, AssignmentSubmission
 from Models.Quiz import Quiz, QuizAttempt, Question
 from Models.Placement import SkillScore, PlacementReadiness, Internship, InternshipApplication, MockInterview, PlacementTopic, ResumeCheck, MockInterviewRoundType, MockInterviewQuestion
-from Models.Community import StudyGroup, StudyGroupMember
+from Models.Community import StudyGroup, StudyGroupMember, StudyGroupResource
 from Models.Schedule import Schedule
 from Models.Innovation import InnovationIdea, InnovationProject, InnovationHackathon
 from Schemas.StudentSchema import (
@@ -30,7 +30,10 @@ from Schemas.StudentSchema import (
     InnovationCollaboratorResponse, InnovationHubResponse,
     MockInterviewRoundType as MockInterviewRoundTypeSchema, MockInterviewQuestionBankItem,
     MockInterviewsFullResponse, MockInterviewInsights, MockInterviewRadarItem, MockInterviewWeakArea,
-    AIChatRequest, AIChatResponse
+    AIChatRequest, AIChatResponse,
+    StudyGroupResourceResponse, AICourseSuggestionResponse,
+    AIStudyPlanResponse, AIStudyPlanRecommendation, AIStudyPlanTask,
+    ResumeFullResponse
 )
 from Core.MeetingState import ACTIVE_MEETINGS
 
@@ -666,7 +669,7 @@ class StudentService:
 
     # ─── Courses ──────────────────────────────────────────────────────────────
 
-    def get_courses(self, student: User, db: Session) -> List[EnrolledCourseResponse]:
+    def get_enrolled_courses(self, student: User, db: Session) -> List[EnrolledCourseResponse]:
         _require_student(student)
         # Return ALL active courses (enrolled + unenrolled) so new students see what's available
         return _all_courses_for_student(student, db)
@@ -1119,6 +1122,33 @@ class StudentService:
         db.commit()
         return {"message": "Joined study group"}
 
+    def get_study_group_resources(self, group_id: int, student: User, db: Session) -> List[StudyGroupResourceResponse]:
+        _require_student(student)
+        # Check if member
+        is_member = db.query(StudyGroupMember).filter(
+            StudyGroupMember.group_id == group_id,
+            StudyGroupMember.student_id == student.id
+        ).first() is not None
+        
+        group = db.query(StudyGroup).filter(StudyGroup.id == group_id).first()
+        if not group:
+            raise HTTPException(status_code=404, detail="Group not found")
+        
+        if group.type == "private" and not is_member:
+            raise HTTPException(status_code=403, detail="Not a member of this private group")
+
+        resources = db.query(StudyGroupResource).filter(StudyGroupResource.group_id == group_id).all()
+        return [
+            StudyGroupResourceResponse(
+                id=r.id,
+                title=r.title,
+                type=r.type,
+                link=r.link,
+                added_by=r.added_by_user.full_name if r.added_by_user else "Unknown",
+                date=r.created_at.strftime("%b %d, %Y")
+            ) for r in resources
+        ]
+
     # ─── Placement ────────────────────────────────────────────────────────────
 
     def get_placement(self, student: User, db: Session):
@@ -1458,6 +1488,100 @@ class StudentService:
                 "summary": student.bio or ""
             }
         }
+
+    def get_resume_full(self, student: User, db: Session) -> ResumeFullResponse:
+        _require_student(student)
+        res = self.get_resume(student, db)
+        
+        pri_obj = db.query(PlacementReadiness).filter(PlacementReadiness.student_id == student.id).first()
+        ats_score = int(pri_obj.resume_score) if pri_obj else 70
+        
+        tier = "Excellent" if ats_score >= 90 else "Good" if ats_score >= 75 else "Average" if ats_score >= 60 else "Needs Work"
+        
+        return ResumeFullResponse(
+            experiences=res["experiences"],
+            projects=res["projects"],
+            skills=res["skills"],
+            certs=res["certs"],
+            ats_chips=res["ats_chips"],
+            ats_score=ats_score,
+            ats_tier=tier,
+            personal=res["personal"]
+        )
+
+    def get_courses_ai_suggestions(self, student: User, db: Session) -> List[AICourseSuggestionResponse]:
+        _require_student(student)
+        enrollments = db.query(Enrollment).filter(Enrollment.student_id == student.id).all()
+        
+        suggestions = []
+        for en in enrollments:
+            course = en.course
+            if not course: continue
+            
+            # Simple logic: suggest based on progress
+            if en.progress < 30:
+                suggestions.append(AICourseSuggestionResponse(
+                    course=course.title,
+                    type="target",
+                    tip="Just starting? Focus on the first module by Friday.",
+                    color="var(--indigo-ll)"
+                ))
+            elif en.progress < 70:
+                suggestions.append(AICourseSuggestionResponse(
+                    course=course.title,
+                    type="award",
+                    tip="Great progress! Review recent quizzes to solidify your score.",
+                    color="var(--teal)"
+                ))
+            else:
+                suggestions.append(AICourseSuggestionResponse(
+                    course=course.title,
+                    type="alert",
+                    tip="Final stretch! Complete the last assignment to hit 100%.",
+                    color="var(--rose)"
+                ))
+        
+        # Add some global tips if few suggestions
+        if len(suggestions) < 3:
+            suggestions.append(AICourseSuggestionResponse(
+                course="Innovation",
+                type="target",
+                tip="Check out the newest hackathons in the Innovation Hub.",
+                color="var(--amber)"
+            ))
+            
+        return suggestions[:5]
+
+    def get_schedule_ai_plan(self, student: User, db: Session) -> AIStudyPlanResponse:
+        _require_student(student)
+        
+        # 1. Recommendation based on soonest deadline
+        now = datetime.now(timezone.utc)
+        soonest_asgn = db.query(Assignment).filter(
+            Assignment.due_date >= now
+        ).order_by(Assignment.due_date.asc()).first()
+        
+        if soonest_asgn:
+            rec = AIStudyPlanRecommendation(
+                title="Priority focus",
+                text=f"{soonest_asgn.title} is due soon. Aim for 1 hour of deep work tonight."
+            )
+        else:
+            rec = AIStudyPlanRecommendation(
+                title="Keep it up!",
+                text="No urgent deadlines. Review your weakest subjects to stay ahead."
+            )
+            
+        # 2. Daily Tasks
+        tasks = [
+            AIStudyPlanTask(time="08:00 AM", task="Morning Review", done=True),
+            AIStudyPlanTask(time="10:00 AM", task="Attend Lectures", done=True),
+            AIStudyPlanTask(time="02:00 PM", task="Lab Practice", done=False),
+            AIStudyPlanTask(time="05:00 PM", task="Self Study", done=False),
+            AIStudyPlanTask(time="08:00 PM", task="Quiz Prep", done=False)
+        ]
+        
+        return AIStudyPlanResponse(recommendation=rec, tasks=tasks)
 
     # ─── Mock Interviews ──────────────────────────────────────────────────────
     

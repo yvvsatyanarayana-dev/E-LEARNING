@@ -89,6 +89,13 @@ class CourseDetailResponse(BaseModel):
     suggestions: List[CourseSuggestion]
 
 
+class AICourseSuggestionResponse(BaseModel):
+    course: str
+    type: str  # alert | target | award
+    tip: str
+    color: Optional[str] = None
+
+
 # ─── Lesson ───────────────────────────────────────────────────────────────────
 
 class LessonResponse(BaseModel):
@@ -216,6 +223,18 @@ class StudyGroupResponse(BaseModel):
     course_id: int
     course_title: str
     created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class StudyGroupResourceResponse(BaseModel):
+    id: int
+    title: str
+    type: str  # file | link
+    link: str
+    added_by: str
+    date: str
 
     class Config:
         from_attributes = True
@@ -416,6 +435,22 @@ class ScheduleResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class AIStudyPlanTask(BaseModel):
+    time: str
+    task: str
+    done: bool
+
+
+class AIStudyPlanRecommendation(BaseModel):
+    title: str
+    text: str
+
+
+class AIStudyPlanResponse(BaseModel):
+    recommendation: AIStudyPlanRecommendation
+    tasks: List[AIStudyPlanTask]
 
 
 class ScheduleReminderResponse(BaseModel):
@@ -644,3 +679,14 @@ class NotificationResponse(BaseModel):
     message: str
     created_at: datetime
     is_read: bool = False
+
+
+class ResumeFullResponse(BaseModel):
+    experiences: List[dict] = []
+    projects: List[dict] = []
+    skills: List[str] = []
+    certs: List[dict] = []
+    ats_chips: List[dict] = []
+    ats_score: int = 0
+    ats_tier: str = "Good"
+    personal: dict

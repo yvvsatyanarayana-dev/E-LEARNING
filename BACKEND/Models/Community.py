@@ -60,6 +60,7 @@ class StudyGroup(Base):
     # Relationships
     course  = relationship("Course", back_populates="study_groups")
     members = relationship("StudyGroupMember", back_populates="group")
+    resources = relationship("StudyGroupResource", back_populates="group")
 
     def __repr__(self):
         return f"<StudyGroup {self.name}>"
@@ -79,3 +80,22 @@ class StudyGroupMember(Base):
 
     def __repr__(self):
         return f"<StudyGroupMember student={self.student_id} group={self.group_id}>"
+
+
+class StudyGroupResource(Base):
+    __tablename__ = "study_group_resources"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    group_id   = Column(Integer, ForeignKey("study_groups.id"), nullable=False)
+    title      = Column(String(200), nullable=False)
+    type       = Column(String(50), default="file") # file | link
+    link       = Column(String(500), nullable=False)
+    added_by   = Column(Integer, ForeignKey("users.id"), nullable=False)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+
+    # Relationships
+    group = relationship("StudyGroup", back_populates="resources")
+    added_by_user = relationship("User")
+
+    def __repr__(self):
+        return f"<StudyGroupResource {self.title} in {self.group_id}>"

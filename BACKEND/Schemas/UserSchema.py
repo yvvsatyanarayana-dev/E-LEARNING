@@ -51,3 +51,11 @@ class TokenResponse(BaseModel):
 class ChangePasswordRequest(BaseModel):
     old_password: str
     new_password: str
+
+
+class UserSessionResponse(BaseModel):
+    id: str
+    device: str
+    location: str
+    time: str
+    is_current: bool

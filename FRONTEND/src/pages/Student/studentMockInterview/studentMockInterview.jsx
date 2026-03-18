@@ -176,9 +176,9 @@ function SessionReview({ session, onClose }) {
 }
 
 // ─── SIMULATOR SCREEN ────────────────────────────────────────────
-function SimulatorScreen({ type, onBack }) {
+function SimulatorScreen({ title, onBack }) {
   const [messages, setMessages] = useState([
-    { role: "ai", text: `Hi! 👋 I'll be your interviewer today for the **${type}**. Ready to begin?` }
+    { role: "ai", text: `Hi! 👋 I'll be your interviewer today for the **${title}**. Ready to begin?` }
   ]);
   const [input, setInput]       = useState("");
   const [typing, setTyping]     = useState(false);
@@ -226,7 +226,7 @@ function SimulatorScreen({ type, onBack }) {
       <div className="mi-sim-bar">
         <button className="mi-sim-exit" onClick={onBack}><IcoBack /> Exit</button>
         <div className="mi-sim-info">
-          <span className="mi-sim-company">Flipkart DSA Round</span>
+          <span className="mi-sim-company">{title}</span>
           <span className="mi-sim-live"><span className="mi-sim-pulse" /> Live Session</span>
         </div>
         <div className="mi-sim-timer">{mins}:{secs}</div>
@@ -353,7 +353,8 @@ export default function StudentMockInterviews({ onBack }) {
   ];
 
   if (simActive) {
-    return <SimulatorScreen type={simType} onBack={() => setSimActive(false)} />;
+    const round = round_types.find(r => r.id === simType);
+    return <SimulatorScreen title={round?.label || "AI Round"} onBack={() => setSimActive(false)} />;
   }
 
   return (

@@ -62,6 +62,7 @@ export default function StudentSettings({ onBack }) {
   const [passError, setPassError] = useState("");
   const [passSuccess, setPassSuccess] = useState(false);
   const [activeSection, setActiveSection] = useState("account");
+  const [sessions, setSessions] = useState([]);
 
   useEffect(() => {
     import("../../../utils/api").then(({ default: api }) => {
@@ -73,6 +74,10 @@ export default function StudentSettings({ onBack }) {
           bio: u.bio || ""
         });
       }).catch(console.error);
+
+      api.get("/auth/sessions").then(data => {
+        setSessions(Array.isArray(data) ? data : []);
+      }).catch(() => setSessions([]));
     });
   }, []);
 
@@ -283,17 +288,17 @@ export default function StudentSettings({ onBack }) {
                 <button className="st-link-btn" style={{color:"var(--rose)"}}>Sign out all</button>
               </Row>
               <div className="st-session-list">
-                {[
-                  {device:"Chrome · Windows",location:"Hyderabad, IN",time:"Active now",current:true},
-                  {device:"Safari · iPhone",location:"Hyderabad, IN",time:"2 days ago",current:false},
-                ].map(s=>(
-                  <div key={s.device} className="st-session-item">
-                    <div className={`st-session-dot ${s.current?"active":""}`} />
+                {sessions.length === 0 && (
+                  <div style={{fontSize:12,color:"var(--text3)",padding:"8px 0"}}>No active sessions found.</div>
+                )}
+                {sessions.map(s=>(
+                  <div key={s.id || s.device} className="st-session-item">
+                    <div className={`st-session-dot ${s.is_current ? "active" : ""}`} />
                     <div className="st-session-info">
-                      <div className="st-session-device">{s.device}{s.current&&<span className="st-session-badge">This device</span>}</div>
-                      <div className="st-session-meta">{s.location} · {s.time}</div>
+                      <div className="st-session-device">{s.device || "Unknown device"}{s.is_current&&<span className="st-session-badge">This device</span>}</div>
+                      <div className="st-session-meta">{s.location || "Unknown location"} · {s.time || s.last_active || "Unknown time"}</div>
                     </div>
-                    {!s.current&&<button className="st-danger-btn" style={{padding:"4px 10px",fontSize:10}}>Revoke</button>}
+                    {!s.is_current&&<button className="st-danger-btn" style={{padding:"4px 10px",fontSize:10}}>Revoke</button>}
                   </div>
                 ))}
               </div>

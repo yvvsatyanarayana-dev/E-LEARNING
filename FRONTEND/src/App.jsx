@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useNavigate } from "react-router-dom";
 import cyberpunkImg from "./assets/Cyberpunk 2077.jpg";
 import "./App.css";
 import LoginModal from "./auth/login/login";
@@ -26,11 +27,19 @@ function useRipple() {
 // defaultModal: "login" | "signup" | "forgot" | undefined
 export default function SmartCampus({ defaultModal }) {
   const rootRef = useRef(null);
+  const navigate = useNavigate();
   const addRipple = useRipple();
   const [loginOpen, setLoginOpen] = useState(defaultModal === "login");
   const [signupOpen, setSignupOpen] = useState(defaultModal === "signup");
   const [forgotOpen, setForgotOpen] = useState(defaultModal === "forgot");
   const [cursorState, setCursorState] = useState("");
+
+  // Synchronize modal states with prop when route changes
+  useEffect(() => {
+    setLoginOpen(defaultModal === "login");
+    setSignupOpen(defaultModal === "signup");
+    setForgotOpen(defaultModal === "forgot");
+  }, [defaultModal]);
 
   const mx = useRef(0), my = useRef(0);
   const tx = useRef(0), ty = useRef(0);
@@ -93,9 +102,10 @@ export default function SmartCampus({ defaultModal }) {
   const hoverOn = () => setCursorState((s) => s.includes("click") ? s : "cursor-hover");
   const hoverOff = () => setCursorState((s) => s.includes("click") ? s : "");
 
-  const openLogin = () => { setSignupOpen(false); setForgotOpen(false); setLoginOpen(true); };
-  const openSignup = () => { setLoginOpen(false); setForgotOpen(false); setSignupOpen(true); };
-  const openForgot = () => { setLoginOpen(false); setSignupOpen(false); setForgotOpen(true); };
+  const openLogin = () => { navigate("/login"); };
+  const openSignup = () => { navigate("/register"); };
+  const openForgot = () => { navigate("/forgot-password"); };
+  const closeModals = () => { navigate("/"); };
 
   return (
     <div className={`sc-root ${cursorState}`} ref={rootRef}>
@@ -138,18 +148,18 @@ export default function SmartCampus({ defaultModal }) {
       {/* ─── MODALS ─── */}
       <LoginModal
         open={loginOpen}
-        onClose={() => setLoginOpen(false)}
+        onClose={closeModals}
         onGoSignup={openSignup}
         onGoForgot={openForgot}
       />
       <RegisterModal
         open={signupOpen}
-        onClose={() => setSignupOpen(false)}
+        onClose={closeModals}
         onGoLogin={openLogin}
       />
       <ForgotModal
         open={forgotOpen}
-        onClose={() => setForgotOpen(false)}
+        onClose={closeModals}
         onGoLogin={openLogin}
       />
 

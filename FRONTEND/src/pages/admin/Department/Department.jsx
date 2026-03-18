@@ -1,7 +1,9 @@
-// AdminReports.jsx — SMART CAMPUS Admin Panel
+// Department.jsx — SMART CAMPUS Admin Panel
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import "./AdminReports.css";
+import "./Department.css";
+import "../../../styles/modals.css";
+import { Modal, FormField, FormSelect, exportToCSV, storage } from "../../../utils/formModals";
 
 const Icon = ({ d, size = 16, stroke = "currentColor", fill = "none", strokeWidth = 1.6 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">{d}</svg>
@@ -72,26 +74,97 @@ const getActiveId = (pathname) => {
   return "dashboard";
 };
 
-export default function AdminReports() {
+export default function Department() {
   const navigate        = useNavigate();
   const location        = useLocation();
   const [sidebarOpen, setSidebar] = useState(false);
+  const [addDeptModal, setAddDeptModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState("All Status");
+  const [formData, setFormData] = useState({ name: "", short: "", students: 0, faculty: 0, hod: "", status: "Active", courses: 0, placement: 0 });
+  const [departments, setDepartments] = useState([]);
   const pageRef       = useRef(null);
   const cursorRef     = useRef(null);
   const cursorRingRef = useRef(null);
   const active = getActiveId(location.pathname);
   const now    = new Date().toLocaleDateString();
 
-  const handleExportReport = () => {
-    const csvContent = "data:text/csv;charset=utf-8,Report Name,Date,Status\nSample Report,2025-01-15,Generated";
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "admin_report.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  // Load departments from localStorage
+  useEffect(() => {
+    const saved = localStorage.getItem("schoolDepartments");
+    if (saved) setDepartments(JSON.parse(saved));
+  }, []);
+
+  // Handle form field changes
+  const handleFormChange = (field, value) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
   };
+
+  // Add new department
+  const handleAddDept = () => {
+    if (!formData.name.trim() || !formData.short.trim() || !formData.hod.trim()) {
+      alert("Please fill in all required fields");
+      return;
+    }
+    if (departments.some(d => d.short.toUpperCase() === formData.short.toUpperCase())) {
+      alert("Department code already exists");
+      return;
+    }
+    const colors = ["var(--indigo-l)", "var(--teal)", "var(--amber)", "var(--violet)", "var(--rose)"];
+    const newDept = {
+      ...formData,
+      students: parseInt(formData.students),
+      faculty: parseInt(formData.faculty),
+      courses: parseInt(formData.courses),
+      placement: parseInt(formData.placement),
+      color: colors[Math.floor(Math.random() * colors.length)],
+      courses_list: ["Pending", "Courses", "To", "Be", "Added"]
+    };
+    const updatedDepts = [...departments, newDept];
+    setDepartments(updatedDepts);
+    localStorage.setItem("schoolDepartments", JSON.stringify(updatedDepts));
+    
+    // Activity logging
+    const logs = JSON.parse(localStorage.getItem("activityLogs") || "[]");
+    logs.unshift({
+      id: Date.now(),
+      action: `Added new department: ${formData.name}`,
+      details: `Code: ${formData.short}, HOD: ${formData.hod}`,
+      timestamp: new Date().toLocaleString(),
+      category: "department"
+    });
+    localStorage.setItem("activityLogs", JSON.stringify(logs));
+    
+    setFormData({ name: "", short: "", students: 0, faculty: 0, hod: "", status: "Active", courses: 0, placement: 0 });
+    setAddDeptModal(false);
+  };
+
+  // Delete department
+  const handleDeleteDept = (shortCode) => {
+    if (confirm(`Are you sure you want to delete this department?`)) {
+      const updated = departments.filter(d => d.short !== shortCode);
+      setDepartments(updated);
+      localStorage.setItem("schoolDepartments", JSON.stringify(updated));
+      
+      const logs = JSON.parse(localStorage.getItem("activityLogs") || "[]");
+      logs.unshift({
+        id: Date.now(),
+        action: `Deleted department: ${shortCode}`,
+        details: `Removed from system`,
+        timestamp: new Date().toLocaleString(),
+        category: "department"
+      });
+      localStorage.setItem("activityLogs", JSON.stringify(logs));
+    }
+  };
+
+  // Filter departments
+  const filteredDepts = departments.filter(d => {
+    const matchSearch = d.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                       d.short.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchStatus = filterStatus === "All Status" || d.status === filterStatus;
+    return matchSearch && matchStatus;
+  });
 
   useEffect(() => {
     const cursor = cursorRef.current; const cursorRing = cursorRingRef.current;
@@ -164,7 +237,7 @@ export default function AdminReports() {
         <div className="main">
           <header className="topbar">
             <button className="tb-hamburger" onClick={() => setSidebar(true)}><I n="menu" size={16} /></button>
-            <span className="tb-page">Reports</span>
+            <span className="tb-page">Departments</span>
             <div className="tb-sep" />
             <div className="tb-search"><I n="search" size={14} /><input placeholder="Search users, courses…" /></div>
             <div className="tb-right">
@@ -179,22 +252,22 @@ export default function AdminReports() {
           <main className="content">
             {/* ── GREETING ── */}
             <div className="greet-row">
-              <div className="greet-tag"><div className="greet-pip" /><span className="greet-pip-txt">Reports</span></div>
-              <h1 className="greet-title">Download <em>Reports.</em></h1>
-              <p className="greet-sub">Generate and export platform reports &nbsp;·&nbsp; Last generated: Jan 15, 2025</p>
+              <div className="greet-tag"><div className="greet-pip" /><span className="greet-pip-txt">Departments</span></div>
+              <h1 className="greet-title">Department <em>Overview.</em></h1>
+              <p className="greet-sub">5 departments &nbsp;·&nbsp; 1,345 students &nbsp;·&nbsp; 63 faculty &nbsp;·&nbsp; 63 total courses</p>
               <div className="greet-actions">
-                <button onClick={handleExportReport} className="btn btn-solid"><I n="plus" size={14} /> Generate Report</button>
-                <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="btn btn-ghost"><I n="refresh" size={14} /> Schedule Auto</button>
+                <button onClick={() => setAddDeptModal(true)} className="btn btn-solid"><I n="plus" size={14} /> Add Department</button>
+                <button onClick={() => exportToCSV(departments, "departments")} className="btn btn-ghost"><I n="download" size={14} /> Export</button>
               </div>
             </div>
 
             {/* STAT CARDS */}
             <div className="stat-grid">
               {[
-                { accent:"sc-indigo", icon:"download", val:"24",  lbl:"Reports Generated",   delta:"this month" },
-                { accent:"sc-teal",   icon:"users",    val:"6",   lbl:"Report Types",        delta:"available" },
-                { accent:"sc-amber",  icon:"db",       val:"18 MB",lbl:"Total Export Size",  delta:"last 30 days" },
-                { accent:"sc-rose",   icon:"activity", val:"3",   lbl:"Scheduled Reports",   delta:"auto-running" },
+                { accent:"sc-indigo", icon:"layers",    val:"5",     lbl:"Departments",     delta:"total" },
+                { accent:"sc-teal",   icon:"users",     val:"1,345", lbl:"Total Students",  delta:"enrolled" },
+                { accent:"sc-amber",  icon:"book",      val:"63",    lbl:"Faculty Members", delta:"across all" },
+                { accent:"sc-violet", icon:"briefcase", val:"60%",   lbl:"Avg Placement",   delta:"last batch" },
               ].map((s, i) => (
                 <div key={i} className={`stat-card ${s.accent}`} style={{ animationDelay:`${i * 80}ms`, cursor:"default" }}>
                   <div className="stat-ic"><I n={s.icon} size={16} /></div>
@@ -205,67 +278,98 @@ export default function AdminReports() {
               ))}
             </div>
 
-            {/* QUICK GENERATE */}
+            {/* DEPARTMENT CARDS */}
             <div className="panel">
               <div className="panel-hd">
-                <div className="panel-ttl"><I n="zap" size={15} /> Quick Generate</div>
-                <span style={{ fontSize:"10px", color:"var(--text3)" }}>Instant report creation</span>
+                <div className="panel-ttl"><I n="layers" size={15} /> All Departments ({filteredDepts.length} shown)</div>
+                <button onClick={() => setAddDeptModal(true)} className="btn btn-solid btn-sm"><I n="plus" size={12} /> Add Department</button>
               </div>
               <div className="panel-body">
-                <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"10px" }}>
-                  {[
-                    { label:"User Growth Report",    icon:"users",     color:"rgba(91,78,248,.12)",   tc:"var(--indigo-ll)" },
-                    { label:"Course Analytics",      icon:"book",      color:"rgba(39,201,176,.1)",   tc:"var(--teal)" },
-                    { label:"Placement Stats",       icon:"briefcase", color:"rgba(244,165,53,.1)",   tc:"var(--amber)" },
-                    { label:"Security Audit",        icon:"shield",    color:"rgba(242,68,92,.1)",    tc:"var(--rose)" },
-                  ].map((q, i) => (
-                    <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} key={i} style={{ background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:"12px", padding:"16px", textAlign:"center", cursor:"pointer", transition:"all .2s", width:"100%" }}>
-                      <div style={{ width:34, height:34, borderRadius:9, background:q.color, color:q.tc, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 8px" }}>
-                        <I n={q.icon} size={15} />
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:"14px" }}>
+                  {filteredDepts.length > 0 ? filteredDepts.map((d, i) => (
+                    <div key={i} style={{ background:"var(--surface2)", border:`1px solid ${d.color}20`, borderTop:`2px solid ${d.color}`, borderRadius:"14px", padding:"18px", transition:"border-color .2s,transform .2s", animationDelay:`${i*60}ms` }}>
+                      <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"10px" }}>
+                        <div style={{ fontSize:"11px", fontWeight:800, padding:"4px 10px", borderRadius:"7px", background:`${d.color}18`, color:d.color }}>{d.short}</div>
+                        <span style={{ fontSize:"10px", color:"var(--text3)" }}>{d.courses} courses</span>
                       </div>
-                      <div style={{ fontSize:"11px", fontWeight:600, color:q.tc }}>{q.label}</div>
-                    </button>
-                  ))}
+                      <div style={{ fontSize:"14px", fontWeight:700, lineHeight:1.3, marginBottom:"5px" }}>{d.name}</div>
+                      <div style={{ fontSize:"10.5px", color:"var(--text3)", display:"flex", alignItems:"center", gap:"5px", marginBottom:"12px" }}><I n="users" size={11} /> {d.hod}</div>
+                      <div style={{ marginBottom:"12px" }}>
+                        <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"5px" }}>
+                          <span style={{ fontSize:"10px", color:"var(--text3)" }}>Engagement</span>
+                          <span style={{ fontSize:"10px", fontWeight:700, color:d.color }}>{d.pct}%</span>
+                        </div>
+                        <div className="dept-bar" style={{ height:"4px" }}>
+                          <div className="dept-fill" data-width={`${d.pct}%`} style={{ width:0, background:d.color }} />
+                        </div>
+                      </div>
+                      <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", borderTop:"1px solid var(--border)", paddingTop:"10px", marginBottom:"12px" }}>
+                        {[[d.students,"Students"], [d.faculty,"Faculty"], [(d.placement || 0)+"%","Placed"]].map(([v,l]) => (
+                          <div key={l} style={{ textAlign:"center" }}>
+                            <div style={{ fontFamily:"'Fraunces',serif", fontSize:"18px", color:d.color, lineHeight:1 }}>{v}</div>
+                            <div style={{ fontSize:"9px", color:"var(--text3)", marginTop:"2px" }}>{l}</div>
+                          </div>
+                        ))}
+                      </div>
+                      <div style={{ display:"flex", flexWrap:"wrap", gap:"4px", marginBottom:"10px" }}>
+                        {(d.courses_list || ["No courses yet"]).map((c, ci) => (
+                          <span key={ci} style={{ fontSize:"10px", padding:"2px 7px", borderRadius:"4px", background:`${d.color}10`, color:d.color, border:`1px solid ${d.color}22` }}>{c}</span>
+                        ))}
+                      </div>
+                      <div style={{ display:"flex", gap:"6px" }}>
+                        <button onClick={() => alert("Manage " + d.name)} className="btn btn-ghost btn-sm" style={{ flex:1, justifyContent:"center" }}><I n="edit" size={11} /> Manage</button>
+                        <button onClick={() => handleDeleteDept(d.short)} className="ut-action tooltip" data-tip="Delete"><I n="trash" size={11} /></button>
+                      </div>
+                    </div>
+                  )) : <div style={{ padding:"40px", textAlign:"center", color:"var(--text3)" }}>No departments found</div>}
                 </div>
               </div>
             </div>
 
-            {/* REPORT LIBRARY */}
-            <div className="panel">
-              <div className="panel-hd">
-                <div className="panel-ttl"><I n="download" size={15} /> Report Library <span>6 files</span></div>
-                <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="btn btn-ghost btn-sm"><I n="search" size={12} /> Filter</button>
-              </div>
-              <div className="panel-body">
-                <div className="filter-row">
-                  <div className="tb-search" style={{ flex:"1", height:"32px" }}><I n="search" size={13} /><input placeholder="Search reports…" /></div>
-                </div>
-                {[
-                  { name:"Monthly Enrollment Report",  desc:"Student enrollment trends across departments",    size:"2.4 MB", date:"Jan 2025", type:"PDF",  icon:"users",    color:"var(--rose)" },
-                  { name:"Course Completion Summary",  desc:"Completion rates and engagement per course",       size:"1.8 MB", date:"Jan 2025", type:"XLSX", icon:"book",     color:"var(--teal)" },
-                  { name:"Placement Outcome Report",   desc:"Offer letters, companies, package distributions",  size:"3.1 MB", date:"Dec 2024", type:"PDF",  icon:"briefcase",color:"var(--amber)" },
-                  { name:"Faculty Performance Review", desc:"Teaching hours, student ratings, assessments",     size:"1.2 MB", date:"Dec 2024", type:"PDF",  icon:"award",    color:"var(--violet)" },
-                  { name:"System Audit Log Export",    desc:"Full audit trail — logins, changes, alerts",       size:"5.6 MB", date:"Dec 2024", type:"CSV",  icon:"shield",   color:"var(--indigo-ll)" },
-                  { name:"Financial Summary Q4 2024",  desc:"Revenue, expenses, and budget utilization",        size:"2.9 MB", date:"Dec 2024", type:"XLSX", icon:"bar",      color:"var(--teal)" },
-                ].map((r, i) => (
-                  <div key={i} style={{ display:"flex", alignItems:"center", gap:"14px", padding:"13px 0", borderBottom:"1px solid var(--border)" }}>
-                    <div style={{ width:38, height:38, borderRadius:10, background:`rgba(0,0,0,.2)`, color:r.color, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, border:`1px solid ${r.color}22` }}>
-                      <I n={r.icon} size={15} />
-                    </div>
-                    <div style={{ flex:1 }}>
-                      <div style={{ fontSize:"13px", fontWeight:600, color:"var(--text)", marginBottom:"3px" }}>{r.name}</div>
-                      <div style={{ fontSize:"11px", color:"var(--text3)", marginBottom:"5px" }}>{r.desc}</div>
-                      <div style={{ display:"flex", gap:"10px", alignItems:"center" }}>
-                        <span style={{ fontSize:"9px", fontWeight:700, padding:"2px 7px", borderRadius:"4px", background:"rgba(91,78,248,.1)", color:"var(--indigo-ll)", border:"1px solid rgba(91,78,248,.2)" }}>{r.type}</span>
-                        <span style={{ fontSize:"10px", color:"var(--text3)" }}>{r.size}</span>
-                        <span style={{ fontSize:"10px", color:"var(--text3)" }}>{r.date}</span>
-                      </div>
-                    </div>
-                    <button onClick={handleExportReport} className="btn btn-ghost btn-sm"><I n="download" size={12} /> Download</button>
+            {/* ADD DEPARTMENT MODAL */}
+            {addDeptModal && (
+              <div className="modal-overlay open" onClick={() => setAddDeptModal(false)}>
+                <div className="modal" onClick={e => e.stopPropagation()}>
+                  <div className="modal-header">
+                    <h2>Add New Department</h2>
+                    <button className="modal-close" onClick={() => setAddDeptModal(false)}><I n="x" size={16} /></button>
                   </div>
-                ))}
+                  <div className="modal-body">
+                    <FormField label="Department Name" required>
+                      <input type="text" className="form-input" value={formData.name} onChange={(e) => handleFormChange("name", e.target.value)} placeholder="e.g., Computer Science & Engineering" />
+                    </FormField>
+                    <FormField label="Department Code" required>
+                      <input type="text" className="form-input" value={formData.short} onChange={(e) => handleFormChange("short", e.target.value.toUpperCase())} placeholder="e.g., CSE" />
+                    </FormField>
+                    <FormField label="Head of Department" required>
+                      <input type="text" className="form-input" value={formData.hod} onChange={(e) => handleFormChange("hod", e.target.value)} placeholder="e.g., Dr. Ramesh Kumar" />
+                    </FormField>
+                    <FormField label="Number of Students">
+                      <input type="number" className="form-input" value={formData.students} onChange={(e) => handleFormChange("students", e.target.value)} min="0" />
+                    </FormField>
+                    <FormField label="Number of Faculty">
+                      <input type="number" className="form-input" value={formData.faculty} onChange={(e) => handleFormChange("faculty", e.target.value)} min="0" />
+                    </FormField>
+                    <FormField label="Total Courses">
+                      <input type="number" className="form-input" value={formData.courses} onChange={(e) => handleFormChange("courses", e.target.value)} min="0" />
+                    </FormField>
+                    <FormField label="Placement %">
+                      <input type="number" className="form-input" value={formData.placement} onChange={(e) => handleFormChange("placement", e.target.value)} min="0" max="100" />
+                    </FormField>
+                    <FormField label="Status" required>
+                      <select className="form-input" value={formData.status} onChange={(e) => handleFormChange("status", e.target.value)}>
+                        <option>Active</option>
+                        <option>Inactive</option>
+                      </select>
+                    </FormField>
+                  </div>
+                  <div className="modal-footer">
+                    <button onClick={() => setAddDeptModal(false)} className="btn btn-ghost">Cancel</button>
+                    <button onClick={handleAddDept} className="btn btn-solid">Add Department</button>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </main>
         </div>
       </div>

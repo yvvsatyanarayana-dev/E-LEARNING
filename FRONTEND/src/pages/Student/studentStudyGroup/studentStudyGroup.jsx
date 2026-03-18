@@ -165,11 +165,20 @@ function GroupDetailView({ group, onBack }) {
   const [showEmoji, setShowEmoji] = useState(null); // messageId
   const [inVoice, setInVoice] = useState(false);
   const [micOn, setMicOn] = useState(true);
+  const [resourcesData, setResourcesData] = useState([]);
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    if (activeTab === "resources") {
+      api.get(`/student/study-groups/${group.id}/resources`)
+        .then(data => setResourcesData(Array.isArray(data) ? data : []))
+        .catch(() => setResourcesData([]));
+    }
+  }, [activeTab, group.id]);
 
   const sendMessage = useCallback(() => {
     if (!input.trim()) return;
@@ -191,12 +200,16 @@ function GroupDetailView({ group, onBack }) {
     setShowEmoji(null);
   };
 
-  const members = group.memberIds.map(id => {
-    if (id === "u0") return { ...MY_USER, role: group.adminIds.includes("u0") ? "admin" : "member" };
-    const m = MEMBERS_POOL.find(m => m.id === id);
-    if (!m) return null;
-    return { ...m, role: group.adminIds.includes(id) ? "admin" : "member" };
-  }).filter(Boolean);
+  // Build members list from API data stored on group object
+  const members = (group.members_data || []).map(m => ({
+    id: m.id || m.user_id,
+    name: m.full_name || m.name || "Member",
+    initials: (m.full_name || m.name || "?").split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2),
+    status: m.status || "offline",
+    role: m.is_admin ? "admin" : "member",
+    course: m.course || "",
+    isMe: m.is_me || false,
+  }));
 
   const onlineCount = members.filter(m => m.status === "online").length;
 
@@ -343,8 +356,8 @@ function GroupDetailView({ group, onBack }) {
               <>
                 <div className="sg-messages-list">
                   {messages.map((msg, i) => {
-                    const sender = msg.userId === "u0" ? MY_USER : MEMBERS_POOL.find(m => m.id === msg.userId);
-                    const isMe = msg.isMe || msg.userId === "u0";
+                    const sender = members.find(m => m.id === msg.userId) || { initials: "??" };
+                    const isMe = msg.isMe || false;
                     const showAvatar = i === 0 || messages[i - 1]?.userId !== msg.userId;
                     return (
                       <div key={msg.id}
@@ -469,7 +482,7 @@ function GroupDetailView({ group, onBack }) {
                   <span className="sg-admin-crown"><Crown size={11} style={{ color: "var(--amber)" }} /></span>
                 )}
               </div>
-              <div className="sg-mc-name">{m.name} {m.id === "u0" && <span style={{ fontSize: 10, color: "var(--text3)" }}>(you)</span>}</div>
+              <div className="sg-mc-name">{m.name} {m.isMe && <span style={{ fontSize: 10, color: "var(--text3)" }}>(you)</span>}</div>
               <div className="sg-mc-role" style={m.role === "admin" ? { color: "var(--amber)" } : {}}>{m.role}</div>
               <div className="sg-mc-course">{m.course || "CSE"} · 5th Sem</div>
               <div className={`sg-mc-status sg-mc-status--${m.status}`}>{m.status}</div>
@@ -539,27 +552,26 @@ function GroupDetailView({ group, onBack }) {
       {activeTab === "resources" && (
         <div className="sg-resources-content">
           <div className="sg-sessions-header">
-            <div style={{ fontSize: 13, color: "var(--text3)" }}>{group.resources} shared files & links</div>
+            <div style={{ fontSize: 13, color: "var(--text3)" }}>{resourcesData.length} shared files & links</div>
             <button className="sg-new-session-btn" style={{ background: group.color }}>
               <Plus size={13} />Upload Resource
             </button>
           </div>
           <div className="sg-resources-grid">
-            {[
-              { name: "OS Scheduling Notes.pdf", type: "pdf", size: "2.4 MB", uploader: "Priya S.", date: "Mar 4" },
-              { name: "Memory Management Slides.pptx", type: "pptx", size: "5.1 MB", uploader: "Arjun R.", date: "Mar 3" },
-              { name: "Deadlock Practice Problems.docx", type: "docx", size: "842 KB", uploader: "Rahul M.", date: "Mar 2" },
-              { name: "Round Robin Simulator", type: "link", size: null, uploader: "Sneha P.", date: "Mar 1" },
-              { name: "OS Past Papers 2023-24.zip", type: "zip", size: "12 MB", uploader: "Priya S.", date: "Feb 28" },
-              { name: "Gantt Chart Templates.xlsx", type: "xlsx", size: "1.2 MB", uploader: "Arjun R.", date: "Feb 27" },
-            ].map((r, i) => (
-              <div key={i} className="sg-resource-item">
-                <div className={`sg-res-icon sg-res-${r.type}`}>
-                  {r.type === "link" ? <Link2 size={16} /> : r.type === "pdf" ? <FileText size={16} /> : r.type === "zip" ? <Layers size={16} /> : <FileText size={16} />}
+            {resourcesData.length === 0 && (
+              <div className="mc-empty">
+                <FileText size={28} style={{ color: "var(--text3)" }} />
+                <p>No resources shared yet.</p>
+              </div>
+            )}
+            {resourcesData.map((r, i) => (
+              <div key={r.id || i} className="sg-resource-item">
+                <div className={`sg-res-icon sg-res-${r.type || "pdf"}`}>
+                  {r.type === "link" ? <Link2 size={16} /> : r.type === "zip" ? <Layers size={16} /> : <FileText size={16} />}
                 </div>
                 <div className="sg-res-info">
-                  <div className="sg-res-name">{r.name}</div>
-                  <div className="sg-res-meta">{r.uploader} · {r.date}{r.size && ` · ${r.size}`}</div>
+                  <div className="sg-res-name">{r.name || r.file_name}</div>
+                  <div className="sg-res-meta">{r.uploader || r.uploaded_by} · {r.date || r.created_at?.split("T")[0]}{r.size && ` · ${r.size}`}</div>
                 </div>
                 <div className="sg-res-actions">
                   <button className="sg-icon-btn"><Eye size={13} /></button>

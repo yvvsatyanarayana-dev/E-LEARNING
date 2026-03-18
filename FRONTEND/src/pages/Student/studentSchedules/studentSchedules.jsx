@@ -442,7 +442,11 @@ function RemindersPanel({ reminders }) {
     );
 }
 
-function AIStudyPlan() {
+function AIStudyPlan({ plan }) {
+    if (!plan) return null;
+    const recommendation = plan.recommendation || { title: "No Recommendation", text: "Keep up the good work!" };
+    const tasks = plan.tasks || [];
+
     return (
         <div className="panel">
             <div className="panel-hd">
@@ -452,30 +456,27 @@ function AIStudyPlan() {
                 <div className="as-ai-hint" style={{ marginBottom: 12 }}>
                     <Bot size={14} style={{ color: "var(--indigo-ll)", flexShrink: 0 }} />
                     <div>
-                        <div className="as-ai-hint-title">Today's Recommendation</div>
-                        <div className="as-ai-hint-text">OS Quiz at 11:30 AM. Review Round Robin and FCFS now. Estimated prep: 45 min.</div>
+                        <div className="as-ai-hint-title">{recommendation.title}</div>
+                        <div className="as-ai-hint-text">{recommendation.text}</div>
                     </div>
                 </div>
-                {[
-                    { time: "7:00–7:45 AM", task: "OS Scheduling Revision", color: "var(--indigo-ll)", done: true },
-                    { time: "8:00–9:00 AM", task: "Morning Classes", color: "var(--teal)", done: true },
-                    { time: "11:00–11:30 AM", task: "OS Quiz Prep", color: "var(--rose)", done: false },
-                    { time: "1:00–2:00 PM", task: "DBMS Assignment Work", color: "var(--amber)", done: false },
-                    { time: "5:00–6:00 PM", task: "ML — SVM Practice Problems", color: "var(--violet)", done: false },
-                    { time: "8:00–9:00 PM", task: "CN Chapter Review", color: "var(--teal)", done: false },
-                ].map((s, i) => (
-                    <div key={i} className="sch-sp-item">
-                        <div>
-                            {s.done
-                                ? <CheckCircle2 size={14} style={{ color: "var(--teal)" }} />
-                                : <Circle size={14} style={{ color: "var(--text3)" }} />}
+                {tasks.length === 0 ? (
+                    <p style={{ fontSize: 11, color: "var(--text3)", textAlign: "center", padding: "10px 0" }}>No tasks recommended for today.</p>
+                ) : (
+                    tasks.map((s, i) => (
+                        <div key={i} className="sch-sp-item">
+                            <div>
+                                {s.done
+                                    ? <CheckCircle2 size={14} style={{ color: "var(--teal)" }} />
+                                    : <Circle size={14} style={{ color: "var(--text3)" }} />}
+                            </div>
+                            <div className={`sch-sp-info${s.done ? " sch-sp-done" : ""}`}>
+                                <div className="sch-sp-task">{s.task}</div>
+                                <div className="sch-sp-time">{s.time}</div>
+                            </div>
                         </div>
-                        <div className={`sch-sp-info${s.done ? " sch-sp-done" : ""}`}>
-                            <div className="sch-sp-task">{s.task}</div>
-                            <div className="sch-sp-time">{s.time}</div>
-                        </div>
-                    </div>
-                ))}
+                    ))
+                )}
             </div>
         </div>
     );
@@ -491,6 +492,7 @@ export default function StudentSchedule({ onBack }) {
     
     const [timetableState, setTimetableState] = useState([]);
     const [remindersState, setRemindersState] = useState([]);
+    const [aiPlanState, setAiPlanState] = useState(null);
     const [weekDates, setWeekDates] = useState([]);
     const [loading, setLoading] = useState(true);
 
@@ -498,6 +500,11 @@ export default function StudentSchedule({ onBack }) {
         api.get('/student/schedule').then(data => {
             if (data.timetable) setTimetableState(data.timetable);
             if (data.reminders) setRemindersState(data.reminders);
+            
+            // Fetch AI Study Plan
+            api.get('/student/schedule/ai-plan').then(plan => {
+                setAiPlanState(plan);
+            }).catch(() => setAiPlanState(null));
             
             // Derive dates for the current week (starting Monday)
             const now = new Date();
@@ -634,7 +641,7 @@ export default function StudentSchedule({ onBack }) {
                     <div className="sch-sidebar">
                         <WeeklySummary timetable={timetableState} />
                         <RemindersPanel reminders={remindersState} />
-                        <AIStudyPlan />
+                        <AIStudyPlan plan={aiPlanState} />
                     </div>
                 </div>
             </div>

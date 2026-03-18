@@ -1,7 +1,7 @@
-// AdminReports.jsx — SMART CAMPUS Admin Panel
+// AdminSystemConfiguration.jsx — SMART CAMPUS Admin Panel
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import "./AdminReports.css";
+import "./AdminSystemConfiguration.css";
 
 const Icon = ({ d, size = 16, stroke = "currentColor", fill = "none", strokeWidth = 1.6 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">{d}</svg>
@@ -72,7 +72,7 @@ const getActiveId = (pathname) => {
   return "dashboard";
 };
 
-export default function AdminReports() {
+export default function AdminSystemConfiguration() {
   const navigate        = useNavigate();
   const location        = useLocation();
   const [sidebarOpen, setSidebar] = useState(false);
@@ -82,12 +82,12 @@ export default function AdminReports() {
   const active = getActiveId(location.pathname);
   const now    = new Date().toLocaleDateString();
 
-  const handleExportReport = () => {
-    const csvContent = "data:text/csv;charset=utf-8,Report Name,Date,Status\nSample Report,2025-01-15,Generated";
+  const handleExportConfig = () => {
+    const csvContent = "data:text/csv;charset=utf-8,Config Key,Config Value\nSystem_State,Healthy";
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "admin_report.csv");
+    link.setAttribute("download", "system_config.csv");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -164,7 +164,7 @@ export default function AdminReports() {
         <div className="main">
           <header className="topbar">
             <button className="tb-hamburger" onClick={() => setSidebar(true)}><I n="menu" size={16} /></button>
-            <span className="tb-page">Reports</span>
+            <span className="tb-page">System Configuration</span>
             <div className="tb-sep" />
             <div className="tb-search"><I n="search" size={14} /><input placeholder="Search users, courses…" /></div>
             <div className="tb-right">
@@ -179,22 +179,22 @@ export default function AdminReports() {
           <main className="content">
             {/* ── GREETING ── */}
             <div className="greet-row">
-              <div className="greet-tag"><div className="greet-pip" /><span className="greet-pip-txt">Reports</span></div>
-              <h1 className="greet-title">Download <em>Reports.</em></h1>
-              <p className="greet-sub">Generate and export platform reports &nbsp;·&nbsp; Last generated: Jan 15, 2025</p>
+              <div className="greet-tag"><div className="greet-pip" /><span className="greet-pip-txt">System Config</span></div>
+              <h1 className="greet-title">System <em>Configuration.</em></h1>
+              <p className="greet-sub">Infrastructure status, resource monitor, and environment variables &nbsp;·&nbsp; 5/6 services healthy</p>
               <div className="greet-actions">
-                <button onClick={handleExportReport} className="btn btn-solid"><I n="plus" size={14} /> Generate Report</button>
-                <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="btn btn-ghost"><I n="refresh" size={14} /> Schedule Auto</button>
+                <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="btn btn-solid"><I n="refresh" size={14} /> Restart</button>
+                <button onClick={handleExportConfig} className="btn btn-ghost"><I n="download" size={14} /> Export Config</button>
               </div>
             </div>
 
             {/* STAT CARDS */}
             <div className="stat-grid">
               {[
-                { accent:"sc-indigo", icon:"download", val:"24",  lbl:"Reports Generated",   delta:"this month" },
-                { accent:"sc-teal",   icon:"users",    val:"6",   lbl:"Report Types",        delta:"available" },
-                { accent:"sc-amber",  icon:"db",       val:"18 MB",lbl:"Total Export Size",  delta:"last 30 days" },
-                { accent:"sc-rose",   icon:"activity", val:"3",   lbl:"Scheduled Reports",   delta:"auto-running" },
+                { accent:"sc-teal",   icon:"activity", val:"99.8%", lbl:"Overall Uptime",       delta:"last 30 days" },
+                { accent:"sc-indigo", icon:"cpu",      val:"34%",   lbl:"Avg CPU Usage",        delta:"below threshold" },
+                { accent:"sc-amber",  icon:"zap",      val:"1",     lbl:"Degraded Services",    delta:"WebRTC" },
+                { accent:"sc-violet", icon:"db",       val:"2.4GB", lbl:"Last Backup Size",     delta:"6 hrs ago" },
               ].map((s, i) => (
                 <div key={i} className={`stat-card ${s.accent}`} style={{ animationDelay:`${i * 80}ms`, cursor:"default" }}>
                   <div className="stat-ic"><I n={s.icon} size={16} /></div>
@@ -205,65 +205,116 @@ export default function AdminReports() {
               ))}
             </div>
 
-            {/* QUICK GENERATE */}
-            <div className="panel">
-              <div className="panel-hd">
-                <div className="panel-ttl"><I n="zap" size={15} /> Quick Generate</div>
-                <span style={{ fontSize:"10px", color:"var(--text3)" }}>Instant report creation</span>
-              </div>
-              <div className="panel-body">
-                <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"10px" }}>
+            {/* SERVICE STATUS + ACTIONS */}
+            <div className="main-grid-wide">
+              <div className="panel">
+                <div className="panel-hd">
+                  <div className="panel-ttl"><I n="cpu" size={15} /> Service Status</div>
+                  <span style={{ fontSize:"10px", padding:"3px 9px", borderRadius:"5px", background:"rgba(39,201,176,.1)", color:"var(--teal)", fontWeight:600 }}>5/6 Healthy</span>
+                </div>
+                <div className="panel-body">
                   {[
-                    { label:"User Growth Report",    icon:"users",     color:"rgba(91,78,248,.12)",   tc:"var(--indigo-ll)" },
-                    { label:"Course Analytics",      icon:"book",      color:"rgba(39,201,176,.1)",   tc:"var(--teal)" },
-                    { label:"Placement Stats",       icon:"briefcase", color:"rgba(244,165,53,.1)",   tc:"var(--amber)" },
-                    { label:"Security Audit",        icon:"shield",    color:"rgba(242,68,92,.1)",    tc:"var(--rose)" },
-                  ].map((q, i) => (
-                    <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} key={i} style={{ background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:"12px", padding:"16px", textAlign:"center", cursor:"pointer", transition:"all .2s", width:"100%" }}>
-                      <div style={{ width:34, height:34, borderRadius:9, background:q.color, color:q.tc, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 8px" }}>
-                        <I n={q.icon} size={15} />
+                    { name:"API Server",    icon:"zap",    status:"up",   latency:"38ms",  cpu:"12%", mem:"340 MB", color:"rgba(91,78,248,.15)",  text:"var(--indigo-ll)" },
+                    { name:"Database",      icon:"db",     status:"up",   latency:"12ms",  cpu:"8%",  mem:"1.2 GB", color:"rgba(39,201,176,.12)", text:"var(--teal)" },
+                    { name:"WebRTC Server", icon:"wifi",   status:"warn", latency:"110ms", cpu:"42%", mem:"780 MB", color:"rgba(244,165,53,.12)", text:"var(--amber)" },
+                    { name:"File Storage",  icon:"layers", status:"up",   latency:"24ms",  cpu:"5%",  mem:"200 MB", color:"rgba(91,78,248,.15)",  text:"var(--indigo-ll)" },
+                    { name:"Email Service", icon:"globe",  status:"up",   latency:"66ms",  cpu:"3%",  mem:"110 MB", color:"rgba(39,201,176,.12)", text:"var(--teal)" },
+                    { name:"Cache (Redis)", icon:"zap",    status:"up",   latency:"2ms",   cpu:"1%",  mem:"512 MB", color:"rgba(244,165,53,.12)", text:"var(--amber)" },
+                  ].map((s, i) => (
+                    <div key={i} style={{ display:"flex", alignItems:"center", gap:"10px", padding:"10px 0", borderBottom:"1px solid var(--border)" }}>
+                      <div style={{ width:32, height:32, borderRadius:8, background:s.color, color:s.text, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
+                        <I n={s.icon} size={14} />
                       </div>
-                      <div style={{ fontSize:"11px", fontWeight:600, color:q.tc }}>{q.label}</div>
+                      <span style={{ fontSize:"12px", fontWeight:600, flex:1 }}>{s.name}</span>
+                      <span style={{ fontSize:"10px", color:"var(--text3)", marginRight:"4px" }}>CPU {s.cpu}</span>
+                      <span style={{ fontSize:"10px", color:"var(--text3)", marginRight:"8px" }}>{s.mem}</span>
+                      <span style={{ fontSize:"10px", fontWeight:600, padding:"2px 9px", borderRadius:"5px", display:"flex", alignItems:"center", gap:"4px", background: s.status==="up" ? "rgba(39,201,176,.1)" : "rgba(244,165,53,.1)", color: s.status==="up" ? "var(--teal)" : "var(--amber)" }}>
+                        <span style={{ width:5, height:5, borderRadius:"50%", background:"currentColor", display:"inline-block" }} />
+                        {s.status === "up" ? "Operational" : "Degraded"}
+                      </span>
+                      <span style={{ fontSize:"9.5px", color:"var(--text3)", marginLeft:"6px", minWidth:"44px", textAlign:"right" }}>{s.latency}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="panel">
+                <div className="panel-hd">
+                  <div className="panel-ttl"><I n="activity" size={15} /> Quick Actions</div>
+                </div>
+                <div className="panel-body">
+                  {[
+                    { label:"Restart API Server",  icon:"refresh", color:"var(--indigo-l)" },
+                    { label:"Clear Redis Cache",    icon:"zap",     color:"var(--amber)" },
+                    { label:"Force DB Backup",      icon:"db",      color:"var(--teal)" },
+                    { label:"Reload Nginx Config",  icon:"globe",   color:"var(--violet)" },
+                    { label:"View Error Logs",      icon:"activity",color:"var(--rose)" },
+                  ].map((a, i) => (
+                    <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} key={i} style={{ display:"flex", alignItems:"center", gap:"10px", width:"100%", padding:"10px 12px", background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:"9px", cursor:"pointer", marginBottom:"6px", transition:"all .18s" }}>
+                      <div style={{ width:28, height:28, borderRadius:7, background:`${a.color}18`, color:a.color, display:"flex", alignItems:"center", justifyContent:"center" }}>
+                        <I n={a.icon} size={13} />
+                      </div>
+                      <span style={{ fontSize:"12px", fontWeight:500, color:"var(--text2)", flex:1 }}>{a.label}</span>
+                      <I n="chevronR" size={12} />
                     </button>
                   ))}
+                </div>
+                <div style={{ padding:"0 20px 20px" }}>
+                  <div style={{ padding:"13px 14px", background:"linear-gradient(135deg,rgba(91,78,248,.07),rgba(39,201,176,.03))", border:"1px solid rgba(91,78,248,.14)", borderRadius:"10px" }}>
+                    <div style={{ fontSize:"10px", fontWeight:700, letterSpacing:".1em", textTransform:"uppercase", color:"var(--text3)", marginBottom:"8px" }}>Resource Monitor</div>
+                    {[
+                      { label:"CPU Usage", val:"34%", pct:34, color:"var(--indigo-l)" },
+                      { label:"RAM",       val:"61%", pct:61, color:"var(--violet)" },
+                      { label:"Disk",      val:"48%", pct:48, color:"var(--teal)" },
+                      { label:"Bandwidth", val:"27%", pct:27, color:"var(--amber)" },
+                    ].map((r, i) => (
+                      <div key={i} style={{ marginBottom:"8px" }}>
+                        <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"4px" }}>
+                          <span style={{ fontSize:"10.5px", color:"var(--text2)" }}>{r.label}</span>
+                          <span style={{ fontSize:"10px", fontWeight:700, color:r.color }}>{r.val}</span>
+                        </div>
+                        <div style={{ height:"3px", background:"var(--surface3)", borderRadius:"2px", overflow:"hidden" }}>
+                          <div data-width={`${r.pct}%`} style={{ height:"100%", width:0, background:r.color, borderRadius:"2px", transition:"width 1.2s ease" }} />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* REPORT LIBRARY */}
+            {/* ENV VARS */}
             <div className="panel">
               <div className="panel-hd">
-                <div className="panel-ttl"><I n="download" size={15} /> Report Library <span>6 files</span></div>
-                <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="btn btn-ghost btn-sm"><I n="search" size={12} /> Filter</button>
+                <div className="panel-ttl"><I n="settings" size={15} /> Environment Variables</div>
+                <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="btn btn-ghost btn-sm"><I n="plus" size={12} /> Add Variable</button>
               </div>
               <div className="panel-body">
-                <div className="filter-row">
-                  <div className="tb-search" style={{ flex:"1", height:"32px" }}><I n="search" size={13} /><input placeholder="Search reports…" /></div>
-                </div>
-                {[
-                  { name:"Monthly Enrollment Report",  desc:"Student enrollment trends across departments",    size:"2.4 MB", date:"Jan 2025", type:"PDF",  icon:"users",    color:"var(--rose)" },
-                  { name:"Course Completion Summary",  desc:"Completion rates and engagement per course",       size:"1.8 MB", date:"Jan 2025", type:"XLSX", icon:"book",     color:"var(--teal)" },
-                  { name:"Placement Outcome Report",   desc:"Offer letters, companies, package distributions",  size:"3.1 MB", date:"Dec 2024", type:"PDF",  icon:"briefcase",color:"var(--amber)" },
-                  { name:"Faculty Performance Review", desc:"Teaching hours, student ratings, assessments",     size:"1.2 MB", date:"Dec 2024", type:"PDF",  icon:"award",    color:"var(--violet)" },
-                  { name:"System Audit Log Export",    desc:"Full audit trail — logins, changes, alerts",       size:"5.6 MB", date:"Dec 2024", type:"CSV",  icon:"shield",   color:"var(--indigo-ll)" },
-                  { name:"Financial Summary Q4 2024",  desc:"Revenue, expenses, and budget utilization",        size:"2.9 MB", date:"Dec 2024", type:"XLSX", icon:"bar",      color:"var(--teal)" },
-                ].map((r, i) => (
-                  <div key={i} style={{ display:"flex", alignItems:"center", gap:"14px", padding:"13px 0", borderBottom:"1px solid var(--border)" }}>
-                    <div style={{ width:38, height:38, borderRadius:10, background:`rgba(0,0,0,.2)`, color:r.color, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, border:`1px solid ${r.color}22` }}>
-                      <I n={r.icon} size={15} />
-                    </div>
-                    <div style={{ flex:1 }}>
-                      <div style={{ fontSize:"13px", fontWeight:600, color:"var(--text)", marginBottom:"3px" }}>{r.name}</div>
-                      <div style={{ fontSize:"11px", color:"var(--text3)", marginBottom:"5px" }}>{r.desc}</div>
-                      <div style={{ display:"flex", gap:"10px", alignItems:"center" }}>
-                        <span style={{ fontSize:"9px", fontWeight:700, padding:"2px 7px", borderRadius:"4px", background:"rgba(91,78,248,.1)", color:"var(--indigo-ll)", border:"1px solid rgba(91,78,248,.2)" }}>{r.type}</span>
-                        <span style={{ fontSize:"10px", color:"var(--text3)" }}>{r.size}</span>
-                        <span style={{ fontSize:"10px", color:"var(--text3)" }}>{r.date}</span>
-                      </div>
-                    </div>
-                    <button onClick={handleExportReport} className="btn btn-ghost btn-sm"><I n="download" size={12} /> Download</button>
-                  </div>
-                ))}
+                <table className="user-table">
+                  <thead><tr><th>Key</th><th>Value</th><th>Sensitive</th><th></th></tr></thead>
+                  <tbody>
+                    {[
+                      { key:"NODE_ENV",        value:"production",            sensitive:false },
+                      { key:"DB_HOST",         value:"db.campus.local",       sensitive:false },
+                      { key:"DB_PORT",         value:"5432",                  sensitive:false },
+                      { key:"JWT_SECRET",      value:"••••••••••••",          sensitive:true  },
+                      { key:"SMTP_HOST",       value:"smtp.sendgrid.net",     sensitive:false },
+                      { key:"REDIS_URL",       value:"redis://cache.campus.local", sensitive:false },
+                      { key:"S3_BUCKET",       value:"smart-campus-prod",     sensitive:false },
+                      { key:"API_RATE_LIMIT",  value:"1000/hr",               sensitive:false },
+                    ].map((v, i) => (
+                      <tr key={i}>
+                        <td><code style={{ fontFamily:"monospace", fontSize:"11px", color:"var(--indigo-ll)", background:"rgba(91,78,248,.08)", padding:"2px 6px", borderRadius:"4px" }}>{v.key}</code></td>
+                        <td style={{ fontSize:"11px", color:"var(--text2)", fontFamily:"monospace" }}>{v.value}</td>
+                        <td>{v.sensitive && <span className="status-tag status-pending"><span className="status-dot" />Hidden</span>}</td>
+                        <td><div style={{ display:"flex", gap:"5px" }}>
+                          <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="ut-action tooltip" data-tip="Edit"><I n="edit" size={11} /></button>
+                          <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="ut-action tooltip" data-tip="Delete"><I n="trash" size={11} /></button>
+                        </div></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
           </main>

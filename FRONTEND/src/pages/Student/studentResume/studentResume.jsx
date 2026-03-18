@@ -80,11 +80,11 @@ export default function StudentResume({ onBack }) {
     import("../../../utils/api").then(({ default: api }) => {
       api.get("/student/resume").then(res => {
         setData(res);
-        setExperiences(res.experiences);
-        setProjects(res.projects);
-        setSkills(res.skills);
-        setCerts(res.certs);
-        setTimeout(()=>setAtsW(78), 500);
+        setExperiences(res.experiences || []);
+        setProjects(res.projects || []);
+        setSkills(res.skills || []);
+        setCerts(res.certs || []);
+        setTimeout(()=>setAtsW(res.ats_score || 0), 500);
       }).catch(console.error);
     });
   }, []);
@@ -110,9 +110,9 @@ export default function StudentResume({ onBack }) {
 
       {/* ATS Score bar */}
       <div className="rv-ats-bar">
-        <div className="rv-ats-score">78</div>
+        <div className="rv-ats-score">{data.ats_score || 0}</div>
         <div className="rv-ats-info">
-          <div className="rv-ats-label">ATS Score — Good</div>
+          <div className="rv-ats-label">ATS Score — {data.ats_score >= 85 ? "Excellent" : data.ats_score >= 70 ? "Good" : data.ats_score >= 50 ? "Average" : "Needs Work"}</div>
           <div className="rv-ats-track"><div className="rv-ats-fill" style={{width:`${atsW}%`}} /></div>
           <div className="rv-ats-sub">Your resume is parsed well by most applicant tracking systems. A few tweaks can push you to 90+.</div>
         </div>
