@@ -34,7 +34,11 @@ from Schemas.PlacementSchema import (
     PlacementEventCreate,
     PlacementEventUpdate,
     PlacementEventResponse,
+    PlacementDashboardStats,
+    PlacementTrendPoint,
 )
+
+
 
 # ── adjust to your auth utilities ────────────────────────────────────────────
 from Core.Dependencies import get_current_user, require_roles   # noqa: E402
@@ -73,8 +77,9 @@ def _safe(fn, *args, not_found_msg="Not found", **kwargs):
 # Dashboard & Analytics  (placement officer)
 # ─────────────────────────────────────────────────────────────────────────────
 
-@router.get("/dashboard/stats", summary="Placement dashboard KPIs")
+@router.get("/dashboard/stats", response_model=PlacementDashboardStats, summary="Placement dashboard KPIs")
 def dashboard_stats(
+
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
@@ -88,8 +93,9 @@ def dashboard_stats(
     return svc.get_dashboard_stats(db)
 
 
-@router.get("/dashboard/trends", summary="Monthly placement trends")
+@router.get("/dashboard/trends", response_model=List[PlacementTrendPoint], summary="Monthly placement trends")
 def dashboard_trends(
+
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):

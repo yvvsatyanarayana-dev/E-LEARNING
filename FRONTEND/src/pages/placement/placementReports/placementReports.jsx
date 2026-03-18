@@ -318,8 +318,9 @@ export default function PlacementReports() {
             <SbLink to="/placementdashboard/analytics" badge="New" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>}>Analytics</SbLink>
             <div className="sb-sec-label">Placement</div>
             <SbLink to="/placementdashboard/students"    badge={loading?"…":String(dashStats?.total_students??"")} badgeCls="teal"  icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>}>Students</SbLink>
-            <SbLink to="/placementdashboard/companies"   badge="8"  badgeCls="amber" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>}>Companies</SbLink>
-            <SbLink to="/placementdashboard/drives"      badge={loading?"…":String(drives.filter(d=>d.status==="Upcoming").length)} badgeCls="rose" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>}>Drives</SbLink>
+            <SbLink to="/placementdashboard/companies"   badge={loading?"…":String(dashStats?.total_companies??"")}  badgeCls="amber" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>}>Companies</SbLink>
+            <SbLink to="/placementdashboard/drives"      badge={loading?"…":String(dashStats?.upcoming_drives??"")} badgeCls="rose" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>}>Drives</SbLink>
+
             <SbLink to="/placementdashboard/offers-placed" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>}>Offers &amp; Placed</SbLink>
             <SbLink to="/placementdashboard/internships"   icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>}>Internships</SbLink>
             <div className="sb-sec-label">Tools</div>
@@ -331,7 +332,8 @@ export default function PlacementReports() {
             <div className="sb-pri">
               <div className="sb-pri-lbl">Placement Rate</div>
               <div className="sb-pri-val">{loading ? "…" : `${placementRate}%`}</div>
-              <div className="sb-pri-sub">{loading ? "Loading…" : `${placedStudents} placed · AY 2024-25`}</div>
+              <div className="sb-pri-sub">{loading ? "Loading…" : `${placedStudents} placed · AY ${dashStats?.academic_year ?? "2024-25"}`}</div>
+
               <div className="sb-pri-bar">
                 <div className="sb-pri-fill" style={{ width: loading ? "0%" : `${placementRate}%`, transition:"width 1s ease" }} />
               </div>
@@ -362,7 +364,8 @@ export default function PlacementReports() {
 
           <div className="content">
             <div className="greet-row">
-              <div className="greet-tag"><div className="greet-pip" /><span className="greet-pip-txt">{REPORT_TYPES.length} Reports · AY 2024-25</span></div>
+              <div className="greet-tag"><div className="greet-pip" /><span className="greet-pip-txt">{REPORT_TYPES.length} Reports · AY {dashStats?.academic_year ?? "2024-25"}</span></div>
+
               <h1 className="greet-title">Placement <em>Reports</em></h1>
               <p className="greet-sub">
                 {loading ? "Loading placement data for reports…" : `Export data for ${dashStats?.total_students ?? students.length} students and ${drives.length} drives.`}

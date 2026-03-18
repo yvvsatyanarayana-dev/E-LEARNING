@@ -1160,6 +1160,7 @@ class FacultyService:
             faculty.full_name = update.account.displayName
             faculty.email = update.account.email
             faculty.phone = update.account.phone
+            faculty.avatar = update.account.avatar
             
             # Additional account fields go into JSON
             account_json = current_settings.get("account", {})
@@ -1201,12 +1202,182 @@ class FacultyService:
         db.commit()
         return {"message": "Quiz deleted successfully"}
 
-    def get_metadata(self, db: Session) -> FacultyMetadataResponse:
-        # For now, return the canonical list from requirements.
-        # In a real system, these might come from a dedicated Metadata table.
-        departments = ["Computer Science"]
+    def get_metadata(self, db: Session, faculty: User = None) -> FacultyMetadataResponse:
+        departments = ["Computer Science", "Information Technology", "Electronics"]
         groups = ["BCA", "MCA", "B.Tech", "B.Sc", "AI", "All"]
-        return FacultyMetadataResponse(departments=departments, groups=groups)
+
+        courses_meta = {}
+        if faculty:
+            courses = db.query(Course).filter(Course.faculty_id == faculty.id).all()
+            palette = [
+                ("var(--indigo-l)", "rgba(91,78,248,.1)",   "rgba(91,78,248,.22)"),
+                ("var(--teal)",     "rgba(39,201,176,.1)",  "rgba(39,201,176,.22)"),
+                ("var(--violet)",   "rgba(159,122,234,.1)", "rgba(159,122,234,.22)"),
+                ("var(--amber)",    "rgba(244,165,53,.1)",  "rgba(244,165,53,.22)"),
+            ]
+            for idx, c in enumerate(courses):
+                color, bg, border = palette[idx % len(palette)]
+                courses_meta[f"cs{c.id}"] = {
+                    "code": f"CS{500+c.id}",
+                    "name": c.title,
+                    "color": color,
+                    "bg": bg,
+                    "border": border
+                }
+        else:
+            courses_meta = {
+                "cs501": {"code": "CS501", "name": "Data Structures", "color": "var(--indigo-l)", "bg": "rgba(91,78,248,.1)", "border": "rgba(91,78,248,.3)"},
+                "cs502": {"code": "CS502", "name": "Dist Systems", "color": "var(--teal)", "bg": "rgba(39,201,176,.1)", "border": "rgba(39,201,176,.3)"},
+                "cs503": {"code": "CS503", "name": "Networks", "color": "var(--violet)", "bg": "rgba(159,122,234,.1)", "border": "rgba(159,122,234,.3)"}
+            }
+
+        status_meta = {
+            "top": {"label": "Top", "cls": "sc-teal"},
+            "good": {"label": "Good", "cls": "sc-indigo"},
+            "avg": {"label": "Average", "cls": "sc-amber"},
+            "risk": {"label": "At Risk", "cls": "sc-rose"},
+        }
+        
+        ai_replies = [
+            "Based on the last assignment scores, I suggest reinforcing unit 3 on dynamic programming.",
+            "Attendance has dropped by 12% this week. Would you like me to draft a reminder email?",
+            "3 students failed the recent quiz. You can view their attempts in the Grade Book."
+        ]
+        
+        ai_suggestions = [
+            "Generate quiz from Unit II",
+            "Identify at-risk students",
+            "Summarize weekly attendance"
+        ]
+
+        return FacultyMetadataResponse(
+            departments=departments, 
+            groups=groups,
+            courses_meta=courses_meta,
+            status_meta=status_meta,
+            ai_replies=ai_replies,
+            ai_suggestions=ai_suggestions
+        )
+
+    # ── QUESTION BANK ──────────────────────────────────────────────
+    def get_question_bank(self, faculty: User, db: Session) -> List[dict]:
+        import random
+        from Models.Quiz import QuestionBank
+        questions = db.query(QuestionBank).filter(QuestionBank.faculty_id == faculty.id).all()
+        
+        if not questions:
+            # Seed mock questions
+            defaults = [
+                 {"course_id": 1, "unit": "Unit I", "type": "MCQ", "difficulty": "Medium", "marks": 2, "question_text": "What is the time complexity of QuickSort in the worst case?", "options": ["O(N log N)", "O(N)", "O(N^2)", "O(1)"], "correct_answer": "O(N^2)"},
+                 {"course_id": 1, "unit": "Unit II", "type": "TF", "difficulty": "Easy", "marks": 1, "question_text": "Arrays in Python are dynamic by default.", "options": ["True", "False"], "correct_answer": "False"},
+                 {"course_id": 2, "unit": "Unit III", "type": "Desc", "difficulty": "Hard", "marks": 5, "question_text": "Explain the CAP theorem with examples.", "options": [], "correct_answer": "Conceptual description here."},
+                 {"course_id": 3, "unit": "Unit I", "type": "FIB", "difficulty": "Medium", "marks": 1, "question_text": "In OSI model, IP protocol belongs to the ______ layer.", "options": [], "correct_answer": "Network"}
+            ]
+            courses = db.query(Course).filter(Course.faculty_id == faculty.id).all()
+            if courses:
+                for idx, d in enumerate(defaults):
+                    c = courses[idx % len(courses)]
+                    q = QuestionBank(
+                        faculty_id=faculty.id,
+                        course_id=c.id,
+                        unit=d["unit"],
+                        type=d["type"],
+                        difficulty=d["difficulty"],
+                        marks=d["marks"],
+                        question_text=d["question_text"],
+                        options=d["options"],
+                        correct_answer=d["correct_answer"],
+                        used=random.randint(1, 10)
+                    )
+                    db.add(q)
+                db.commit()
+                questions = db.query(QuestionBank).filter(QuestionBank.faculty_id == faculty.id).all()
+
+        res = []
+        for q in questions:
+            res.append({
+                "id": q.id,
+                "course": f"cs{q.course_id}",
+                "unit": q.unit or "Unit I",
+                "type": q.type,
+                "diff": q.difficulty,
+                "marks": q.marks,
+                "q": q.question_text,
+                "options": q.options or [],
+                "ans": q.correct_answer,
+                "used": q.used
+            })
+        return res
+
+    def create_question(self, faculty: User, db: Session, data: dict) -> dict:
+        from Models.Quiz import QuestionBank
+        course_id = int(data.get("course", "cs0").replace("cs", "")) if "cs" in str(data.get("course", "")) else 1
+        q = QuestionBank(
+            faculty_id=faculty.id,
+            course_id=course_id,
+            unit=data.get("unit"),
+            type=data.get("type"),
+            difficulty=data.get("diff"),
+            marks=data.get("marks", 1),
+            question_text=data.get("q"),
+            options=data.get("options", []),
+            correct_answer=data.get("ans")
+        )
+        db.add(q)
+        db.commit()
+        db.refresh(q)
+        return {
+            "id": q.id,
+            "course": f"cs{q.course_id}",
+            "unit": q.unit,
+            "type": q.type,
+            "diff": q.difficulty,
+            "marks": q.marks,
+            "q": q.question_text,
+            "options": q.options or [],
+            "ans": q.correct_answer,
+            "used": q.used
+        }
+
+    def update_question(self, faculty: User, db: Session, question_id: int, data: dict) -> dict:
+        from Models.Quiz import QuestionBank
+        q = db.query(QuestionBank).filter(QuestionBank.id == question_id, QuestionBank.faculty_id == faculty.id).first()
+        if not q:
+            raise HTTPException(status_code=404, detail="Question not found")
+        
+        if "course" in data:
+            q.course_id = int(str(data["course"]).replace("cs", ""))
+        if "unit" in data: q.unit = data["unit"]
+        if "type" in data: q.type = data["type"]
+        if "diff" in data: q.difficulty = data["diff"]
+        if "marks" in data: q.marks = data["marks"]
+        if "q" in data: q.question_text = data["q"]
+        if "options" in data: q.options = data["options"]
+        if "ans" in data: q.correct_answer = data["ans"]
+
+        db.commit()
+        db.refresh(q)
+        return {
+            "id": q.id,
+            "course": f"cs{q.course_id}",
+            "unit": q.unit,
+            "type": q.type,
+            "diff": q.difficulty,
+            "marks": q.marks,
+            "q": q.question_text,
+            "options": q.options or [],
+            "ans": q.correct_answer,
+            "used": q.used
+        }
+
+    def delete_question(self, faculty: User, db: Session, question_id: int) -> dict:
+        from Models.Quiz import QuestionBank
+        q = db.query(QuestionBank).filter(QuestionBank.id == question_id, QuestionBank.faculty_id == faculty.id).first()
+        if not q:
+            raise HTTPException(status_code=404, detail="Question not found")
+        db.delete(q)
+        db.commit()
+        return {"message": "Question deleted successfully"}
 
     def get_course(self, faculty: User, db: Session, course_id: int) -> Dict[str, Any]:
         course = db.query(Course).filter(Course.id == course_id, Course.faculty_id == faculty.id).first()

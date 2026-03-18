@@ -196,22 +196,8 @@ function exportExcel(students) {
 /* ════════════════════════════════════════════
    FALLBACK DATA  — shown while loading or on error
 ════════════════════════════════════════════ */
-const FALLBACK_TASKS = [
-  { id:1, txt:"Update Amazon drive eligibility list",  sub:"CS Dept",           due:"Today",    dueCls:"due-today", done:false },
-  { id:2, txt:"Send offer letter reminders — Infosys", sub:"22 students pending",due:"Today",   dueCls:"due-today", done:false },
-  { id:3, txt:"Review 14 student resumes",             sub:"Pre-Amazon drive",   due:"Tomorrow", dueCls:"due-soon",  done:false },
-  { id:4, txt:"Upload Zoho JD & eligibility criteria", sub:"Mar 22 Drive",       due:"2 days",   dueCls:"due-soon",  done:false },
-  { id:5, txt:"Generate Q4 Placement Analytics Report",sub:"All departments",    due:"5 days",   dueCls:"due-ok",    done:false },
-];
-
-const FALLBACK_SCHEDULE = [
-  { from:"09:00", to:"10:00", name:"Amazon Pre-Placement Talk", room:"Seminar Hall · A Block",  tag:"Drive Prep", tagColor:"var(--indigo-ll)", tagBg:"rgba(91,78,248,.1)",   divColor:"var(--indigo-l)" },
-  { from:"11:00", to:"12:00", name:"Resume Review — CSE Batch", room:"Placement Office",        tag:"Review",     tagColor:"var(--teal)",      tagBg:"rgba(39,201,176,.1)",  divColor:"var(--teal)" },
-  { from:"14:00", to:"15:30", name:"Mock Interviews — Round 2", room:"Lab 3 · B Block",         tag:"Interview",  tagColor:"var(--amber)",     tagBg:"rgba(244,165,53,.1)",  divColor:"var(--amber)" },
-  { from:"16:00", to:"17:00", name:"Industry Connect — Webinar",room:"Online · Google Meet",    tag:"Online",     tagColor:"var(--violet)",    tagBg:"rgba(159,122,234,.1)", divColor:"var(--violet)" },
-];
-
 const BRANCHES   = ["CSE","IT","ECE","EEE","MECH","CIVIL","BCA","MCA"];
+
 const STATUSES_D = ["Upcoming","Ongoing","Completed","Cancelled"];
 const DRIVE_TYPES= ["Full Time","Internship","Internship + PPO","Part Time","Contract"];
 
@@ -1000,6 +986,7 @@ export default function PlacementDashboard() {
   const [drives,        setDrives]       = useState([]);
   const [students,      setStudents]     = useState([]);
   const [officerName,   setOfficerName]  = useState("");
+  const [profile,       setProfile]      = useState({}); // Added profile state
 
   // ── Modal state ───────────────────────────────────────────────
   const [showAddDrive,  setShowAddDrive] = useState(false);
@@ -1068,11 +1055,16 @@ export default function PlacementDashboard() {
 
         const [meRes, statsRes, drivesRes, studentsRes, tasksRes, eventsRes] = results;
 
-        // Officer name
+        // Officer name and profile
         if (meRes.status === "fulfilled") {
           const me = meRes.value;
           setOfficerName(me.full_name ?? me.email ?? "");
           setSettings(s => ({ ...s, officerName: me.full_name ?? s.officerName }));
+          setProfile({
+            fullName: me.full_name ?? me.email ?? "",
+            initials: (me.full_name ?? me.email ?? "").trim().split(" ").map(w => w[0]).join("").slice(0, 2),
+            avatar: me.avatar || "",
+          });
         }
 
         // KPI stats
@@ -1273,9 +1265,13 @@ export default function PlacementDashboard() {
             </Link>
           </div>
 
-          <Link to="/placementdashboard/placementProfile" className="sb-user" style={{ textDecoration:"none" }}>
-            <div className="sb-avatar">
-              {(officerName || settings.officerName).trim().split(" ").map(w => w[0]).join("").slice(0, 2)}
+          <Link to="/placementdashboard/placementProfile" className="pp-sb-officer" style={{ textDecoration:"none" }}>
+            <div className="sb-avatar pp-sb-av">
+              {profile.avatar ? (
+                <img src={profile.avatar} alt={profile.fullName} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+              ) : (
+                profile.initials
+              )}
             </div>
             <div>
               <div className="sb-uname">{officerName || settings.officerName}</div>
@@ -1289,9 +1285,10 @@ export default function PlacementDashboard() {
             <SbLink to="/placementdashboard/analytics" badge="New" icon={<BarIco/>}>Analytics</SbLink>
 
             <div className="sb-sec-label">Placement</div>
-            <SbLink to="/placementdashboard/students"       badge={String(students.length)} badgeCls="teal"  icon={<UserIco/>}>Students</SbLink>
-            <SbLink to="/placementdashboard/companies"      badge="8"   badgeCls="amber" icon={<BriefIco/>}>Companies</SbLink>
-            <SbLink to="/placementdashboard/drives"         badge={String(upcomingDrives)} badgeCls="rose" icon={<FileIco/>}>Drives</SbLink>
+            <SbLink to="/placementdashboard/students"       badge={statsLoading ? "…" : String(dashStats?.total_students ?? students.length)} badgeCls="teal"  icon={<UserIco/>}>Students</SbLink>
+            <SbLink to="/placementdashboard/companies"      badge={statsLoading ? "…" : String(dashStats?.total_companies ?? 0)}   badgeCls="amber" icon={<BriefIco/>}>Companies</SbLink>
+            <SbLink to="/placementdashboard/drives"         badge={statsLoading ? "…" : String(dashStats?.total_drives ?? upcomingDrives)} badgeCls="rose" icon={<FileIco/>}>Drives</SbLink>
+
             <SbLink to="/placementdashboard/meetings"       icon={<IcoVideo/>}>Virtual Meeting</SbLink>
             <SbLink to="/placementdashboard/offers-placed"  icon={<StarIco/>}>Offers &amp; Placed</SbLink>
             <SbLink to="/placementdashboard/internships"    icon={<BoxIco/>}>Internships</SbLink>
@@ -1335,8 +1332,12 @@ export default function PlacementDashboard() {
               </button>
               <button className="tb-icon-btn" onClick={() => setShowSettings(true)} title="Settings"><GearIco/></button>
               <Link to="/placementdashboard/placementProfile" className="tb-icon-btn" title="Profile">
-                <div style={{ width:22, height:22, borderRadius:"50%", background:"linear-gradient(135deg,rgba(39,201,176,.4),rgba(91,78,248,.3))", display:"flex", alignItems:"center", justifyContent:"center", fontSize:9, fontWeight:800, color:"var(--teal)" }}>
-                  {(officerName || settings.officerName).trim().split(" ").map(w => w[0]).join("").slice(0,2)}
+                <div className="pp-tb-avatar">
+                  {profile.avatar ? (
+                    <img src={profile.avatar} alt={profile.fullName} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+                  ) : (
+                    profile.initials
+                  )}
                 </div>
               </Link>
               <button className="btn btn-solid" style={{ fontSize:10, padding:"8px 14px" }} onClick={() => setShowQuickAct(true)}>
@@ -1382,10 +1383,10 @@ export default function PlacementDashboard() {
             {settings.showStats && (
               <div className="stat-grid">
                 {[
-                  { color:"indigo", val: loading ? "…" : students.length,    label:"Total Students",  delta:"Registered this year",      icon:<UserIco/> },
-                  { color:"teal",   val: loading ? "…" : placedStudents,     label:"Placed Students", delta:`${loading?"…":placementRate}% rate`,  icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg> },
-                  { color:"amber",  val: loading ? "…" : (dashStats?.avg_pri ? Math.round(dashStats.avg_pri) : "—"), label:"Avg PRI Score", delta:"Target: 85 for excellent", icon:<BarIco/> },
-                  { color:"violet", val: loading ? "…" : drives.length,      label:"Total Drives",    delta:`${upcomingDrives} upcoming`,  icon:<BriefIco/> },
+                  { color:"indigo", val: statsLoading ? "…" : (dashStats?.placement_rate ?? 0) + "%", label:"Placement Rate", delta:"AY " + settings.academicYear, icon:<UserIco/> },
+                  { color:"teal",   val: statsLoading ? "…" : "₹" + (dashStats?.avg_package ?? 0) + "L", label:"Avg Package", delta:"Across all branches", icon:<StarIco/> },
+                  { color:"amber",  val: statsLoading ? "…" : "₹" + (dashStats?.highest_package ?? 0) + "L", label:"Highest Package", delta:"Current session", icon:<ZapIco/> },
+                  { color:"violet", val: statsLoading ? "…" : (dashStats?.total_offers ?? 0), label:"Total Offers", delta:"New opportunities", icon:<BriefIco/> },
                 ].map(s => (
                   <div key={s.label} className={`stat-card sc-${s.color}`}>
                     <div className="stat-ic">{s.icon}</div>
@@ -1395,6 +1396,7 @@ export default function PlacementDashboard() {
                   </div>
                 ))}
               </div>
+
             )}
 
             {/* PLACEMENT DRIVES */}

@@ -66,6 +66,8 @@ class Internship(Base):
     logo_color   = Column(String(50), nullable=True)   # hex or var
     tag          = Column(String(50), nullable=True)    # "Open", "Closing", "Applied"
     tag_color    = Column(String(50), nullable=True)    # "teal", "amber", etc.
+    status       = Column(String(50), nullable=True, default="Upcoming") # Upcoming, Ongoing, Completed
+
     
     # New Fields for detailed Company/Drive info
     sector         = Column(String(100), nullable=True)

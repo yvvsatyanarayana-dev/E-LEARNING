@@ -23,16 +23,6 @@ const IcoRefresh = (p) => <svg {...p} width="13" height="13" viewBox="0 0 24 24"
 
 // ─── DATA ────────────────────────────────────────────────────────
 
-let WEEKLY_SCORES = {};
-const WEEKS = ["W5", "W6", "W7", "W8", "W9", "W10", "W11"];
-let ATTENDANCE_WEEKLY = {};
-let SCORE_DIST = [];
-let ENGAGEMENT = [];
-let TOP_PERFORMERS = [];
-let AT_RISK = [];
-let COURSE_SUMMARY = [];
-let WEAK_TOPIC_TREND = [];
-
 const TABS = [
   { id: "overview",    label: "Overview",    icon: <IcoBar    width={13} height={13} /> },
   { id: "courses",     label: "Courses",     icon: <IcoBook   width={13} height={13} /> },
@@ -41,6 +31,7 @@ const TABS = [
 ];
 
 const PERIODS = ["This Week", "Last 30 Days", "Semester"];
+const WEEKS = ["W5", "W6", "W7", "W8", "W9", "W10", "W11"];
 
 // ─── HELPERS ─────────────────────────────────────────────────────
 function AnimBar({ pct, color, height = 4, delay = 400, animate = true }) {
@@ -206,13 +197,16 @@ function GroupedBar({ data, keys, colors, height = 130 }) {
 }
 
 // ─── OVERVIEW TAB ─────────────────────────────────────────────────
-function TabOverview({ analyticsData = {}, students = [] }) {
+function TabOverview({ analyticsData = {}, students = [], atRisk = [] }) {
   const scoreDatasets = [
     { label: "Class Avg", values: analyticsData.weekly_scores || [0,0,0,0,0,0,0], color: "var(--indigo-l)" }
   ];
   const attendDatasets = [
     { label: "Attendance", values: analyticsData.weekly_attendance || [0,0,0,0,0,0,0], color: "var(--teal)" }
   ];
+
+  const scoreDist = analyticsData.score_dist || [];
+  const weakTopicTrend = analyticsData.weak_topic_trend || [];
 
   return (
     <div className="an-tab-content">
@@ -223,7 +217,7 @@ function TabOverview({ analyticsData = {}, students = [] }) {
           { cls: "sc-indigo", val: `${analyticsData.avg_score || 0}%`, lbl: "Avg Class Score", delta: <><IcoChevUp/>+2%</>, dc: "delta-up",  icon: <IcoAward  width={17} height={17}/> },
           { cls: "sc-amber",  val: `${analyticsData.avg_attendance || 0}%`, lbl: "Avg Attendance",  delta: <><IcoChevDn/>−3%</>, dc: "delta-dn",  icon: <IcoUsers  width={17} height={17}/> },
           { cls: "sc-violet", val: "78%", lbl: "Course Progress", delta: <><IcoChevUp/>+5%</>, dc: "delta-up",  icon: <IcoBook   width={17} height={17}/> },
-          { cls: "sc-rose",   val: AT_RISK.length,   lbl: "At-Risk Students",delta: <><IcoMinus/>Unchanged</>, dc: "delta-neu", icon: <IcoAlert  width={17} height={17}/> },
+          { cls: "sc-rose",   val: atRisk.length,   lbl: "At-Risk Students",delta: <><IcoMinus/>Unchanged</>, dc: "delta-neu", icon: <IcoAlert  width={17} height={17}/> },
           { cls: "sc-indigo", val: analyticsData.quizzes_graded || 0,  lbl: "Quizzes Graded",  delta: <><IcoChevUp/>+18</>, dc: "delta-up",  icon: <IcoClock  width={17} height={17}/> },
         ].map(({ cls, val, lbl, delta, dc, icon }) => (
           <div key={lbl} className={`an-kpi-card ${cls}`}>
@@ -317,7 +311,7 @@ function TabOverview({ analyticsData = {}, students = [] }) {
             <div className="panel-ttl">
               <IcoAlert width={14} height={14} style={{ color: "var(--rose)" }} />
               At-Risk Students
-              <span style={{ color: "var(--rose)" }}>{AT_RISK.length} flagged</span>
+              <span style={{ color: "var(--rose)" }}>{atRisk.length} flagged</span>
             </div>
             <a href="#" className="panel-act" onClick={e => e.preventDefault()}>
               Notify all <IcoChevR />
@@ -325,7 +319,7 @@ function TabOverview({ analyticsData = {}, students = [] }) {
           </div>
           <div className="panel-body">
             <div className="risk-list">
-              {AT_RISK.map((s, i) => (
+              {atRisk.map((s, i) => (
                 <div key={i} className={`risk-item risk-${s.risk}`}>
                   <div className={`risk-badge ${s.risk}`}>{s.risk}</div>
                   <div className="risk-info">
@@ -376,7 +370,7 @@ function TabOverview({ analyticsData = {}, students = [] }) {
               <span>Change</span>
               <span>Trend</span>
             </div>
-            {WEAK_TOPIC_TREND.map((w, i) => (
+            {weakTopicTrend.map((w, i) => (
               <div key={i} className="wtt-row">
                 <span className="wtt-topic">{w.topic}</span>
                 <span className="wtt-course">{w.course}</span>
@@ -417,15 +411,15 @@ function SparkLine({ values, color }) {
 }
 
 // ─── COURSES TAB ──────────────────────────────────────────────────
-function TabCourses() {
+function TabCourses({ courseSummary = [] }) {
   const [selected, setSelected] = useState(0);
-  const c = COURSE_SUMMARY[selected] || {};
+  const c = courseSummary[selected] || {};
 
   return (
     <div className="an-tab-content">
       {/* Course selector pills */}
       <div className="course-pills">
-        {COURSE_SUMMARY.map((cs, i) => (
+        {courseSummary.map((cs, i) => (
           <button key={i}
             className={`course-pill ${selected === i ? "active" : ""}`}
             style={selected === i ? { borderColor: cs.colorRaw, color: cs.colorRaw, background: `${cs.colorRaw}14` } : {}}
@@ -501,7 +495,7 @@ function TabCourses() {
             </div>
           </div>
           <div className="panel-body">
-            <HBarChart data={SCORE_DIST} />
+            <HBarChart data={c.scoreDist || []} />
           </div>
         </div>
         <div className="panel an-chart-panel">
@@ -542,10 +536,10 @@ function TabCourses() {
 }
 
 // ─── STUDENTS TAB ─────────────────────────────────────────────────
-function TabStudents() {
+function TabStudents({ topPerformers = [], atRisk = [] }) {
   const [sort, setSort] = useState("avg");
 
-  const sorted = [...TOP_PERFORMERS].sort((a, b) =>
+  const sorted = [...topPerformers].sort((a, b) =>
     sort === "avg" ? b.avg - a.avg :
     sort === "os"  ? b.os  - a.os  :
     sort === "dbms"? (b.dbms || 0) - (a.dbms || 0) : (b.ca || 0) - (a.ca || 0)
@@ -634,7 +628,7 @@ function TabStudents() {
         </div>
         <div className="panel-body">
           <div className="risk-grid">
-            {AT_RISK.map((s, i) => (
+            {atRisk.map((s, i) => (
               <div key={i} className={`risk-detail-card risk-${s.risk}`}>
                 <div className="rdc-top">
                   <div className="rdc-avatar">{s.name.split(" ").map(x => x[0]).join("")}</div>
@@ -667,7 +661,7 @@ function TabStudents() {
 }
 
 // ─── ENGAGEMENT TAB ───────────────────────────────────────────────
-function TabEngagement() {
+function TabEngagement({ engagement = [] }) {
   return (
     <div className="an-tab-content">
       {/* Grouped bar */}
@@ -688,7 +682,7 @@ function TabEngagement() {
         </div>
         <div className="panel-body an-chart-body" style={{ paddingTop: 14 }}>
           <GroupedBar
-            data={ENGAGEMENT}
+            data={engagement}
             keys={["lectures", "submissions", "quizzes"]}
             colors={["var(--indigo-l)", "var(--teal)", "var(--amber)"]}
             height={150} />
@@ -784,7 +778,13 @@ export default function FacultyAnalytics({ onBack }) {
   const [tab, setTab]       = useState("overview");
   const [period, setPeriod] = useState("Last 30 Days");
   const [spinning, setSpinning] = useState(false);
-  const [dataLoaded, setDataLoaded] = useState(false);
+  const [dataLoaded, setDataLoaded] = useState(null);
+  const [scoreDist, setScoreDist] = useState([]);
+  const [engagement, setEngagement] = useState([]);
+  const [weakTopicTrend, setWeakTopicTrend] = useState([]);
+  const [courseSummary, setCourseSummary] = useState([]);
+  const [topPerformers, setTopPerformers] = useState([]);
+  const [atRisk, setAtRisk] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -799,47 +799,55 @@ export default function FacultyAnalytics({ onBack }) {
         const sData = Array.isArray(stRes) ? stRes : [];
         const cData = Array.isArray(cRes) ? cRes : [];
 
-        // Global var updates
+        // Dist updates
         const scoreDistSafe = Array.isArray(aData.score_dist) ? aData.score_dist : [];
         const totalDist = scoreDistSafe.reduce((sum, d) => sum + d.count, 0);
-        SCORE_DIST = scoreDistSafe.map(d => ({...d, pct: totalDist ? Math.round(d.count/totalDist*100) : 0}));
+        const mappedScoreDist = scoreDistSafe.map(d => ({...d, pct: totalDist ? Math.round(d.count/totalDist*100) : 0}));
+        setScoreDist(mappedScoreDist);
         
         const engSafe = Array.isArray(aData.engagement) ? aData.engagement : [];
-        ENGAGEMENT = engSafe.map(d => ({
+        const mappedEng = engSafe.map(d => ({
           label: d.week || "Wk", lectures: d.views || 0, submissions: d.participation || 0, quizzes: d.completion || 0
         }));
+        setEngagement(mappedEng);
 
         const weakSafe = Array.isArray(aData.weak_topic_trend) ? aData.weak_topic_trend : [];
-        WEAK_TOPIC_TREND = weakSafe.map(d => ({
+        const mappedWeak = weakSafe.map(d => ({
           topic: d.topic || "Topic", course: d.course || "General", week9: d.score_w9 || 40, week10: d.score_w10 || 45, week11: d.score || 50, change: d.improvement || 5
         }));
+        setWeakTopicTrend(mappedWeak);
 
         const colors = ["var(--indigo-l)", "var(--teal)", "var(--violet)", "var(--rose)", "var(--amber)"];
-        COURSE_SUMMARY = cData.map((c, i) => ({
+        const mappedCourses = cData.map((c, i) => ({
           code: c.code, name: c.name, color: colors[i % colors.length], colorRaw: colors[i % colors.length],
           enrolled: c.student_count || 0, avgScore: c.avg_score || 0, avgAttend: c.avg_attendance || 0, completion: c.completion || 75,
-          quizCount: c.quiz_count || 0, asgmtCount: c.assignment_count || 0, highestScore: c.highest_score || 90, lowestScore: c.lowest_score || 40
+          quizCount: c.quiz_count || 0, asgmtCount: c.assignment_count || 0, highestScore: c.highest_score || 90, lowestScore: c.lowest_score || 40,
+          scoreDist: mappedScoreDist // Use global for now or calculate per course if API supports
         }));
+        setCourseSummary(mappedCourses);
 
-        TOP_PERFORMERS = sData.filter(s => (s.score || 0) > 80).map((s, i) => ({
+        const mappedTop = sData.filter(s => (s.score || 0) > 80).map((s, i) => ({
           name: s.name, roll: s.roll, os: (s.score||0) + 1, dbms: (s.score||0) - 1, ca: (s.score||0), avg: s.score||0, trend: "up"
         })).slice(0, 5);
+        setTopPerformers(mappedTop);
 
-        AT_RISK = sData.filter(s => s.status === "at-risk").map(s => ({
+        const mappedAtRisk = sData.filter(s => s.status === "at-risk").map(s => ({
           name: s.name, roll: s.roll, attendance: s.attendance || 0, avgScore: s.score || 0, missed: s.missed_assignments || 0, risk: (s.score||0) < 40 ? "high" : "medium"
         })).slice(0, 5);
+        setAtRisk(mappedAtRisk);
 
         setDataLoaded({
           total_students: aData.total_students,
           avg_score: aData.avg_score,
           avg_attendance: aData.avg_attendance,
-          quizzes_graded: aData.quizzes_graded || 84, // Fallback for now
+          quizzes_graded: aData.quizzes_graded || 84, 
           weekly_scores: aData.engagement?.map(e => e.score || 70) || [],
-          weekly_attendance: aData.engagement?.map(e => e.attendance || 80) || []
+          weekly_attendance: aData.engagement?.map(e => e.attendance || 80) || [],
+          score_dist: mappedScoreDist,
+          weak_topic_trend: mappedWeak
         });
       } catch (err) {
         console.error("Failed to load analytics data:", err);
-        // Ensure the UI doesn't hang in "Loading..." forever on error
         setDataLoaded(true); 
       }
     };
@@ -904,10 +912,10 @@ export default function FacultyAnalytics({ onBack }) {
       </div>
 
       {/* Tab content */}
-      {tab === "overview"   && <TabOverview analyticsData={dataLoaded} students={[]} />}
-      {tab === "courses"    && <TabCourses />}
-      {tab === "students"   && <TabStudents />}
-      {tab === "engagement" && <TabEngagement />}
+      {tab === "overview"   && <TabOverview analyticsData={dataLoaded} students={[]} atRisk={atRisk} />}
+      {tab === "courses"    && <TabCourses courseSummary={courseSummary} />}
+      {tab === "students"   && <TabStudents topPerformers={topPerformers} atRisk={atRisk} />}
+      {tab === "engagement" && <TabEngagement engagement={engagement} />}
     </div>
   );
 }

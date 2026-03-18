@@ -1048,11 +1048,13 @@ export default function PlacementDrives() {
               badge={loading ? "…" : String(dashStats?.total_students ?? "—")} badgeCls="teal"
               icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>}>Students</SbLink>
             <SbLink to="/placementdashboard/companies"
-              badge={loading ? "…" : String(dashStats?.companies_visited ?? "—")} badgeCls="amber"
+              badge={loading ? "…" : String(dashStats?.total_companies ?? "—")} badgeCls="amber"
               icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>}>Companies</SbLink>
+
             <SbLink active to="/placementdashboard/drives"
-              badge={loading ? "…" : String(upcoming)} badgeCls="rose"
+              badge={loading ? "…" : String(dashStats?.upcoming_drives ?? upcoming)} badgeCls="rose"
               icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>}>Drives</SbLink>
+
             <SbLink to="/placementdashboard/offers-placed"
               icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>}>Offers &amp; Placed</SbLink>
             <SbLink to="/placementdashboard/internships"
@@ -1115,7 +1117,8 @@ export default function PlacementDrives() {
               <div className="greet-tag">
                 <div className="greet-pip" />
                 <span className="greet-pip-txt">
-                  {loading ? "Loading…" : `${drives.length} Drives · ${upcoming} Upcoming`} · AY {settings.academicYear}
+                  {loading ? "Loading…" : `${dashStats?.total_drives ?? drives.length} Drives · ${dashStats?.upcoming_drives ?? upcoming} Upcoming`} · AY {settings.academicYear}
+
                 </span>
               </div>
               <h1 className="greet-title">Placement <em>Drives</em></h1>
@@ -1132,14 +1135,15 @@ export default function PlacementDrives() {
             {/* STAT CARDS */}
             <div className="stat-grid" style={{ marginBottom:18 }}>
               {[
-                { label:"Total Drives",  val: loading ? "…" : drives.length,  color:"indigo", delta:"AY "+settings.academicYear, type:"neu" },
-                { label:"Upcoming",      val: loading ? "…" : upcoming,        color:"violet",
-                  delta: loading ? "…" : upcoming > 0 && nextUpcoming
+                { label:"Total Drives",  val: loading ? "…" : (dashStats?.total_drives ?? drives.length),  color:"indigo", delta:"AY "+settings.academicYear, type:"neu" },
+                { label:"Upcoming",      val: loading ? "…" : (dashStats?.upcoming_drives ?? upcoming),        color:"violet",
+                  delta: loading ? "…" : (dashStats?.upcoming_drives ?? upcoming) > 0 && nextUpcoming
                     ? `Next: ${fmtDate(nextUpcoming.date)}`
                     : "None scheduled",
                   type:"up" },
-                { label:"Applications",  val: loading ? "…" : totalApps,       color:"teal",   delta:"Across all drives",  type:"up" },
-                { label:"Ongoing",       val: loading ? "…" : ongoing,          color:"rose",   delta:"Active now",         type: ongoing > 0 ? "up" : "neu" },
+                { label:"Applications",  val: loading ? "…" : (dashStats?.total_applications ?? totalApps),       color:"teal",   delta:"Across all drives",  type:"up" },
+                { label:"Ongoing",       val: loading ? "…" : (dashStats?.ongoing_drives ?? ongoing),          color:"rose",   delta:"Active now",         type: (dashStats?.ongoing_drives ?? ongoing) > 0 ? "up" : "neu" },
+
               ].map(s => (
                 <div key={s.label} className={`stat-card sc-${s.color}`}>
                   <div className="stat-val" style={s.color !== "indigo" ? { color:`var(--${s.color})` } : {}}>{s.val}</div>

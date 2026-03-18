@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from Models.User import User
-from Schemas.UserSchema import RegisterRequest, LoginRequest, UserResponse, TokenResponse, ChangePasswordRequest
+from Schemas.UserSchema import RegisterRequest, LoginRequest, UserResponse, TokenResponse, ChangePasswordRequest, UserUpdate
 from Core.Security import hash_pwd, verify_pwd, create_access_token
 
 
@@ -46,6 +46,27 @@ class AuthService:
         return TokenResponse(access_token=token, user=user)
 
     def get_me(self, current_user: User) -> UserResponse:
+        return current_user
+
+    def update_me(self, data: UserUpdate, current_user: User, db: Session) -> UserResponse:
+        """Update currently logged-in user's profile info."""
+        if data.full_name is not None:
+            current_user.full_name = data.full_name
+        if data.phone is not None:
+            current_user.phone = data.phone
+        if data.department is not None:
+            current_user.department = data.department
+        if data.avatar is not None:
+            current_user.avatar = data.avatar
+        if data.settings is not None:
+            # Merge settings if it's a dict
+            if isinstance(current_user.settings, dict) and isinstance(data.settings, dict):
+                current_user.settings = {**current_user.settings, **data.settings}
+            else:
+                current_user.settings = data.settings
+        
+        db.commit()
+        db.refresh(current_user)
         return current_user
 
     def change_password(self,data: ChangePasswordRequest,current_user: User,

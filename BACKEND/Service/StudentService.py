@@ -1385,8 +1385,14 @@ class StudentService:
 
     def update_profile(self, data: ProfileUpdateRequest, student: User, db: Session):
         _require_student(student)
-        if data.full_name:
+        if data.full_name is not None:
             student.full_name = data.full_name
+        if data.phone is not None:
+            student.phone = data.phone
+        if data.bio is not None:
+            student.bio = data.bio
+        if data.avatar is not None:
+            student.avatar = data.avatar
         db.commit()
         return {"message": "Profile updated"}
 

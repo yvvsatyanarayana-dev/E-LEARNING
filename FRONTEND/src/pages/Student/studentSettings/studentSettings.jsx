@@ -1,5 +1,5 @@
 // studentSettings.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import "./studentSettings.css";
 
 const IcoBack    = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>;
@@ -63,6 +63,7 @@ export default function StudentSettings({ onBack }) {
   const [passSuccess, setPassSuccess] = useState(false);
   const [activeSection, setActiveSection] = useState("account");
   const [sessions, setSessions] = useState([]);
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     import("../../../utils/api").then(({ default: api }) => {
@@ -103,6 +104,25 @@ export default function StudentSettings({ onBack }) {
       setTimeout(() => setSaved(false), 2200);
     } catch(err) {
       console.error("Save failed", err);
+    }
+  };
+
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    try {
+      const api = (await import("../../../utils/api")).default;
+      const res = await api.upload("/auth/upload", file);
+      
+      const avatarUrl = res.url;
+      await api.patch("/student/profile", { avatar: avatarUrl });
+      
+      setUser(prev => ({ ...prev, avatar: avatarUrl }));
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } catch (err) {
+      console.error("Photo upload failed", err);
     }
   };
 
@@ -161,11 +181,20 @@ export default function StudentSettings({ onBack }) {
           {activeSection === "account" && (<>
             <Section icon={<IcoUser />} title="Account Information">
               <div className="st-avatar-row">
-                <div className="st-avatar-big">{initials}</div>
+                <div className="st-avatar-big">
+                  {user?.avatar ? <img src={user.avatar} alt="" style={{ width: "100%", height: "100%", borderRadius: "inherit", objectFit: "cover" }} /> : initials}
+                </div>
                 <div className="st-avatar-info">
                   <div className="st-avatar-name">{user?.full_name || "Student"}</div>
                   <div className="st-avatar-meta">Student · {user?.email || ""}</div>
-                  <button className="st-link-btn">Change photo</button>
+                  <button className="st-link-btn" onClick={() => fileInputRef.current?.click()}>Change photo</button>
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    style={{ display: "none" }} 
+                    accept="image/*" 
+                    onChange={handlePhotoChange} 
+                  />
                 </div>
               </div>
               <Row label="Full Name" sub="Your display name across the platform">

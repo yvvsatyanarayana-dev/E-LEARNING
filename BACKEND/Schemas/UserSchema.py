@@ -27,6 +27,14 @@ class LoginRequest(BaseModel):
     password: str
 
 
+class UserUpdate(BaseModel):
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+    department: Optional[str] = None
+    avatar: Optional[str] = None
+    settings: Optional[dict] = None
+
+
 # ---------- Response Schemas ----------
 
 class UserResponse(BaseModel):
@@ -37,6 +45,7 @@ class UserResponse(BaseModel):
     is_active: bool
     department: Optional[str] = None
     target_group: Optional[str] = "All"
+    avatar: Optional[str] = None
     created_at: datetime
 
     class Config:

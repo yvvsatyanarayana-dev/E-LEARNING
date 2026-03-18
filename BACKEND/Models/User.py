@@ -23,7 +23,7 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     phone = Column(String(20), nullable=True)
     bio = Column(String(500), nullable=True)
-    avatar = Column(String(10), nullable=True)
+    avatar = Column(String(255), nullable=True)
     department = Column(String(100), nullable=True)
     roll_number = Column(String(20), nullable=True)
     target_group = Column(String(50), nullable=True, default="All")

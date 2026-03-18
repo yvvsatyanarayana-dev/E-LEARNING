@@ -385,6 +385,7 @@ class FacultySettingsAccount(BaseModel):
     displayName: str
     email: str
     phone: Optional[str] = None
+    avatar: Optional[str] = None
     department: str = "cse"
     language: str = "en"
     timezone: str = "asia_kolkata"
@@ -449,6 +450,50 @@ class FacultyReportResponse(BaseModel):
     stats: List[FacultyReportStats]
     courses: List[FacultyReportCourseMetric]
     week_scores: List[Dict[str, Any]]
+class FacultyCourseMeta(BaseModel):
+    code: str
+    name: str
+    color: str
+    bg: str
+    border: str
+
 class FacultyMetadataResponse(BaseModel):
     departments: List[str]
     groups: List[str]
+    courses_meta: Dict[str, FacultyCourseMeta]
+    status_meta: Dict[str, Dict[str, str]]
+    ai_replies: List[str]
+    ai_suggestions: List[str]
+
+# ─── Question Bank ───
+class FacultyQuestionBankItem(BaseModel):
+    id: int
+    course: str
+    unit: str
+    type: str
+    diff: str
+    marks: int
+    q: str
+    options: Optional[List[str]] = None
+    ans: Any
+    used: int
+
+class FacultyQuestionBankCreate(BaseModel):
+    course: str
+    unit: str
+    type: str
+    diff: str
+    marks: int
+    q: str
+    options: Optional[List[str]] = None
+    ans: Any
+
+class FacultyQuestionBankUpdate(BaseModel):
+    course: Optional[str] = None
+    unit: Optional[str] = None
+    type: Optional[str] = None
+    diff: Optional[str] = None
+    marks: Optional[int] = None
+    q: Optional[str] = None
+    options: Optional[List[str]] = None
+    ans: Optional[Any] = None

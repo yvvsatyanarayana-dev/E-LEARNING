@@ -9,6 +9,7 @@ class ProfileUpdateRequest(BaseModel):
     full_name: Optional[str] = None
     phone: Optional[str] = None
     bio: Optional[str] = None
+    avatar: Optional[str] = None
 
 
 class ProfileResponse(BaseModel):

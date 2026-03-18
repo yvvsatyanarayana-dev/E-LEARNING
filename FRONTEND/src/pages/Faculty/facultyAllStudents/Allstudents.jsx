@@ -14,15 +14,9 @@ const IcoMail   = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="cur
 const IcoChevR  = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>;
 const IcoAlert  = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
 
-const COURSES_META = {
-  cs501: { code:"CS501", name:"Operating Systems",           color:"var(--indigo-l)",  rgb:"91,78,248",   bg:"rgba(91,78,248,.1)",   border:"rgba(91,78,248,.22)"  },
-  cs502: { code:"CS502", name:"Database Management Systems", color:"var(--teal)",      rgb:"39,201,176",  bg:"rgba(39,201,176,.1)",  border:"rgba(39,201,176,.22)" },
-  cs503: { code:"CS503", name:"Computer Architecture",       color:"var(--violet)",    rgb:"159,122,234", bg:"rgba(159,122,234,.1)", border:"rgba(159,122,234,.22)"},
-};
-
 // STUDENTS data is now fetched from the API
 
-const STATUS_META = {
+const DEFAULT_STATUS_META = {
   good:    { label:"Good",    color:"var(--teal)",  bg:"rgba(39,201,176,.1)",  border:"rgba(39,201,176,.22)" },
   average: { label:"Average", color:"var(--amber)", bg:"rgba(244,165,53,.1)",  border:"rgba(244,165,53,.2)"  },
   "at-risk":{ label:"At Risk",color:"var(--rose)",  bg:"rgba(242,68,92,.1)",   border:"rgba(242,68,92,.2)"   },
@@ -36,9 +30,9 @@ function ProgressBar({ pct, color = "var(--indigo-l)", height = 4 }) {
   );
 }
 
-function StudentCard({ s }) {
-  const c = COURSES_META[s.course.toLowerCase()] || COURSES_META["cs501"];
-  const sm = STATUS_META[s.status];
+function StudentCard({ s, coursesMeta, statusMeta }) {
+  const c = coursesMeta[s.course.toLowerCase()] || { color:"var(--teal)", rgb:"39,201,176", bg:"rgba(39,201,176,.1)", border:"rgba(39,201,176,.22)", code: s.course.toUpperCase() };
+  const sm = statusMeta[s.status] || DEFAULT_STATUS_META[s.status] || DEFAULT_STATUS_META.good;
   const initials = s.name.split(" ").map(n=>n[0]).join("").slice(0,2);
   return (
     <div className="stu-card">
@@ -80,6 +74,8 @@ function StudentCard({ s }) {
 
 export default function AllStudents({ onBack }) {
   const [students, setStudents] = useState([]);
+  const [coursesMeta, setCoursesMeta] = useState({});
+  const [statusMeta, setStatusMeta] = useState({});
   const [loading, setLoading]   = useState(true);
   const [search, setSearch]     = useState("");
   const [course, setCourse]     = useState("all");
@@ -88,17 +84,22 @@ export default function AllStudents({ onBack }) {
   const [view,   setView]       = useState("grid");
 
   useEffect(() => {
-    const fetchStudents = async () => {
+    const fetchData = async () => {
       try {
-        const response = await api.get("/faculty/students");
-        setStudents(response);
+        const [stuRes, metaRes] = await Promise.all([
+          api.get("/faculty/students"),
+          api.get("/faculty/metadata")
+        ]);
+        setStudents(stuRes);
+        setCoursesMeta(metaRes.data.courses_meta || {});
+        setStatusMeta(metaRes.data.status_meta || {});
       } catch (err) {
-        console.error("Failed to fetch students:", err);
+        console.error("Failed to fetch student data:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchStudents();
+    fetchData();
   }, []);
 
   const safeStudents = Array.isArray(students) ? students : [];
@@ -124,6 +125,8 @@ export default function AllStudents({ onBack }) {
 
   return (
     <div className="stu-root">
+      {loading && <div style={{textAlign: "center", padding: "40px", color: "var(--text3)"}}>Loading Students...</div>}
+      {!loading && <>
       <div className="stu-page-hd">
         <div>
           <button className="stu-back-btn" onClick={onBack}><IcoChevL style={{width:13,height:13}}/> Dashboard</button>
@@ -180,7 +183,7 @@ export default function AllStudents({ onBack }) {
         <div className="stu-toolbar-right">
           <select className="stu-select" value={course} onChange={e=>setCourse(e.target.value)}>
             <option value="all">All Courses</option>
-            {Object.entries(COURSES_META).map(([k,c])=><option key={k} value={k}>{c.code}</option>)}
+            {Object.entries(coursesMeta).map(([k,c])=><option key={k} value={k}>{c.code}</option>)}
           </select>
           <select className="stu-select" value={status} onChange={e=>setStatus(e.target.value)}>
             <option value="all">All Status</option>
@@ -206,7 +209,7 @@ export default function AllStudents({ onBack }) {
       {/* Grid View */}
       {view === "grid" && (
         <div className="stu-grid">
-          {filtered.map(s => <StudentCard key={s.roll} s={s}/>)}
+          {filtered.map(s => <StudentCard key={s.roll} s={s} coursesMeta={coursesMeta} statusMeta={statusMeta}/>)}
         </div>
       )}
 
@@ -217,8 +220,8 @@ export default function AllStudents({ onBack }) {
             <span>#</span><span>Student</span><span>Course</span><span>Batch</span><span>CGPA</span><span>Attendance</span><span>Score</span><span>Status</span>
           </div>
           {filtered.map((s,i) => {
-            const c  = COURSES_META[s.course.toLowerCase()] || COURSES_META["cs501"];
-            const sm = STATUS_META[s.status];
+            const c  = coursesMeta[s.course.toLowerCase()] || { color:"var(--teal)", rgb:"39,201,176", bg:"rgba(39,201,176,.1)", border:"rgba(39,201,176,.22)", code: s.course.toUpperCase() };
+            const sm = statusMeta[s.status] || DEFAULT_STATUS_META[s.status] || DEFAULT_STATUS_META.good;
             const initials = s.name.split(" ").map(n=>n[0]).join("").slice(0,2);
             return (
               <div key={s.roll} className="stu-row">
@@ -248,6 +251,7 @@ export default function AllStudents({ onBack }) {
           <div style={{fontSize:14,fontWeight:700}}>No students found</div>
         </div>
       )}
+      </>}
     </div>
   );
 }

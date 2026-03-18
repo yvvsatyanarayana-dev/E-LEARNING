@@ -289,7 +289,7 @@ function AnimatedProgressBar({pct,color,height=3,delay=500}){
 }
 
 // ─── SIDEBAR ─────────────────────────────────────────────────────
-function Sidebar({activePage, onNavigate, mobileOpen, onMobileClose, onNavigateSettings, onNavigateProfile, userName, priScore, hasActivePlacementMeeting}){
+function Sidebar({activePage, onNavigate, mobileOpen, onMobileClose, onNavigateSettings, onNavigateProfile, userName, userAvatar, priScore, hasActivePlacementMeeting}){
   const logoutNavigate=useNavigate();
   const [priW,setPriW]=useState(0);
   useEffect(()=>{const t=setTimeout(()=>setPriW(Math.round(priScore||0)),600);return()=>clearTimeout(t);},[priScore]);
@@ -316,7 +316,9 @@ function Sidebar({activePage, onNavigate, mobileOpen, onMobileClose, onNavigateS
         </div>
         {/* Clickable user card → Profile */}
         <div className="sb-user" style={{cursor:"pointer"}} onClick={()=>{onNavigateProfile();onMobileClose();}}>
-          <div className="sb-avatar">{initials}</div>
+          <div className="sb-avatar">
+            {userAvatar ? <img src={userAvatar} alt="" style={{ width: "100%", height: "100%", borderRadius: "inherit", objectFit: "cover" }} /> : initials}
+          </div>
           <div>
             <div className="sb-uname">{userName || "Loading…"}</div>
             <div className="sb-urole">Student</div>
@@ -358,7 +360,7 @@ function Sidebar({activePage, onNavigate, mobileOpen, onMobileClose, onNavigateS
 
 
 // ─── TOPBAR ──────────────────────────────────────────────────────
-function Topbar({activePage,onHamburger,onNavigateProfile,onNavigateResume,notifCount,onToggleNotif,notifOpen}){
+function Topbar({activePage,onHamburger,onNavigateProfile,onNavigateResume,notifCount,onToggleNotif,notifOpen,userAvatar}){
   const date=new Date().toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"});
   const PAGE_LABELS={
     [ROUTES.ANALYTICS]:"Analytics",[ROUTES.MY_COURSES]:"My Courses",
@@ -396,8 +398,8 @@ function Topbar({activePage,onHamburger,onNavigateProfile,onNavigateResume,notif
           <NotificationPanel open={notifOpen} onClose={onToggleNotif}/>
         </div>
         {/* Profile icon */}
-        <div className="tb-icon-btn" onClick={onNavigateProfile} style={{cursor:"pointer"}} title="My Profile">
-          <IcoUser/>
+        <div className="tb-icon-btn" onClick={onNavigateProfile} style={{cursor:"pointer", overflow:"hidden"}} title="My Profile">
+          {userAvatar ? <img src={userAvatar} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} /> : <IcoUser/>}
         </div>
         {/* Resume button */}
         <Btn className="btn-solid" style={{padding:"7px 16px",fontSize:11,gap:5}} onClick={onNavigateResume}>
@@ -732,6 +734,7 @@ export default function StudentDashboard() {
   const [loading,     setLoading]     = useState(true);
   const [error,       setError]       = useState(null);
   const [userName,    setUserName]    = useState("");
+  const [userAvatar,  setUserAvatar]  = useState("");
   const [stats,       setStats]       = useState({ active_courses:0, completed_lessons:0, pending_assignments:0, upcoming_quizzes:0, pri_score:0 });
   const [courses,     setCourses]     = useState([]);
   const [schedule,    setSchedule]    = useState([]);
@@ -762,7 +765,10 @@ export default function StudentDashboard() {
           api.get("/auth/me"),
           api.get("/student/dashboard"),
         ]);
-        if (meData.status === "fulfilled") setUserName(meData.value.full_name || meData.value.email || "");
+        if (meData.status === "fulfilled") {
+          setUserName(meData.value.full_name || meData.value.email || "");
+          setUserAvatar(meData.value.avatar || "");
+        }
         if (dashData.status === "fulfilled") {
           const d = dashData.value;
           if (d.stats) setStats(d.stats);
@@ -844,8 +850,9 @@ export default function StudentDashboard() {
           mobileOpen={mobileOpen}
           onMobileClose={()=>setMobileOpen(false)}
           onNavigateSettings={()=>navigate(ROUTES.SETTINGS)}
-          onNavigateProfile={()=>navigate(ROUTES.PROFILE)}
+          onNavigateProfile={() => navigateRouter("/studentdashboard/studentProfile")}
           userName={userName}
+          userAvatar={userAvatar}
           priScore={stats.pri_score||0}
           hasActivePlacementMeeting={!!activePlacementMeeting}
         />
@@ -855,11 +862,11 @@ export default function StudentDashboard() {
             onHamburger={()=>setMobileOpen(o=>!o)}
             onNavigateProfile={()=>navigate(ROUTES.PROFILE)}
             onNavigateResume={()=>navigate(ROUTES.RESUME)}
-            notifCount={3}
+            notifCount={0}
+            onToggleNotif={()=>setNotifOpen(!notifOpen)}
             notifOpen={notifOpen}
-            onToggleNotif={()=>setNotifOpen(o=>!o)}
+            userAvatar={userAvatar}
           />
-
           {error && (
             <div style={{padding:"10px 20px",background:"rgba(242,68,92,.1)",color:"var(--rose)",fontSize:12,textAlign:"center"}}>
               {error}

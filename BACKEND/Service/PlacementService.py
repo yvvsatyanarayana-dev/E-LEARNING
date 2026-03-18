@@ -94,7 +94,8 @@ def get_dashboard_stats(db: Session) -> dict:
         .scalar() or 0
     )
 
-    placement_rate = round(float(placed_count) / total_students * 100, 1) if total_students else 0.0
+    placement_rate = round(float(placed_count) / float(total_students or 1) * 100.0, 1) if total_students else 0.0
+
 
     avg_pri = (
         db.query(func.avg(PlacementReadiness.pri_score)).scalar() or 0.0
@@ -139,23 +140,81 @@ def get_dashboard_stats(db: Session) -> dict:
     drive_ready     = len([s for s in scores if s >= 70])
     applied_count   = db.query(func.count(InternshipApplication.id)).scalar() or 0
     offers_count    = placed_count
+    total_drives    = db.query(func.count(Internship.id)).scalar() or 0
+    upcoming_drives = db.query(func.count(Internship.id)).filter(Internship.status == "Upcoming").scalar() or 0
+    total_companies = db.query(func.count(distinct(Internship.company_name))).scalar() or 0
+
+
 
     funnel = [
         {"label": "Total Eligible",         "count": total_students, "pct": 100.0},
-        {"label": "PRI ≥ 70 (Drive Ready)", "count": drive_ready,    "pct": round(float(drive_ready) / total_students * 100.0, 1) if total_students else 0.0},
-        {"label": "Applied to Companies",   "count": applied_count,  "pct": round(float(applied_count) / total_students * 100.0, 1) if total_students else 0.0},
-        {"label": "Offer Received",         "count": offers_count,   "pct": round(float(offers_count) / total_students * 100.0, 1) if total_students else 0.0},
+        {"label": "PRI ≥ 70 (Drive Ready)", "count": drive_ready,    "pct": round(float(drive_ready) / float(total_students or 1) * 100.0, 1) if total_students else 0.0},
+        {"label": "Applied to Companies",   "count": applied_count,  "pct": round(float(applied_count) / float(total_students or 1) * 100.0, 1) if total_students else 0.0},
+        {"label": "Offer Received",         "count": offers_count,   "pct": round(float(offers_count) / float(total_students or 1) * 100.0, 1) if total_students else 0.0},
+
     ]
+
+    # Package Statistics
+    pkg_stats = (
+        db.query(
+            func.avg(Internship.pkg_lpa).label("avg_pkg"),
+            func.max(Internship.pkg_lpa).label("max_pkg"),
+            func.count(InternshipApplication.id).label("total_offers")
+        )
+        .join(Internship, Internship.id == InternshipApplication.internship_id)
+        .filter(InternshipApplication.status == ApplicationStatus.selected)
+        .first()
+    )
+    # Package Distribution
+    buckets = [
+        {"range": "Above 25 LPA", "min": 25.0, "max": 1000.0, "color": "var(--teal)"},
+        {"range": "15 – 25 LPA", "min": 15.0, "max": 25.0, "color": "var(--indigo-ll)"},
+        {"range": "10 – 15 LPA", "min": 10.0, "max": 15.0, "color": "var(--violet)"},
+        {"range": "7 – 10 LPA", "min": 7.0, "max": 10.0, "color": "var(--amber)"},
+        {"range": "Below 7 LPA", "min": 0.0, "max": 7.0, "color": "var(--rose)"},
+    ]
+    pkg_distribution = []
+    total_placed_safe = placed_count or 1
+    for b in buckets:
+        p_count = (
+            db.query(func.count(InternshipApplication.id))
+            .join(Internship, Internship.id == InternshipApplication.internship_id)
+            .filter(
+                InternshipApplication.status == ApplicationStatus.selected,
+                Internship.pkg_lpa >= b["min"],
+                Internship.pkg_lpa < b["max"]
+            ).scalar()
+        ) or 0
+        pkg_distribution.append({
+            "range": b["range"],
+            "count": p_count,
+            "pct":   round(float(p_count) / float(total_placed_safe) * 100.0, 1),
+
+            "color": b["color"]
+        })
+
 
     return {
         "total_students":  total_students,
         "placed_students": placed_count,
         "placement_rate":  placement_rate,
-        "avg_pri":         round(float(avg_pri), 1),
+        "avg_pri":         round(float(avg_pri or 0.0), 1),
+        "avg_package":     round(float(pkg_stats.avg_pkg or 0.0), 1),
+        "highest_package": round(float(pkg_stats.max_pkg or 0.0), 1),
+
+        "total_offers":    pkg_stats.total_offers or 0,
+        "total_drives":    total_drives,
+        "upcoming_drives": upcoming_drives,
+        "total_companies": total_companies,
+
         "pri_distribution": dist,
+
         "branch_stats":    branch_stats,
         "funnel":          funnel,
+        "package_distribution": pkg_distribution
     }
+
+
 
 
 def get_dashboard_trends(db: Session):
@@ -219,7 +278,7 @@ def get_student_placement_list(db: Session, branch: Optional[str] = None,
     for user, pr in rows:
         # Latest placed application (if any)
         placed_app = (
-            db.query(InternshipApplication)
+            db.query(InternshipApplication, Internship.pkg_lpa)
             .join(Internship, Internship.id == InternshipApplication.internship_id)
             .filter(
                 InternshipApplication.student_id == user.id,
@@ -228,6 +287,7 @@ def get_student_placement_list(db: Session, branch: Optional[str] = None,
             .order_by(InternshipApplication.applied_at.desc())
             .first()
         )
+
 
         in_process_app = (
             db.query(InternshipApplication)
@@ -238,13 +298,15 @@ def get_student_placement_list(db: Session, branch: Optional[str] = None,
             .first()
         )
 
+        pkg = "—"
         if placed_app:
             placement_status = "Placed"
             company = (
                 db.query(Internship.company_name)
-                .filter(Internship.id == placed_app.internship_id)
+                .filter(Internship.id == placed_app[0].internship_id)
                 .scalar() or "—"
             )
+            pkg = f"₹{placed_app[1]}L" if placed_app[1] else "—"
         elif in_process_app:
             placement_status = "In Process"
             company = (
@@ -255,6 +317,7 @@ def get_student_placement_list(db: Session, branch: Optional[str] = None,
         else:
             placement_status = "Not Ready" if (pr and pr.pri_score < 55) else "Applied"
             company = "—"
+
 
         # Filter by status after resolving it
         if status and status != "All" and placement_status != status:
@@ -280,7 +343,8 @@ def get_student_placement_list(db: Session, branch: Optional[str] = None,
             "skills":   list(skills)[:3],
             "interviews": interviews,
             "company":  company,
-            "pkg":      "—",          # extend when offer table exists
+            "pkg":      pkg,
+
             "status":   placement_status,
         })
 

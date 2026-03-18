@@ -15,7 +15,8 @@ from Schemas.FacultySchema import (
     FacultyLectureDetail, FacultyProfileResponse, FacultyAttendanceCourse,
     FacultySettingsResponse, FacultySettingsUpdate,
     FacultyLessonCreate, FacultyAssignmentCreate, FacultyQuizCreate, FacultyCourseCreate,
-    FacultyReportResponse, FacultyAssignmentUpdate, FacultyQuizUpdate, FacultyMetadataResponse
+    FacultyReportResponse, FacultyAssignmentUpdate, FacultyQuizUpdate, FacultyMetadataResponse,
+    FacultyQuestionBankItem, FacultyQuestionBankCreate, FacultyQuestionBankUpdate
 )
 
 router = APIRouter(prefix="/faculty", tags=["Faculty"])
@@ -146,6 +147,25 @@ def upload_file(file: UploadFile = File(...), current_user: User = Depends(get_c
         return {"url": f"http://127.0.0.1:8000/uploads/{filename}", "filename": file.filename}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
+
+# ── QUESTION BANK ROUTES ──────────────────────────────────────────────
+
+@router.get("/questions", response_model=List[FacultyQuestionBankItem])
+def get_faculty_questions(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return faculty_service.get_question_bank(current_user, db)
+
+@router.post("/questions", response_model=FacultyQuestionBankItem)
+def create_faculty_question(data: FacultyQuestionBankCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return faculty_service.create_question(current_user, db, data.model_dump())
+
+@router.put("/questions/{question_id}", response_model=FacultyQuestionBankItem)
+def update_faculty_question(question_id: int, data: FacultyQuestionBankUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return faculty_service.update_question(current_user, db, question_id, data.model_dump(exclude_unset=True))
+
+@router.delete("/questions/{question_id}")
+def delete_faculty_question(question_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return faculty_service.delete_question(current_user, db, question_id)
+
 
 # ── MEETING ROUTES ────────────────────────────────────────────────────
 

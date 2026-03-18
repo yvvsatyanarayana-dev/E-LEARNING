@@ -53,6 +53,10 @@ const api = {
         return this.request(endpoint, { ...options, method: "PATCH", body: JSON.stringify(data) });
     },
 
+    put(endpoint, data, options = {}) {
+        return this.request(endpoint, { ...options, method: "PUT", body: JSON.stringify(data) });
+    },
+
     delete(endpoint, options = {}) {
         return this.request(endpoint, { ...options, method: "DELETE" });
     },

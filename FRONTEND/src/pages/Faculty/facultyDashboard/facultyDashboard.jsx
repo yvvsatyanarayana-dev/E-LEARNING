@@ -249,7 +249,7 @@ function AnimatedProgressBar({ pct, color, height = 3, delay = 500 }) {
 }
 
 // ─── SIDEBAR ─────────────────────────────────────────────────────
-function Sidebar({ open, onClose, activePage, onNavigate, userName, stats, tasks }) {
+function Sidebar({ open, onClose, activePage, onNavigate, userName, userAvatar, stats, tasks }) {
   const logoutNavigate = useNavigate();
   const handleLogout = () => { localStorage.removeItem("token"); localStorage.removeItem("user"); logoutNavigate("/login", { replace: true }); };
 
@@ -267,7 +267,13 @@ function Sidebar({ open, onClose, activePage, onNavigate, userName, stats, tasks
           <button className="sb-mobile-close" onClick={onClose} aria-label="Close menu"><IcoClose /></button>
         </div>
         <div className="sb-user">
-          <div className="sb-avatar">{userName ? userName.split(" ").map(x => x[0]).join("") : "FP"}</div>
+          <div className="sb-avatar">
+            {userAvatar ? (
+              <img src={userAvatar} alt="" style={{ width: "100%", height: "100%", borderRadius: "inherit", objectFit: "cover" }} />
+            ) : (
+              userName ? userName.split(" ").map(x => x[0]).join("") : "FP"
+            )}
+          </div>
           <div>
             <div className="sb-uname">{userName || "Faculty Member"}</div>
             <div className="sb-urole">Faculty · {stats.active_courses} Courses</div>
@@ -323,7 +329,7 @@ function Sidebar({ open, onClose, activePage, onNavigate, userName, stats, tasks
 }
 
 // ─── TOPBAR ──────────────────────────────────────────────────────
-function Topbar({ onHamburger, onQuickActions, onNotifications, onProfile, notifAnchorRef, notifOpen, onNotifClose, notifications }) {
+function Topbar({ onHamburger, onQuickActions, onNotifications, onProfile, notifAnchorRef, notifOpen, onNotifClose, notifications, userAvatar }) {
   const date = new Date().toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" });
   return (
     <div className="topbar">
@@ -337,7 +343,13 @@ function Topbar({ onHamburger, onQuickActions, onNotifications, onProfile, notif
       <div className="tb-right">
         <span className="tb-date">{date}</span>
         <div className="tb-icon-btn" onClick={onNotifications} ref={notifAnchorRef}><IcoBell /><div className="notif-dot" /></div>
-        <div className="tb-icon-btn" onClick={onProfile}><IcoUser /></div>
+        <div className="tb-icon-btn" onClick={onProfile}>
+          {userAvatar ? (
+            <img src={userAvatar} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+          ) : (
+            <IcoUser />
+          )}
+        </div>
         <Btn className="btn-solid" style={{ padding: "7px 16px", fontSize: 11, gap: 5 }} onClick={onQuickActions}><IcoFlash /> Quick Actions</Btn>
 
         <FacultyNotification 
@@ -439,6 +451,7 @@ export default function FacultyDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [userName, setUserName] = useState("");
+  const [userAvatar, setUserAvatar] = useState("");
   const [stats, setStats] = useState({ total_students: 0, active_courses: 0, avg_attendance: 0, avg_class_score: 0 });
   const [courses, setCourses] = useState([]);
   const [tasks, setTasks] = useState([]);
@@ -459,7 +472,10 @@ export default function FacultyDashboard() {
           api.get("/auth/me"),
           api.get("/faculty/dashboard"),
         ]);
-        if (meData.status === "fulfilled") setUserName(meData.value.full_name || meData.value.email || "");
+        if (meData.status === "fulfilled") {
+          setUserName(meData.value.full_name || meData.value.email || "");
+          setUserAvatar(meData.value.avatar || "");
+        }
         if (dashData.status === "fulfilled") {
           const d = dashData.value;
           if (d.stats) setStats(d.stats);
@@ -551,6 +567,7 @@ export default function FacultyDashboard() {
           activePage={activePage}
           onNavigate={navigate}
           userName={userName}
+          userAvatar={userAvatar}
           stats={stats}
           tasks={tasks}
         />
@@ -564,6 +581,7 @@ export default function FacultyDashboard() {
             notifOpen={notifOpen}
             onNotifClose={() => setNotifOpen(false)}
             notifications={notifications}
+            userAvatar={userAvatar}
           />
 
           {!isDashboard && renderContent()}

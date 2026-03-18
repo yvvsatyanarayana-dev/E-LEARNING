@@ -32,6 +32,7 @@ const DEFAULT_PROFILE = {
   bio:        "",
   linkedin:   "",
   twitter:    "",
+  avatar:     "",
 };
 
 const DEFAULT_SETTINGS = {
@@ -53,12 +54,7 @@ const SEMESTERS      = ["Semester 1","Semester 2","Semester 3","Semester 4",
 const EXPORT_FORMATS = ["PDF","CSV","Excel","JSON"];
 const CGPA_OPTS      = ["5.0","5.5","6.0","6.5","7.0","7.5","8.0","8.5"];
 
-const ACHIEVEMENTS = [
-  { icon:"🏆", label:"Best Placement Officer", sub:"AY 2023-24 Award",  color:"var(--amber)"    },
-  { icon:"🎯", label:"Placement Rate Record",  sub:"Current AY record", color:"var(--teal)"     },
-  { icon:"🤝", label:"Company Partners",       sub:"Active this year",  color:"var(--indigo-ll)"},
-  { icon:"⭐", label:"Student Rating",         sub:"Student feedback",  color:"var(--violet)"   },
-];
+
 
 /* ═══════════════════════════════════════════════
    INLINE SVG ICONS
@@ -332,6 +328,39 @@ export default function PlacementProfile() {
   const [profileDraft,  setProfileDraft]  = useState({ ...DEFAULT_PROFILE });
   const [settingsDraft, setSettingsDraft] = useState({ ...DEFAULT_SETTINGS });
   const [fieldErrors,   setFieldErrors]   = useState({});
+  const [uploading,     setUploading]     = useState(false);
+
+  /* ── Refs ── */
+  const fileInputRef = useRef(null);
+
+  /* ── Toast helpers ── */
+  const pushToast = useCallback((icon, title, sub, type = "success") => {
+    setToasts(prev => [...prev, { id: Date.now() + Math.random(), icon, title, sub, type }]);
+  }, []);
+  const dismissToast = useCallback(id => setToasts(prev => prev.filter(t => t.id !== id)), []);
+
+  /* ── Handlers ── */
+  const handleAvatarUpload = useCallback(async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+
+    try {
+      const uploadRes = await api.upload("/auth/upload", file);
+      const photoUrl = uploadRes.url;
+      await api.patch("/auth/me", { avatar: photoUrl });
+      setProfile(prev => ({ ...prev, avatar: photoUrl }));
+      setProfileDraft(prev => ({ ...prev, avatar: photoUrl }));
+      pushToast("📸", "Photo Updated", "Profile picture changed successfully.");
+    } catch (err) {
+      console.error("Photo upload failed", err);
+      pushToast("❌", "Upload Failed", "Could not upload photo. Please try again.", "error");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }, [pushToast]);
 
   /* ── UI state ── */
   const [editing,      setEditing]      = useState(false);
@@ -339,6 +368,7 @@ export default function PlacementProfile() {
   const [showPwdModal, setShowPwdModal] = useState(false);
   const [toasts,       setToasts]       = useState([]);
   const [savingInfo,   setSavingInfo]   = useState(false);
+
   const [savingSet,    setSavingSet]    = useState(false);
   const [searchVal,    setSearchVal]    = useState("");
 
@@ -346,6 +376,7 @@ export default function PlacementProfile() {
   const curRef  = useRef(null);
   const ringRef = useRef(null);
   const mx = useRef(0), my = useRef(0), rx = useRef(0), ry = useRef(0);
+
 
   useEffect(() => {
     const onMove = e => {
@@ -408,6 +439,7 @@ export default function PlacementProfile() {
             bio:        me.settings?.bio || "",
             linkedin:   me.settings?.linkedin || "",
             twitter:    me.settings?.twitter || "",
+            avatar:     me.avatar || "",
           };
           setProfile(mapped);
           setProfileDraft(mapped);
@@ -441,11 +473,7 @@ export default function PlacementProfile() {
     fetchAll();
   }, []);
 
-  /* ── Toast helpers ── */
-  const pushToast = useCallback((icon, title, sub, type = "success") => {
-    setToasts(prev => [...prev, { id: Date.now() + Math.random(), icon, title, sub, type }]);
-  }, []);
-  const dismissToast = useCallback(id => setToasts(prev => prev.filter(t => t.id !== id)), []);
+
 
   /* ── Computed ── */
   const initials = `${profile.firstName[0] ?? ""}${profile.lastName[0] ?? ""}`.toUpperCase() || "PO";
@@ -503,6 +531,7 @@ export default function PlacementProfile() {
       setSavingInfo(false);
     }
   };
+
 
   /* ── Settings handlers ── */
   const handleSettingsChange = e => {
@@ -576,7 +605,13 @@ export default function PlacementProfile() {
           </div>
 
           <Link to="/placementdashboard/placementProfile" className="pp-sb-officer" style={{ textDecoration:"none" }}>
-            <div className="sb-avatar pp-sb-av">{initials}</div>
+            <div className="sb-avatar pp-sb-av">
+              {profile.avatar ? (
+                <img src={profile.avatar} alt={fullName} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+              ) : (
+                initials
+              )}
+            </div>
             <div style={{ minWidth:0 }}>
               <div className="sb-uname">{loading ? "Loading…" : fullName}</div>
               <div className="sb-urole">{profile.role}</div>
@@ -590,8 +625,9 @@ export default function PlacementProfile() {
             <SbLink to="/placementdashboard/analytics"    icon={I.bar} badge="New">Analytics</SbLink>
             <div className="sb-sec-label">Placement</div>
             <SbLink to="/placementdashboard/students"     icon={I.user}  badge={statsLoading ? "…" : String(totalStudents)} badgeCls="teal">Students</SbLink>
-            <SbLink to="/placementdashboard/companies"    icon={I.brief} badge="8"  badgeCls="amber">Companies</SbLink>
-            <SbLink to="/placementdashboard/drives"       icon={I.file}  badge="3"  badgeCls="rose">Drives</SbLink>
+            <SbLink to="/placementdashboard/companies"    icon={I.brief} badge={statsLoading ? "…" : String(dashStats?.total_companies ?? 0)}  badgeCls="amber">Companies</SbLink>
+            <SbLink to="/placementdashboard/drives"       icon={I.file}  badge={statsLoading ? "…" : String(dashStats?.total_drives ?? 0)}  badgeCls="rose">Drives</SbLink>
+
             <SbLink to="/placementdashboard/offers"       icon={I.star}>Offers &amp; Placed</SbLink>
             <SbLink to="/placementdashboard/internships"  icon={I.box}>Internships</SbLink>
             <div className="sb-sec-label">Tools</div>
@@ -632,7 +668,13 @@ export default function PlacementProfile() {
                 <span style={{ color:"var(--text3)", flexShrink:0 }}>{I.search}</span>
                 <input type="search" placeholder="Search…" value={searchVal} onChange={e => setSearchVal(e.target.value)} style={{ cursor:"none" }} />
               </div>
-              <div className="pp-tb-avatar">{initials}</div>
+              <div className="pp-tb-avatar">
+                {profile.avatar ? (
+                  <img src={profile.avatar} alt={fullName} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+                ) : (
+                  initials
+                )}
+              </div>
             </div>
           </header>
 
@@ -641,8 +683,28 @@ export default function PlacementProfile() {
             {/* ─── HERO ─── */}
             <div className="pp-hero">
               <div className="pp-hero-av-wrap">
-                <div className="pp-hero-av">{loading ? "…" : initials}</div>
-                <button className="pp-hero-av-btn" onClick={() => pushToast("📷","Coming Soon","Avatar upload is in development.","info")}>{I.camera}</button>
+                <div className="pp-hero-av">
+                  {loading ? "…" : profile.avatar ? (
+                    <img src={profile.avatar} alt={fullName} className="pp-hero-av-img" />
+                  ) : (
+                    initials
+                  )}
+                  {uploading && <div className="pp-av-uploading"><span className="pp-spinner" /></div>}
+                </div>
+                <button 
+                  className="pp-hero-av-btn" 
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploading}
+                >
+                  {I.camera}
+                </button>
+                <input 
+                  type="file" 
+                  ref={fileInputRef} 
+                  onChange={handleAvatarUpload} 
+                  accept="image/*" 
+                  style={{ display: "none" }} 
+                />
                 <span className="pp-hero-av-online" />
               </div>
               <div className="pp-hero-info">
@@ -668,7 +730,8 @@ export default function PlacementProfile() {
                   { val: statsLoading ? "…" : `${placementRate}%`, label:"Rate",         color:"var(--teal)"      },
                   { val: statsLoading ? "…" : placedStudents,       label:"Placed",        color:"var(--teal)"      },
                   { val: statsLoading ? "…" : Math.round(avgPri),   label:"Avg PRI",       color:"var(--indigo-ll)" },
-                  { val: recentDrives.length,                        label:"Drives",        color:"var(--amber)"     },
+                  { val: statsLoading ? "…" : (dashStats?.total_drives ?? recentDrives.length), label:"Drives",        color:"var(--amber)"     },
+
                 ].map(s => (
                   <div key={s.label} className="pp-hero-stat">
                     <div className="pp-hero-stat-val" style={{ color:s.color }}>{s.val}</div>
@@ -762,19 +825,7 @@ export default function PlacementProfile() {
                 </Panel>
 
                 <div className="pp-col-stack">
-                  <Panel title="Achievements" icon={I.star} delay={0.1}>
-                    <ul className="pp-achievements">
-                      {ACHIEVEMENTS.map(a => (
-                        <li key={a.label} className="pp-achievement-item">
-                          <span className="pp-achievement-ico">{a.icon}</span>
-                          <div>
-                            <div className="pp-achievement-label" style={{ color:a.color }}>{a.label}</div>
-                            <div className="pp-achievement-sub">{a.sub}</div>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  </Panel>
+
 
                   <Panel title="This Month" icon={I.bar} delay={0.15}>
                     <div className="pp-month-stats">

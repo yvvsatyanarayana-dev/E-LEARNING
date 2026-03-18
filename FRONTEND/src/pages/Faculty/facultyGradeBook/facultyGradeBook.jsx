@@ -11,13 +11,8 @@ const IcoDownload=(p)=><svg {...p} viewBox="0 0 24 24" fill="none" stroke="curre
 const IcoBar    = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>;
 const IcoCheck  = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>;
 
-const COURSES_META = {
-  cs501: { code:"CS501", name:"Operating Systems",           color:"var(--indigo-l)",  rgb:"91,78,248",   bg:"rgba(91,78,248,.1)",   border:"rgba(91,78,248,.22)" },
-  cs502: { code:"CS502", name:"Database Management Systems", color:"var(--teal)",      rgb:"39,201,176",  bg:"rgba(39,201,176,.1)",  border:"rgba(39,201,176,.22)"},
-  cs503: { code:"CS503", name:"Computer Architecture",       color:"var(--violet)",    rgb:"159,122,234", bg:"rgba(159,122,234,.1)", border:"rgba(159,122,234,.22)"},
-};
-
 // GRADE_DATA is now dynamically generated from API
+
 
 const MAX = { a1:20, a2:20, q1:15, q2:15, mid:50, end:100 };
 const COLS = [
@@ -55,59 +50,72 @@ export default function facultyGradeBook({ onBack }) {
   const [overrides, setOverrides]   = useState({});
   const [saved, setSaved]           = useState(false);
   const [dynamicGradeData, setDynamicGradeData] = useState({});
+  const [coursesMeta, setCoursesMeta] = useState({});
   const [loading, setLoading]       = useState(true);
 
-  // Deterministically generate a pseudo-random number based on a string
-  const hashStr = (str) => {
-    let hash = 0;
-    for (let i = 0; i < str.length; i++) hash = ((hash << 5) - hash) + str.charCodeAt(i);
-    return Math.abs(hash);
-  };
-
   useEffect(() => {
-    const fetchStudents = async () => {
+    const fetchData = async () => {
       try {
-        const response = await api.get("/faculty/students");
-        const studentList = response.data;
-        const safeStudentList = Array.isArray(studentList) ? studentList : [];
+        const [metaRes, studentsRes, gradeRes] = await Promise.all([
+          api.get("/faculty/metadata"),
+          api.get("/faculty/students"),
+          api.get("/faculty/gradebook")
+        ]);
+        
+        const fetchedMeta = metaRes.data.courses_meta || {};
+        setCoursesMeta(fetchedMeta);
+
+        const studentList = studentsRes.data || [];
+        const gradeList = gradeRes.data || [];
+        
         const newGradeData = {};
         
-        safeStudentList.forEach(s => {
+        // Initialize students
+        studentList.forEach(s => {
           const cCode = s.course ? s.course.toLowerCase() : "cs501";
           if (!newGradeData[cCode]) newGradeData[cCode] = [];
-          
-          // Generate realistic mock marks based on their overall score to maintain the UI visual density
-          const basePerf = (s.score || 0) / 100; 
-          const seed = hashStr(s.roll || "DEF");
-          
-          const vary = (max, tgt) => Math.min(max, Math.max(0, Math.round(tgt * max * (0.85 + (seed % 30) / 100))));
           
           newGradeData[cCode].push({
             roll: s.roll || "UNK",
             name: s.name || "Unknown",
-            a1: vary(20, basePerf),
-            a2: vary(20, basePerf),
-            q1: vary(15, basePerf),
-            q2: vary(15, basePerf),
-            mid: vary(50, basePerf),
-            end: null // Keep end term pending to demonstrate grading
+            a1: null, a2: null, q1: null, q2: null, mid: null, end: null
           });
+        });
+
+        // Map actual grades
+        gradeList.forEach(g => {
+          const cCode = g.course_code ? g.course_code.toLowerCase() : "cs501";
+          if (newGradeData[cCode]) {
+            const student = newGradeData[cCode].find(s => s.roll === g.student_roll);
+            if (student) {
+              // Extremely simple heuristic to map flat submissions to the 6 fixed UI columns
+              const title = g.assignment_title.toLowerCase();
+              if (title.includes("mid")) student.mid = g.score;
+              else if (title.includes("end")) student.end = g.score;
+              else if (title.includes("quiz") || title.includes("q1")) student.q1 = g.score;
+              else if (title.includes("q2")) student.q2 = g.score;
+              else if (title.includes("2")) student.a2 = g.score;
+              else student.a1 = g.score;
+            }
+          }
         });
         
         setDynamicGradeData(newGradeData);
         if (Object.keys(newGradeData).length > 0) {
           setCourse(Object.keys(newGradeData)[0]); // Auto-select first available course
+        } else if (Object.keys(fetchedMeta).length > 0) {
+          setCourse(Object.keys(fetchedMeta)[0]);
         }
       } catch (err) {
-        console.error("Failed to fetch students for gradebook:", err);
+        console.error("Failed to fetch gradebook data:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchStudents();
+    fetchData();
   }, []);
 
-  const c = COURSES_META[selectedCourse] || COURSES_META["cs501"];
+  const c = coursesMeta[selectedCourse] || { color:"var(--teal)", bg:"rgba(39,201,176,.1)", border:"rgba(39,201,176,.2)", code: selectedCourse.toUpperCase() };
   const baseData = dynamicGradeData[selectedCourse] || [];
 
   const students = baseData
@@ -141,6 +149,8 @@ export default function facultyGradeBook({ onBack }) {
 
   return (
     <div className="gb-root">
+      {loading && <div style={{textAlign: "center", padding: "40px", color: "var(--text3)"}}>Loading Grade Book...</div>}
+      {!loading && <>
       <div className="gb-page-hd">
         <div>
           <button className="gb-back-btn" onClick={onBack}><IcoChevL style={{width:13,height:13}}/> Dashboard</button>
@@ -177,7 +187,7 @@ export default function facultyGradeBook({ onBack }) {
       {/* Course Tabs */}
       <div className="gb-course-tabs">
         {Object.entries(dynamicGradeData).length > 0 ? Object.keys(dynamicGradeData).map(k => {
-          const cm = COURSES_META[k] || COURSES_META["cs501"];
+          const cm = coursesMeta[k] || { color:"var(--teal)", bg:"rgba(39,201,176,.1)", border:"rgba(39,201,176,.2)", code: k.toUpperCase() };
           return (
           <button key={k}
             className={`gb-ctab ${selectedCourse===k?"gb-ctab--active":""}`}
@@ -186,7 +196,7 @@ export default function facultyGradeBook({ onBack }) {
             <span className="gb-ctab-dot" style={{background:cm.color}}/>
             {cm.code || k.toUpperCase()}
           </button>
-        )}) : <span style={{fontSize:12, color:"var(--text3)"}}>{loading ? "Loading courses..." : "No courses found."}</span>}
+        )}) : <span style={{fontSize:12, color:"var(--text3)"}}>No courses found.</span>}
       </div>
 
       {/* Toolbar */}
@@ -274,6 +284,7 @@ export default function facultyGradeBook({ onBack }) {
           );
         })}
       </div>
+      </>}
     </div>
   );
 }

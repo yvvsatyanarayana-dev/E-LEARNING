@@ -66,6 +66,28 @@ class Question(Base):
         return f"<Question quiz={self.quiz_id}>"
 
 
+class QuestionBank(Base):
+    __tablename__ = "question_bank"
+
+    id             = Column(Integer, primary_key=True, index=True)
+    faculty_id     = Column(Integer, ForeignKey("users.id"), nullable=False)
+    course_id      = Column(Integer, ForeignKey("courses.id"), nullable=False)
+    unit           = Column(String(100), nullable=True)
+    type           = Column(String(50), default="MCQ")
+    difficulty     = Column(String(50), default="Medium")
+    marks          = Column(Integer, default=1)
+    question_text  = Column(Text, nullable=False)
+    options        = Column(JSON, nullable=True)
+    correct_answer = Column(Text, nullable=True)
+    used           = Column(Integer, default=0)
+
+    course = relationship("Course")
+    faculty = relationship("User")
+
+    def __repr__(self):
+        return f"<QuestionBank id={self.id}>"
+
+
 class QuizAttempt(Base):
     __tablename__ = "quiz_attempts"
 

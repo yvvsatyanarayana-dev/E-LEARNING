@@ -1,5 +1,6 @@
 // aiAssistant.jsx  —  place at: src/pages/Faculty/aiAssistant/aiAssistant.jsx
 import { useState, useRef, useCallback, useEffect } from "react";
+import api from "../../../utils/api";
 import "./facultyAiAssistence.css";
 
 const IcoChevL  = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>;
@@ -9,25 +10,6 @@ const IcoBrain  = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="cur
 const IcoZap    = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>;
 const IcoTrash  = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/></svg>;
 
-const SUGGESTIONS = [
-  { icon:"📊", label:"Quiz Performance",    prompt:"Give me a summary of quiz performance across all courses this week." },
-  { icon:"⚠️", label:"At-Risk Students",    prompt:"Which students are at risk due to low attendance or scores?" },
-  { icon:"📝", label:"Generate Quiz",       prompt:"Generate a 10-question MCQ quiz on Memory Management for OS Unit III." },
-  { icon:"📅", label:"Today's Schedule",    prompt:"What's on my schedule today and what should I prepare?" },
-  { icon:"🎯", label:"Weak Topics",         prompt:"What are the weak topics detected across my classes this semester?" },
-  { icon:"📋", label:"Grade Summary",       prompt:"Summarize the grade distribution for all courses this semester." },
-  { icon:"🔔", label:"Pending Tasks",       prompt:"What are my pending tasks and deadlines this week?" },
-  { icon:"💡", label:"Teaching Tips",       prompt:"Suggest teaching strategies for students struggling with Deadlock concepts in OS." },
-];
-
-const AI_REPLIES = [
-  "Based on this week's quiz data: <br/><br/>📊 <strong style='color:var(--indigo-ll)'>OS (CS501):</strong> Avg 74% · 18 students below 50%<br/>📊 <strong style='color:var(--teal)'>DBMS (CS502):</strong> Avg 68% · 21 students below 50%<br/>📊 <strong style='color:var(--violet)'>CA (CS503):</strong> Avg 79% · 11 students below 50%<br/><br/>🔴 Common weak areas: <strong>Deadlock Detection</strong> (OS), <strong>Transaction Isolation</strong> (DBMS). Want remedial quizzes generated?",
-  "⚠️ Students requiring immediate attention:<br/><br/><strong style='color:var(--rose)'>High Risk:</strong> Dev Iyer (21CS008) — 62% attendance, 48% score<br/><strong style='color:var(--rose)'>High Risk:</strong> Kiran Rao (21CS033) — 58% attendance, 42% score<br/><strong style='color:var(--rose)'>High Risk:</strong> Ajay Shetty (21CS148) — 55% attendance, 38% score<br/><br/>Recommend: Parent notification + remedial sessions. Shall I draft those emails?",
-  "✅ Generated 10 MCQ questions on <strong style='color:var(--teal)'>Memory Management (OS Unit III)</strong>:<br/><br/>Q1. Which page replacement algorithm suffers from Belady's anomaly? <em>(FIFO)</em><br/>Q2. In demand paging, a page fault occurs when...? <em>(page not in memory)</em><br/>Q3–Q10 ready. <br/><br/>Difficulty: 40% Easy · 40% Medium · 20% Hard. Add to Question Bank?",
-  "📅 Today's schedule (Fri, Oct 26):<br/><br/>🟢 9:00–10:00 · <strong>OS Lecture 34</strong> — Room 301. Topic: File Systems<br/>🟡 10:30–11:30 · <strong>OS Quiz Review</strong> — Faculty Office<br/>🔵 13:00–14:30 · <strong>DBMS Lab Batch B</strong> — Lab 2<br/>🟣 15:00–16:00 · <strong>CA Lecture 29</strong> — Room 102<br/>🔴 16:30 · <strong>Department Meeting</strong><br/><br/>Preparation tip: Review Round Robin examples for the OS quiz discussion.",
-  "🎯 Top weak topics detected this semester:<br/><br/><span style='color:var(--rose)'>1. Deadlock Detection</span> — 34 students (OS)<br/><span style='color:var(--amber)'>2. Transaction Isolation Levels</span> — 41 students (DBMS)<br/><span style='color:var(--rose)'>3. Page Replacement Algorithms</span> — 28 students (OS)<br/><span style='color:var(--violet)'>4. Cache Coherence</span> — 19 students (CA)<br/><br/>Want me to auto-generate targeted practice material for each topic?",
-];
-
 let replyIdx = 0;
 
 export default function AiAssistant({ onBack }) {
@@ -36,7 +18,22 @@ export default function AiAssistant({ onBack }) {
   ]);
   const [input, setInput]   = useState("");
   const [typing, setTyping] = useState(false);
+  const [aiReplies, setAiReplies] = useState(["I'm processing that..."]);
+  const [suggestions, setSuggestions] = useState([]);
   const msgRef = useRef();
+
+  useEffect(() => {
+    const fetchMetadata = async () => {
+      try {
+        const res = await api.get("/faculty/metadata");
+        if (res.data?.ai_replies?.length > 0) setAiReplies(res.data.ai_replies);
+        if (res.data?.ai_suggestions?.length > 0) setSuggestions(res.data.ai_suggestions);
+      } catch (err) {
+        console.error("Failed to load AI metadata:", err);
+      }
+    };
+    fetchMetadata();
+  }, []);
 
   useEffect(() => {
     if (msgRef.current) msgRef.current.scrollTop = msgRef.current.scrollHeight;
@@ -49,10 +46,10 @@ export default function AiAssistant({ onBack }) {
     setInput(""); setTyping(true);
     setTimeout(() => {
       setTyping(false);
-      setMessages(m => [...m, { role:"ai", html: AI_REPLIES[replyIdx % AI_REPLIES.length] }]);
+      setMessages(m => [...m, { role:"ai", html: aiReplies[replyIdx % aiReplies.length] }]);
       replyIdx++;
     }, 1100);
-  }, [input]);
+  }, [input, aiReplies]);
 
   const clearChat = () => { setMessages([{ role:"ai", html:"Chat cleared. How can I help you, Dr. Prakash?" }]); replyIdx = 0; };
 
@@ -78,8 +75,8 @@ export default function AiAssistant({ onBack }) {
             <IcoZap style={{width:12,height:12,color:"var(--amber)"}}/> Quick Actions
           </div>
           <div className="ai-suggestions">
-            {SUGGESTIONS.map(s => (
-              <button key={s.label} className="ai-sugg-btn" onClick={()=>send(s.prompt)}>
+            {suggestions.map((s, idx) => (
+              <button key={idx} className="ai-sugg-btn" onClick={()=>send(s.prompt)}>
                 <span className="ai-sugg-icon">{s.icon}</span>
                 <span className="ai-sugg-label">{s.label}</span>
               </button>

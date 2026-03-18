@@ -132,16 +132,6 @@ function deriveBranchStats(students, dashBranchStats = []) {
    Falls back to static seed if no dates available
 ════════════════════════════════════════════ */
 const MONTH_LABELS = ["Aug","Sep","Oct","Nov","Dec","Jan","Feb","Mar"];
-const FALLBACK_MONTHLY = [
-  { month:"Aug", placed:12, applied:40,  interviews:28  },
-  { month:"Sep", placed:18, applied:55,  interviews:38  },
-  { month:"Oct", placed:25, applied:70,  interviews:52  },
-  { month:"Nov", placed:34, applied:88,  interviews:61  },
-  { month:"Dec", placed:42, applied:95,  interviews:74  },
-  { month:"Jan", placed:58, applied:110, interviews:88  },
-  { month:"Feb", placed:71, applied:118, interviews:96  },
-  { month:"Mar", placed:85, applied:125, interviews:104 },
-];
 function deriveMonthlyTrend(students) {
   // Try to build from student placement dates
   const byMonth = new Map(MONTH_LABELS.map(m => [m, { placed:0, applied:0, interviews:0 }]));
@@ -152,7 +142,8 @@ function deriveMonthlyTrend(students) {
     if (s.status === "Placed")      { hasDateData = true; }
     if (s.status === "In Process")  { hasDateData = true; }
   }
-  if (!hasDateData || students.length === 0) return FALLBACK_MONTHLY;
+  if (!hasDateData || students.length === 0) return [];
+
 
   // Build cumulative approximation from total counts
   const total   = students.length;
@@ -175,16 +166,10 @@ function deriveMonthlyTrend(students) {
 /* ════════════════════════════════════════════
    DERIVE PACKAGE DISTRIBUTION from students
 ════════════════════════════════════════════ */
-const FALLBACK_PKG = [
-  { range:"Above 25 LPA", count:14, pct:6.5,  color:"var(--teal)"      },
-  { range:"15 – 25 LPA",  count:38, pct:17.8, color:"var(--indigo-ll)" },
-  { range:"10 – 15 LPA",  count:62, pct:29,   color:"var(--violet)"    },
-  { range:"7 – 10 LPA",   count:58, pct:27.1, color:"var(--amber)"     },
-  { range:"Below 7 LPA",  count:42, pct:19.6, color:"var(--rose)"      },
-];
 function derivePackageDist(students) {
   const placed = students.filter(s => s.status === "Placed" && s.pkg);
-  if (placed.length === 0) return FALLBACK_PKG;
+  if (placed.length === 0) return [];
+
 
   const buckets = [
     { range:"Above 25 LPA", min:25,   max:Infinity, count:0, color:"var(--teal)"      },
@@ -253,10 +238,12 @@ export default function PlacementAnalytics() {
   const [drives,        setDrives]        = useState([]);
 
   // Derived analytics (computed from raw API data)
-  const [monthData,     setMonthData]     = useState(FALLBACK_MONTHLY);
+  const [monthData,     setMonthData]     = useState([]);
+
   const [topCompanies,  setTopCompanies]  = useState([]);
   const [branchStats,   setBranchStats]   = useState([]);
-  const [pkgDist,       setPkgDist]       = useState(FALLBACK_PKG);
+  const [pkgDist,       setPkgDist]       = useState([]);
+
 
   // ── Cursor ────────────────────────────────────────────────────────
   const curRef  = useRef(null);
@@ -355,8 +342,9 @@ export default function PlacementAnalytics() {
         const branches = deriveBranchStats(studentList, stats?.branch_stats ?? []);
         setBranchStats(branches);
 
-        // Package distribution (from placed student packages)
-        setPkgDist(derivePackageDist(studentList));
+        // Package distribution (prefer backend, fallback to derivation)
+        setPkgDist(stats?.package_distribution ?? derivePackageDist(studentList));
+
 
       } catch (err) {
         console.error("Analytics fetch error:", err);
@@ -445,8 +433,9 @@ export default function PlacementAnalytics() {
 
             <div className="sb-sec-label">Placement</div>
             <SbLink to="/placementdashboard/students"      badge={loading ? "…" : String(dashStats?.total_students ?? students.length)} badgeCls="teal"  icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>}>Students</SbLink>
-            <SbLink to="/placementdashboard/companies"     badge={loading ? "…" : String(companiesVisited)} badgeCls="amber" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>}>Companies</SbLink>
-            <SbLink to="/placementdashboard/drives"        badge={loading ? "…" : String(upcomingCount)} badgeCls="rose"  icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>}>Drives</SbLink>
+            <SbLink to="/placementdashboard/companies"     badge={loading ? "…" : String(dashStats?.total_companies ?? companiesVisited)} badgeCls="amber" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>}>Companies</SbLink>
+            <SbLink to="/placementdashboard/drives"        badge={loading ? "…" : String(dashStats?.total_drives ?? upcomingCount)} badgeCls="rose"  icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>}>Drives</SbLink>
+
             <SbLink to="/placementdashboard/offers-placed" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>}>Offers &amp; Placed</SbLink>
             <SbLink to="/placementdashboard/internships"   icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>}>Internships</SbLink>
 
@@ -539,11 +528,12 @@ export default function PlacementAnalytics() {
                 },
                 {
                   label:"Companies Visited",
-                  value: loading ? "…" : String(companiesVisited),
+                  value: loading ? "…" : String(dashStats?.total_companies ?? companiesVisited),
                   delta: loading ? "Loading…" : (dashStats?.companies_delta ?? "This academic year"),
                   type:"up", color:"indigo",
                   icon:<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>,
                 },
+
               ].map(s => (
                 <div key={s.label} className={`stat-card sc-${s.color}`} style={{ animationDelay:".05s" }}>
                   <div className="stat-ic">{s.icon}</div>

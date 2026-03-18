@@ -1,5 +1,5 @@
 // facultySettings.jsx
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import api from "../../../utils/api";
 import "./facultySettings.css";
 
@@ -100,6 +100,8 @@ export default function FacultySettings({ onBack }) {
   const [activeTab, setActiveTab] = useState("account");
   const [loading, setLoading] = useState(true);
   const [saved, setSaved] = useState(false);
+  const fileInputRef = useRef(null);
+  const [uploading, setUploading] = useState(false);
 
   // Unified settings state
   const [notif, setNotif] = useState({
@@ -134,7 +136,17 @@ export default function FacultySettings({ onBack }) {
         const res = await api.get("/faculty/settings");
         if (res.notifications) setNotif(res.notifications);
         if (res.appearance)    setAppearance(res.appearance);
-        if (res.account)       setAccount(res.account);
+        if (res.account) {
+          setAccount({
+            displayName: res.account.displayName || "",
+            email: res.account.email || "",
+            phone: res.account.phone || "",
+            avatar: res.account.avatar || "",
+            department: res.account.department || "cse",
+            language: res.account.language || "en",
+            timezone: res.account.timezone || "asia_kolkata",
+          });
+        }
         if (res.ai)            setAi(res.ai);
       } catch (err) {
         console.error("Failed to fetch faculty settings:", err);
@@ -170,6 +182,35 @@ export default function FacultySettings({ onBack }) {
     } catch (err) {
       console.error("Failed to save faculty settings:", err);
       alert("Failed to save settings. Please try again.");
+    }
+  };
+
+  const handlePhotoChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+    try {
+      // Pass the file object directly to api.upload
+      const res = await api.upload("/faculty/upload", file);
+      if (res && res.url) {
+        setAccount(prev => ({ ...prev, avatar: res.url }));
+        // Automatically save the new avatar to the backend
+        const updatedAccount = { ...account, avatar: res.url };
+        await api.put("/faculty/settings", { 
+          notifications: notif, 
+          appearance, 
+          ai,
+          account: updatedAccount 
+        });
+        setSaved(true);
+        setTimeout(() => setSaved(false), 2200);
+      }
+    } catch (err) {
+      console.error("Photo upload failed", err);
+      alert("Failed to upload photo. Please try again.");
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -312,6 +353,36 @@ export default function FacultySettings({ onBack }) {
           {/* ACCOUNT */}
           {activeTab === "account" && (
             <div className="fs-sections">
+              <Section icon={<IcoGlobe />} title="Profile Photo" color="var(--indigo-ll)">
+                <div className="fs-profile-photo-row">
+                  <div className="fs-avatar-preview">
+                    {account.avatar ? (
+                      <img src={account.avatar} alt="Avatar" />
+                    ) : (
+                      <div className="fs-avatar-placeholder">
+                        {account.displayName ? account.displayName.split(" ").map(x => x[0]).join("") : "FP"}
+                      </div>
+                    )}
+                  </div>
+                  <div className="fs-photo-ctrls">
+                    <button 
+                      className="fs-btn-solid" 
+                      onClick={() => fileInputRef.current.click()}
+                      disabled={uploading}
+                    >
+                      {uploading ? "Uploading..." : "Change Photo"}
+                    </button>
+                    <input 
+                      type="file" 
+                      ref={fileInputRef} 
+                      style={{ display: "none" }} 
+                      accept="image/*"
+                      onChange={handlePhotoChange}
+                    />
+                    <div className="fs-photo-hint">JPG, PNG or GIF.</div>
+                  </div>
+                </div>
+              </Section>
               <Section icon={<IcoGlobe />} title="Personal Information" color="var(--teal)">
                 <div className="fs-fields-grid">
                   <Input label="Display Name"    value={account.displayName}  onChange={v => setAccount(a => ({ ...a, displayName: v }))} />

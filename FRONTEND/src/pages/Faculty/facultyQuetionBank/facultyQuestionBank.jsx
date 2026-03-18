@@ -1,6 +1,7 @@
 // facultyQuetionBank.jsx  —  place at: src/pages/Faculty/facultyQuetionBank/facultyQuetionBank.jsx
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
+import api from "../../../utils/api";
 import "./facultyQuestionBank.css";
 
 const IcoChevL  = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>;
@@ -24,27 +25,7 @@ const TYPE_META = {
   FIB:  { color:"var(--amber)",    bg:"rgba(244,165,53,.1)", icon:"✏️" },
   Desc: { color:"var(--violet)",   bg:"rgba(159,122,234,.1)",icon:"📝" },
 };
-const COURSES_META = {
-  cs501:{ code:"CS501", name:"Operating Systems",           color:"var(--indigo-l)", bg:"rgba(91,78,248,.1)",   border:"rgba(91,78,248,.2)"   },
-  cs502:{ code:"CS502", name:"Database Management Systems", color:"var(--teal)",     bg:"rgba(39,201,176,.1)",  border:"rgba(39,201,176,.2)"  },
-  cs503:{ code:"CS503", name:"Computer Architecture",       color:"var(--violet)",   bg:"rgba(159,122,234,.1)", border:"rgba(159,122,234,.2)" },
-};
 
-const INITIAL_QUESTIONS = [
-  { id:1,  course:"cs501", unit:"Unit II",  type:"MCQ",  diff:"Easy",   marks:1, q:"Which scheduling algorithm is non-preemptive by default?",                              options:["FCFS","Round Robin","SRTF","Multi-level"],           ans:0,    used:12 },
-  { id:2,  course:"cs501", unit:"Unit II",  type:"MCQ",  diff:"Medium", marks:2, q:"Round Robin with very small time quantum resembles which algorithm?",                   options:["FCFS","SJF","SRTF","Priority"],                      ans:2,    used:7  },
-  { id:3,  course:"cs501", unit:"Unit III", type:"TF",   diff:"Easy",   marks:1, q:"Virtual memory allows execution of processes larger than physical memory.",              ans:true,  used:18 },
-  { id:4,  course:"cs501", unit:"Unit III", type:"FIB",  diff:"Medium", marks:2, q:"The technique of loading only needed pages into memory is called ___.",                  ans:"demand paging", used:5 },
-  { id:5,  course:"cs501", unit:"Unit IV",  type:"Desc", diff:"Hard",   marks:5, q:"Explain the Banker's algorithm for deadlock avoidance with an example.",                 ans:"",   used:3  },
-  { id:6,  course:"cs501", unit:"Unit I",   type:"MCQ",  diff:"Easy",   marks:1, q:"Which of the following is NOT a type of OS kernel?",                                    options:["Monolithic","Micro","Nano","Hybrid"],                ans:2,    used:9  },
-  { id:7,  course:"cs502", unit:"Unit I",   type:"MCQ",  diff:"Medium", marks:2, q:"Which normal form eliminates transitive dependencies?",                                  options:["1NF","2NF","3NF","BCNF"],                           ans:2,    used:14 },
-  { id:8,  course:"cs502", unit:"Unit II",  type:"FIB",  diff:"Easy",   marks:1, q:"To filter aggregated groups in SQL, use the ___ clause.",                               ans:"HAVING", used:22 },
-  { id:9,  course:"cs502", unit:"Unit III", type:"TF",   diff:"Medium", marks:1, q:"A transaction must follow ACID properties to maintain database consistency.",            ans:true,  used:16 },
-  { id:10, course:"cs502", unit:"Unit II",  type:"Desc", diff:"Hard",   marks:6, q:"Compare INNER JOIN, LEFT JOIN, and FULL OUTER JOIN with diagrams.",                     ans:"",   used:4  },
-  { id:11, course:"cs503", unit:"Unit I",   type:"MCQ",  diff:"Easy",   marks:1, q:"RISC architecture uses a __ instruction set.",                                          options:["Reduced","Rich","Redundant","Rapid"],                ans:0,    used:11 },
-  { id:12, course:"cs503", unit:"Unit II",  type:"MCQ",  diff:"Hard",   marks:3, q:"In a 5-stage MIPS pipeline, a data hazard requiring 2 stall cycles occurs when?",      options:["RAW with no forwarding","WAR","WAW","Control hazard"],ans:0,   used:6  },
-  { id:13, course:"cs503", unit:"II",       type:"TF",   diff:"Easy",   marks:1, q:"Forwarding paths in a pipeline help resolve data hazards without stalls.",              ans:true,  used:10 },
-];
 
 // ── Portal wrapper — renders children directly into document.body ─────────────
 // This ensures modals are ALWAYS centred on the viewport, regardless of scroll.
@@ -84,7 +65,7 @@ function EditModal({ question, onSave, onClose }) {
               <div className="qb-field">
                 <label className="qb-field-lbl">Course</label>
                 <select className="qb-input" value={form.course} onChange={e => set("course", e.target.value)}>
-                  {Object.entries(COURSES_META).map(([k, c]) => <option key={k} value={k}>{c.code} — {c.name}</option>)}
+                  {Object.entries(question.coursesMeta || {}).map(([k, c]) => <option key={k} value={k}>{c.code} — {c.name}</option>)}
                 </select>
               </div>
               <div className="qb-field">
@@ -243,7 +224,9 @@ function DeleteModal({ question, onConfirm, onClose }) {
 
 // ── Main Component ────────────────────────────────────────────────────────────
 export default function facultyQuestionBank({ onBack }) {
-  const [questions, setQuestions] = useState(INITIAL_QUESTIONS);
+  const [questions, setQuestions] = useState([]);
+  const [coursesMeta, setCoursesMeta] = useState({});
+  const [loading, setLoading]     = useState(true);
   const [search,    setSearch]    = useState("");
   const [courseF,   setCourseF]   = useState("all");
   const [diffF,     setDiffF]     = useState("all");
@@ -252,31 +235,76 @@ export default function facultyQuestionBank({ onBack }) {
   const [toast,     setToast]     = useState("");
   const [editQ,     setEditQ]     = useState(null);
   const [deleteQ,   setDeleteQ]   = useState(null);
-  const [nextId,    setNextId]    = useState(14);
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 2500); };
 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [metaRes, qRes] = await Promise.all([
+          api.get("/faculty/metadata"),
+          api.get("/faculty/questions")
+        ]);
+        setCoursesMeta(metaRes.data.courses_meta || {});
+        setQuestions(qRes.data || []);
+      } catch (err) {
+        console.error("Failed to load question bank data", err);
+        showToast("Error loading question bank");
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
   // ── CRUD ────────────────────────────────────────────────────────────────────
-  const handleEdit = (updated) => {
-    setQuestions(qs => qs.map(q => q.id === updated.id ? updated : q));
-    setEditQ(null);
-    showToast("Question updated successfully");
+  const handleEdit = async (updated) => {
+    try {
+      if (updated.id < 0) { // New question (mock id)
+        const res = await api.post("/faculty/questions", updated);
+        setQuestions(qs => qs.map(q => q.id === updated.id ? res.data : q));
+        showToast("Question created successfully");
+      } else {
+        const res = await api.put(`/faculty/questions/${updated.id}`, updated);
+        setQuestions(qs => qs.map(q => q.id === updated.id ? res.data : q));
+        showToast("Question updated successfully");
+      }
+      setEditQ(null);
+    } catch (err) {
+      console.error(err);
+      showToast("Error saving question");
+    }
   };
 
-  const handleDuplicate = (q, e) => {
+  const handleDuplicate = async (q, e) => {
     e.stopPropagation();
-    const clone = { ...q, id: nextId, used: 0 };
-    setNextId(n => n + 1);
-    setQuestions(qs => [...qs, clone]);
-    showToast("Question duplicated");
+    try {
+      const clone = { ...q, used: 0 };
+      const res = await api.post("/faculty/questions", clone);
+      setQuestions(qs => [...qs, res.data]);
+      showToast("Question duplicated");
+    } catch (err) {
+      showToast("Error duplicating question");
+    }
   };
 
-  const handleDeleteConfirm = () => {
-    setQuestions(qs => qs.filter(q => q.id !== deleteQ.id));
-    setSelected(s => s.filter(id => id !== deleteQ.id));
-    setDeleteQ(null);
-    showToast("Question deleted");
+  const handleDeleteConfirm = async () => {
+    try {
+      await api.delete(`/faculty/questions/${deleteQ.id}`);
+      setQuestions(qs => qs.filter(q => q.id !== deleteQ.id));
+      setSelected(s => s.filter(id => id !== deleteQ.id));
+      setDeleteQ(null);
+      showToast("Question deleted");
+    } catch (err) {
+      showToast("Error deleting question");
+    }
   };
+
+  const openAddModal = () => {
+    const firstCourse = Object.keys(coursesMeta)[0] || "cs501";
+    setEditQ({ id: -Date.now(), course: firstCourse, unit: "Unit I", type: "MCQ", diff: "Medium", marks: 1, q: "", options: ["","","",""], ans: 0, used: 0, coursesMeta });
+  };
+
 
   // ── Filters ─────────────────────────────────────────────────────────────────
   const filtered = questions.filter(q => {
@@ -296,9 +324,11 @@ export default function facultyQuestionBank({ onBack }) {
 
   return (
     <div className="qb-root">
+      {loading && <div style={{textAlign: "center", padding: "40px", color: "var(--text3)"}}>Loading Question Bank...</div>}
+      {!loading && <>
 
       {/* Modals — rendered via Portal into document.body, always viewport-centred */}
-      {editQ   && <EditModal   question={editQ}   onSave={handleEdit}          onClose={() => setEditQ(null)}   />}
+      {editQ   && <EditModal   question={{...editQ, coursesMeta}}   onSave={handleEdit}          onClose={() => setEditQ(null)}   />}
       {deleteQ && <DeleteModal question={deleteQ} onConfirm={handleDeleteConfirm} onClose={() => setDeleteQ(null)} />}
 
       {/* Page header */}
@@ -318,7 +348,7 @@ export default function facultyQuestionBank({ onBack }) {
               <IcoZap style={{ width:12, height:12 }}/> Use {selected.length} in Quiz
             </button>
           )}
-          <button className="btn btn-primary" style={{ display:"flex", alignItems:"center", gap:6, fontSize:12 }}>
+          <button className="btn btn-primary" onClick={openAddModal} style={{ display:"flex", alignItems:"center", gap:6, fontSize:12 }}>
             <IcoPlus style={{ width:13, height:13 }}/> Add Question
           </button>
         </div>
@@ -350,7 +380,7 @@ export default function facultyQuestionBank({ onBack }) {
         <div className="qb-toolbar-right">
           <select className="qb-select" value={courseF} onChange={e => setCourseF(e.target.value)}>
             <option value="all">All Courses</option>
-            {Object.entries(COURSES_META).map(([k, c]) => <option key={k} value={k}>{c.code}</option>)}
+            {Object.entries(coursesMeta).map(([k, c]) => <option key={k} value={k}>{c.code}</option>)}
           </select>
           <select className="qb-select" value={diffF} onChange={e => setDiffF(e.target.value)}>
             <option value="all">All Difficulty</option>
@@ -376,9 +406,9 @@ export default function facultyQuestionBank({ onBack }) {
       {/* Question list */}
       <div className="qb-list">
         {filtered.map(q => {
-          const dm    = DIFF_META[q.diff];
-          const tm    = TYPE_META[q.type];
-          const cm    = COURSES_META[q.course];
+          const dm    = DIFF_META[q.diff] || DIFF_META.Medium;
+          const tm    = TYPE_META[q.type] || TYPE_META.MCQ;
+          const cm    = coursesMeta[q.course] || { color:"var(--teal)", bg:"rgba(39,201,176,.1)", border:"rgba(39,201,176,.2)", code: q.course.toUpperCase() };
           const isSel = selected.includes(q.id);
           return (
             <div key={q.id} className={`qb-card ${isSel ? "qb-card--sel" : ""}`} onClick={() => toggle(q.id)}>
@@ -460,6 +490,7 @@ export default function facultyQuestionBank({ onBack }) {
 
       {/* Toast */}
       {toast && createPortal(<div className="qb-toast">{toast}</div>, document.body)}
+      </>}
     </div>
   );
 }
