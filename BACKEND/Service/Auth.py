@@ -19,6 +19,8 @@ class AuthService:
             email=data.email,
             password=hash_pwd(data.password),
             role=data.role,
+            department=data.department,
+            target_group=data.target_group,
         )
         db.add(user)
         db.commit()

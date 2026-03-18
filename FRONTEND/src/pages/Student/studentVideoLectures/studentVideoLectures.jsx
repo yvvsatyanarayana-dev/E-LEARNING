@@ -181,15 +181,30 @@ function VideoPlayer({ lecture, course, onClose }) {
         {/* Screen */}
         <div className="vl-player-screen"
           style={{background:`linear-gradient(135deg,rgba(${course.colorRgb},.15) 0%,rgba(0,0,0,.96) 100%)`}}>
-          <div className="vl-player-visual">
-            <div className="vl-player-logo" style={{color:course.color}}>{course.short}</div>
-            <div className="vl-player-title-overlay">{lecture.title}</div>
-          </div>
-          {showCC&&<div className="vl-player-cc">[Auto-generated subtitles] {lecture.description}</div>}
-          <button className="vl-player-close-x" onClick={onClose}><X size={16}/></button>
-          {!playing&&<div className="vl-player-center-play" onClick={()=>setPlaying(true)} style={{borderColor:course.color}}>
-            <Play size={28} fill={course.color} color={course.color}/>
-          </div>}
+          
+          {lecture.video_url ? (
+            <video 
+              src={lecture.video_url} 
+              autoPlay 
+              controls 
+              style={{width: "100%", height: "100%", objectFit: "contain"}}
+              onPlay={() => setPlaying(true)}
+              onPause={() => setPlaying(false)}
+            />
+          ) : (
+            <>
+              <div className="vl-player-visual">
+                <div className="vl-player-logo" style={{color:course.color}}>{course.short}</div>
+                <div className="vl-player-title-overlay">{lecture.title}</div>
+              </div>
+              {showCC&&<div className="vl-player-cc">[Auto-generated subtitles] {lecture.description}</div>}
+              {!playing&&<div className="vl-player-center-play" onClick={()=>setPlaying(true)} style={{borderColor:course.color}}>
+                <Play size={28} fill={course.color} color={course.color}/>
+              </div>}
+            </>
+          )}
+
+          <button className="vl-player-close-x" onClick={onClose} style={{zIndex: 50}}><X size={16}/></button>
         </div>
         {/* Progress */}
         <div className="vl-player-prog-wrap">
@@ -425,7 +440,7 @@ export default function StudentVideoLectures({ onBack }) {
             watchPct: l.is_completed ? 100 : 0, date: l.created_at ? (l.created_at.split("T")[0]) : "TBD",
             thumb: ["indigo", "teal", "amber", "violet", "rose"][byCourse[cid].length % 5], 
             description: l.description, tags: ["Lecture"],
-            locked: false, isNext: false
+            locked: false, isNext: false, video_url: l.video_url
           });
         });
         setLecturesState(byCourse);

@@ -163,6 +163,21 @@
 .qz-vbtn:hover  { background: var(--surface3); color: var(--text2); }
 .qz-vbtn--active { background: rgba(91,78,248,.12); color: var(--indigo-ll); }
 
+/* ── VIEW TOGGLE SVG FIX ─────────────────────────────────────────── */
+.qz-vbtn svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: block;
+  flex-shrink: 0;
+}
+.qz-vbtn:hover svg       { stroke: var(--text2); }
+.qz-vbtn--active svg     { stroke: var(--indigo-ll); }
+
 /* ── RESULTS BAR ─────────────────────────────────────────────────── */
 .qz-results-bar {
   font-size: 11px;
@@ -443,6 +458,20 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 .qz-icon-btn:hover { background: var(--surface3); color: var(--text2); }
+
+/* ── ICON BTN SVG FIX ────────────────────────────────────────────── */
+.qz-icon-btn svg {
+  width: 13px;
+  height: 13px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: block;
+  flex-shrink: 0;
+}
+.qz-icon-btn:hover svg { stroke: var(--text2); }
 
 /* ── OVERLAY ─────────────────────────────────────────────────────── */
 .qz-overlay {
@@ -739,6 +768,18 @@ select.qz-input { cursor: none;}
   flex: 1;
 }
 .qz-opt-inp:focus { border-color: transparent !important; }
+
+.qz-correct-label {
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--teal);
+  text-transform: uppercase;
+  letter-spacing: .05em;
+  margin-left: 10px;
+  padding: 2px 6px;
+  background: rgba(39, 201, 176, 0.12);
+  border-radius: 4px;
+}
 
 /* True/False */
 .qz-tf-row { display: flex; gap: 8px; }

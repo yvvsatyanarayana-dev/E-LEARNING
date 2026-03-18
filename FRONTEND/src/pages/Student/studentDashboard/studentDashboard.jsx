@@ -7,12 +7,14 @@ import StudentSettings from "../studentSettings/studentSettings";
 import StudentProfile from "../studentProfile/studentProfile";
 import StudentResume from "../studentResume/studentResume";
 import NotificationPanel from "../studentNotificationPanel/NotificationPanel";
+import StudentMeetings from "../studentMeetings/studentMeetings";
+import StudentPlacementMeetings from "../studentPlacementMeetings/studentPlacementMeetings";
 import "../studentSettings/studentSettings.css";
 import "../studentProfile/studentProfile.css";
 import "../studentResume/studentResume.css";
 import "../studentNotificationPanel/NotificationPanel.css";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import "./StudentDashboard.css";
 import StudentAnalytics from "../studentAnalytics/studentAnalytics";
 import "../studentAnalytics/studentAnalytics.css";
@@ -29,7 +31,7 @@ import "../studentStudyGroup/studentStudyGroup.css";
 import StudentSchedule from "../studentSchedules/studentSchedules";
 import "../studentSchedules/studentSchedules.css";
 import lucynaJpg from "../../../assets/Cyberpunk 2077.jpg";
-import api from "../../../utils/api";
+import api from "../../../utils/api.js";
 
 // ─── ICONS ───────────────────────────────────────────────────────
 const IcoDashboard = (p) => <svg {...p} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>;
@@ -69,6 +71,7 @@ const ROUTES = {
   ASSIGNMENTS:    "Assignments",
   QUIZZES:        "Quizzes",
   STUDY_GROUPS:   "Study Groups",
+  MEETINGS:       "Meetings",
   SCHEDULE:       "Schedule",
   INNOVATION_HUB: "Innovation Hub",
   PLACEMENT_PREP: "Placement Prep",
@@ -77,6 +80,7 @@ const ROUTES = {
   SETTINGS:       "Settings",
   PROFILE:        "Profile",
   RESUME:         "Resume",
+  PLACEMENT_MEETINGS: "Placement Meetings",
 };
 
 const PAGE_PARAM_MAP = {
@@ -86,6 +90,7 @@ const PAGE_PARAM_MAP = {
   "studentassignments":   "Assignments",
   "studentquizzes":       "Quizzes",
   "studentstudygroups":   "Study Groups",
+  "studentmeetings":      "Meetings",
   "studentschedule":      "Schedule",
   "studentinnovationhub": "Innovation Hub",
   "studentplacementprep": "Placement Prep",
@@ -94,6 +99,7 @@ const PAGE_PARAM_MAP = {
   "studentsettings":      "Settings",
   "studentprofile":       "Profile",
   "studentresume":        "Resume",
+  "studentplacementmeetings": "Placement Meetings",
 };
 
 const ROUTABLE = new Set(Object.values(ROUTES));
@@ -143,7 +149,6 @@ function mapApiCourse(c, i) {
     gradeStyle: g, grade: c.enrollment_id > 0 ? (c.progress >= 90 ? "A+" : c.progress >= 80 ? "A" : c.progress >= 70 ? "A−" : c.progress >= 60 ? "B+" : "B") : "New",
     due: c.enrollment_id > 0 ? (c.assignment_count > 0 ? `${c.assignment_count} assignments` : "No pending") : "Available now",
     next: `${c.quiz_count} quiz${c.quiz_count !== 1 ? "zes" : ""}`,
-    icon: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>,
   };
 }
 function mapApiSkill(s, i) {
@@ -192,28 +197,32 @@ const AI_RESPONSES = [
   "Your CGPA of 8.4 puts you in the <strong style='color:var(--teal)'>top 15%</strong>. Improving Crypto would push you to the top 10%.",
 ];
 
-const NAV_ITEMS = [
-  { section:"Overview", links:[
-    {label:ROUTES.DASHBOARD, icon:<IcoDashboard/>},
-    {label:ROUTES.ANALYTICS, icon:<IcoBar/>, badge:"New"},
-  ]},
-  { section:"Learning", links:[
-    {label:ROUTES.MY_COURSES,     icon:<IcoBook/>,  badge:"6"},
-    {label:ROUTES.VIDEO_LECTURES, icon:<IcoVideo/>},
-    {label:ROUTES.ASSIGNMENTS,    icon:<IcoFile/>,  badge:"3", badgeClass:"rose"},
-    {label:ROUTES.QUIZZES,        icon:<IcoClock/>, badge:"1"},
-  ]},
-  { section:"Campus", links:[
-    {label:ROUTES.INNOVATION_HUB, icon:<IcoSun/>},
-    {label:ROUTES.STUDY_GROUPS,   icon:<IcoUsers/>},
-    {label:ROUTES.SCHEDULE,       icon:<IcoCal/>},
-  ]},
-  { section:"Career", links:[
-    {label:ROUTES.PLACEMENT_PREP,  icon:<IcoAward/>},
-    {label:ROUTES.INTERNSHIPS,     icon:<IcoBrief/>},
-    {label:ROUTES.MOCK_INTERVIEW,  icon:<IcoPen/>},
-  ]},
-];
+function buildNavItems(hasActivePlacementMeeting) {
+  return [
+    { section:"Overview", links:[
+      {label:ROUTES.DASHBOARD, icon:<IcoDashboard/>},
+      {label:ROUTES.ANALYTICS, icon:<IcoBar/>, badge:"New"},
+    ]},
+    { section:"Learning", links:[
+      {label:ROUTES.MY_COURSES,     icon:<IcoBook/>,  badge:"6"},
+      {label:ROUTES.VIDEO_LECTURES, icon:<IcoVideo/>},
+      {label:ROUTES.ASSIGNMENTS,    icon:<IcoFile/>,  badge:"3", badgeClass:"rose"},
+      {label:ROUTES.QUIZZES,        icon:<IcoClock/>, badge:"1"},
+      {label:ROUTES.MEETINGS,       icon:<IcoVideo/>, badge: hasActivePlacementMeeting ? "LIVE" : undefined, badgeClass: hasActivePlacementMeeting ? "rose" : undefined},
+    ]},
+    { section:"Campus", links:[
+      {label:ROUTES.INNOVATION_HUB, icon:<IcoSun/>},
+      {label:ROUTES.STUDY_GROUPS,   icon:<IcoUsers/>},
+      {label:ROUTES.SCHEDULE,       icon:<IcoCal/>},
+    ]},
+    { section:"Career", links:[
+      {label:ROUTES.PLACEMENT_PREP,  icon:<IcoAward/>},
+      {label:ROUTES.INTERNSHIPS,     icon:<IcoBrief/>},
+      {label:ROUTES.MOCK_INTERVIEW,  icon:<IcoPen/>},
+      {label:ROUTES.PLACEMENT_MEETINGS, icon:<IcoVideo/>, badge: hasActivePlacementMeeting ? "LIVE" : undefined, badgeClass: hasActivePlacementMeeting ? "rose" : undefined},
+    ]},
+  ];
+}
 
 // ─── HELPERS ────────────────────────────────────────────────────
 function addRipple(e, el) {
@@ -280,10 +289,11 @@ function AnimatedProgressBar({pct,color,height=3,delay=500}){
 }
 
 // ─── SIDEBAR ─────────────────────────────────────────────────────
-function Sidebar({activePage,onNavigate,mobileOpen,onMobileClose,onNavigateSettings,onNavigateProfile,userName,priScore}){
+function Sidebar({activePage, onNavigate, mobileOpen, onMobileClose, onNavigateSettings, onNavigateProfile, userName, priScore, hasActivePlacementMeeting}){
   const logoutNavigate=useNavigate();
   const [priW,setPriW]=useState(0);
   useEffect(()=>{const t=setTimeout(()=>setPriW(Math.round(priScore||0)),600);return()=>clearTimeout(t);},[priScore]);
+  const NAV_ITEMS = buildNavItems(hasActivePlacementMeeting);
 
   const handleLogout=()=>{
     localStorage.removeItem("token");localStorage.removeItem("user");
@@ -485,7 +495,7 @@ function LucynaFab({onClick}){
 }
 
 // ─── DASHBOARD CONTENT ──────────────────────────────────────────
-function DashboardContent({ stats, courses, schedule, quizzes, skills, onNavigateToAnalytics, onNavigateToMyCourses, onNavigateToVideoLectures, onNavigateToAssignments, onNavigateToQuizzes, userName, onEnroll }) {
+function DashboardContent({ stats, courses, schedule, quizzes, skills, activeMeeting, activePlacementMeeting, onNavigateToAnalytics, onNavigateToMyCourses, onNavigateToVideoLectures, onNavigateToAssignments, onNavigateToQuizzes, onNavigateToPlacementMeetings, userName, onEnroll }) {
   const enrolledCount = courses.filter(c => c.enrollment_id > 0).length;
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
@@ -493,6 +503,56 @@ function DashboardContent({ stats, courses, schedule, quizzes, skills, onNavigat
 
   return (
     <div className="content">
+      {activeMeeting && (
+        <div style={{
+          background: "linear-gradient(135deg, var(--rose) 0%, var(--rose-l) 100%)",
+          color: "white", padding: "16px 24px", borderRadius: "12px", marginBottom: "12px",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          boxShadow: "0 8px 24px rgba(242,68,92,0.25)"
+        }}>
+          <div>
+            <h2 style={{ fontSize: "18px", margin: "0 0 4px 0", fontWeight: "600", display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ width: 8, height: 8, background: "#fff", borderRadius: "50%", animation: "pulse 1.5s infinite" }} />
+              Live Class Started: {activeMeeting.course_name}
+            </h2>
+            <p style={{ margin: 0, fontSize: "13px", opacity: 0.9 }}>
+              {activeMeeting.faculty_name} is hosting a live session for your group ({activeMeeting.group_key}).
+            </p>
+          </div>
+          <a href={activeMeeting.join_url} target="_blank" rel="noopener noreferrer" style={{
+            background: "white", color: "var(--rose)", padding: "10px 20px", borderRadius: "8px",
+            textDecoration: "none", fontWeight: "600", fontSize: "14px", transition: "all 0.2s"
+          }}>
+            Join Now
+          </a>
+        </div>
+      )}
+
+      {activePlacementMeeting && (
+        <div style={{
+          background: "linear-gradient(135deg, var(--teal) 0%, var(--teal-l) 100%)",
+          color: "white", padding: "16px 24px", borderRadius: "12px", marginBottom: "24px",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          boxShadow: "0 8px 24px rgba(39,201,176,0.25)"
+        }}>
+          <div>
+            <h2 style={{ fontSize: "18px", margin: "0 0 4px 0", fontWeight: "600", display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ width: 8, height: 8, background: "#fff", borderRadius: "50%", animation: "pulse 1.5s infinite" }} />
+              Live Placement Session: {activePlacementMeeting.department}
+            </h2>
+            <p style={{ margin: 0, fontSize: "13px", opacity: 0.9 }}>
+              Officer {activePlacementMeeting.officer_name} is hosting a virtual session.
+            </p>
+          </div>
+          <button onClick={() => onNavigateToPlacementMeetings()} style={{
+            background: "white", color: "var(--teal)", padding: "10px 20px", borderRadius: "8px",
+            border: "none", fontWeight: "600", fontSize: "14px", transition: "all 0.2s", cursor: "pointer"
+          }}>
+            Join Session
+          </button>
+        </div>
+      )}
+
       <div className="greet-row">
         <div>
           <div className="greet-tag">
@@ -656,11 +716,14 @@ function DashboardContent({ stats, courses, schedule, quizzes, skills, onNavigat
 // ─── MAIN ────────────────────────────────────────────────────────
 export default function StudentDashboard() {
   const navigateRouter = useNavigate();
-  const { page } = useParams();
+  const location = useLocation();
 
   const [activePage, setActivePage] = useState(() => {
-    if (!page) return ROUTES.DASHBOARD;
-    return PAGE_PARAM_MAP[page.toLowerCase()] || ROUTES.DASHBOARD;
+    // Extract the page from the pathname, e.g. "/studentdashboard/studentMeetings" -> "studentMeetings"
+    const pathParts = location.pathname.split("/").filter(Boolean);
+    const pageKey = pathParts.length > 1 ? pathParts[1] : null;
+    if (!pageKey) return ROUTES.DASHBOARD;
+    return PAGE_PARAM_MAP[pageKey.toLowerCase()] || ROUTES.DASHBOARD;
   });
 
   const [aiOpen,      setAiOpen]      = useState(false);
@@ -674,22 +737,27 @@ export default function StudentDashboard() {
   const [schedule,    setSchedule]    = useState([]);
   const [quizzes,     setQuizzes]     = useState([]);
   const [skills,      setSkills]      = useState([]);
+  const [activeMeeting, setActiveMeeting]= useState(null);
+  const [activePlacementMeeting, setActivePlacementMeeting]= useState(null);
 
   useEffect(() => {
-    if (page) {
-      const p = PAGE_PARAM_MAP[page.toLowerCase()];
+    const pathParts = location.pathname.split("/").filter(Boolean);
+    const pageKey = pathParts.length > 1 ? pathParts[1] : null;
+    
+    if (pageKey) {
+      const p = PAGE_PARAM_MAP[pageKey.toLowerCase()];
       if (p) setActivePage(p);
     } else {
       setActivePage(ROUTES.DASHBOARD);
     }
-  }, [page]);
+  }, [location.pathname]);
 
   useCursor();
 
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchData = async (isInitial = false) => {
       try {
-        setLoading(true);
+        if (isInitial) setLoading(true);
         const [meData, dashData] = await Promise.allSettled([
           api.get("/auth/me"),
           api.get("/student/dashboard"),
@@ -702,14 +770,19 @@ export default function StudentDashboard() {
           if (d.skill_scores) setSkills(d.skill_scores.map(mapApiSkill));
           if (d.schedule_today) setSchedule(d.schedule_today.map(mapApiSchedule));
           if (d.recent_quizzes) setQuizzes(d.recent_quizzes.map(mapApiQuiz));
+          setActiveMeeting(d.active_meeting || null);
+          setActivePlacementMeeting(d.active_placement_meeting || null);
           if (d.full_name && !userName) setUserName(d.full_name);
         }
       } catch (err) {
         console.error("Dashboard fetch failed:", err);
-        setError("Could not load dashboard data.");
-      } finally { setLoading(false); }
+        if (isInitial) setError("Could not load dashboard data.");
+      } finally { if (isInitial) setLoading(false); }
     };
-    fetchData();
+    fetchData(true);
+    // Poll for active meeting updates every 15 seconds
+    const pollInterval = setInterval(() => fetchData(false), 15000);
+    return () => clearInterval(pollInterval);
   }, []);
 
   const handleEnroll = async (courseId) => {
@@ -736,6 +809,7 @@ export default function StudentDashboard() {
     [ROUTES.ASSIGNMENTS]:     "/studentdashboard/studentAssignments",
     [ROUTES.QUIZZES]:         "/studentdashboard/studentQuizzes",
     [ROUTES.STUDY_GROUPS]:    "/studentdashboard/studentStudyGroups",
+    [ROUTES.MEETINGS]:        "/studentdashboard/studentMeetings",
     [ROUTES.SCHEDULE]:        "/studentdashboard/studentSchedule",
     [ROUTES.INNOVATION_HUB]:  "/studentdashboard/studentInnovationHub",
     [ROUTES.PLACEMENT_PREP]:  "/studentdashboard/studentPlacementPrep",
@@ -744,6 +818,7 @@ export default function StudentDashboard() {
     [ROUTES.SETTINGS]:        "/studentdashboard/studentSettings",
     [ROUTES.PROFILE]:         "/studentdashboard/studentProfile",
     [ROUTES.RESUME]:          "/studentdashboard/studentResume",
+    [ROUTES.PLACEMENT_MEETINGS]: "/studentdashboard/studentPlacementMeetings",
   };
 
   const navigate = (targetPage) => {
@@ -772,6 +847,7 @@ export default function StudentDashboard() {
           onNavigateProfile={()=>navigate(ROUTES.PROFILE)}
           userName={userName}
           priScore={stats.pri_score||0}
+          hasActivePlacementMeeting={!!activePlacementMeeting}
         />
         <main className="main">
           <Topbar
@@ -792,12 +868,14 @@ export default function StudentDashboard() {
 
           {activePage === ROUTES.DASHBOARD && (
             <DashboardContent
-              stats={stats} courses={courses} schedule={schedule} quizzes={quizzes} skills={skills}
+              stats={stats} courses={courses} schedule={schedule} quizzes={quizzes} skills={skills} 
+              activeMeeting={activeMeeting} activePlacementMeeting={activePlacementMeeting}
               onNavigateToAnalytics={()=>navigate(ROUTES.ANALYTICS)}
               onNavigateToMyCourses={()=>navigate(ROUTES.MY_COURSES)}
               onNavigateToVideoLectures={()=>navigate(ROUTES.VIDEO_LECTURES)}
               onNavigateToAssignments={()=>navigate(ROUTES.ASSIGNMENTS)}
               onNavigateToQuizzes={()=>navigate(ROUTES.QUIZZES)}
+              onNavigateToPlacementMeetings={()=>navigate(ROUTES.PLACEMENT_MEETINGS)}
               userName={userName}
               onEnroll={handleEnroll}
             />
@@ -808,11 +886,13 @@ export default function StudentDashboard() {
           {activePage === ROUTES.ASSIGNMENTS    && <StudentAssignments  onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
           {activePage === ROUTES.QUIZZES        && <StudentQuizzes      onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
           {activePage === ROUTES.STUDY_GROUPS   && <StudentStudyGroups  onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
+          {activePage === ROUTES.MEETINGS       && <StudentMeetings     onBack={()=>navigate(ROUTES.DASHBOARD)} onNavigate={navigate} />}
           {activePage === ROUTES.SCHEDULE       && <StudentSchedule     onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
           {activePage === ROUTES.INNOVATION_HUB && <StudentInnovationHub onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
           {activePage === ROUTES.PLACEMENT_PREP && <StudentPlacementPrep onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
           {activePage === ROUTES.INTERNSHIPS    && <StudentInternships  onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
           {activePage === ROUTES.MOCK_INTERVIEW && <StudentMockInterview onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
+          {activePage === ROUTES.PLACEMENT_MEETINGS && <StudentPlacementMeetings onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
 
           {/* ── NEW PAGES ── */}
           {activePage === ROUTES.SETTINGS && (

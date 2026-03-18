@@ -212,23 +212,60 @@ class FacultyAssignmentCreate(BaseModel):
     course_id: int
     description: Optional[str] = None
     type: Optional[str] = "Theory"
-    max_marks: Optional[float] = 100.0
+    marks: Optional[float] = 100.0  # Frontend sends 'marks'
     weight: Optional[str] = "10%"
-    difficulty: Optional[str] = "Medium"
+    difficulty: Optional[str] = "medium"
     estimated_hours: Optional[int] = 4
-    tags: Optional[str] = None
-    attachments: Optional[str] = None
-    instructions: Optional[str] = None
-    rubric: Optional[str] = None
+    rubric: Optional[List[Dict[str, Any]]] = []
     due_date: Optional[datetime] = None
     target_group: Optional[str] = "All"
+    week: Optional[str] = None
+    unit: Optional[str] = None
     
 class FacultyQuizCreate(BaseModel):
     title: str
     course_id: int
+    description: Optional[str] = None
+    duration: Optional[int] = 20
+    marks: Optional[int] = 10
+    week: Optional[str] = "W1"
+    unit: Optional[str] = "Unit I"
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    shuffle: Optional[bool] = True
+    show_result: Optional[bool] = True
+    neg_mark: Optional[bool] = False
     difficulty: Optional[str] = "medium"
     is_ai_generated: Optional[bool] = False
     target_group: Optional[str] = "All"
+    questions: Optional[List[FacultyQuizQuestion]] = []
+
+class FacultyAssignmentUpdate(BaseModel):
+    title: Optional[str] = None
+    course_id: Optional[int] = None
+    description: Optional[str] = None
+    type: Optional[str] = None
+    marks: Optional[float] = None
+    due_date: Optional[datetime] = None
+    target_group: Optional[str] = None
+    rubric: Optional[List[Dict[str, Any]]] = None
+    week: Optional[str] = None
+    unit: Optional[str] = None
+
+class FacultyQuizUpdate(BaseModel):
+    title: Optional[str] = None
+    course_id: Optional[int] = None
+    description: Optional[str] = None
+    duration: Optional[int] = None
+    marks: Optional[int] = None
+    week: Optional[str] = None
+    unit: Optional[str] = None
+    start_date: Optional[str] = None
+    end_date: Optional[str] = None
+    shuffle: Optional[bool] = None
+    show_result: Optional[bool] = None
+    neg_mark: Optional[bool] = None
+    target_group: Optional[str] = None
     questions: Optional[List[FacultyQuizQuestion]] = []
 
 class FacultyCourseCreate(BaseModel):
@@ -242,7 +279,7 @@ class FacultyStudentDetail(BaseModel):
     roll: str
     name: str
     course: str # e.g. CS501
-    sem: int
+    sem: str
     batch: str # "A" or "B"
     cgpa: float
     attendance: int
@@ -412,3 +449,6 @@ class FacultyReportResponse(BaseModel):
     stats: List[FacultyReportStats]
     courses: List[FacultyReportCourseMetric]
     week_scores: List[Dict[str, Any]]
+class FacultyMetadataResponse(BaseModel):
+    departments: List[str]
+    groups: List[str]

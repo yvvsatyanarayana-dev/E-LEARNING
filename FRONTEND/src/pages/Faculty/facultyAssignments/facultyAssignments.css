@@ -173,6 +173,21 @@
 .as-vbtn:hover { background: var(--surface3); color: var(--text2); }
 .as-vbtn--active { background: rgba(91,78,248,.12); color: var(--indigo-ll); }
 
+/* ── VIEW TOGGLE SVG FIX ─────────────────────────────────────────── */
+.as-vbtn svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: block;
+  flex-shrink: 0;
+}
+.as-vbtn:hover svg      { stroke: var(--text2); }
+.as-vbtn--active svg    { stroke: var(--indigo-ll); }
+
 /* ── RESULTS BAR ─────────────────────────────────────────────────── */
 .as-results-bar {
   font-size: 11px;
@@ -447,6 +462,20 @@
   font-family: 'Plus Jakarta Sans', sans-serif;
 }
 .as-icon-btn:hover { background: var(--surface3); color: var(--text2); }
+
+/* ── ICON BTN SVG FIX ────────────────────────────────────────────── */
+.as-icon-btn svg {
+  width: 13px;
+  height: 13px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: block;
+  flex-shrink: 0;
+}
+.as-icon-btn:hover svg { stroke: var(--text2); }
 
 /* ── OVERLAY + MODAL ─────────────────────────────────────────────── */
 .as-overlay {

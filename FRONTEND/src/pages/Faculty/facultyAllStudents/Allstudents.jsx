@@ -147,7 +147,7 @@ export default function AllStudents({ onBack }) {
           { label:"At Risk",        value: atRisk,           cls:"sc-rose"   },
           { label:"Avg Attendance", value: `${avgAtt}%`,    cls:"sc-amber"  },
           { label:"Avg Score",      value: `${avgScore}%`,  cls:"sc-indigo" },
-          { label:"Courses",        value: 3,               cls:"sc-violet" },
+          { label:"Courses",        value: new Set(safeStudents.map(s => s.course)).size, cls:"sc-violet" },
         ].map(({ label, value, cls }) => (
           <div key={label} className={`stat-card ${cls}`}>
             <div className="stat-val">{value}</div>

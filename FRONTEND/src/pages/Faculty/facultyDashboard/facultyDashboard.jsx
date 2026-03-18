@@ -17,7 +17,9 @@ import FacultyProfile from "../facultyProfile/facultyProfile";
 import FacultySettings from "../facultySettings/facultySettings";
 import FacultyQuickaction from "../facultyQuickaction/facultyQuickaction";
 import FacultyNotification from "../facultyNotification/facultyNotification";
+import FacultyMeeting from "../facultyMeeting/facultyMeeting";
 import api from "../../../utils/api";
+import lucynaJpg from "../../../assets/Cyberpunk 2077.jpg";
 
 // ─── ICONS ───────────────────────────────────────────────────────
 const IcoDashboard = (p) => <svg {...p} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>;
@@ -58,6 +60,7 @@ const ROUTES = {
   VIDEO_LECTURES: "Video Lectures",
   ASSIGNMENTS: "Assignments",
   QUIZZES: "Quiz Manager",
+  MEETINGS: "Meetings",
   ALL_STUDENTS: "All Students",
   ATTENDANCE: "Attendance",
   GRADE_BOOK: "Grade Book",
@@ -76,6 +79,7 @@ const PAGE_PARAM_MAP = {
   "facultyassignments": ROUTES.ASSIGNMENTS,
   "facultyquizzes": ROUTES.QUIZZES,
   "facultyvideolectures": ROUTES.VIDEO_LECTURES,
+  "meetings": ROUTES.MEETINGS,
   "allstudents": ROUTES.ALL_STUDENTS,
   "attendance": ROUTES.ATTENDANCE,
   "gradebook": ROUTES.GRADE_BOOK,
@@ -95,6 +99,7 @@ const ROUTE_TO_URL = {
   [ROUTES.VIDEO_LECTURES]: "/facultydashboard/facultyVideoLectures",
   [ROUTES.ASSIGNMENTS]: "/facultydashboard/facultyAssignments",
   [ROUTES.QUIZZES]: "/facultydashboard/facultyQuizzes",
+  [ROUTES.MEETINGS]: "/facultydashboard/meetings",
   [ROUTES.ALL_STUDENTS]: "/facultydashboard/allStudents",
   [ROUTES.ATTENDANCE]: "/facultydashboard/attendance",
   [ROUTES.GRADE_BOOK]: "/facultydashboard/gradeBook",
@@ -120,17 +125,18 @@ const NAV_ITEMS = [
   },
   {
     section: "Teaching", links: [
-      { label: ROUTES.MY_COURSES, icon: <IcoBook />, badge: "3" },
+      { label: ROUTES.MY_COURSES, icon: <IcoBook /> },
       { label: ROUTES.VIDEO_LECTURES, icon: <IcoVideo /> },
-      { label: ROUTES.ASSIGNMENTS, icon: <IcoFile />, badge: "22", badgeClass: "rose" },
+      { label: ROUTES.ASSIGNMENTS, icon: <IcoFile /> },
       { label: ROUTES.QUIZZES, icon: <IcoClock /> },
+      { label: ROUTES.MEETINGS, icon: <IcoVideo />, badge: "Live" },
     ]
   },
   {
     section: "Students", links: [
       { label: ROUTES.ALL_STUDENTS, icon: <IcoUsers /> },
       { label: ROUTES.ATTENDANCE, icon: <IcoCal /> },
-      { label: ROUTES.GRADE_BOOK, icon: <IcoPen />, badge: "25", badgeClass: "rose" },
+      { label: ROUTES.GRADE_BOOK, icon: <IcoPen /> },
     ]
   },
   {
@@ -272,13 +278,19 @@ function Sidebar({ open, onClose, activePage, onNavigate, userName, stats, tasks
             {NAV_ITEMS.map(({ section, links }) => (
               <div key={section}>
                 <div className="sb-sec-label">{section}</div>
-                {links.map(({ label, icon, badge, badgeClass }) => {
+                {links.map((link) => {
+                  const { label, icon, badgeClass, badge } = link;
                   const isActive = activePage === label;
+                  let finalBadge = badge;
+                  if (label === ROUTES.MY_COURSES && stats?.active_courses != null) {
+                    finalBadge = stats.active_courses > 0 ? stats.active_courses : null;
+                  }
+                  
                   return (
                     <a key={label} href="#" className={`sb-link ${isActive ? "active" : ""}`}
                       onClick={e => { e.preventDefault(); if (ROUTABLE.has(label)) { onNavigate(label); onClose(); } }}>
                       {icon}{label}
-                      {badge && <span className={`sb-badge ${badgeClass || ""}`}>{badge}</span>}
+                      {finalBadge && <span className={`sb-badge ${badgeClass || ""}`}>{finalBadge}</span>}
                     </a>
                   );
                 })}
@@ -404,9 +416,10 @@ function AiPanel({ open, onClose, insights = [] }) {
 
 function AiFab({ onClick }) {
   return (
-    <button className="lucyna-fab" onClick={onClick} aria-label="Open AI Assistant">
-      <div className="lucyna-fab-ring" /><div className="lucyna-fab-dot" />
-      <IcoBrain /><span className="lucyna-fab-tip">AI Assistant</span>
+    <button className="lucyna-fab" onClick={onClick} aria-label="Open Lucyna AI">
+      <div className="lucyna-fab-ring"/><div className="lucyna-fab-dot"/>
+      <img src={lucynaJpg} alt="Lucyna" className="lucyna-fab-img"/>
+      <span className="lucyna-fab-tip">Ask Lucyna AI</span>
     </button>
   );
 }
@@ -500,6 +513,7 @@ export default function FacultyDashboard() {
       case ROUTES.VIDEO_LECTURES: return <FacultyVideoLectures onBack={() => navigate(ROUTES.DASHBOARD)} />;
       case ROUTES.ASSIGNMENTS: return <FacultyAssignments onBack={() => navigate(ROUTES.DASHBOARD)} />;
       case ROUTES.QUIZZES: return <FacultyQuizzes onBack={() => navigate(ROUTES.DASHBOARD)} />;
+      case ROUTES.MEETINGS: return <FacultyMeeting onBack={() => navigate(ROUTES.DASHBOARD)} />;
       case ROUTES.ALL_STUDENTS: return <AllStudents onBack={() => navigate(ROUTES.DASHBOARD)} />;
       case ROUTES.ATTENDANCE: return <Attendance onBack={() => navigate(ROUTES.DASHBOARD)} />;
       case ROUTES.GRADE_BOOK: return <GradeBook onBack={() => navigate(ROUTES.DASHBOARD)} />;

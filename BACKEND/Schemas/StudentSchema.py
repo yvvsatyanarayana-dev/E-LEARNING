@@ -162,6 +162,7 @@ class QuestionResponse(BaseModel):
     question_text: str
     type: str
     options: Optional[list] = None
+    correct_answer: Optional[str] = None
 
     class Config:
         from_attributes = True
@@ -453,6 +454,8 @@ class DashboardResponse(BaseModel):
     placement: Optional[PlacementReadinessResponse] = None
     schedule_today: List[dict] = []
     recent_quizzes: List[dict] = []
+    active_meeting: Optional[dict] = None
+    active_placement_meeting: Optional[dict] = None
 
     class Config:
         from_attributes = True

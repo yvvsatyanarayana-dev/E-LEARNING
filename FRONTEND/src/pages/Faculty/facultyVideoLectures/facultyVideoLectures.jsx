@@ -115,7 +115,7 @@ function Thumb({ lecture, size = "card" }) {
 }
 
 // ─── UPLOAD MODAL ─────────────────────────────────────────────────
-function UploadModal({ onClose, onPublish, courses = [] }) {
+function UploadModal({ onClose, onPublish, courses = [], groups = [] }) {
   const [step, setStep]         = useState(1);
   const [dragging, setDragging] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -315,10 +315,9 @@ function UploadModal({ onClose, onPublish, courses = [] }) {
                   <div className="vl-field">
                     <div className="vl-field-lbl">Target Group</div>
                     <select className="vl-input" value={form.target_group} onChange={set("target_group")}>
-                      <option value="All">All Students</option>
-                      <option value="BCA">BCA Only</option>
-                      <option value="MCA">MCA Only</option>
-                      <option value="BTech">B.Tech Only</option>
+                      {groups.map(g => (
+                        <option key={g} value={g}>{g === "All" ? "All Students" : g}</option>
+                      ))}
                     </select>
                   </div>
                 </div>
@@ -632,13 +631,15 @@ export default function FacultyVideoLectures({ onBack }) {
   const [courses, setCourses]           = useState([]);
   const [loading, setLoading]           = useState(true);
   const [showCreateCourse, setShowCreateCourse] = useState(false);
+  const [metadata, setMetadata]         = useState({ departments: [], groups: [] });
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [lectureRes, courseRes] = await Promise.all([
+        const [lectureRes, courseRes, metaRes] = await Promise.all([
           api.get("/faculty/lectures"),
           api.get("/faculty/courses"),
+          api.get("/faculty/metadata"),
         ]);
         setLectures(Array.isArray(lectureRes) ? lectureRes : []);
         // Map to simple {id, name} objects for CreateModal
@@ -646,6 +647,7 @@ export default function FacultyVideoLectures({ onBack }) {
           ? courseRes.map(c => ({ id: c.id, name: `${c.code} – ${c.name}` }))
           : [];
         setCourses(courseList);
+        setMetadata(metaRes);
       } catch (err) {
         console.error("Failed to fetch data:", err);
       } finally {
@@ -741,7 +743,7 @@ export default function FacultyVideoLectures({ onBack }) {
 
   return (
     <div className="vl-root">
-      {showUpload && <UploadModal onClose={() => setShowUpload(false)} onPublish={handlePublishLecture} courses={courses} />}
+      {showUpload && <UploadModal onClose={() => setShowUpload(false)} onPublish={handlePublishLecture} courses={courses} groups={metadata.groups} />}
       {showCreateCourse && (
         <CreateCourseModal 
           onClose={() => setShowCreateCourse(false)} 

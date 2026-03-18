@@ -326,19 +326,44 @@ function QuizAttemptScreen({ quiz, course, onClose, onSubmit, practiceQuestions 
     return ()=>clearInterval(timerRef.current);
   },[]);
 
-  const handleSubmit = useCallback(()=>{
+  const handleSubmit = async ()=>{
     clearInterval(timerRef.current);
+    try {
+      const correct  = questions.filter(q=>answers[q.id]===q.correct).length;
+      const score    = total > 0 ? Math.round((correct/total)*100) : 0;
+      const seconds_taken = ((quiz.duration||30)*60) - timeLeft;
+
+      await api.post(`/student/quizzes/${quiz.id}/attempt`, {
+        score: score,
+        time_taken_seconds: seconds_taken
+      });
+    } catch(err) {
+      console.error("Failed to submit quiz attempt", err);
+    }
     setSubmitted(true);
     setTimeout(()=>setShowResult(true),600);
-  },[]);
+  };
 
   const correct  = questions.filter(q=>answers[q.id]===q.correct).length;
   const wrong    = questions.filter(q=>answers[q.id]!==undefined&&answers[q.id]!==q.correct).length;
   const skipped  = total-correct-wrong;
-  const score    = Math.round((correct/total)*100);
+  const score    = total > 0 ? Math.round((correct/total)*100) : 0;
   const minutes  = Math.floor(timeLeft/60);
   const seconds  = timeLeft%60;
   const urgentTime = timeLeft < 120;
+
+  if (total === 0) {
+    return (
+      <div className="qz-attempt-overlay" onClick={onClose}>
+        <div className="qz-attempt-modal" onClick={e=>e.stopPropagation()} style={{maxWidth:400, padding: 30, textAlign: "center"}}>
+          <HelpCircle size={40} style={{color:"var(--text3)", marginBottom: 15}}/>
+          <h3 style={{marginBottom: 10}}>No Questions Found</h3>
+          <p style={{color: "var(--text3)", fontSize: 14, marginBottom: 20}}>This quiz doesn't have any questions added to it yet.</p>
+          <button className="as-modal-btn as-modal-btn--primary" style={{margin: "0 auto"}} onClick={onClose}>Go Back</button>
+        </div>
+      </div>
+    );
+  }
 
   const q = questions[current];
   const answered = Object.keys(answers).length;
@@ -388,8 +413,16 @@ function QuizAttemptScreen({ quiz, course, onClose, onSubmit, practiceQuestions 
             </div>
             <div className="as-modal-footer">
               <button className="as-modal-btn as-modal-btn--ghost" onClick={onClose}>Close</button>
-              <button className="as-modal-btn as-modal-btn--primary" style={{background:course.color}} onClick={()=>{setSubmitted(false);setShowResult(false);setCurrent(0);setAnswers({});setFlagged(new Set());setTimeLeft((quiz.duration||30)*60);}}>
-                <RotateCcw size={13}/>Retry Quiz
+              <button className="as-modal-btn as-modal-btn--primary" style={{background:course.color}} onClick={()=>{
+                setSubmitted(false);
+                setShowResult(false);
+                setCurrent(0);
+                setAnswers({});
+                setFlagged(new Set());
+                setTimeLeft((quiz.duration||30)*60);
+                setTimeout(() => window.location.reload(), 300); // Reload to fetch fresh submissions
+              }}>
+                <RotateCcw size={13}/>Back to Quizzes
               </button>
             </div>
           </div>
@@ -909,13 +942,16 @@ export default function StudentQuizzes({ onBack }) {
           weight: "10%",
           weakAreas: [],
           aiTip: null,
-          questions: (q.questions || []).map(quest => ({
-            id: quest.id,
-            text: quest.question_text,
-            options: quest.options,
-            correct: 0,
-            explanation: "Review the course materials."
-          })),
+          questions: (q.questions || []).map(quest => {
+            const parsedAns = parseInt(quest.correct_answer, 10);
+            return {
+              id: quest.id,
+              text: quest.question_text,
+              options: quest.options || [],
+              correct: !isNaN(parsedAns) ? parsedAns : 0,
+              explanation: "Review the course materials."
+            };
+          }),
           isLive: q.attempt_count === 0,
         }));
         setQuizzesState(mappedQuizzes);

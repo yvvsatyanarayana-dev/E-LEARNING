@@ -335,6 +335,7 @@ function AssignmentsTab({ course }) {
     done:     { label:"Graded",   color:"var(--teal)",  bg:"rgba(39,201,176,.1)", icon:<IcoCheck width={10} height={10}/> },
     grading:  { label:"Grading",  color:"var(--amber)", bg:"rgba(244,165,53,.1)", icon:<IcoPen   width={10} height={10}/> },
     upcoming: { label:"Upcoming", color:"var(--text3)", bg:"var(--surface3)",     icon:<IcoCal   width={10} height={10}/> },
+    live:     { label:"Live",     color:"var(--rose)",  bg:"rgba(242,68,92,.1)",  icon:<IcoAlert width={10} height={10}/> },
   };
   const TYPE_COLOR = { Lab:"var(--indigo-l)", Theory:"var(--teal)", Project:"var(--violet)", Coding:"var(--amber)" };
   const TYPE_BG    = { Lab:"rgba(91,78,248,.1)", Theory:"rgba(39,201,176,.1)", Project:"rgba(159,122,234,.1)", Coding:"rgba(244,165,53,.1)" };
@@ -356,7 +357,7 @@ function AssignmentsTab({ course }) {
         </div>
         <div style={{ display:"flex", flexDirection:"column", gap:0 }}>
           {course.assignments.map((asgmt, i) => {
-            const sm = STATUS_META[asgmt.status];
+            const sm = STATUS_META[asgmt.status] || STATUS_META.upcoming;
             return (
               <div key={asgmt.id} className="fcd-asgmt-row">
                 <div className="fcd-asgmt-main">
@@ -690,6 +691,7 @@ export default function FacultyCourses({ onBack }) {
       const safeQuizzes     = Array.isArray(d.quizzes) ? d.quizzes : [];
       const safeLectures    = Array.isArray(d.lecture_list) ? d.lecture_list : [];
       const safeStudents    = Array.isArray(d.student_list) ? d.student_list : [];
+      const safeWeakTopics  = Array.isArray(d.weak_topics) ? d.weak_topics : [];
 
       // Merge detail into selected course
       setSelectedCourse({
@@ -703,7 +705,7 @@ export default function FacultyCourses({ onBack }) {
           due: a.due_label,
           avgScore: a.avg_score,
         })),
-        quizzes: d.quizzes.map(q => ({
+        quizzes: safeQuizzes.map(q => ({
           ...q,
           questions: q.questions_count,
           date: q.start_date,
@@ -725,7 +727,7 @@ export default function FacultyCourses({ onBack }) {
           trend: s.trend,
           status: s.status,
         })),
-        weakTopics: d.weak_topics.map(w => ({
+        weakTopics: safeWeakTopics.map(w => ({
           ...w,
           topic: w.topic,
           students: w.student_count,

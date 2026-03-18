@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import cyberpunkImg from "./assets/Cyberpunk 2077.jpg";
 import "./App.css";
 import LoginModal from "./auth/login/login";
 import RegisterModal from "./auth/register/register";
@@ -98,6 +99,37 @@ export default function SmartCampus({ defaultModal }) {
 
   return (
     <div className={`sc-root ${cursorState}`} ref={rootRef}>
+      {/* ─── SHARED FLOATING IMAGE ─── */}
+      <div style={{
+        position: 'fixed',
+        bottom: 32,
+        right: 32,
+        zIndex: 9999,
+        width: 64,
+        height: 64,
+        borderRadius: '50%',
+        boxShadow: '0 4px 24px 0 #a0f8',
+        background: 'linear-gradient(135deg, #7f5fff 60%, #01ffea 100%)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        cursor: 'pointer',
+        transition: 'box-shadow 0.2s',
+      }}
+        title="AI Assistant"
+      >
+        <img
+          src={cyberpunkImg}
+          alt="AI Assistant"
+          style={{
+            width: 52,
+            height: 52,
+            borderRadius: '50%',
+            objectFit: 'cover',
+            boxShadow: '0 0 8px #a0f',
+          }}
+        />
+      </div>
       {/* ─── CURSORS ─── */}
       <div className="sc-cursor" ref={cursorRef} />
       <div className="sc-cursor-ring" ref={ringRef} />

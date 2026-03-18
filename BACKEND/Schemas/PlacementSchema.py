@@ -47,12 +47,32 @@ class PlacementReadinessResponse(BaseModel):
 class InternshipCreate(BaseModel):
     company_name: str
     role: str
+    sector: Optional[str] = None
+    website: Optional[str] = None
+    bond: Optional[str] = None
+    contact_name: Optional[str] = None
+    contact_email: Optional[str] = None
+    contact_phone: Optional[str] = None
+    min_cgpa: float = 0.0
+    branches: Optional[List[str]] = None
+    rounds: Optional[List[str]] = None
+    pkg_lpa: Optional[float] = None
     deadline: Optional[datetime] = None
 
 
 class InternshipUpdate(BaseModel):
     company_name: Optional[str] = None
     role: Optional[str] = None
+    sector: Optional[str] = None
+    website: Optional[str] = None
+    bond: Optional[str] = None
+    contact_name: Optional[str] = None
+    contact_email: Optional[str] = None
+    contact_phone: Optional[str] = None
+    min_cgpa: Optional[float] = None
+    branches: Optional[List[str]] = None
+    rounds: Optional[List[str]] = None
+    pkg_lpa: Optional[float] = None
     deadline: Optional[datetime] = None
 
 
@@ -60,6 +80,16 @@ class InternshipResponse(BaseModel):
     id: int
     company_name: str
     role: str
+    sector: Optional[str]
+    website: Optional[str]
+    bond: Optional[str]
+    contact_name: Optional[str]
+    contact_email: Optional[str]
+    contact_phone: Optional[str]
+    min_cgpa: float
+    branches: Optional[List[str]]
+    rounds: Optional[List[str]]
+    pkg_lpa: Optional[float]
     added_by: int
     deadline: Optional[datetime]
     created_at: datetime
@@ -84,6 +114,66 @@ class InternshipApplicationResponse(BaseModel):
     student_id: int
     status: ApplicationStatus
     applied_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# ─── Dashboard Tasks ─────────────────────────────
+
+class PlacementTaskCreate(BaseModel):
+    text: str
+    category: str = "General"
+    due_date: Optional[datetime] = None
+
+
+class PlacementTaskUpdate(BaseModel):
+    text: Optional[str] = None
+    done: Optional[bool] = None
+    category: Optional[str] = None
+    due_date: Optional[datetime] = None
+
+
+class PlacementTaskResponse(BaseModel):
+    id: int
+    officer_id: int
+    text: str
+    done: bool
+    category: str
+    due_date: Optional[datetime]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# ─── Dashboard Events ────────────────────────────
+
+class PlacementEventCreate(BaseModel):
+    time: str
+    title: str
+    type: str = "Meeting"
+    company: Optional[str] = None
+    status: str = "Upcoming"
+
+
+class PlacementEventUpdate(BaseModel):
+    time: Optional[str] = None
+    title: Optional[str] = None
+    type: Optional[str] = None
+    company: Optional[str] = None
+    status: Optional[str] = None
+
+
+class PlacementEventResponse(BaseModel):
+    id: int
+    officer_id: int
+    time: str
+    title: str
+    type: str
+    company: Optional[str]
+    status: str
+    created_at: datetime
 
     class Config:
         from_attributes = True

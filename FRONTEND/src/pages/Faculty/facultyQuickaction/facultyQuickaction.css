@@ -75,6 +75,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  color: var(--indigo-ll);
 }
 .qa-title    { font-size: 14px; font-weight: 700; color: var(--text); }
 .qa-subtitle { font-size: 10px; color: var(--text3); margin-top: 2px; font-weight: 300; }
@@ -93,6 +94,21 @@
 }
 .qa-close:hover { background: var(--surface3); color: var(--text); }
 
+/* ── GLOBAL SVG FIX for header & close ── */
+.qa-header-icon svg,
+.qa-close svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: block;
+  flex-shrink: 0;
+}
+.qa-close:hover svg { stroke: var(--text); }
+
 /* ── SEARCH ── */
 .qa-search-wrap {
   display: flex;
@@ -103,6 +119,20 @@
   border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
+
+/* ── SEARCH WRAP SVG FIX (search icon) ── */
+.qa-search-wrap > svg {
+  width: 15px;
+  height: 15px;
+  stroke: var(--text3);
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: block;
+  flex-shrink: 0;
+}
+
 .qa-search {
   flex: 1;
   background: none;
@@ -127,6 +157,20 @@
   transition: background .18s;
 }
 .qa-search-clear:hover { background: rgba(242,68,92,.15); color: var(--rose); }
+
+/* ── SEARCH CLEAR SVG FIX ── */
+.qa-search-clear svg {
+  width: 9px;
+  height: 9px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  display: block;
+  flex-shrink: 0;
+}
+.qa-search-clear:hover svg { stroke: var(--rose); }
+
 .qa-kbd {
   font-size: 9px;
   font-weight: 700;
@@ -240,6 +284,20 @@
   justify-content: center;
   flex-shrink: 0;
 }
+
+/* ── ACTION ICON SVG FIX ── */
+.qa-action-ic svg {
+  width: 17px;
+  height: 17px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: block;
+  flex-shrink: 0;
+}
+
 .qa-action-info { flex: 1; min-width: 0; }
 .qa-action-label { font-size: 11.5px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .qa-action-desc  { font-size: 9.5px; color: var(--text3); margin-top: 2px; line-height: 1.4; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -255,9 +313,9 @@
   white-space: nowrap;
   flex-shrink: 0;
 }
-.qa-action-badge.rose  { background: rgba(242,68,92,.12); color: var(--rose);   border-color: rgba(242,68,92,.22); }
-.qa-action-badge.teal  { background: rgba(39,201,176,.1); color: var(--teal);   border-color: rgba(39,201,176,.22); }
-.qa-action-badge.amber { background: rgba(244,165,53,.1); color: var(--amber); border-color: rgba(244,165,53,.22); }
+.qa-action-badge.rose  { background: rgba(242,68,92,.12);  color: var(--rose);   border-color: rgba(242,68,92,.22);  }
+.qa-action-badge.teal  { background: rgba(39,201,176,.1);  color: var(--teal);   border-color: rgba(39,201,176,.22); }
+.qa-action-badge.amber { background: rgba(244,165,53,.1);  color: var(--amber);  border-color: rgba(244,165,53,.22); }
 
 .qa-action-arrow {
   flex-shrink: 0;
@@ -265,6 +323,19 @@
   opacity: 0;
   transform: translateX(-4px);
   transition: opacity .18s, transform .18s;
+}
+
+/* ── ARROW SVG FIX ── */
+.qa-action-arrow svg {
+  width: 13px;
+  height: 13px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: block;
+  flex-shrink: 0;
 }
 
 /* ── EMPTY STATE ── */
@@ -303,6 +374,19 @@
   border: 1px solid var(--border2);
   border-radius: 4px;
   color: var(--text2);
+}
+
+/* ── FOOTER NAV SVG FIX ── */
+.qa-footer-tip svg {
+  width: 12px;
+  height: 12px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  display: block;
+  flex-shrink: 0;
 }
 
 /* ── RESPONSIVE ── */

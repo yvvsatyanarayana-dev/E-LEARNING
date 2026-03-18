@@ -1,6 +1,6 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
-import { getUser, ROLE_REDIRECTS } from "../utils/auth";
+import { getUser, ROLE_REDIRECTS } from "../utils/auth.js";
 
 export default function RoleRoute({ allowedRoles = [], children }) {
   const user = getUser();

@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, File, UploadFile
+from fastapi.responses import StreamingResponse
+from datetime import datetime
 from sqlalchemy.orm import Session
 from Core.Database import get_db
 from Core.Security import get_current_user
@@ -13,7 +15,7 @@ from Schemas.FacultySchema import (
     FacultyLectureDetail, FacultyProfileResponse, FacultyAttendanceCourse,
     FacultySettingsResponse, FacultySettingsUpdate,
     FacultyLessonCreate, FacultyAssignmentCreate, FacultyQuizCreate, FacultyCourseCreate,
-    FacultyReportResponse
+    FacultyReportResponse, FacultyAssignmentUpdate, FacultyQuizUpdate, FacultyMetadataResponse
 )
 
 router = APIRouter(prefix="/faculty", tags=["Faculty"])
@@ -47,6 +49,11 @@ def get_faculty_courses(current_user: User = Depends(get_current_user), db: Sess
 def create_faculty_course(data: FacultyCourseCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return faculty_service.create_course(current_user, db, data)
 
+@router.get("/courses/{course_id}", response_model=dict)
+def get_faculty_course(course_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return faculty_service.get_course(current_user, db, course_id)
+
+
 @router.get("/lectures", response_model=List[FacultyLectureDetail])
 def get_faculty_lectures(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return faculty_service.get_lectures(current_user, db)
@@ -63,6 +70,14 @@ def get_faculty_assignments(current_user: User = Depends(get_current_user), db: 
 def create_faculty_assignment(data: FacultyAssignmentCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return faculty_service.create_assignment(current_user, db, data)
 
+@router.put("/assignments/{assignment_id}", response_model=FacultyAssignmentDetail)
+def update_faculty_assignment(assignment_id: int, data: FacultyAssignmentUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return faculty_service.update_assignment(current_user, db, assignment_id, data)
+
+@router.delete("/assignments/{assignment_id}")
+def delete_faculty_assignment(assignment_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return faculty_service.delete_assignment(current_user, db, assignment_id)
+
 @router.get("/quizzes", response_model=List[FacultyQuizDetail])
 def get_faculty_quizzes(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return faculty_service.get_quizzes(current_user, db)
@@ -70,6 +85,14 @@ def get_faculty_quizzes(current_user: User = Depends(get_current_user), db: Sess
 @router.post("/quizzes", response_model=FacultyQuizDetail)
 def create_faculty_quiz(data: FacultyQuizCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return faculty_service.create_quiz(current_user, db, data)
+
+@router.put("/quizzes/{quiz_id}", response_model=FacultyQuizDetail)
+def update_faculty_quiz(quiz_id: int, data: FacultyQuizUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return faculty_service.update_quiz(current_user, db, quiz_id, data)
+
+@router.delete("/quizzes/{quiz_id}")
+def delete_faculty_quiz(quiz_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return faculty_service.delete_quiz(current_user, db, quiz_id)
 
 @router.get("/students", response_model=List[FacultyStudentDetail])
 def get_faculty_all_students(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -87,6 +110,28 @@ def get_faculty_analytics(current_user: User = Depends(get_current_user), db: Se
 def get_faculty_reports(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return faculty_service.get_reports(current_user, db)
 
+@router.get("/reports/export/{report_type}")
+def export_faculty_report(report_type: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    output = faculty_service.export_report(current_user, db, report_type)
+    
+    filename = f"{report_type}_report_{datetime.now().strftime('%Y%m%d')}.csv"
+    
+    # Ensure the stream starts from the beginning
+    output.seek(0)
+    
+    return StreamingResponse(
+        iter([output.getvalue()]),
+        media_type="text/csv",
+        headers={
+            "Content-Disposition": f"attachment; filename={filename}",
+            "Access-Control-Expose-Headers": "Content-Disposition"
+        }
+    )
+
+@router.get("/metadata", response_model=FacultyMetadataResponse)
+def get_faculty_metadata(db: Session = Depends(get_db)):
+    return faculty_service.get_metadata(db)
+
 @router.post("/upload")
 def upload_file(file: UploadFile = File(...), current_user: User = Depends(get_current_user)):
     try:
@@ -101,3 +146,31 @@ def upload_file(file: UploadFile = File(...), current_user: User = Depends(get_c
         return {"url": f"http://127.0.0.1:8000/uploads/{filename}", "filename": file.filename}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
+
+# ── MEETING ROUTES ────────────────────────────────────────────────────
+
+@router.get("/meetings/groups")
+def get_meeting_groups(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Return faculty's courses as meeting groups with student counts."""
+    return faculty_service.get_meeting_groups(current_user, db)
+
+@router.post("/meetings/start")
+def start_meeting(body: dict, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Start or create a meeting room for a specific course group."""
+    course_id = body.get("course_id")
+    if not course_id:
+        raise HTTPException(status_code=400, detail="course_id is required")
+    return faculty_service.start_meeting(current_user, db, int(course_id))
+
+@router.post("/meetings/end")
+def end_meeting(body: dict, current_user: User = Depends(get_current_user)):
+    """End a live meeting room."""
+    group_key = body.get("group_key")
+    if not group_key:
+        raise HTTPException(status_code=400, detail="group_key is required")
+    return faculty_service.end_meeting(current_user, group_key)
+
+@router.get("/meetings/history")
+def get_meeting_history(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Return past meeting history for the faculty."""
+    return faculty_service.get_meeting_history(current_user, db)
