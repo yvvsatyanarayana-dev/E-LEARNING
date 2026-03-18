@@ -23,8 +23,7 @@
   color: var(--text2);
   background: none;
   border: none;
-  cursor: pointer;
-  padding: 6px 10px;
+  cursor: none;padding: 6px 10px;
   border-radius: 7px;
   transition: background .18s, color .18s;
 }
@@ -95,8 +94,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  color: #fff;
+  cursor: none;color: #fff;
   transition: background .18s;
 }
 .fp-avatar-cam:hover { background: var(--indigo-l); }
@@ -142,8 +140,7 @@
   border: 1px solid rgba(91,78,248,.25);
   border-radius: 9px;
   padding: 8px 16px;
-  cursor: pointer;
-  transition: background .2s, border-color .2s;
+  cursor: none;transition: background .2s, border-color .2s;
   flex-shrink: 0;
 }
 .fp-edit-btn:hover { background: rgba(91,78,248,.18); border-color: rgba(91,78,248,.45); }
@@ -184,8 +181,7 @@
   border: none;
   border-bottom: 2px solid transparent;
   color: var(--text3);
-  cursor: pointer;
-  transition: color .18s, border-color .18s;
+  cursor: none;transition: color .18s, border-color .18s;
   text-transform: capitalize;
   margin-bottom: -1px;
 }
@@ -235,8 +231,7 @@
   color: var(--indigo-ll);
   background: none;
   border: none;
-  cursor: pointer;
-  transition: color .18s;
+  cursor: none;transition: color .18s;
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-weight: 500;
 }
@@ -273,8 +268,7 @@
   font-weight: 600;
   padding: 7px 16px;
   border-radius: 8px;
-  cursor: pointer;
-  display: inline-flex;
+  cursor: none;display: inline-flex;
   align-items: center;
   gap: 5px;
   border: none;
@@ -310,8 +304,7 @@
   background: rgba(91,78,248,.06);
   border-color: rgba(91,78,248,.22);
   color: var(--indigo-ll);
-  cursor: pointer;
-}
+  cursor: none;}
 
 /* Contact */
 .fp-contact-row {
@@ -342,7 +335,7 @@
   border-radius: 12px;
   padding: 14px;
   transition: transform .2s;
-  cursor: default;
+  cursor: none;
 }
 .fp-course-card:hover { transform: translateY(-2px); }
 

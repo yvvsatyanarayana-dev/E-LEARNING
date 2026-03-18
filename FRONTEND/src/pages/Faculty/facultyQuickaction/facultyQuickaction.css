@@ -89,8 +89,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  color: var(--text3);
+  cursor: none;color: var(--text3);
   transition: background .18s, color .18s;
 }
 .qa-close:hover { background: var(--surface3); color: var(--text); }
@@ -154,8 +153,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  color: var(--text3);
+  cursor: none;color: var(--text3);
   transition: background .18s;
 }
 .qa-search-clear:hover { background: rgba(242,68,92,.15); color: var(--rose); }
@@ -209,8 +207,7 @@
   align-items: center;
   justify-content: space-between;
   padding: 9px 13px;
-  cursor: pointer;
-  border-bottom: 1px solid var(--border);
+  cursor: none;border-bottom: 1px solid var(--border);
 }
 .qa-recent-toggle {
   font-size: 10px;
@@ -225,8 +222,7 @@
   padding: 8px 13px;
   border-bottom: 1px solid var(--border);
   transition: background .15s;
-  cursor: pointer;
-}
+  cursor: none;}
 .qa-recent-item:last-child { border-bottom: none; }
 .qa-recent-item:hover { background: rgba(255,255,255,.02); }
 .qa-recent-dot {
@@ -265,8 +261,7 @@
   background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: 11px;
-  cursor: pointer;
-  text-align: left;
+  cursor: none;text-align: left;
   font-family: 'Plus Jakarta Sans', sans-serif;
   transition: border-color .18s, background .18s, transform .14s;
   position: relative;

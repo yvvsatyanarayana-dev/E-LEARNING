@@ -35,8 +35,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: none;
-  color: var(--text3);
+  cursor: none;color: var(--text3);
   transition: all .2s;
   flex-shrink: 0;
 }
@@ -84,8 +83,7 @@
   border: none;
   background: none;
   color: var(--text3);
-  cursor: none;
-  transition: all .18s;
+  cursor: none;transition: all .18s;
   white-space: nowrap;
 }
 .period-pill:hover  { color: var(--text2); }
@@ -107,8 +105,7 @@
   border: none;
   background: none;
   color: var(--text3);
-  cursor: none;
-  border-bottom: 2px solid transparent;
+  cursor: none;border-bottom: 2px solid transparent;
   margin-bottom: -1px;
   display: flex;
   align-items: center;
@@ -140,7 +137,7 @@
   position: relative;
   overflow: hidden;
   transition: border-color .2s, transform .2s;
-  cursor: default;
+  cursor: none;
 }
 .an-kpi-card:hover { border-color: var(--border2); transform: translateY(-2px); }
 .an-kpi-card::before {
@@ -352,8 +349,7 @@
   border: 1px solid var(--border2);
   background: var(--surface2);
   color: var(--text3);
-  cursor: none;
-  transition: all .2s;
+  cursor: none;transition: all .2s;
   display: flex;
   align-items: center;
   gap: 7px;
@@ -433,7 +429,7 @@
   padding: 16px;
   text-align: center;
   transition: border-color .2s, transform .2s;
-  cursor: default;
+  cursor: none;
 }
 .sdr-card:hover { border-color: var(--border2); transform: translateY(-2px); }
 .sdr-donut-wrap {
@@ -479,7 +475,7 @@
   align-items: center;
   border-bottom: 1px solid var(--border);
   transition: background .18s;
-  cursor: default;
+  cursor: none;
 }
 .lb-row:last-child { border-bottom: none; }
 .lb-row:hover { background: rgba(255,255,255,.025); }
@@ -520,8 +516,7 @@
   border: none;
   background: none;
   color: var(--text3);
-  cursor: none;
-  transition: all .18s;
+  cursor: none;transition: all .18s;
 }
 .sort-pill:hover  { color: var(--text2); }
 .sort-pill.active { background: var(--surface3); color: var(--indigo-ll); font-weight: 700; }
@@ -574,7 +569,7 @@
   border-radius: 12px;
   padding: 16px 18px;
   transition: border-color .2s, transform .2s;
-  cursor: default;
+  cursor: none;
 }
 .eng-kpi-card:hover { border-color: var(--border2); transform: translateY(-2px); }
 .eng-kpi-val { font-family: 'Fraunces', serif; font-size: 26px; font-weight: 400; line-height: 1; margin-bottom: 4px; }
@@ -615,7 +610,7 @@
 .hm-cell {
   height: 22px;
   border-radius: 4px;
-  cursor: default;
+  cursor: none;
   transition: transform .15s, filter .15s;
 }
 .hm-cell:hover {

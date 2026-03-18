@@ -78,8 +78,7 @@
   color: var(--indigo-ll);
   background: none;
   border: none;
-  cursor: pointer;
-  padding: 4px 8px;
+  cursor: none;padding: 4px 8px;
   border-radius: 6px;
   font-family: 'Plus Jakarta Sans', sans-serif;
   transition: background .18s;
@@ -94,8 +93,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  color: var(--text3);
+  cursor: none;color: var(--text3);
   transition: background .18s, color .18s;
 }
 .np-hclose:hover { background: var(--surface3); color: var(--text); }
@@ -120,8 +118,7 @@
   border: none;
   border-bottom: 2px solid transparent;
   color: var(--text3);
-  cursor: pointer;
-  transition: color .18s, border-color .18s;
+  cursor: none;transition: color .18s, border-color .18s;
   margin-bottom: -1px;
 }
 .np-tab:hover { color: var(--text2); }
@@ -156,8 +153,7 @@
   gap: 11px;
   padding: 12px 14px;
   border-bottom: 1px solid var(--border);
-  cursor: pointer;
-  transition: background .15s;
+  cursor: none;transition: background .15s;
   position: relative;
 }
 .np-item:last-child { border-bottom: none; }
@@ -226,8 +222,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-  color: var(--text3);
+  cursor: none;color: var(--text3);
   transition: background .18s, color .18s;
 }
 .np-item-btn:hover { background: rgba(39,201,176,.15); color: var(--teal); }
@@ -259,8 +254,7 @@
   font-size: 11.5px;
   font-weight: 600;
   color: var(--indigo-ll);
-  cursor: pointer;
-  transition: background .18s, border-color .18s;
+  cursor: none;transition: background .18s, border-color .18s;
 }
 .np-footer-btn:hover { background: rgba(91,78,248,.1); border-color: rgba(91,78,248,.3); }
 
