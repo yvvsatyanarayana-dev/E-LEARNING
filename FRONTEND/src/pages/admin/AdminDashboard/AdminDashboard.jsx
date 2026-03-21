@@ -1,6 +1,7 @@
 // AdminDashboard.jsx — SMART CAMPUS Admin Panel
 import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import api from "../../../utils/api";
 import "./AdminDashboard.css";
 
 /* ─────────────────────────────────────────
@@ -50,62 +51,7 @@ const I = ({ n, size = 16 }) => <Icon size={size} d={icons[n]} />;
 /* ─────────────────────────────────────────
    DATA
 ───────────────────────────────────────── */
-const USERS = [
-  { id:1, name:"Aditya Sharma",    email:"aditya@college.edu",   role:"student",   dept:"CSE",   status:"active",   joined:"Jan 2024", av:"AS", avColor:"rgba(91,78,248,.2)",   avText:"var(--indigo-ll)" },
-  { id:2, name:"Dr. Meera Nair",   email:"meera@college.edu",    role:"faculty",   dept:"ECE",   status:"active",   joined:"Aug 2022", av:"MN", avColor:"rgba(39,201,176,.15)", avText:"var(--teal)" },
-  { id:3, name:"Rohit Verma",      email:"rohit@college.edu",    role:"student",   dept:"MECH",  status:"inactive", joined:"Jan 2024", av:"RV", avColor:"rgba(242,68,92,.15)",  avText:"var(--rose)" },
-  { id:4, name:"Priya Krishnan",   email:"priya@college.edu",    role:"placement", dept:"HR",    status:"active",   joined:"Mar 2023", av:"PK", avColor:"rgba(244,165,53,.15)", avText:"var(--amber)" },
-  { id:5, name:"Ankit Gupta",      email:"ankit@college.edu",    role:"student",   dept:"CSE",   status:"pending",  joined:"Jan 2025", av:"AG", avColor:"rgba(159,122,234,.15)",avText:"var(--violet)" },
-  { id:6, name:"Dr. Suresh Babu",  email:"suresh@college.edu",   role:"faculty",   dept:"CIVIL", status:"active",   joined:"Jun 2021", av:"SB", avColor:"rgba(39,201,176,.15)", avText:"var(--teal)" },
-  { id:7, name:"Kavitha Rao",      email:"kavitha@college.edu",  role:"student",   dept:"MBA",   status:"active",   joined:"Jul 2024", av:"KR", avColor:"rgba(91,78,248,.2)",   avText:"var(--indigo-ll)" },
-];
-
-const DEPARTMENTS = [
-  { name:"Computer Science & Engineering", short:"CSE",   students:420, courses:18, pct:88, color:"var(--indigo-l)" },
-  { name:"Electronics & Communication",    short:"ECE",   students:310, courses:14, pct:74, color:"var(--violet)" },
-  { name:"Mechanical Engineering",         short:"MECH",  students:275, courses:12, pct:61, color:"var(--amber)" },
-  { name:"Civil Engineering",              short:"CIVIL", students:198, courses:10, pct:44, color:"var(--teal)" },
-  { name:"Master of Business Admin",       short:"MBA",   students:142, courses: 9, pct:32, color:"var(--rose)" },
-];
-
-const ACTIVITY = [
-  { type:"user",     icon:"userPlus",  color:"rgba(91,78,248,.15)",   text: <><strong>3 new students</strong> registered via portal — pending email verification</>,  time:"2 mins ago",  badge:"New" },
-  { type:"course",   icon:"book",      color:"rgba(39,201,176,.12)",  text: <><strong>Dr. Meera</strong> published a new module in <strong>VLSI Design</strong></>,    time:"14 mins ago", badge:null },
-  { type:"system",   icon:"shield",    color:"rgba(242,68,92,.12)",   text: <>Failed login attempt detected from IP <strong>192.168.1.42</strong> — auto-blocked</>,  time:"32 mins ago", badge:"Alert" },
-  { type:"quiz",     icon:"zap",       color:"rgba(244,165,53,.12)",  text: <><strong>Algorithms Quiz #4</strong> auto-graded — avg score <strong>71%</strong></>,     time:"1 hr ago",    badge:null },
-  { type:"placement",icon:"briefcase", color:"rgba(159,122,234,.12)", text: <><strong>TCS</strong> placement drive scheduled — 48 students registered</>,             time:"3 hrs ago",   badge:"Drive" },
-  { type:"backup",   icon:"db",        color:"rgba(39,201,176,.12)",  text: <>Automated database backup completed — <strong>2.4 GB</strong> archived successfully</>, time:"6 hrs ago",   badge:null },
-];
-
-const COURSES = [
-  { name:"Data Structures & Algorithms",  dept:"CSE",   enrolled:142, completion:76, color:"var(--indigo-l)",  active:true },
-  { name:"Digital Signal Processing",     dept:"ECE",   enrolled:98,  completion:61, color:"var(--violet)",    active:true },
-  { name:"Thermodynamics",                dept:"MECH",  enrolled:84,  completion:48, color:"var(--amber)",     active:true },
-  { name:"Machine Learning Fundamentals", dept:"CSE",   enrolled:127, completion:83, color:"var(--teal)",      active:true },
-  { name:"Structural Analysis",           dept:"CIVIL", enrolled:72,  completion:35, color:"var(--rose)",      active:false },
-  { name:"Marketing Management",          dept:"MBA",   enrolled:63,  completion:52, color:"var(--indigo-ll)", active:true },
-];
-
-const PLACEMENT = [
-  { company:"TCS",       students:48, pct:85, color:"var(--teal)" },
-  { company:"Infosys",   students:41, pct:72, color:"var(--indigo-l)" },
-  { company:"Wipro",     students:33, pct:58, color:"var(--violet)" },
-  { company:"Accenture", students:27, pct:47, color:"var(--amber)" },
-  { company:"HCL Tech",  students:19, pct:33, color:"var(--rose)" },
-];
-
-const SYSTEM_STATUS = [
-  { name:"API Server",    icon:"zap",    status:"up",   latency:"38ms",  color:"rgba(91,78,248,.15)",  text:"var(--indigo-ll)" },
-  { name:"Database",      icon:"db",     status:"up",   latency:"12ms",  color:"rgba(39,201,176,.12)", text:"var(--teal)" },
-  { name:"WebRTC Server", icon:"wifi",   status:"warn", latency:"110ms", color:"rgba(244,165,53,.12)", text:"var(--amber)" },
-  { name:"File Storage",  icon:"layers", status:"up",   latency:"24ms",  color:"rgba(91,78,248,.15)",  text:"var(--indigo-ll)" },
-  { name:"Email Service", icon:"globe",  status:"up",   latency:"66ms",  color:"rgba(39,201,176,.12)", text:"var(--teal)" },
-];
-
-const USAGE_DATA = [
-  { label:"Mon", val:62 }, { label:"Tue", val:78 }, { label:"Wed", val:91 },
-  { label:"Thu", val:84 }, { label:"Fri", val:95 }, { label:"Sat", val:52 }, { label:"Sun", val:41 },
-];
+// Data will be fetched from API
 
 /* ─────────────────────────────────────────
    NAV — id maps to route path segment
@@ -118,14 +64,14 @@ const NAV = [
     { id:"analytics",       label:"Analytics",       icon:"bar",       routePath:"adminAnalytics",  badge:null },
   ]},
   { section:"Management", items:[
-    { id:"users",           label:"User Management", icon:"users",     routePath:"userManagement",  badge:"1.3k" },
-    { id:"courses",         label:"Courses",         icon:"book",      routePath:"courseManagement",badge:"47" },
-    { id:"departments",     label:"Departments",     icon:"layers",    routePath:"department",      badge:null },
-    { id:"placement",       label:"Placement",       icon:"briefcase", routePath:"placement",       badge:"3",   badgeType:"teal" },
+    { id:"users",           label:"User Management", icon:"users",     routePath:"userManagement",  badge:null },
+    { id:"courses",         label:"Courses",         icon:"book",      routePath:"courseManagement",badge:null },
+    { id:"departments",     label:"Departments",     icon:"layers",    routePath:"departments",     badge:null },
+    { id:"placement",       label:"Placement",       icon:"briefcase", routePath:"placements",      badge:null,   badgeType:"teal" },
   ]},
   { section:"Platform",   items:[
     { id:"reports",         label:"Reports",         icon:"download",  routePath:"adminReports",    badge:null },
-    { id:"activity",        label:"Activity Log",    icon:"activity",  routePath:"activitylog",     badge:"12",  badgeType:"rose" },
+    { id:"activity",        label:"Activity Log",    icon:"activity",  routePath:"auditLogs",       badge:null,  badgeType:"rose" },
     { id:"security",        label:"Security",        icon:"shield",    routePath:"security",        badge:null },
     { id:"settings",        label:"Settings",        icon:"settings",  routePath:"settings",        badge:null },
   ]},
@@ -151,29 +97,86 @@ const getActiveId = (pathname) => {
 export default function AdminDashboard() {
   const navigate        = useNavigate();
   const location        = useLocation();
-
+  const cursorRef       = useRef(null);
+  const cursorRingRef   = useRef(null);
+  const pageRef         = useRef(null);
   const [sidebarOpen, setSidebar]   = useState(false);
-  const [userFilter,  setUserFilter] = useState("all");
-  const [userSearch,  setUserSearch] = useState("");
-  const [userPage,    setUserPage]   = useState(1);
+  const [active, setActive]         = useState(getActiveId(location.pathname));
+  const [now, setNow]               = useState(new Date().toLocaleDateString("en-US", { weekday: 'short', month: 'short', day: 'numeric' }));
 
-  const pageRef       = useRef(null);
-  const cursorRef     = useRef(null);
-  const cursorRingRef = useRef(null);
+  // REAL-TIME DATA STATES
+  const [stats, setStats]           = useState({ total_users: "0", active_courses: "0", placement_readiness: "0%", alerts: "0", deltas: {}, latency: "..." });
+  const [activities, setActivities] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [usageData, setUsageData]   = useState([]);
+  const [placementData, setPlacementData] = useState([]);
+  const [systemStatus, setSystemStatus]   = useState([]);
+  const [resources, setResources]         = useState([]);
+  const [users, setUsers]           = useState([]);
+  const [courses, setCourses]       = useState([]);
+  const [navBadges, setNavBadges]   = useState({});
+  const [configStats, setConfigStats] = useState({ uptime: "99.9%", cpu: "0%", memory: "0%", backup_size: "0GB" });
+  const [loading, setLoading]       = useState(true);
 
-  // Derive active tab from URL so it stays in sync on direct navigation
-  const active = getActiveId(location.pathname);
+  // User table filters
+  const [userFilter, setUserFilter] = useState("all");
+  const [userSearch, setUserSearch] = useState("");
+  const [userPage, setUserPage]     = useState(1);
 
-  const now = new Date().toLocaleDateString();
+  // FETCH INITIAL DASHBOARD DATA
+  useEffect(() => {
+    const fetchDashboardData = async () => {
+      setLoading(true);
+      try {
+        const [s, a, d, u, p, sys, res, nb, cs] = await Promise.all([
+          api.get("/admin/dashboard/stats"),
+          api.get("/admin/dashboard/activity"),
+          api.get("/admin/dashboard/departments"),
+          api.get("/admin/dashboard/usage"),
+          api.get("/admin/dashboard/placement"),
+          api.get("/admin/dashboard/system"),
+          api.get("/admin/dashboard/resources"),
+          api.get("/admin/config/badges"),
+          api.get("/admin/config/stats")
+        ]);
+        setStats(s);
+        setActivities(a);
+        setDepartments(d);
+        setUsageData(u);
+        setPlacementData(p);
+        setSystemStatus(sys);
+        setResources(res);
+        setNavBadges(nb);
+        setConfigStats(cs);
+      } catch (err) {
+        console.error("Failed to fetch dashboard data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDashboardData();
+  }, []);
 
-  // Filtered users
-  const filteredUsers = USERS.filter(u =>
-    (userFilter === "all" || u.role === userFilter) &&
-    (
-      u.name.toLowerCase().includes(userSearch.toLowerCase()) ||
-      u.email.toLowerCase().includes(userSearch.toLowerCase())
-    )
-  );
+  // FETCH USER AND COURSE DATA (dependent on filters/pagination)
+  useEffect(() => {
+    const fetchUsersAndCourses = async () => {
+      setLoading(true);
+      try {
+        const [u, c] = await Promise.all([
+          api.get(`/admin/users?role=${userFilter}&search=${userSearch}&page=${userPage}`),
+          api.get("/admin/courses")
+        ]);
+        setUsers(u);
+        setCourses(c);
+      } catch (err) {
+        console.error("Failed to fetch user/course data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchUsersAndCourses();
+  }, [userFilter, userSearch, userPage]);
+
 
   // Helpers
   const roleBadge   = (role)   => role === "student" ? "badge-student" : role === "faculty" ? "badge-faculty" : role === "placement" ? "badge-placement" : "";
@@ -184,6 +187,7 @@ export default function AdminDashboard() {
     e.preventDefault();
     const path = item.routePath === "" ? "/admindashboard" : `/admindashboard/${item.routePath}`;
     navigate(path);
+    setActive(item.id); // Update active state
     setSidebar(false);
   };
 
@@ -206,7 +210,7 @@ export default function AdminDashboard() {
       fills.forEach(el => { el.style.width = el.dataset.width; });
     }, 300);
     return () => clearTimeout(timeout);
-  }, [active]);
+  }, [loading]); // Trigger animation after data loads
 
   return (
     <>
@@ -256,9 +260,7 @@ export default function AdminDashboard() {
                   >
                     <I n={item.icon} size={15} />
                     {item.label}
-                    {item.badge && (
-                      <span className={`sb-badge ${item.badgeType || ""}`}>{item.badge}</span>
-                    )}
+                    {navBadges[item.id] && <span className={`sb-badge ${item.badgeType || ""}`}>{navBadges[item.id]}</span>}
                   </a>
                 ))}
               </div>
@@ -268,15 +270,14 @@ export default function AdminDashboard() {
           <div className="sb-bottom">
             <div className="sb-health">
               <div className="sb-health-lbl">System Health</div>
-              {[["Uptime","99.8%"], ["CPU","34%"], ["Memory","61%"]].map(([n, v]) => (
+              {[
+                ["Departments", departments.length],
+                ["Courses", stats.active_courses || 0],
+                ["Users", stats.total_users || 0]
+              ].map(([n,v]) => (
                 <div key={n}>
-                  <div className="sb-health-row">
-                    <span className="sb-health-name">{n}</span>
-                    <span className="sb-health-val">{v}</span>
-                  </div>
-                  <div className="sb-health-bar">
-                    <div className="sb-health-fill" data-width={v} style={{ width: 0 }} />
-                  </div>
+                  <div className="sb-health-row"><span className="sb-health-name">{n}</span><span className="sb-health-val">{v}</span></div>
+                  <div className="sb-health-bar"><div className="sb-health-fill" data-width="100%" style={{ width:"100%" }} /></div>
                 </div>
               ))}
             </div>
@@ -340,10 +341,10 @@ export default function AdminDashboard() {
                 <span className="greet-pip-txt">Admin Console</span>
               </div>
               <h1 className="greet-title">
-                Good morning, <em>Admin.</em>
+                {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 18 ? "Good afternoon" : "Good evening"}, <em>Admin.</em>
               </h1>
               <p className="greet-sub">
-                Platform is running smoothly — 1,347 active users today &nbsp;·&nbsp; 3 pending approvals &nbsp;·&nbsp; WebRTC latency elevated
+                Platform is running smoothly — {stats.total_users} active users today &nbsp;·&nbsp; {stats.alerts} pending approvals &nbsp;·&nbsp; System latency {stats.latency || "24ms"}
               </p>
               <div className="greet-actions">
                 <button
@@ -370,10 +371,10 @@ export default function AdminDashboard() {
             {/* ── STAT CARDS ── */}
             <div className="stat-grid">
               {[
-                { accent:"sc-indigo", icon:"users",    val:"1,347", lbl:"Total Active Users",  delta:"+12%",  dir:"up",  sub:"vs last month",  route:"userManagement" },
-                { accent:"sc-teal",   icon:"book",     val:"47",    lbl:"Active Courses",       delta:"+3",    dir:"up",  sub:"this semester",  route:"courseManagement" },
-                { accent:"sc-amber",  icon:"award",    val:"73%",   lbl:"Placement Readiness",  delta:"+5.2%", dir:"up",  sub:"avg PRI score",  route:"placement" },
-                { accent:"sc-rose",   icon:"activity", val:"12",    lbl:"Alerts / Issues",      delta:"3 new", dir:"neu", sub:"require action", route:"activitylog" },
+                { accent:"sc-indigo", icon:"users",    val:stats.total_users || 0,     lbl:"Total Users",       delta:stats.deltas?.users || "+12%",  dir:"up",  sub:"vs last month",  route:"userManagement" },
+                { accent:"sc-teal",   icon:"book",     val:stats.active_courses || 0,  lbl:"Active Courses",    delta:stats.deltas?.courses || "+3",    dir:"up",  sub:"this semester",  route:"courseManagement" },
+                { accent:"sc-amber",  icon:"zap",      val:stats.placement_readiness || "0%", lbl:"Placement Readiness",   delta:stats.deltas?.readiness || "73%",   dir:"up",  sub:"avg PRI score",  route:"placement" },
+                { accent:"sc-rose",   icon:"bell",     val:stats.alerts || 0,          lbl:"System Alerts",     delta:stats.deltas?.alerts || "0",     dir:"neu", sub:"require action", route:"activitylog" },
               ].map((s, i) => (
                 <div
                   key={i}
@@ -393,24 +394,24 @@ export default function AdminDashboard() {
             </div>
 
             {/* ── QUICK ACTIONS ── */}
-            <div className="qa-grid">
-              {[
-                { icon:"userPlus",  label:"Add User",       count:"1,347 users",  color:"rgba(91,78,248,.12)",  tc:"var(--indigo-ll)", route:"userManagement" },
-                { icon:"book",      label:"Manage Courses", count:"47 active",    color:"rgba(39,201,176,.1)",  tc:"var(--teal)",      route:"courseManagement" },
-                { icon:"briefcase", label:"Placement Hub",  count:"3 new drives", color:"rgba(244,165,53,.1)",  tc:"var(--amber)",     route:"placement" },
-                { icon:"shield",    label:"Security Log",   count:"12 alerts",    color:"rgba(242,68,92,.1)",   tc:"var(--rose)",      route:"security" },
-              ].map((q, i) => (
+            <div className="action-grid">
+                {[
+                  { icon:"userPlus", ttl:"Add User",    sub:`${stats.total_users || 0} users`,  route:"userManagement" },
+                  { icon:"plus",     ttl:"New Course",  sub:`${stats.active_courses || 0} active`, route:"courseManagement" },
+                  { icon:"briefcase",ttl:"Schedule",    sub:`Upcoming drives`,    route:"placement" },
+                  { icon:"download", ttl:"Reports",     sub:"Full reports",    route:"adminReports" },
+                ].map((a, i) => (
                 <div
                   key={i}
                   className="qa-card"
                   style={{ animationDelay:`${i * 60}ms`, cursor:"pointer" }}
-                  onClick={() => navigate(`/admindashboard/${q.route}`)}
+                  onClick={() => navigate(`/admindashboard/${a.route}`)}
                 >
-                  <div className="qa-icon" style={{ background:q.color, color:q.tc }}>
-                    <I n={q.icon} size={17} />
+                  <div className="qa-icon" style={{ background:a.color, color:a.tc }}>
+                    <I n={a.icon} size={17} />
                   </div>
-                  <div className="qa-label" style={{ color:q.tc }}>{q.label}</div>
-                  <div className="qa-count">{q.count}</div>
+                  <div className="qa-label" style={{ color:a.tc }}>{a.ttl}</div>
+                  <div className="qa-count">{a.sub}</div>
                 </div>
               ))}
             </div>
@@ -424,7 +425,7 @@ export default function AdminDashboard() {
                   <div className="panel-ttl">
                     <I n="users" size={15} />
                     User Management
-                    <span>{filteredUsers.length} shown</span>
+                    <span>{users.length} shown</span>
                   </div>
                   <button
                     className="btn btn-solid btn-sm"
@@ -466,7 +467,7 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {filteredUsers.map(u => (
+                      {users.map(u => (
                         <tr key={u.id}>
                           <td>
                             <div className="ut-user">
@@ -488,8 +489,13 @@ export default function AdminDashboard() {
                           <td style={{ color:"var(--text3)", fontSize:"10px" }}>{u.joined}</td>
                           <td>
                             <div style={{ display:"flex", gap:"5px" }}>
-                              <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="ut-action tooltip" data-tip="Edit"><I n="edit" size={11} /></button>
-                              <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="ut-action tooltip" data-tip="Remove"><I n="trash" size={11} /></button>
+                              <button onClick={() => alert("Edit action triggered!")} className="ut-action tooltip" data-tip="Edit"><I n="edit" size={11} /></button>
+                              <button onClick={async () => {
+                                if(window.confirm("Delete this user?")) {
+                                  await api.delete(`/admin/users/${u.id}`);
+                                  setUsers(prev => prev.filter(x => x.id !== u.id));
+                                }
+                              }} className="ut-action tooltip" data-tip="Remove"><I n="trash" size={11} /></button>
                             </div>
                           </td>
                         </tr>
@@ -536,7 +542,7 @@ export default function AdminDashboard() {
                 </div>
                 <div className="panel-body">
                   <div className="activity-list">
-                    {ACTIVITY.map((a, i) => (
+                    {activities.map((a, i) => (
                       <div key={i} className="activity-item">
                         <div className="act-icon" style={{ background:a.color }}>
                           <I n={a.icon} size={14} />
@@ -583,20 +589,20 @@ export default function AdminDashboard() {
                 <div className="panel-body">
                   <div className="mini-stats">
                     <div className="mini-stat">
-                      <div className="ms-val" style={{ color:"var(--indigo-ll)" }}>5</div>
+                      <div className="ms-val" style={{ color:"var(--indigo-ll)" }}>{departments.length}</div>
                       <div className="ms-lbl">Departments</div>
                     </div>
                     <div className="mini-stat">
-                      <div className="ms-val" style={{ color:"var(--teal)" }}>1,345</div>
+                      <div className="ms-val" style={{ color:"var(--teal)" }}>{stats.total_users || 0}</div>
                       <div className="ms-lbl">Students</div>
                     </div>
                     <div className="mini-stat">
-                      <div className="ms-val" style={{ color:"var(--amber)" }}>63</div>
+                      <div className="ms-val" style={{ color:"var(--amber)" }}>{stats.faculty_count || 0}</div>
                       <div className="ms-lbl">Faculty</div>
                     </div>
                   </div>
                   <div className="dept-list">
-                    {DEPARTMENTS.map((d, i) => (
+                    {departments.map((d, i) => (
                       <div key={i} className="dept-item">
                         <div className="dept-top">
                           <span className="dept-name">{d.short}</span>
@@ -620,25 +626,23 @@ export default function AdminDashboard() {
                 </div>
                 <div className="panel-body">
                   <div style={{ marginBottom:"14px" }}>
-                    <div style={{ fontFamily:"'Fraunces',serif", fontSize:"32px", color:"var(--indigo-ll)", lineHeight:1 }}>1,347</div>
-                    <div style={{ fontSize:"11px", color:"var(--text3)", marginTop:"3px" }}>
-                      Peak today · <span style={{ color:"var(--teal)" }}>↑ 18% vs last week</span>
-                    </div>
+                    <div style={{ fontFamily:"'Fraunces',serif", fontSize:"32px", color:"var(--indigo-ll)", lineHeight:1 }}>{stats.active_users_today || 0}</div>
+                    <div style={{ fontSize:"11px", color:"var(--text3)", marginTop:"3px" }}>Peak usage today · <span style={{ color:"var(--teal)" }}>Real-time sync</span></div>
                   </div>
                   <div className="usage-chart">
-                    {USAGE_DATA.map((d, i) => (
+                    {usageData.map((d, i) => (
                       <div key={i} className="uc-bar-wrap">
                         <div
                           className="uc-bar"
-                          data-val={`${d.val}%`}
+                          data-val={`${d.v}%`}
                           style={{
-                            height: `${d.val}%`,
-                            background: d.val === Math.max(...USAGE_DATA.map(x => x.val))
+                            height: `${d.v}%`,
+                            background: d.v === Math.max(...usageData.map(x => x.v || 0))
                               ? "linear-gradient(180deg,var(--indigo-l),var(--indigo))"
                               : "linear-gradient(180deg,var(--surface3),var(--muted))",
                           }}
                         />
-                        <span className="uc-label">{d.label}</span>
+                        <span className="uc-label">{d.l}</span>
                       </div>
                     ))}
                   </div>
@@ -658,12 +662,7 @@ export default function AdminDashboard() {
                     <div style={{ fontSize:"11px", fontWeight:700, color:"var(--text3)", letterSpacing:".08em", textTransform:"uppercase", marginBottom:"10px" }}>
                       Module Usage
                     </div>
-                    {[
-                      { name:"Learning Management", pct:92, color:"var(--indigo-l)" },
-                      { name:"AI Mentor Queries",   pct:74, color:"var(--violet)" },
-                      { name:"Quiz Engine",         pct:61, color:"var(--teal)" },
-                      { name:"Placement Module",    pct:43, color:"var(--amber)" },
-                    ].map((m, i) => (
+                    {(stats.module_usage || []).map((m, i) => (
                       <div key={i} style={{ marginBottom:"9px" }}>
                         <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"4px" }}>
                           <span style={{ fontSize:"11px", color:"var(--text2)" }}>{m.name}</span>
@@ -692,20 +691,20 @@ export default function AdminDashboard() {
                 <div className="panel-body">
                   <div className="mini-stats">
                     <div className="mini-stat">
-                      <div className="ms-val" style={{ color:"var(--teal)" }}>73%</div>
+                      <div className="ms-val" style={{ color:"var(--teal)" }}>{stats.placement_readiness || "0%"}</div>
                       <div className="ms-lbl">Avg PRI</div>
                     </div>
                     <div className="mini-stat">
-                      <div className="ms-val" style={{ color:"var(--indigo-ll)" }}>168</div>
+                      <div className="ms-val" style={{ color:"var(--indigo-ll)" }}>{stats.placement_ready_count || 0}</div>
                       <div className="ms-lbl">Placed</div>
                     </div>
                     <div className="mini-stat">
-                      <div className="ms-val" style={{ color:"var(--amber)" }}>3</div>
+                      <div className="ms-val" style={{ color:"var(--amber)" }}>{placementData.length}</div>
                       <div className="ms-lbl">Drives</div>
                     </div>
                   </div>
                   <div className="funnel-list">
-                    {PLACEMENT.map((p, i) => (
+                    {placementData.map((p, i) => (
                       <div key={i} className="funnel-item">
                         <div className="fi-rank">{i + 1}</div>
                         <div className="fi-info">
@@ -733,7 +732,7 @@ export default function AdminDashboard() {
                 <div className="panel-hd">
                   <div className="panel-ttl">
                     <I n="book" size={15} /> Course Overview
-                    <span>{COURSES.filter(c => c.active).length} active</span>
+                    <span>{courses.filter(c => c.status === "active").length} active</span>
                   </div>
                   <button
                     className="btn btn-ghost btn-sm"
@@ -744,13 +743,13 @@ export default function AdminDashboard() {
                 </div>
                 <div className="panel-body">
                   <div className="course-grid">
-                    {COURSES.map((c, i) => (
+                    {courses.map((c, i) => (
                       <div key={i} className="cov-item">
                         <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:"4px" }}>
                           <div className="cov-name">{c.name}</div>
-                          {!c.active && (
+                          {c.status !== "active" && (
                             <span style={{ fontSize:"9px", background:"rgba(242,68,92,.1)", color:"var(--rose)", padding:"2px 6px", borderRadius:"4px", fontWeight:600, flexShrink:0 }}>
-                              Draft
+                               {c.status}
                             </span>
                           )}
                         </div>
@@ -773,12 +772,12 @@ export default function AdminDashboard() {
                 <div className="panel-hd">
                   <div className="panel-ttl"><I n="cpu" size={15} /> System Status</div>
                   <span style={{ fontSize:"10px", padding:"3px 9px", borderRadius:"5px", background:"rgba(39,201,176,.1)", color:"var(--teal)", fontWeight:600 }}>
-                    4/5 Healthy
+                    {systemStatus.filter(s => s.status === 'up').length}/{systemStatus.length} Healthy
                   </span>
                 </div>
                 <div className="panel-body">
                   <div className="sys-list">
-                    {SYSTEM_STATUS.map((s, i) => (
+                    {systemStatus.map((s, i) => (
                       <div key={i} className="sys-item">
                         <div className="sys-icon" style={{ background:s.color, color:s.text }}>
                           <I n={s.icon} size={14} />
@@ -797,12 +796,7 @@ export default function AdminDashboard() {
                     <div style={{ fontSize:"10px", fontWeight:700, letterSpacing:".1em", textTransform:"uppercase", color:"var(--text3)", marginBottom:"8px" }}>
                       Resource Monitor
                     </div>
-                    {[
-                      { label:"CPU Usage", val:"34%", pct:34, color:"var(--indigo-l)" },
-                      { label:"RAM",       val:"61%", pct:61, color:"var(--violet)" },
-                      { label:"Disk",      val:"48%", pct:48, color:"var(--teal)" },
-                      { label:"Bandwidth", val:"27%", pct:27, color:"var(--amber)" },
-                    ].map((r, i) => (
+                    {resources.map((r, i) => (
                       <div key={i} style={{ marginBottom:"8px" }}>
                         <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"4px" }}>
                           <span style={{ fontSize:"10.5px", color:"var(--text2)" }}>{r.label}</span>

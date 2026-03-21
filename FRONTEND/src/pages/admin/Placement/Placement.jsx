@@ -1,5 +1,5 @@
-// Placement.jsx — SMART CAMPUS Admin Panel
 import { useState, useEffect, useRef } from "react";
+import api from "../../../utils/api";
 import { useNavigate, useLocation } from "react-router-dom";
 import "./Placement.css";
 import "../../../styles/modals.css";
@@ -50,14 +50,14 @@ const NAV = [
     { id:"analytics", label:"Analytics",       icon:"bar",       routePath:"adminAnalytics",  badge:null },
   ]},
   { section:"Management", items:[
-    { id:"users",       label:"User Management", icon:"users",     routePath:"userManagement",   badge:"1.3k" },
-    { id:"courses",     label:"Courses",         icon:"book",      routePath:"courseManagement", badge:"47" },
-    { id:"departments", label:"Departments",     icon:"layers",    routePath:"department",       badge:null },
-    { id:"placement",   label:"Placement",       icon:"briefcase", routePath:"placement",        badge:"3", badgeType:"teal" },
+    { id:"users",       label:"User Management", icon:"users",     routePath:"userManagement",   badge:null },
+    { id:"courses",     label:"Courses",         icon:"book",      routePath:"courseManagement", badge:null },
+    { id:"departments", label:"Departments",     icon:"layers",    routePath:"departments",      badge:null },
+    { id:"placement",   label:"Placement",       icon:"briefcase", routePath:"placements",       badge:null, badgeType:"teal" },
   ]},
   { section:"Platform", items:[
     { id:"reports",   label:"Reports",      icon:"download", routePath:"adminReports", badge:null },
-    { id:"activity",  label:"Activity Log", icon:"activity", routePath:"activitylog",  badge:"12", badgeType:"rose" },
+    { id:"activity",  label:"Activity Log", icon:"activity", routePath:"auditLogs",     badge:null, badgeType:"rose" },
     { id:"security",  label:"Security",     icon:"shield",   routePath:"security",     badge:null },
     { id:"settings",  label:"Settings",     icon:"settings", routePath:"settings",     badge:null },
   ]},
@@ -83,16 +83,38 @@ export default function Placement() {
   const [filterStatus, setFilterStatus] = useState("All Status");
   const [formData, setFormData] = useState({ company: "", date: "", time: "", positions: 0, eligibility: "", status: "upcoming" });
   const [drives, setDrives] = useState([]);
+  const [stats, setStats] = useState({ placed_count: 0, companies_visited: 0, avg_pri: 0, highest_pkg: "N/A", drives_count: 0, dept_breakdown: [], pri_distribution: [], total_students: 0 });
+  const [navBadges, setNavBadges] = useState({});
+  const [configStats, setConfigStats] = useState({ uptime: "99.9%", cpu: "0%", memory: "0%", backup_size: "0GB" });
+  const [loading, setLoading] = useState(true);
   const cursorRef     = useRef(null);
   const cursorRingRef = useRef(null);
   const pageRef       = useRef(null);
   const active = getActiveId(location.pathname);
   const now    = new Date().toLocaleDateString();
 
-  // Load placement drives from localStorage
+  // Load drives and stats from API
   useEffect(() => {
-    const saved = localStorage.getItem("placementDrives");
-    if (saved) setDrives(JSON.parse(saved));
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [driveData, statData, nb, cs] = await Promise.all([
+          api.get("/admin/placement/drives"),
+          api.get("/admin/placement/stats"),
+          api.get("/admin/config/badges"),
+          api.get("/admin/config/stats")
+        ]);
+        setDrives(driveData);
+        setStats(statData);
+        setNavBadges(nb);
+        setConfigStats(cs);
+      } catch (err) {
+        console.error("Failed to fetch placement data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
   }, []);
 
   // Handle form field changes
@@ -101,60 +123,31 @@ export default function Placement() {
   };
 
   // Add new placement drive
-  const handleAddDrive = () => {
+  const handleAddDrive = async () => {
     if (!formData.company.trim() || !formData.date || !formData.positions) {
       alert("Please fill in all required fields");
       return;
     }
-    if (drives.some(d => d.company.toLowerCase() === formData.company.toLowerCase() && d.date === formData.date)) {
-      alert("Drive already scheduled for this company on that date");
-      return;
+    try {
+      await api.post("/admin/placement/drives", formData);
+      setFormData({ company: "", date: "", time: "", positions: 0, eligibility: "", status: "upcoming" });
+      setAddDriveModal(false);
+      const data = await api.get("/admin/placement/drives");
+      setDrives(data);
+    } catch (err) {
+      alert(err.response?.data?.detail || "Failed to add placement drive");
     }
-    const colors = ["var(--teal)", "var(--indigo-l)", "var(--violet)", "var(--amber)", "var(--rose)"];
-    const newDrive = {
-      ...formData,
-      positions: parseInt(formData.positions),
-      logo: formData.company.substring(0, 2).toUpperCase(),
-      color: colors[Math.floor(Math.random() * colors.length)],
-      students: 0,
-      pct: 0,
-      pkg: "TBD"
-    };
-    const updatedDrives = [...drives, newDrive];
-    setDrives(updatedDrives);
-    localStorage.setItem("placementDrives", JSON.stringify(updatedDrives));
-    
-    // Activity logging
-    const logs = JSON.parse(localStorage.getItem("activityLogs") || "[]");
-    logs.unshift({
-      id: Date.now(),
-      action: `Scheduled new placement drive: ${formData.company}`,
-      details: `Date: ${formData.date}, Positions: ${formData.positions}`,
-      timestamp: new Date().toLocaleString(),
-      category: "placement"
-    });
-    localStorage.setItem("activityLogs", JSON.stringify(logs));
-    
-    setFormData({ company: "", date: "", time: "", positions: 0, eligibility: "", status: "upcoming" });
-    setAddDriveModal(false);
   };
 
   // Delete placement drive
-  const handleDeleteDrive = (company, date) => {
+  const handleDeleteDrive = async (id, company) => {
     if (confirm(`Are you sure you want to delete this placement drive?`)) {
-      const updated = drives.filter(d => !(d.company === company && d.date === date));
-      setDrives(updated);
-      localStorage.setItem("placementDrives", JSON.stringify(updated));
-      
-      const logs = JSON.parse(localStorage.getItem("activityLogs") || "[]");
-      logs.unshift({
-        id: Date.now(),
-        action: `Deleted placement drive: ${company}`,
-        details: `Date: ${date}`,
-        timestamp: new Date().toLocaleString(),
-        category: "placement"
-      });
-      localStorage.setItem("activityLogs", JSON.stringify(logs));
+      try {
+        await api.delete(`/admin/placement/drives/${id}`);
+        setDrives(prev => prev.filter(d => d.id !== id));
+      } catch (err) {
+        alert("Failed to delete placement drive");
+      }
     }
   };
 
@@ -212,7 +205,7 @@ export default function Placement() {
                     className={`sb-link ${active === item.id ? "active" : ""}`}
                     onClick={e => { e.preventDefault(); navigate(item.routePath === "" ? "/admindashboard" : `/admindashboard/${item.routePath}`); setSidebar(false); }}>
                     <I n={item.icon} size={15} />{item.label}
-                    {item.badge && <span className={`sb-badge ${item.badgeType || ""}`}>{item.badge}</span>}
+                    {navBadges[item.id] && <span className={`sb-badge ${item.badgeType || ""}`}>{navBadges[item.id]}</span>}
                   </a>
                 ))}
               </div>
@@ -221,10 +214,14 @@ export default function Placement() {
           <div className="sb-bottom">
             <div className="sb-health">
               <div className="sb-health-lbl">System Health</div>
-              {[["Uptime","99.8%"],["CPU","34%"],["Memory","61%"]].map(([n,v]) => (
-                <div key={n}>
-                  <div className="sb-health-row"><span className="sb-health-name">{n}</span><span className="sb-health-val">{v}</span></div>
-                  <div className="sb-health-bar"><div className="sb-health-fill" data-width={v} style={{ width:0 }} /></div>
+              {[
+                { n: "Uptime", v: configStats.uptime },
+                { n: "CPU",    v: configStats.cpu },
+                { n: "Memory", v: configStats.memory }
+              ].map((item) => (
+                <div key={item.n}>
+                  <div className="sb-health-row"><span className="sb-health-name">{item.n}</span><span className="sb-health-val">{item.v}</span></div>
+                  <div className="sb-health-bar"><div className="sb-health-fill" style={{ width: item.v.includes("%") ? item.v : "60%" }} /></div>
                 </div>
               ))}
             </div>
@@ -253,20 +250,25 @@ export default function Placement() {
             <div className="greet-row">
               <div className="greet-tag"><div className="greet-pip" /><span className="greet-pip-txt">Placement Hub</span></div>
               <h1 className="greet-title">Placement <em>Hub.</em></h1>
-              <p className="greet-sub">168 students placed &nbsp;·&nbsp; 3 upcoming drives &nbsp;·&nbsp; Avg CTC 6.2 LPA &nbsp;·&nbsp; 73% Readiness</p>
+              <p className="greet-sub">{stats.placed_count} students placed &nbsp;·&nbsp; {stats.drives_count} drives scheduled &nbsp;·&nbsp; Highest {stats.highest_pkg} &nbsp;·&nbsp; {stats.avg_pri}% Avg PRI</p>
               <div className="greet-actions">
                 <button onClick={() => setAddDriveModal(true)} className="btn btn-solid"><I n="plus" size={14} /> Schedule Drive</button>
-                <button onClick={() => exportToCSV(drives, "placement-drives")} className="btn btn-ghost"><I n="download" size={14} /> Export Report</button>
+                <button onClick={async () => {
+                  try {
+                    const res = await api.post("/admin/reports/generate", { type: "Placement" });
+                    alert(`Placement Report Generated: ${res.filename}`);
+                  } catch (err) { alert("Failed to generate report"); }
+                }} className="btn btn-ghost"><I n="download" size={14} /> Export Report</button>
               </div>
             </div>
 
             {/* STAT CARDS */}
             <div className="stat-grid">
               {[
-                { accent:"sc-teal",   icon:"award",     val:"168",    lbl:"Students Placed",    delta:"+24 this month" },
-                { accent:"sc-indigo", icon:"briefcase", val:"7",      lbl:"Companies Visited",  delta:"this batch" },
-                { accent:"sc-amber",  icon:"trend",     val:"73%",    lbl:"Avg PRI Score",      delta:"+5.2% vs last" },
-                { accent:"sc-violet", icon:"zap",       val:"22 LPA", lbl:"Highest Package",    delta:"Google" },
+                { accent:"sc-teal",   icon:"award",     val:stats.placed_count,    lbl:"Students Placed",    delta:"+24 this month" },
+                { accent:"sc-indigo", icon:"briefcase", val:stats.companies_visited, lbl:"Companies Visited",  delta:"this batch" },
+                { accent:"sc-amber",  icon:"trend",     val:`${stats.avg_pri}%`,    lbl:"Avg PRI Score",      delta:"+5.2% vs last" },
+                { accent:"sc-violet", icon:"zap",       val:stats.highest_pkg, lbl:"Highest Package",    delta:"Recent" },
               ].map((s, i) => (
                 <div key={i} className={`stat-card ${s.accent}`} style={{ animationDelay:`${i * 80}ms`, cursor:"default" }}>
                   <div className="stat-ic"><I n={s.icon} size={16} /></div>
@@ -312,7 +314,7 @@ export default function Placement() {
                   <div style={{ fontSize:"9.5px", color:"var(--text3)", marginBottom:"12px" }}>{c.pct}% of registered students selected</div>
                   <div style={{ display:"flex", gap:"6px" }}>
                     <button onClick={() => alert("Manage " + c.company)} className="btn btn-ghost btn-sm" style={{ flex:1, justifyContent:"center" }}><I n="edit" size={11} /> Manage</button>
-                    {c.status === "upcoming" && <button onClick={() => handleDeleteDrive(c.company, c.date)} className="btn btn-solid btn-sm"><I n="trash" size={11} /></button>}
+                    {c.status === "upcoming" && <button onClick={() => handleDeleteDrive(c.id, c.company)} className="btn btn-solid btn-sm"><I n="trash" size={11} /></button>}
                   </div>
                 </div>
               )) : <div style={{ gridColumn:"1/-1", padding:"40px", textAlign:"center", color:"var(--text3)" }}>No placement drives scheduled</div>}
@@ -325,20 +327,14 @@ export default function Placement() {
                   <div className="panel-ttl"><I n="bar" size={15} /> Placement by Department</div>
                 </div>
                 <div className="panel-body">
-                  {[
-                    { dept:"CSE",   placed:73, total:420, color:"var(--indigo-l)" },
-                    { dept:"ECE",   placed:61, total:310, color:"var(--violet)" },
-                    { dept:"MBA",   placed:68, total:142, color:"var(--rose)" },
-                    { dept:"MECH",  placed:54, total:275, color:"var(--amber)" },
-                    { dept:"CIVIL", placed:42, total:198, color:"var(--teal)" },
-                  ].map((d, i) => (
+                  {stats.dept_breakdown.map((d, i) => (
                     <div key={i} style={{ marginBottom:"14px" }}>
                       <div className="dept-top">
                         <span className="dept-name">{d.dept}</span>
                         <span className="dept-meta">{d.total} students</span>
-                        <span className="dept-pct" style={{ color:d.color }}>{d.placed}%</span>
+                        <span className="dept-pct" style={{ color:d.color }}>{d.pct}%</span>
                       </div>
-                      <div className="dept-bar"><div className="dept-fill" data-width={`${d.placed}%`} style={{ width:0, background:d.color }} /></div>
+                      <div className="dept-bar"><div className="dept-fill" data-width={`${d.pct}%`} style={{ width:0, background:d.color }} /></div>
                     </div>
                   ))}
                 </div>
@@ -349,18 +345,13 @@ export default function Placement() {
                   <div className="panel-ttl"><I n="trend" size={15} /> PRI Score Distribution</div>
                 </div>
                 <div className="panel-body">
-                  <div style={{ fontFamily:"'Fraunces',serif", fontSize:"48px", color:"var(--teal)", textAlign:"center", lineHeight:1, marginBottom:"4px" }}>73%</div>
+                  <div style={{ fontFamily:"'Fraunces',serif", fontSize:"48px", color:"var(--teal)", textAlign:"center", lineHeight:1, marginBottom:"4px" }}>{stats.avg_pri}%</div>
                   <div style={{ textAlign:"center", fontSize:"11px", color:"var(--text3)", marginBottom:"16px" }}>Average Placement Readiness Index</div>
-                  {[
-                    { range:"90–100%",  count:58,  color:"var(--teal)" },
-                    { range:"75–89%",   count:124, color:"var(--indigo-l)" },
-                    { range:"60–74%",   count:201, color:"var(--amber)" },
-                    { range:"Below 60%",count:964, color:"var(--rose)" },
-                  ].map((r, i) => (
+                  {stats.pri_distribution.map((r, i) => (
                     <div key={i} style={{ display:"flex", alignItems:"center", gap:"10px", marginBottom:"8px" }}>
                       <span style={{ fontSize:"11px", color:"var(--text3)", width:"80px", flexShrink:0 }}>{r.range}</span>
                       <div style={{ flex:1, height:"6px", background:"var(--surface3)", borderRadius:"3px", overflow:"hidden" }}>
-                        <div data-width={`${(r.count/1347)*100}%`} style={{ height:"100%", width:0, background:r.color, borderRadius:"3px", transition:"width 1.2s ease" }} />
+                        <div data-width={`${stats.total_students ? (r.count/stats.total_students)*100 : 0}%`} style={{ height:"100%", width:0, background:r.color, borderRadius:"3px", transition:"width 1.2s ease" }} />
                       </div>
                       <span style={{ fontSize:"11px", fontWeight:600, color:r.color, width:"30px", textAlign:"right" }}>{r.count}</span>
                     </div>

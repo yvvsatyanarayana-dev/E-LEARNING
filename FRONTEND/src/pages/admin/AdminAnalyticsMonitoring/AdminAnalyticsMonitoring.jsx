@@ -1,5 +1,5 @@
-// AdminAnalyticsMonitoring.jsx — SMART CAMPUS Admin Panel
 import { useState, useEffect, useRef } from "react";
+import api from "../../../utils/api";
 import { useNavigate, useLocation } from "react-router-dom";
 import "./AdminAnalyticsMonitoring.css";
 
@@ -43,21 +43,21 @@ const icons = {
 const I = ({ n, size = 16 }) => <Icon size={size} d={icons[n]} />;
 
 const NAV = [
-  { section:"Overview", items:[
-    { id:"dashboard", label:"Dashboard",       icon:"grid",      routePath:"",               badge:null },
-    { id:"analytics", label:"Analytics",       icon:"bar",       routePath:"adminAnalytics",  badge:null },
+  { section:"Overview",   items:[
+    { id:"dashboard",       label:"Dashboard",       icon:"grid",      routePath:"",               badge:null },
+    { id:"analytics",       label:"Analytics",       icon:"bar",       routePath:"adminAnalytics",  badge:null },
   ]},
   { section:"Management", items:[
-    { id:"users",       label:"User Management", icon:"users",     routePath:"userManagement",   badge:"1.3k" },
-    { id:"courses",     label:"Courses",         icon:"book",      routePath:"courseManagement", badge:"47" },
-    { id:"departments", label:"Departments",     icon:"layers",    routePath:"department",       badge:null },
-    { id:"placement",   label:"Placement",       icon:"briefcase", routePath:"placement",        badge:"3", badgeType:"teal" },
+    { id:"users",           label:"User Management", icon:"users",     routePath:"userManagement",  badge:null },
+    { id:"courses",         label:"Courses",         icon:"book",      routePath:"courseManagement",badge:null },
+    { id:"departments",     label:"Departments",     icon:"layers",    routePath:"departments",     badge:null },
+    { id:"placement",       label:"Placement",       icon:"briefcase", routePath:"placements",      badge:null,   badgeType:"teal" },
   ]},
-  { section:"Platform", items:[
-    { id:"reports",   label:"Reports",      icon:"download", routePath:"adminReports", badge:null },
-    { id:"activity",  label:"Activity Log", icon:"activity", routePath:"activitylog",  badge:"12", badgeType:"rose" },
-    { id:"security",  label:"Security",     icon:"shield",   routePath:"security",     badge:null },
-    { id:"settings",  label:"Settings",     icon:"settings", routePath:"settings",     badge:null },
+  { section:"Platform",   items:[
+    { id:"reports",         label:"Reports",         icon:"download",  routePath:"adminReports",    badge:null },
+    { id:"activity",        label:"Activity Log",    icon:"activity",  routePath:"auditLogs",       badge:null,  badgeType:"rose" },
+    { id:"security",        label:"Security",        icon:"shield",    routePath:"security",        badge:null },
+    { id:"settings",        label:"Settings",        icon:"settings",  routePath:"settings",        badge:null },
   ]},
 ];
 
@@ -76,11 +76,46 @@ export default function AdminAnalyticsMonitoring() {
   const navigate        = useNavigate();
   const location        = useLocation();
   const [sidebarOpen, setSidebar] = useState(false);
+  const [stats, setStats] = useState([]);
+  const [weeklyUsage, setWeeklyUsage] = useState([]);
+  const [moduleUsage, setModuleUsage] = useState([]);
+  const [engagementScores, setEngagementScores] = useState([]);
+  const [navBadges, setNavBadges] = useState({});
+  const [configStats, setConfigStats] = useState({ uptime: "99.9%", cpu: "0%", memory: "0%", backup_size: "0GB" });
+  const [loading, setLoading] = useState(true);
+
   const pageRef       = useRef(null);
   const cursorRef     = useRef(null);
   const cursorRingRef = useRef(null);
   const active = getActiveId(location.pathname);
   const now    = new Date().toLocaleDateString();
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      setLoading(true);
+      try {
+        const [s, w, m, e, c, nb] = await Promise.all([
+          api.get("/admin/analytics/stats"),
+          api.get("/admin/analytics/weekly-usage"),
+          api.get("/admin/analytics/modules"),
+          api.get("/admin/analytics/engagement"),
+          api.get("/admin/config/stats"),
+          api.get("/admin/config/badges")
+        ]);
+        setStats(s);
+        setWeeklyUsage(w);
+        setModuleUsage(m);
+        setEngagementScores(e);
+        setConfigStats(c);
+        setNavBadges(nb);
+      } catch (err) {
+        console.error("Failed to fetch analytics:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAnalytics();
+  }, []);
 
   const handleExportReport = () => {
     const csvContent = "data:text/csv;charset=utf-8,Report Name,Date,Status\nAnalytics Data,2025-01-15,Active";
@@ -140,7 +175,7 @@ export default function AdminAnalyticsMonitoring() {
                     className={`sb-link ${active === item.id ? "active" : ""}`}
                     onClick={e => { e.preventDefault(); navigate(item.routePath === "" ? "/admindashboard" : `/admindashboard/${item.routePath}`); setSidebar(false); }}>
                     <I n={item.icon} size={15} />{item.label}
-                    {item.badge && <span className={`sb-badge ${item.badgeType || ""}`}>{item.badge}</span>}
+                    {navBadges[item.id] && <span className={`sb-badge ${item.badgeType || ""}`}>{navBadges[item.id]}</span>}
                   </a>
                 ))}
               </div>
@@ -149,10 +184,14 @@ export default function AdminAnalyticsMonitoring() {
           <div className="sb-bottom">
             <div className="sb-health">
               <div className="sb-health-lbl">System Health</div>
-              {[["Uptime","99.8%"],["CPU","34%"],["Memory","61%"]].map(([n,v]) => (
-                <div key={n}>
-                  <div className="sb-health-row"><span className="sb-health-name">{n}</span><span className="sb-health-val">{v}</span></div>
-                  <div className="sb-health-bar"><div className="sb-health-fill" data-width={v} style={{ width:0 }} /></div>
+              {[
+                { n: "Uptime", v: configStats.uptime },
+                { n: "CPU",    v: configStats.cpu },
+                { n: "Memory", v: configStats.memory }
+              ].map((item) => (
+                <div key={item.n}>
+                  <div className="sb-health-row"><span className="sb-health-name">{item.n}</span><span className="sb-health-val">{item.v}</span></div>
+                  <div className="sb-health-bar"><div className="sb-health-fill" style={{ width: item.v.includes("%") ? item.v : "60%" }} /></div>
                 </div>
               ))}
             </div>
@@ -190,12 +229,7 @@ export default function AdminAnalyticsMonitoring() {
 
             {/* STAT CARDS */}
             <div className="stat-grid">
-              {[
-                { accent:"sc-indigo", icon:"users",    val:"1,347", lbl:"Daily Active Users",   delta:"+18%",  dir:"up" },
-                { accent:"sc-teal",   icon:"activity", val:"4,820", lbl:"Total Sessions Today", delta:"+12%",  dir:"up" },
-                { accent:"sc-amber",  icon:"zap",      val:"1,024", lbl:"Quizzes Attempted",    delta:"+7%",   dir:"up" },
-                { accent:"sc-rose",   icon:"trend",    val:"68%",   lbl:"Avg Course Completion",delta:"-2%",   dir:"dn" },
-              ].map((s, i) => (
+              {stats.map((s, i) => (
                 <div key={i} className={`stat-card ${s.accent}`} style={{ animationDelay:`${i * 80}ms`, cursor:"default" }}>
                   <div className="stat-ic"><I n={s.icon} size={16} /></div>
                   <div className="stat-val">{s.val}</div>
@@ -214,13 +248,13 @@ export default function AdminAnalyticsMonitoring() {
                 </div>
                 <div className="panel-body">
                   <div style={{ marginBottom:"14px" }}>
-                    <div style={{ fontFamily:"'Fraunces',serif", fontSize:"32px", color:"var(--indigo-ll)", lineHeight:1 }}>1,347</div>
-                    <div style={{ fontSize:"11px", color:"var(--text3)", marginTop:"3px" }}>Peak today · <span style={{ color:"var(--teal)" }}>↑ 18% vs last week</span></div>
+                    <div style={{ fontFamily:"'Fraunces',serif", fontSize:"32px", color:"var(--indigo-ll)", lineHeight:1 }}>{stats[0]?.val || "0"}</div>
+                    <div style={{ fontSize:"11px", color:"var(--text3)", marginTop:"3px" }}>Peak usage today · <span style={{ color:"var(--teal)" }}>Real-time sync</span></div>
                   </div>
                   <div className="usage-chart">
-                    {[{l:"Mon",v:62 },{l:"Tue",v:78 },{l:"Wed",v:91 },{l:"Thu",v:84 },{l:"Fri",v:95 },{l:"Sat",v:52 },{l:"Sun",v:41}].map((d,i) => (
+                    {weeklyUsage.map((d,i) => (
                       <div key={i} className="uc-bar-wrap">
-                        <div className="uc-bar" data-val={`${d.v}%`} style={{ height:`${d.v}%`, background: d.v===95?"linear-gradient(180deg,var(--indigo-l),var(--indigo))":"linear-gradient(180deg,var(--surface3),var(--muted))" }} />
+                        <div className="uc-bar" data-val={`${d.v}%`} style={{ height:`${d.v}%`, background: d.v > 90 ?"linear-gradient(180deg,var(--indigo-l),var(--indigo))":"linear-gradient(180deg,var(--surface3),var(--muted))" }} />
                         <span className="uc-label">{d.l}</span>
                       </div>
                     ))}
@@ -238,14 +272,7 @@ export default function AdminAnalyticsMonitoring() {
                   <div className="panel-ttl"><I n="layers" size={15} /> Module Usage</div>
                 </div>
                 <div className="panel-body">
-                  {[
-                    { name:"Learning Management", pct:92, color:"var(--indigo-l)",  enrolled:1240 },
-                    { name:"AI Mentor Queries",   pct:74, color:"var(--violet)",    enrolled:980 },
-                    { name:"Quiz Engine",         pct:61, color:"var(--teal)",      enrolled:870 },
-                    { name:"Placement Module",    pct:43, color:"var(--amber)",     enrolled:520 },
-                    { name:"Video Lectures",      pct:88, color:"var(--indigo-ll)", enrolled:1100 },
-                    { name:"Discussion Forum",    pct:35, color:"var(--rose)",      enrolled:410 },
-                  ].map((m, i) => (
+                  {moduleUsage.map((m, i) => (
                     <div key={i} style={{ marginBottom:"13px" }}>
                       <div style={{ display:"flex", justifyContent:"space-between", marginBottom:"5px", alignItems:"center" }}>
                         <span style={{ fontSize:"12px", color:"var(--text2)", fontWeight:500 }}>{m.name}</span>
@@ -267,13 +294,7 @@ export default function AdminAnalyticsMonitoring() {
               </div>
               <div className="panel-body">
                 <div className="main-grid-3">
-                  {[
-                    { dept:"CSE",   score:91, students:420, color:"var(--indigo-l)" },
-                    { dept:"ECE",   score:74, students:310, color:"var(--violet)" },
-                    { dept:"MBA",   score:68, students:142, color:"var(--rose)" },
-                    { dept:"MECH",  score:58, students:275, color:"var(--amber)" },
-                    { dept:"CIVIL", score:63, students:198, color:"var(--teal)" },
-                  ].map((d, i) => (
+                  {engagementScores.map((d, i) => (
                     <div key={i} style={{ background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:"12px", padding:"16px" }}>
                       <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:"12px" }}>
                         <div>

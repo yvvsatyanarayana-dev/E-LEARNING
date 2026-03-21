@@ -29,6 +29,7 @@ import Placements from "../pages/Admin/Placement/Placement";
 import Reports from "../pages/Admin/AdminReports/AdminReports";
 import Notifications from "../pages/Admin/adminNotifications/adminNotifications";
 import AuditLogs from "../pages/Admin/ActivityLog/ActivityLog";
+import AdminSecurity from "../pages/admin/adminSecurity/adminSecurity";
 import SystemConfig from "../pages/Admin/AdminSystemConfiguration/AdminSystemConfiguration";
 import ErrorBoundary from "./ErrorBoundary";
 
@@ -244,6 +245,10 @@ const router = createBrowserRouter([
   {
     path: "/admindashboard/auditLogs",
     element: <RoleRoute allowedRoles={["admin"]}><AuditLogs /></RoleRoute>,
+  },
+  {
+    path: "/admindashboard/security",
+    element: <RoleRoute allowedRoles={["admin"]}><AdminSecurity /></RoleRoute>,
   },
   {
     path: "/admindashboard/settings",

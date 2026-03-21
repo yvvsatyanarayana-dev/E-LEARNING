@@ -1,5 +1,5 @@
-// Department.jsx — SMART CAMPUS Admin Panel
 import { useState, useEffect, useRef } from "react";
+import api from "../../../utils/api";
 import { useNavigate, useLocation } from "react-router-dom";
 import "./Department.css";
 import "../../../styles/modals.css";
@@ -50,14 +50,14 @@ const NAV = [
     { id:"analytics", label:"Analytics",       icon:"bar",       routePath:"adminAnalytics",  badge:null },
   ]},
   { section:"Management", items:[
-    { id:"users",       label:"User Management", icon:"users",     routePath:"userManagement",   badge:"1.3k" },
-    { id:"courses",     label:"Courses",         icon:"book",      routePath:"courseManagement", badge:"47" },
-    { id:"departments", label:"Departments",     icon:"layers",    routePath:"department",       badge:null },
-    { id:"placement",   label:"Placement",       icon:"briefcase", routePath:"placement",        badge:"3", badgeType:"teal" },
+    { id:"users",       label:"User Management", icon:"users",     routePath:"userManagement",   badge:null },
+    { id:"courses",     label:"Courses",         icon:"book",      routePath:"courseManagement", badge:null },
+    { id:"departments", label:"Departments",     icon:"layers",    routePath:"departments",      badge:null },
+    { id:"placement",   label:"Placement",       icon:"briefcase", routePath:"placements",       badge:null, badgeType:"teal" },
   ]},
   { section:"Platform", items:[
     { id:"reports",   label:"Reports",      icon:"download", routePath:"adminReports", badge:null },
-    { id:"activity",  label:"Activity Log", icon:"activity", routePath:"activitylog",  badge:"12", badgeType:"rose" },
+    { id:"activity",  label:"Activity Log", icon:"activity", routePath:"auditLogs",     badge:null, badgeType:"rose" },
     { id:"security",  label:"Security",     icon:"shield",   routePath:"security",     badge:null },
     { id:"settings",  label:"Settings",     icon:"settings", routePath:"settings",     badge:null },
   ]},
@@ -83,16 +83,35 @@ export default function Department() {
   const [filterStatus, setFilterStatus] = useState("All Status");
   const [formData, setFormData] = useState({ name: "", short: "", students: 0, faculty: 0, hod: "", status: "Active", courses: 0, placement: 0 });
   const [departments, setDepartments] = useState([]);
+  const [navBadges, setNavBadges] = useState({});
+  const [configStats, setConfigStats] = useState({ uptime: "99.9%", cpu: "0%", memory: "0%", backup_size: "0GB" });
+  const [loading, setLoading] = useState(true);
   const pageRef       = useRef(null);
   const cursorRef     = useRef(null);
   const cursorRingRef = useRef(null);
   const active = getActiveId(location.pathname);
   const now    = new Date().toLocaleDateString();
 
-  // Load departments from localStorage
+  // Load departments from API
   useEffect(() => {
-    const saved = localStorage.getItem("schoolDepartments");
-    if (saved) setDepartments(JSON.parse(saved));
+    const fetchDepts = async () => {
+      setLoading(true);
+      try {
+        const [data, nb, cs] = await Promise.all([
+          api.get("/admin/departments"),
+          api.get("/admin/config/badges"),
+          api.get("/admin/config/stats")
+        ]);
+        setDepartments(data);
+        setNavBadges(nb);
+        setConfigStats(cs);
+      } catch (err) {
+        console.error("Failed to fetch departments:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchDepts();
   }, []);
 
   // Handle form field changes
@@ -101,70 +120,47 @@ export default function Department() {
   };
 
   // Add new department
-  const handleAddDept = () => {
+  const handleAddDept = async () => {
     if (!formData.name.trim() || !formData.short.trim() || !formData.hod.trim()) {
       alert("Please fill in all required fields");
       return;
     }
-    if (departments.some(d => d.short.toUpperCase() === formData.short.toUpperCase())) {
-      alert("Department code already exists");
-      return;
+    try {
+      await api.post("/admin/departments", formData);
+      setFormData({ name: "", short: "", students: 0, faculty: 0, hod: "", status: "Active", courses: 0, placement: 0 });
+      setAddDeptModal(false);
+      const data = await api.get("/admin/departments");
+      setDepartments(data);
+    } catch (err) {
+      alert(err.response?.data?.detail || "Failed to add department");
     }
-    const colors = ["var(--indigo-l)", "var(--teal)", "var(--amber)", "var(--violet)", "var(--rose)"];
-    const newDept = {
-      ...formData,
-      students: parseInt(formData.students),
-      faculty: parseInt(formData.faculty),
-      courses: parseInt(formData.courses),
-      placement: parseInt(formData.placement),
-      color: colors[Math.floor(Math.random() * colors.length)],
-      courses_list: ["Pending", "Courses", "To", "Be", "Added"]
-    };
-    const updatedDepts = [...departments, newDept];
-    setDepartments(updatedDepts);
-    localStorage.setItem("schoolDepartments", JSON.stringify(updatedDepts));
-    
-    // Activity logging
-    const logs = JSON.parse(localStorage.getItem("activityLogs") || "[]");
-    logs.unshift({
-      id: Date.now(),
-      action: `Added new department: ${formData.name}`,
-      details: `Code: ${formData.short}, HOD: ${formData.hod}`,
-      timestamp: new Date().toLocaleString(),
-      category: "department"
-    });
-    localStorage.setItem("activityLogs", JSON.stringify(logs));
-    
-    setFormData({ name: "", short: "", students: 0, faculty: 0, hod: "", status: "Active", courses: 0, placement: 0 });
-    setAddDeptModal(false);
   };
 
   // Delete department
-  const handleDeleteDept = (shortCode) => {
+  const handleDeleteDept = async (shortCode) => {
     if (confirm(`Are you sure you want to delete this department?`)) {
-      const updated = departments.filter(d => d.short !== shortCode);
-      setDepartments(updated);
-      localStorage.setItem("schoolDepartments", JSON.stringify(updated));
-      
-      const logs = JSON.parse(localStorage.getItem("activityLogs") || "[]");
-      logs.unshift({
-        id: Date.now(),
-        action: `Deleted department: ${shortCode}`,
-        details: `Removed from system`,
-        timestamp: new Date().toLocaleString(),
-        category: "department"
-      });
-      localStorage.setItem("activityLogs", JSON.stringify(logs));
+      try {
+        await api.delete(`/admin/departments/${shortCode}`);
+        setDepartments(prev => prev.filter(d => d.short !== shortCode));
+      } catch (err) {
+        alert("Failed to delete department");
+      }
     }
   };
 
   // Filter departments
   const filteredDepts = departments.filter(d => {
-    const matchSearch = d.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                       d.short.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchSearch = (d.name || "").toLowerCase().includes(searchTerm.toLowerCase()) || 
+                       (d.short || "").toLowerCase().includes(searchTerm.toLowerCase());
     const matchStatus = filterStatus === "All Status" || d.status === filterStatus;
     return matchSearch && matchStatus;
   });
+
+  // Summary Stats
+  const studentTotal = departments.reduce((acc, d) => acc + (d.students || 0), 0);
+  const facultyTotal = departments.reduce((acc, d) => acc + (d.faculty || 0), 0);
+  const courseTotal  = departments.reduce((acc, d) => acc + (d.courses || 0), 0);
+  const avgPlacement = departments.length ? Math.round(departments.reduce((acc, d) => acc + (d.placement || 0), 0) / departments.length) : 0;
 
   useEffect(() => {
     const cursor = cursorRef.current; const cursorRing = cursorRingRef.current;
@@ -213,7 +209,7 @@ export default function Department() {
                     className={`sb-link ${active === item.id ? "active" : ""}`}
                     onClick={e => { e.preventDefault(); navigate(item.routePath === "" ? "/admindashboard" : `/admindashboard/${item.routePath}`); setSidebar(false); }}>
                     <I n={item.icon} size={15} />{item.label}
-                    {item.badge && <span className={`sb-badge ${item.badgeType || ""}`}>{item.badge}</span>}
+                    {navBadges[item.id] && <span className={`sb-badge ${item.badgeType || ""}`}>{navBadges[item.id]}</span>}
                   </a>
                 ))}
               </div>
@@ -222,10 +218,14 @@ export default function Department() {
           <div className="sb-bottom">
             <div className="sb-health">
               <div className="sb-health-lbl">System Health</div>
-              {[["Uptime","99.8%"],["CPU","34%"],["Memory","61%"]].map(([n,v]) => (
-                <div key={n}>
-                  <div className="sb-health-row"><span className="sb-health-name">{n}</span><span className="sb-health-val">{v}</span></div>
-                  <div className="sb-health-bar"><div className="sb-health-fill" data-width={v} style={{ width:0 }} /></div>
+              {[
+                { n: "Uptime", v: configStats.uptime },
+                { n: "CPU",    v: configStats.cpu },
+                { n: "Memory", v: configStats.memory }
+              ].map((item) => (
+                <div key={item.n}>
+                  <div className="sb-health-row"><span className="sb-health-name">{item.n}</span><span className="sb-health-val">{item.v}</span></div>
+                  <div className="sb-health-bar"><div className="sb-health-fill" style={{ width: item.v.includes("%") ? item.v : "60%" }} /></div>
                 </div>
               ))}
             </div>
@@ -254,7 +254,7 @@ export default function Department() {
             <div className="greet-row">
               <div className="greet-tag"><div className="greet-pip" /><span className="greet-pip-txt">Departments</span></div>
               <h1 className="greet-title">Department <em>Overview.</em></h1>
-              <p className="greet-sub">5 departments &nbsp;·&nbsp; 1,345 students &nbsp;·&nbsp; 63 faculty &nbsp;·&nbsp; 63 total courses</p>
+              <p className="greet-sub">{departments.length} departments &nbsp;·&nbsp; {studentTotal.toLocaleString()} students &nbsp;·&nbsp; {facultyTotal.toLocaleString()} faculty &nbsp;·&nbsp; {courseTotal.toLocaleString()} total courses</p>
               <div className="greet-actions">
                 <button onClick={() => setAddDeptModal(true)} className="btn btn-solid"><I n="plus" size={14} /> Add Department</button>
                 <button onClick={() => exportToCSV(departments, "departments")} className="btn btn-ghost"><I n="download" size={14} /> Export</button>
@@ -264,10 +264,10 @@ export default function Department() {
             {/* STAT CARDS */}
             <div className="stat-grid">
               {[
-                { accent:"sc-indigo", icon:"layers",    val:"5",     lbl:"Departments",     delta:"total" },
-                { accent:"sc-teal",   icon:"users",     val:"1,345", lbl:"Total Students",  delta:"enrolled" },
-                { accent:"sc-amber",  icon:"book",      val:"63",    lbl:"Faculty Members", delta:"across all" },
-                { accent:"sc-violet", icon:"briefcase", val:"60%",   lbl:"Avg Placement",   delta:"last batch" },
+                { accent:"sc-indigo", icon:"layers",    val:departments.length,     lbl:"Departments",     delta:"total" },
+                { accent:"sc-teal",   icon:"users",     val:studentTotal.toLocaleString(), lbl:"Total Students",  delta:"enrolled" },
+                { accent:"sc-amber",  icon:"book",      val:facultyTotal.toLocaleString(),    lbl:"Faculty Members", delta:"across all" },
+                { accent:"sc-violet", icon:"briefcase", val:`${avgPlacement}%`,   lbl:"Avg Placement",   delta:"last batch" },
               ].map((s, i) => (
                 <div key={i} className={`stat-card ${s.accent}`} style={{ animationDelay:`${i * 80}ms`, cursor:"default" }}>
                   <div className="stat-ic"><I n={s.icon} size={16} /></div>

@@ -48,14 +48,14 @@ const NAV = [
     { id:"analytics", label:"Analytics",       icon:"bar",       routePath:"adminAnalytics",  badge:null },
   ]},
   { section:"Management", items:[
-    { id:"users",       label:"User Management", icon:"users",     routePath:"userManagement",   badge:"1.3k" },
-    { id:"courses",     label:"Courses",         icon:"book",      routePath:"courseManagement", badge:"47" },
-    { id:"departments", label:"Departments",     icon:"layers",    routePath:"department",       badge:null },
-    { id:"placement",   label:"Placement",       icon:"briefcase", routePath:"placement",        badge:"3", badgeType:"teal" },
+    { id:"users",       label:"User Management", icon:"users",     routePath:"userManagement",   badge:null },
+    { id:"courses",     label:"Courses",         icon:"book",      routePath:"courseManagement", badge:null },
+    { id:"departments", label:"Departments",     icon:"layers",    routePath:"departments",      badge:null },
+    { id:"placement",   label:"Placement",       icon:"briefcase", routePath:"placements",       badge:null, badgeType:"teal" },
   ]},
   { section:"Platform", items:[
     { id:"reports",   label:"Reports",      icon:"download", routePath:"adminReports", badge:null },
-    { id:"activity",  label:"Activity Log", icon:"activity", routePath:"activitylog",  badge:"12", badgeType:"rose" },
+    { id:"activity",  label:"Activity Log", icon:"activity", routePath:"auditLogs",     badge:null, badgeType:"rose" },
     { id:"security",  label:"Security",     icon:"shield",   routePath:"security",     badge:null },
     { id:"settings",  label:"Settings",     icon:"settings", routePath:"settings",     badge:null },
   ]},
@@ -71,26 +71,53 @@ const getActiveId = (pathname) => {
   }
   return "dashboard";
 };
-
 export default function AdminReports() {
   const navigate        = useNavigate();
   const location        = useLocation();
   const [sidebarOpen, setSidebar] = useState(false);
+  const [stats, setStats] = useState({ generated: 0, types: 0, export_size: "0 MB", scheduled: 0 });
+  const [library, setLibrary] = useState([]);
+  const [navBadges, setNavBadges] = useState({});
+  const [configStats, setConfigStats] = useState({ uptime: "99.9%", cpu: "0%", memory: "0%", backup_size: "0GB" });
+  const [loading, setLoading] = useState(true);
   const pageRef       = useRef(null);
   const cursorRef     = useRef(null);
   const cursorRingRef = useRef(null);
   const active = getActiveId(location.pathname);
   const now    = new Date().toLocaleDateString();
 
-  const handleExportReport = () => {
-    const csvContent = "data:text/csv;charset=utf-8,Report Name,Date,Status\nSample Report,2025-01-15,Generated";
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "admin_report.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [sRes, lRes, cRes, nb] = await Promise.all([
+        api.get("/admin/reports/stats"),
+        api.get("/admin/reports/library"),
+        api.get("/admin/config/stats"),
+        api.get("/admin/config/badges")
+      ]);
+      setStats(sRes);
+      setLibrary(lRes);
+      setConfigStats(cRes);
+      setNavBadges(nb);
+    } catch (err) {
+      console.error("Failed to fetch reports data", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleExportReport = async () => {
+    try {
+      const res = await api.post("/admin/reports/generate", { type: "General" });
+      alert(`Report Generated: ${res.filename || "Platform_Report.pdf"}`);
+      fetchData();
+    } catch (err) {
+      alert("Failed to generate report");
+    }
   };
 
   useEffect(() => {
@@ -108,7 +135,7 @@ export default function AdminReports() {
     const fills = document.querySelectorAll("[data-width]");
     const timeout = setTimeout(() => { fills.forEach(el => { el.style.width = el.dataset.width; }); }, 300);
     return () => clearTimeout(timeout);
-  }, [active]);
+  }, [active, configStats]);
 
   return (
     <>
@@ -140,7 +167,7 @@ export default function AdminReports() {
                     className={`sb-link ${active === item.id ? "active" : ""}`}
                     onClick={e => { e.preventDefault(); navigate(item.routePath === "" ? "/admindashboard" : `/admindashboard/${item.routePath}`); setSidebar(false); }}>
                     <I n={item.icon} size={15} />{item.label}
-                    {item.badge && <span className={`sb-badge ${item.badgeType || ""}`}>{item.badge}</span>}
+                    {navBadges[item.id] && <span className={`sb-badge ${item.badgeType || ""}`}>{navBadges[item.id]}</span>}
                   </a>
                 ))}
               </div>
@@ -149,10 +176,14 @@ export default function AdminReports() {
           <div className="sb-bottom">
             <div className="sb-health">
               <div className="sb-health-lbl">System Health</div>
-              {[["Uptime","99.8%"],["CPU","34%"],["Memory","61%"]].map(([n,v]) => (
-                <div key={n}>
-                  <div className="sb-health-row"><span className="sb-health-name">{n}</span><span className="sb-health-val">{v}</span></div>
-                  <div className="sb-health-bar"><div className="sb-health-fill" data-width={v} style={{ width:0 }} /></div>
+              {[
+                { n: "Uptime", v: configStats.uptime },
+                { n: "CPU",    v: configStats.cpu },
+                { n: "Memory", v: configStats.memory }
+              ].map((item) => (
+                <div key={item.n}>
+                  <div className="sb-health-row"><span className="sb-health-name">{item.n}</span><span className="sb-health-val">{item.v}</span></div>
+                  <div className="sb-health-bar"><div className="sb-health-fill" style={{ width: item.v.includes("%") ? item.v : "60%" }} /></div>
                 </div>
               ))}
             </div>
@@ -170,8 +201,8 @@ export default function AdminReports() {
             <div className="tb-right">
               <span className="tb-role-tag">Admin</span>
               <span className="tb-date">{now}</span>
-              <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="tb-icon-btn tooltip" data-tip="Refresh"><I n="refresh" size={15} /></button>
-              <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="tb-icon-btn tooltip" data-tip="Notifications"><I n="bell" size={15} /><span className="notif-dot" /></button>
+              <button onClick={() => fetchData()} className="tb-icon-btn tooltip" data-tip="Refresh"><I n="refresh" size={15} /></button>
+              <button onClick={() => navigate("/admindashboard/notifications")} className="tb-icon-btn tooltip" data-tip="Notifications"><I n="bell" size={15} /><span className="notif-dot" /></button>
               <button className="tb-icon-btn tooltip" data-tip="Settings" onClick={() => navigate("/admindashboard/settings")}><I n="settings" size={15} /></button>
             </div>
           </header>
@@ -191,10 +222,10 @@ export default function AdminReports() {
             {/* STAT CARDS */}
             <div className="stat-grid">
               {[
-                { accent:"sc-indigo", icon:"download", val:"24",  lbl:"Reports Generated",   delta:"this month" },
-                { accent:"sc-teal",   icon:"users",    val:"6",   lbl:"Report Types",        delta:"available" },
-                { accent:"sc-amber",  icon:"db",       val:"18 MB",lbl:"Total Export Size",  delta:"last 30 days" },
-                { accent:"sc-rose",   icon:"activity", val:"3",   lbl:"Scheduled Reports",   delta:"auto-running" },
+                { accent:"sc-indigo", icon:"download", val:stats.generated,  lbl:"Reports Generated",   delta:"this month" },
+                { accent:"sc-teal",   icon:"users",    val:stats.types,   lbl:"Report Types",        delta:"available" },
+                { accent:"sc-amber",  icon:"db",       val:stats.export_size,lbl:"Total Export Size",  delta:"last 30 days" },
+                { accent:"sc-rose",   icon:"activity", val:stats.scheduled,   lbl:"Scheduled Reports",   delta:"auto-running" },
               ].map((s, i) => (
                 <div key={i} className={`stat-card ${s.accent}`} style={{ animationDelay:`${i * 80}ms`, cursor:"default" }}>
                   <div className="stat-ic"><I n={s.icon} size={16} /></div>
@@ -217,13 +248,18 @@ export default function AdminReports() {
                     { label:"User Growth Report",    icon:"users",     color:"rgba(91,78,248,.12)",   tc:"var(--indigo-ll)" },
                     { label:"Course Analytics",      icon:"book",      color:"rgba(39,201,176,.1)",   tc:"var(--teal)" },
                     { label:"Placement Stats",       icon:"briefcase", color:"rgba(244,165,53,.1)",   tc:"var(--amber)" },
-                    { label:"Security Audit",        icon:"shield",    color:"rgba(242,68,92,.1)",    tc:"var(--rose)" },
+                    { label:"Security Audit",        icon:"shield",    color:"rgba(255,107,107,.1)",  tc:"var(--rose)" },
                   ].map((q, i) => (
-                    <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} key={i} style={{ background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:"12px", padding:"16px", textAlign:"center", cursor:"pointer", transition:"all .2s", width:"100%" }}>
-                      <div style={{ width:34, height:34, borderRadius:9, background:q.color, color:q.tc, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 8px" }}>
-                        <I n={q.icon} size={15} />
-                      </div>
-                      <div style={{ fontSize:"11px", fontWeight:600, color:q.tc }}>{q.label}</div>
+                    <button key={i} className="q-gen-btn" style={{ background:q.color, color:q.tc }} 
+                      onClick={async () => {
+                        try {
+                          await api.post("/admin/reports/generate", { type: q.label });
+                          alert(`${q.label} Generated!`);
+                          fetchData();
+                        } catch (err) { alert("Failed to generate " + q.label); }
+                      }}>
+                      <div className="q-gen-ic"><I n={q.icon} size={15} /></div>
+                      <div className="q-gen-lbl">{q.label}</div>
                     </button>
                   ))}
                 </div>
@@ -233,21 +269,18 @@ export default function AdminReports() {
             {/* REPORT LIBRARY */}
             <div className="panel">
               <div className="panel-hd">
-                <div className="panel-ttl"><I n="download" size={15} /> Report Library <span>6 files</span></div>
+                <div className="panel-ttl"><I n="download" size={15} /> Report Library <span>{library.length} files</span></div>
                 <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="btn btn-ghost btn-sm"><I n="search" size={12} /> Filter</button>
               </div>
               <div className="panel-body">
                 <div className="filter-row">
                   <div className="tb-search" style={{ flex:"1", height:"32px" }}><I n="search" size={13} /><input placeholder="Search reports…" /></div>
                 </div>
-                {[
-                  { name:"Monthly Enrollment Report",  desc:"Student enrollment trends across departments",    size:"2.4 MB", date:"Jan 2025", type:"PDF",  icon:"users",    color:"var(--rose)" },
-                  { name:"Course Completion Summary",  desc:"Completion rates and engagement per course",       size:"1.8 MB", date:"Jan 2025", type:"XLSX", icon:"book",     color:"var(--teal)" },
-                  { name:"Placement Outcome Report",   desc:"Offer letters, companies, package distributions",  size:"3.1 MB", date:"Dec 2024", type:"PDF",  icon:"briefcase",color:"var(--amber)" },
-                  { name:"Faculty Performance Review", desc:"Teaching hours, student ratings, assessments",     size:"1.2 MB", date:"Dec 2024", type:"PDF",  icon:"award",    color:"var(--violet)" },
-                  { name:"System Audit Log Export",    desc:"Full audit trail — logins, changes, alerts",       size:"5.6 MB", date:"Dec 2024", type:"CSV",  icon:"shield",   color:"var(--indigo-ll)" },
-                  { name:"Financial Summary Q4 2024",  desc:"Revenue, expenses, and budget utilization",        size:"2.9 MB", date:"Dec 2024", type:"XLSX", icon:"bar",      color:"var(--teal)" },
-                ].map((r, i) => (
+                {loading ? (
+                    <div style={{ padding:"20px", textAlign:"center", color:"var(--text3)" }}>Loading report library...</div>
+                ) : library.length === 0 ? (
+                    <div style={{ padding:"20px", textAlign:"center", color:"var(--text3)" }}>No reports found.</div>
+                ) : library.map((r, i) => (
                   <div key={i} style={{ display:"flex", alignItems:"center", gap:"14px", padding:"13px 0", borderBottom:"1px solid var(--border)" }}>
                     <div style={{ width:38, height:38, borderRadius:10, background:`rgba(0,0,0,.2)`, color:r.color, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, border:`1px solid ${r.color}22` }}>
                       <I n={r.icon} size={15} />

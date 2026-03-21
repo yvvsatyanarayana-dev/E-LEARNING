@@ -18,6 +18,7 @@ from Models.Quiz import Quiz, Question, QuizAttempt, QuestionType, DifficultyLev
 from Models.Project import Project, ProjectReview, ProjectStatus
 from Models.Community import Forum, ForumPost, StudyGroup, StudyGroupMember
 from Models.Innovation import InnovationIdea, InnovationProject, InnovationHackathon
+from Models.SystemRule import SystemRule
 
 # ROUTES
 from Routes.AuthRoute import router as auth_router
@@ -26,6 +27,7 @@ from Routes.FacultyRoute import router as faculty_router
 from Sockets.MeetingSockets import app as socket_app  # Import SocketIO app
 
 from Routes.PlacementRoute import router as placement_router
+from Routes.AdminRoute import router as admin_router
 app = FastAPI(
     title=settings.APP_NAME,
     description="A comprehensive smart-campus platform API built with FastAPI and SQLAlchemy.",
@@ -53,6 +55,7 @@ app.include_router(auth_router, prefix=PREFIX)
 app.include_router(student_router, prefix=PREFIX)
 app.include_router(faculty_router, prefix=PREFIX)
 app.include_router(placement_router, prefix=PREFIX)
+app.include_router(admin_router, prefix=PREFIX)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOADS_DIR = os.path.join(BASE_DIR, "uploads")

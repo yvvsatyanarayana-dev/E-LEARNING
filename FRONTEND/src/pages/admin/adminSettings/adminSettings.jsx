@@ -48,14 +48,14 @@ const NAV = [
     { id:"analytics", label:"Analytics",       icon:"bar",       routePath:"adminAnalytics",  badge:null },
   ]},
   { section:"Management", items:[
-    { id:"users",       label:"User Management", icon:"users",     routePath:"userManagement",   badge:"1.3k" },
-    { id:"courses",     label:"Courses",         icon:"book",      routePath:"courseManagement", badge:"47" },
-    { id:"departments", label:"Departments",     icon:"layers",    routePath:"department",       badge:null },
-    { id:"placement",   label:"Placement",       icon:"briefcase", routePath:"placement",        badge:"3", badgeType:"teal" },
+    { id:"users",       label:"User Management", icon:"users",     routePath:"userManagement",   badge:null },
+    { id:"courses",     label:"Courses",         icon:"book",      routePath:"courseManagement", badge:null },
+    { id:"departments", label:"Departments",     icon:"layers",    routePath:"departments",      badge:null },
+    { id:"placement",   label:"Placement",       icon:"briefcase", routePath:"placements",       badge:null, badgeType:"teal" },
   ]},
   { section:"Platform", items:[
     { id:"reports",   label:"Reports",      icon:"download", routePath:"adminReports", badge:null },
-    { id:"activity",  label:"Activity Log", icon:"activity", routePath:"activitylog",  badge:"12", badgeType:"rose" },
+    { id:"activity",  label:"Activity Log", icon:"activity", routePath:"auditLogs",     badge:null, badgeType:"rose" },
     { id:"security",  label:"Security",     icon:"shield",   routePath:"security",     badge:null },
     { id:"settings",  label:"Settings",     icon:"settings", routePath:"settings",     badge:null },
   ]},
@@ -71,16 +71,53 @@ const getActiveId = (pathname) => {
   }
   return "dashboard";
 };
+import api from "../../../utils/api";
 
-export default function adminSettings() {
+export default function AdminSettings() {
   const navigate        = useNavigate();
   const location        = useLocation();
   const [sidebarOpen, setSidebar] = useState(false);
+  const [settings, setSettings] = useState({ campus_name: "", admin_email: "", timezone: "", language: "", integrations: [] });
+  const [navBadges, setNavBadges] = useState({});
+  const [configStats, setConfigStats] = useState({ uptime: "99.9%", cpu: "0%", memory: "0%", backup_size: "0GB" });
+  const [loading, setLoading] = useState(true);
+
   const pageRef       = useRef(null);
   const cursorRef     = useRef(null);
   const cursorRingRef = useRef(null);
   const active = getActiveId(location.pathname);
   const now    = new Date().toLocaleDateString();
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [sRes, cRes, nb] = await Promise.all([
+        api.get("/admin/settings/platform"),
+        api.get("/admin/config/stats"),
+        api.get("/admin/config/badges")
+      ]);
+      setSettings(sRes);
+      setConfigStats(cRes);
+      setNavBadges(nb);
+    } catch (err) {
+      console.error("Failed to fetch settings data", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+        await api.post("/admin/settings/platform", settings);
+        alert("Settings saved successfully!");
+    } catch (err) {
+        alert("Failed to save settings.");
+    }
+  };
 
   useEffect(() => {
     const cursor = cursorRef.current; const cursorRing = cursorRingRef.current;
@@ -97,7 +134,7 @@ export default function adminSettings() {
     const fills = document.querySelectorAll("[data-width]");
     const timeout = setTimeout(() => { fills.forEach(el => { el.style.width = el.dataset.width; }); }, 300);
     return () => clearTimeout(timeout);
-  }, [active]);
+  }, [active, configStats]);
 
   return (
     <>
@@ -129,7 +166,7 @@ export default function adminSettings() {
                     className={`sb-link ${active === item.id ? "active" : ""}`}
                     onClick={e => { e.preventDefault(); navigate(item.routePath === "" ? "/admindashboard" : `/admindashboard/${item.routePath}`); setSidebar(false); }}>
                     <I n={item.icon} size={15} />{item.label}
-                    {item.badge && <span className={`sb-badge ${item.badgeType || ""}`}>{item.badge}</span>}
+                    {navBadges[item.id] && <span className={`sb-badge ${item.badgeType || ""}`}>{navBadges[item.id]}</span>}
                   </a>
                 ))}
               </div>
@@ -138,10 +175,14 @@ export default function adminSettings() {
           <div className="sb-bottom">
             <div className="sb-health">
               <div className="sb-health-lbl">System Health</div>
-              {[["Uptime","99.8%"],["CPU","34%"],["Memory","61%"]].map(([n,v]) => (
-                <div key={n}>
-                  <div className="sb-health-row"><span className="sb-health-name">{n}</span><span className="sb-health-val">{v}</span></div>
-                  <div className="sb-health-bar"><div className="sb-health-fill" data-width={v} style={{ width:0 }} /></div>
+              {[
+                { n: "Uptime", v: configStats.uptime },
+                { n: "CPU",    v: configStats.cpu },
+                { n: "Memory", v: configStats.memory }
+              ].map((item) => (
+                <div key={item.n}>
+                  <div className="sb-health-row"><span className="sb-health-name">{item.n}</span><span className="sb-health-val">{item.v}</span></div>
+                  <div className="sb-health-bar"><div className="sb-health-fill" style={{ width: item.v.includes("%") ? item.v : "60%" }} /></div>
                 </div>
               ))}
             </div>
@@ -159,8 +200,8 @@ export default function adminSettings() {
             <div className="tb-right">
               <span className="tb-role-tag">Admin</span>
               <span className="tb-date">{now}</span>
-              <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="tb-icon-btn tooltip" data-tip="Refresh"><I n="refresh" size={15} /></button>
-              <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="tb-icon-btn tooltip" data-tip="Notifications"><I n="bell" size={15} /><span className="notif-dot" /></button>
+              <button onClick={() => fetchData()} className="tb-icon-btn tooltip" data-tip="Refresh"><I n="refresh" size={15} /></button>
+              <button onClick={() => navigate("/admindashboard/notifications")} className="tb-icon-btn tooltip" data-tip="Notifications"><I n="bell" size={15} /><span className="notif-dot" /></button>
               <button className="tb-icon-btn tooltip" data-tip="Settings" onClick={() => navigate("/admindashboard/settings")}><I n="settings" size={15} /></button>
             </div>
           </header>
@@ -172,15 +213,15 @@ export default function adminSettings() {
               <h1 className="greet-title">Platform <em>Settings.</em></h1>
               <p className="greet-sub">Configure global settings, notifications, and integrations</p>
               <div className="greet-actions">
-                <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="btn btn-solid"><I n="check" size={14} /> Save Changes</button>
-                <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="btn btn-ghost"><I n="refresh" size={14} /> Reset Defaults</button>
+                <button onClick={handleSave} className="btn btn-solid"><I n="check" size={14} /> Save Changes</button>
+                <button onClick={() => fetchData()} className="btn btn-ghost"><I n="refresh" size={14} /> Reset Defaults</button>
               </div>
             </div>
 
             {/* STAT CARDS */}
             <div className="stat-grid">
               {[
-                { accent:"sc-teal",   icon:"check",    val:"5/6",   lbl:"Integrations Active",  delta:"1 pending" },
+                { accent:"sc-teal",   icon:"check",    val:`${(settings.integrations||[]).filter(x=>x.status==="connected").length}/${(settings.integrations||[]).length}`,   lbl:"Integrations Active",  delta:"live" },
                 { accent:"sc-indigo", icon:"bell",     val:"4",     lbl:"Active Notifications", delta:"configured" },
                 { accent:"sc-amber",  icon:"cpu",      val:"Dark",  lbl:"Current Theme",        delta:"deep space" },
                 { accent:"sc-rose",   icon:"shield",   val:"2FA",   lbl:"Auth Method",          delta:"enforced" },
@@ -198,28 +239,26 @@ export default function adminSettings() {
             <div className="panel">
               <div className="panel-hd">
                 <div className="panel-ttl"><I n="settings" size={15} /> Configuration</div>
-                <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="btn btn-solid btn-sm"><I n="check" size={12} /> Save Changes</button>
+                <button onClick={handleSave} className="btn btn-solid btn-sm"><I n="check" size={12} /> Save Changes</button>
               </div>
               <div className="panel-body" style={{ padding:0 }}>
                 <div className="tab-row" style={{ padding:"0 20px" }}>
                   {["General","Notifications","Appearance","Integrations","Advanced"].map(t => (
-                    <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} key={t} className={`tab-btn ${t === "General" ? "active" : ""}`}>{t}</button>
+                    <button onClick={() => {}} key={t} className={`tab-btn ${t === "General" ? "active" : ""}`}>{t}</button>
                   ))}
                 </div>
                 <div style={{ padding:"20px" }}>
                   <div style={{ fontSize:"10px", fontWeight:700, letterSpacing:".12em", textTransform:"uppercase", color:"var(--text3)", marginBottom:"14px" }}>Campus Information</div>
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"14px" }}>
                     {[
-                      { label:"Campus Name",    val:"Smart Campus Institute of Technology" },
-                      { label:"Admin Email",    val:"admin@college.edu" },
-                      { label:"Timezone",       val:"Asia/Kolkata" },
-                      { label:"Language",       val:"English" },
-                      { label:"Semester Start", val:"2025-01-06" },
-                      { label:"Semester End",   val:"2025-05-30" },
+                      { label:"Campus Name",    key:"campus_name", val:settings.campus_name },
+                      { label:"Admin Email",    key:"admin_email", val:settings.admin_email },
+                      { label:"Timezone",       key:"timezone",    val:settings.timezone },
+                      { label:"Language",       key:"language",    val:settings.language },
                     ].map(f => (
                       <div key={f.label}>
                         <label style={{ fontSize:"11px", fontWeight:600, color:"var(--text2)", display:"block", marginBottom:"5px" }}>{f.label}</label>
-                        <input className="filter-input" style={{ width:"100%" }} defaultValue={f.val} />
+                        <input className="filter-input" style={{ width:"100%" }} value={f.val} onChange={(e) => setSettings({...settings, [f.key]: e.target.value})} />
                       </div>
                     ))}
                   </div>
@@ -257,22 +296,20 @@ export default function adminSettings() {
                   <div className="panel-ttl"><I n="globe" size={15} /> Integrations</div>
                 </div>
                 <div className="panel-body">
-                  {[
-                    { name:"Google SSO",      icon:"globe",  status:"connected",    color:"var(--teal)" },
-                    { name:"Zoom Meetings",   icon:"wifi",   status:"connected",    color:"var(--teal)" },
-                    { name:"AWS S3 Storage",  icon:"db",     status:"connected",    color:"var(--teal)" },
-                    { name:"Razorpay",        icon:"zap",    status:"disconnected", color:"var(--text3)" },
-                    { label:"SendGrid Email",  icon:"globe",  status:"connected",    color:"var(--teal)" },
-                  ].map((intg, i) => (
+                  {loading ? (
+                    <div style={{ padding:"20px", textAlign:"center", color:"var(--text3)" }}>Loading integrations...</div>
+                  ) : (settings.integrations||[]).length === 0 ? (
+                    <div style={{ padding:"20px", textAlign:"center", color:"var(--text3)" }}>No integrations found.</div>
+                  ) : settings.integrations.map((intg, i) => (
                     <div key={i} style={{ display:"flex", alignItems:"center", gap:"12px", padding:"10px 0", borderBottom:"1px solid var(--border)" }}>
                       <div style={{ width:34, height:34, borderRadius:9, background:"var(--surface3)", color:"var(--text2)", display:"flex", alignItems:"center", justifyContent:"center" }}>
                         <I n={intg.icon} size={15} />
                       </div>
                       <div style={{ flex:1 }}>
                         <div style={{ fontSize:"12.5px", fontWeight:600 }}>{intg.name}</div>
-                        <div style={{ fontSize:"10.5px", color:intg.color, marginTop:"2px" }}>{intg.status === "connected" ? "● Connected" : "○ Not connected"}</div>
+                        <div style={{ fontSize:"10.5px", color:intg.status === "connected" ? "var(--teal)" : "var(--text3)", marginTop:"2px" }}>{intg.status === "connected" ? "● Connected" : "○ Not connected"}</div>
                       </div>
-                      <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className={`btn btn-sm ${intg.status === "connected" ? "btn-ghost" : "btn-solid"}`}>
+                      <button onClick={() => {}} className={`btn btn-sm ${intg.status === "connected" ? "btn-ghost" : "btn-solid"}`}>
                         {intg.status === "connected" ? "Disconnect" : "Connect"}
                       </button>
                     </div>

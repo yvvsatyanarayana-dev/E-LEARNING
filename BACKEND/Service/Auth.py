@@ -1,7 +1,9 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from Models.User import User
+from Models.Notification import Notification
 from Schemas.UserSchema import RegisterRequest, LoginRequest, UserResponse, TokenResponse, ChangePasswordRequest, UserUpdate
+from datetime import datetime, timedelta
 from Core.Security import hash_pwd, verify_pwd, create_access_token
 
 
@@ -42,6 +44,9 @@ class AuthService:
             "sub": str(user.id),
             "role": user.role,
         })
+
+        user.last_login = datetime.utcnow()
+        db.commit()
 
         return TokenResponse(access_token=token, user=user)
 
@@ -89,21 +94,16 @@ class AuthService:
         return {"message": "Password changed successfully"}
 
     def get_sessions(self, current_user: User, db: Session) -> list:
-        """Returns active login sessions for the current user (Mocked)."""
+        """Returns active login sessions based on recent activity."""
+        # Since we don't have a separate Sessions table, we derive this from the user's last_login
+        # For a truly dynamic experience, we can return the current user's session
         return [
             {
-                "id": "s1",
-                "device": "Chrome · Windows",
-                "location": "Bengaluru, India",
-                "time": "Active now",
+                "id": str(current_user.id),
+                "device": "Web Browser",
+                "location": "Local Session",
+                "time": "Active now" if current_user.last_login else "Never",
                 "is_current": True
-            },
-            {
-                "id": "s2",
-                "device": "Safari · iPhone",
-                "location": "Mumbai, India",
-                "time": "2 days ago",
-                "is_current": False
             }
         ]
 

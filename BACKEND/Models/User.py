@@ -31,6 +31,7 @@ class User(Base):
     settings = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     updated_at = Column(DateTime(timezone=True), onupdate=datetime.utcnow)
+    last_login = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
     courses_created        = relationship("Course", back_populates="faculty", foreign_keys="Course.faculty_id")

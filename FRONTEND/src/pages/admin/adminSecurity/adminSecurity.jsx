@@ -48,14 +48,14 @@ const NAV = [
     { id:"analytics", label:"Analytics",       icon:"bar",       routePath:"adminAnalytics",  badge:null },
   ]},
   { section:"Management", items:[
-    { id:"users",       label:"User Management", icon:"users",     routePath:"userManagement",   badge:"1.3k" },
-    { id:"courses",     label:"Courses",         icon:"book",      routePath:"courseManagement", badge:"47" },
-    { id:"departments", label:"Departments",     icon:"layers",    routePath:"department",       badge:null },
-    { id:"placement",   label:"Placement",       icon:"briefcase", routePath:"placement",        badge:"3", badgeType:"teal" },
+    { id:"users",       label:"User Management", icon:"users",     routePath:"userManagement",   badge:null },
+    { id:"courses",     label:"Courses",         icon:"book",      routePath:"courseManagement", badge:null },
+    { id:"departments", label:"Departments",     icon:"layers",    routePath:"departments",      badge:null },
+    { id:"placement",   label:"Placement",       icon:"briefcase", routePath:"placements",       badge:null, badgeType:"teal" },
   ]},
   { section:"Platform", items:[
     { id:"reports",   label:"Reports",      icon:"download", routePath:"adminReports", badge:null },
-    { id:"activity",  label:"Activity Log", icon:"activity", routePath:"activitylog",  badge:"12", badgeType:"rose" },
+    { id:"activity",  label:"Activity Log", icon:"activity", routePath:"auditLogs",     badge:null, badgeType:"rose" },
     { id:"security",  label:"Security",     icon:"shield",   routePath:"security",     badge:null },
     { id:"settings",  label:"Settings",     icon:"settings", routePath:"settings",     badge:null },
   ]},
@@ -71,26 +71,80 @@ const getActiveId = (pathname) => {
   }
   return "dashboard";
 };
+import api from "../../../utils/api";
 
-export default function adminSecurity() {
+export default function AdminSecurity() {
   const navigate        = useNavigate();
   const location        = useLocation();
   const [sidebarOpen, setSidebar] = useState(false);
+  const [stats, setStats] = useState({ alerts: 0, sessions: 0, rules_active: "0/0", uptime: "0%" });
+  const [alerts, setAlerts] = useState([]);
+  const [sessions, setSessions] = useState([]);
+  const [rules, setRules] = useState([]);
+  const [navBadges, setNavBadges] = useState({});
+  const [configStats, setConfigStats] = useState({ uptime: "99.9%", cpu: "0%", memory: "0%", backup_size: "0GB" });
+  const [loading, setLoading] = useState(true);
+
   const pageRef       = useRef(null);
   const cursorRef     = useRef(null);
   const cursorRingRef = useRef(null);
   const active = getActiveId(location.pathname);
   const now    = new Date().toLocaleDateString();
 
-  const handleExportAudit = () => {
-    const csvContent = "data:text/csv;charset=utf-8,Alert,Status\nMock Alert,Resolved";
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", "security_audit.csv");
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [sRes, aRes, sesRes, rRes, cRes, nb] = await Promise.all([
+        api.get("/admin/dashboard/stats"), // Reuse for security stats if needed
+        api.get("/admin/security/alerts"),
+        api.get("/admin/security/sessions"),
+        api.get("/admin/security/rules"),
+        api.get("/admin/config/stats"),
+        api.get("/admin/config/badges")
+      ]);
+      setStats(sRes);
+      setAlerts(aRes);
+      setSessions(sesRes);
+      setRules(rRes);
+      setConfigStats(cRes);
+      setNavBadges(nb);
+    } catch (err) {
+      console.error("Failed to fetch security data", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResolveAlert = async (id) => {
+    try {
+      await api.post(`/admin/notifications/read/${id}`);
+      fetchData();
+    } catch (err) {
+      console.error("Failed to resolve alert", err);
+    }
+  };
+
+  const handleToggleRule = async (id) => {
+    try {
+      await api.post(`/admin/security/rules/${id}/toggle`);
+      fetchData();
+    } catch (err) {
+      console.error("Failed to toggle rule", err);
+    }
+  };
+
+  const handleExportAudit = async () => {
+    try {
+      const res = await api.post("/admin/reports/generate", { type: "Security Audit" });
+      alert(`Audit Report Generated: ${res.filename}`);
+      fetchData();
+    } catch (err) {
+      alert("Failed to generate audit report");
+    }
   };
 
   useEffect(() => {
@@ -108,7 +162,7 @@ export default function adminSecurity() {
     const fills = document.querySelectorAll("[data-width]");
     const timeout = setTimeout(() => { fills.forEach(el => { el.style.width = el.dataset.width; }); }, 300);
     return () => clearTimeout(timeout);
-  }, [active]);
+  }, [active, configStats]);
 
   return (
     <>
@@ -140,7 +194,7 @@ export default function adminSecurity() {
                     className={`sb-link ${active === item.id ? "active" : ""}`}
                     onClick={e => { e.preventDefault(); navigate(item.routePath === "" ? "/admindashboard" : `/admindashboard/${item.routePath}`); setSidebar(false); }}>
                     <I n={item.icon} size={15} />{item.label}
-                    {item.badge && <span className={`sb-badge ${item.badgeType || ""}`}>{item.badge}</span>}
+                    {navBadges[item.id] && <span className={`sb-badge ${item.badgeType || ""}`}>{navBadges[item.id]}</span>}
                   </a>
                 ))}
               </div>
@@ -149,10 +203,14 @@ export default function adminSecurity() {
           <div className="sb-bottom">
             <div className="sb-health">
               <div className="sb-health-lbl">System Health</div>
-              {[["Uptime","99.8%"],["CPU","34%"],["Memory","61%"]].map(([n,v]) => (
-                <div key={n}>
-                  <div className="sb-health-row"><span className="sb-health-name">{n}</span><span className="sb-health-val">{v}</span></div>
-                  <div className="sb-health-bar"><div className="sb-health-fill" data-width={v} style={{ width:0 }} /></div>
+              {[
+                { n: "Uptime", v: configStats.uptime },
+                { n: "CPU",    v: configStats.cpu },
+                { n: "Memory", v: configStats.memory }
+              ].map((item) => (
+                <div key={item.n}>
+                  <div className="sb-health-row"><span className="sb-health-name">{item.n}</span><span className="sb-health-val">{item.v}</span></div>
+                  <div className="sb-health-bar"><div className="sb-health-fill" style={{ width: item.v.includes("%") ? item.v : "60%" }} /></div>
                 </div>
               ))}
             </div>
@@ -170,8 +228,8 @@ export default function adminSecurity() {
             <div className="tb-right">
               <span className="tb-role-tag">Admin</span>
               <span className="tb-date">{now}</span>
-              <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="tb-icon-btn tooltip" data-tip="Refresh"><I n="refresh" size={15} /></button>
-              <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="tb-icon-btn tooltip" data-tip="Notifications"><I n="bell" size={15} /><span className="notif-dot" /></button>
+              <button onClick={() => fetchData()} className="tb-icon-btn tooltip" data-tip="Refresh"><I n="refresh" size={15} /></button>
+              <button onClick={() => navigate("/admindashboard/notifications")} className="tb-icon-btn tooltip" data-tip="Notifications"><I n="bell" size={15} /><span className="notif-dot" /></button>
               <button className="tb-icon-btn tooltip" data-tip="Settings" onClick={() => navigate("/admindashboard/settings")}><I n="settings" size={15} /></button>
             </div>
           </header>
@@ -181,9 +239,9 @@ export default function adminSecurity() {
             <div className="greet-row">
               <div className="greet-tag"><div className="greet-pip" /><span className="greet-pip-txt">Security Center</span></div>
               <h1 className="greet-title">Security <em>Center.</em></h1>
-              <p className="greet-sub">2 unresolved alerts &nbsp;·&nbsp; 4 active sessions &nbsp;·&nbsp; Last scan: 6 hours ago</p>
+              <p className="greet-sub">{stats.alerts} unresolved alerts &nbsp;·&nbsp; {stats.sessions} active sessions &nbsp;·&nbsp; Last scan: 6 hours ago</p>
               <div className="greet-actions">
-                <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="btn btn-solid"><I n="shield" size={14} /> Run Scan</button>
+                <button onClick={() => fetchData()} className="btn btn-solid"><I n="shield" size={14} /> Run Scan</button>
                 <button onClick={handleExportAudit} className="btn btn-ghost"><I n="download" size={14} /> Export Audit</button>
               </div>
             </div>
@@ -191,10 +249,10 @@ export default function adminSecurity() {
             {/* STAT CARDS */}
             <div className="stat-grid">
               {[
-                { accent:"sc-rose",   icon:"shield",   val:"2",     lbl:"Active Alerts",          delta:"2 critical" },
-                { accent:"sc-amber",  icon:"users",    val:"4",     lbl:"Active Sessions",         delta:"right now" },
-                { accent:"sc-teal",   icon:"check",    val:"5/6",   lbl:"Security Rules Active",  delta:"1 disabled" },
-                { accent:"sc-indigo", icon:"activity", val:"99.8%", lbl:"Platform Uptime",         delta:"last 30 days" },
+                { accent:"sc-rose",   icon:"shield",   val:stats.alerts,     lbl:"Active Alerts",          delta:"2 critical" },
+                { accent:"sc-amber",  icon:"users",    val:stats.sessions,     lbl:"Active Sessions",         delta:"right now" },
+                { accent:"sc-teal",   icon:"check",    val:stats.rules_active,   lbl:"Security Rules Active",  delta:"1 disabled" },
+                { accent:"sc-indigo", icon:"activity", val:stats.uptime, lbl:"Platform Uptime",         delta:"last 30 days" },
               ].map((s, i) => (
                 <div key={i} className={`stat-card ${s.accent}`} style={{ animationDelay:`${i * 80}ms`, cursor:"default" }}>
                   <div className="stat-ic"><I n={s.icon} size={16} /></div>
@@ -209,21 +267,14 @@ export default function adminSecurity() {
             <div className="main-grid-wide">
               <div className="panel">
                 <div className="panel-hd">
-                  <div className="panel-ttl"><I n="shield" size={15} /> Security Alerts <span>2 unresolved</span></div>
-                  <div style={{ display:"flex", gap:"4px" }}>
-                    {["All","Critical","Warning","Info"].map(f => (
-                      <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} key={f} className={`filter-chip ${f === "All" ? "active" : ""}`} style={{ padding:"3px 9px", fontSize:"9.5px" }}>{f}</button>
-                    ))}
-                  </div>
+                  <div className="panel-ttl"><I n="shield" size={15} /> Security Alerts <span>{alerts.filter(x=>!x.resolved).length} unresolved</span></div>
                 </div>
                 <div className="panel-body">
-                  {[
-                    { level:"critical", icon:"shield",  title:"Brute force attempt blocked",  detail:"IP 192.168.1.42 — 23 failed attempts in 5 mins", time:"32 mins ago", resolved:false, color:"var(--rose)" },
-                    { level:"warning",  icon:"wifi",    title:"Unusual login location",       detail:"User: ankit@college.edu — logged in from Pune",  time:"2 hrs ago",   resolved:false, color:"var(--amber)" },
-                    { level:"warning",  icon:"users",   title:"Bulk export triggered",        detail:"Admin SA exported 1,347 user records",           time:"4 hrs ago",   resolved:true,  color:"var(--amber)" },
-                    { level:"info",     icon:"bell",    title:"Admin password changed",       detail:"Super Admin account — IP 10.0.0.1",              time:"10 hrs ago",  resolved:true,  color:"var(--indigo-ll)" },
-                    { level:"critical", icon:"db",      title:"DB connection spike",          detail:"1,200 concurrent connections — threshold 1,000", time:"1 day ago",   resolved:true,  color:"var(--rose)" },
-                  ].map((a, i) => (
+                  {loading ? (
+                      <div style={{ padding:"20px", textAlign:"center", color:"var(--text3)" }}>Loading alerts...</div>
+                  ) : alerts.length === 0 ? (
+                      <div style={{ padding:"20px", textAlign:"center", color:"var(--text3)" }}>No security alerts found.</div>
+                  ) : alerts.map((a, i) => (
                     <div key={i} style={{ display:"flex", alignItems:"flex-start", gap:"12px", padding:"13px", borderRadius:"10px", border:"1px solid var(--border)", background:"var(--surface2)", marginBottom:"8px", opacity: a.resolved ? .5 : 1, transition:"opacity .2s" }}>
                       <div style={{ width:32, height:32, borderRadius:"8px", background:`${a.color}20`, color:a.color, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0 }}>
                         <I n={a.icon} size={14} />
@@ -237,7 +288,7 @@ export default function adminSecurity() {
                         <span style={{ fontSize:"9px", fontWeight:700, padding:"2px 8px", borderRadius:"4px", textTransform:"uppercase", background:`${a.color}18`, color:a.color, border:`1px solid ${a.color}30` }}>{a.level}</span>
                         {a.resolved
                           ? <span style={{ fontSize:"9px", color:"var(--teal)", fontWeight:600 }}>Resolved</span>
-                          : <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="btn btn-sm btn-ghost" style={{ padding:"4px 10px", fontSize:"9.5px" }}>Resolve</button>
+                          : <button onClick={() => handleResolveAlert(a.id)} className="btn btn-sm btn-ghost" style={{ padding:"4px 10px", fontSize:"9.5px" }}>Resolve</button>
                         }
                       </div>
                     </div>
@@ -248,15 +299,14 @@ export default function adminSecurity() {
               <div className="panel">
                 <div className="panel-hd">
                   <div className="panel-ttl"><I n="users" size={15} /> Active Sessions</div>
-                  <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="panel-act"><I n="x" size={12} /> Revoke All</button>
+                  <button onClick={() => {}} className="panel-act"><I n="x" size={12} /> Revoke All</button>
                 </div>
                 <div className="panel-body">
-                  {[
-                    { user:"Super Admin",    role:"admin",     ip:"10.0.0.1",      location:"Chennai", time:"Active now", av:"SA", avC:"rgba(242,68,92,.2)",   avT:"var(--rose)" },
-                    { user:"Dr. Meera Nair", role:"faculty",   ip:"10.0.1.22",     location:"Chennai", time:"2 mins ago", av:"MN", avC:"rgba(39,201,176,.15)", avT:"var(--teal)" },
-                    { user:"Priya Krishnan", role:"placement", ip:"10.0.2.45",     location:"Mumbai",  time:"8 mins ago", av:"PK", avC:"rgba(244,165,53,.15)", avT:"var(--amber)" },
-                    { user:"Aditya Sharma",  role:"student",   ip:"192.168.1.98",  location:"Chennai", time:"14 mins ago",av:"AS", avC:"rgba(91,78,248,.2)",   avT:"var(--indigo-ll)" },
-                  ].map((s, i) => (
+                  {loading ? (
+                    <div style={{ padding:"20px", textAlign:"center", color:"var(--text3)" }}>Loading sessions...</div>
+                  ) : sessions.length === 0 ? (
+                    <div style={{ padding:"20px", textAlign:"center", color:"var(--text3)" }}>No active sessions found.</div>
+                  ) : sessions.map((s, i) => (
                     <div key={i} style={{ display:"flex", alignItems:"center", gap:"10px", padding:"10px 0", borderBottom:"1px solid var(--border)" }}>
                       <div className="ut-av" style={{ background:s.avC, color:s.avT, width:32, height:32 }}>{s.av}</div>
                       <div style={{ flex:1 }}>
@@ -264,7 +314,7 @@ export default function adminSecurity() {
                         <div style={{ fontSize:"10px", color:"var(--text3)", marginTop:"2px" }}>{s.ip} · {s.location}</div>
                         <div style={{ fontSize:"9.5px", color:"var(--text3)", marginTop:"2px" }}>{s.time}</div>
                       </div>
-                      <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="ut-action tooltip" data-tip="Revoke Session"><I n="x" size={11} /></button>
+                      <button onClick={() => {}} className="ut-action tooltip" data-tip="Revoke Session"><I n="x" size={11} /></button>
                     </div>
                   ))}
                 </div>
@@ -274,24 +324,19 @@ export default function adminSecurity() {
             {/* SECURITY RULES */}
             <div className="panel">
               <div className="panel-hd">
-                <div className="panel-ttl"><I n="settings" size={15} /> Security Rules <span>5/6 active</span></div>
+                <div className="panel-ttl"><I n="settings" size={15} /> Security Rules <span>{stats.rules_active} active</span></div>
               </div>
               <div className="panel-body">
                 <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"10px" }}>
-                  {[
-                    { name:"Two-Factor Auth",        on:true,  desc:"Required for all admin & faculty accounts" },
-                    { name:"Session Timeout",        on:true,  desc:"Auto-logout after 30 min of inactivity" },
-                    { name:"IP Whitelist",           on:false, desc:"Restrict access to campus IP ranges only" },
-                    { name:"Failed Login Lockout",   on:true,  desc:"Lock account after 5 failed attempts" },
-                    { name:"Audit Logging",          on:true,  desc:"Log all admin actions to immutable ledger" },
-                    { name:"Brute-Force Protection", on:true,  desc:"Auto-block IPs with >10 failures/minute" },
-                  ].map((r, i) => (
+                  {rules.map((r, i) => (
                     <div key={i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:"12px", padding:"14px 16px", background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:"10px" }}>
                       <div>
                         <div style={{ fontSize:"12px", fontWeight:600, marginBottom:"3px" }}>{r.name}</div>
                         <div style={{ fontSize:"10.5px", color:"var(--text3)" }}>{r.desc}</div>
                       </div>
-                      <div style={{ width:38, height:20, borderRadius:10, background: r.on ? "rgba(39,201,176,.25)" : "var(--surface3)", border:`1px solid ${r.on ? "var(--teal)" : "var(--border2)"}`, cursor:"pointer", position:"relative", flexShrink:0 }}>
+                      <div 
+                        onClick={() => handleToggleRule(r.id)}
+                        style={{ width:38, height:20, borderRadius:10, background: r.on ? "rgba(39,201,176,.25)" : "var(--surface3)", border:`1px solid ${r.on ? "var(--teal)" : "var(--border2)"}`, cursor:"pointer", position:"relative", flexShrink:0 }}>
                         <div style={{ position:"absolute", top:2, left: r.on ? 20 : 2, width:14, height:14, borderRadius:"50%", background: r.on ? "var(--teal)" : "var(--text3)", transition:"left .2s,background .2s" }} />
                       </div>
                     </div>

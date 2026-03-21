@@ -48,14 +48,14 @@ const NAV = [
     { id:"analytics", label:"Analytics",       icon:"bar",       routePath:"adminAnalytics",  badge:null },
   ]},
   { section:"Management", items:[
-    { id:"users",       label:"User Management", icon:"users",     routePath:"userManagement",   badge:"1.3k" },
-    { id:"courses",     label:"Courses",         icon:"book",      routePath:"courseManagement", badge:"47" },
-    { id:"departments", label:"Departments",     icon:"layers",    routePath:"department",       badge:null },
-    { id:"placement",   label:"Placement",       icon:"briefcase", routePath:"placement",        badge:"3", badgeType:"teal" },
+    { id:"users",       label:"User Management", icon:"users",     routePath:"userManagement",   badge:null },
+    { id:"courses",     label:"Courses",         icon:"book",      routePath:"courseManagement", badge:null },
+    { id:"departments", label:"Departments",     icon:"layers",    routePath:"departments",      badge:null },
+    { id:"placement",   label:"Placement",       icon:"briefcase", routePath:"placements",       badge:null, badgeType:"teal" },
   ]},
   { section:"Platform", items:[
     { id:"reports",   label:"Reports",      icon:"download", routePath:"adminReports", badge:null },
-    { id:"activity",  label:"Activity Log", icon:"activity", routePath:"activitylog",  badge:"12", badgeType:"rose" },
+    { id:"activity",  label:"Activity Log", icon:"activity", routePath:"auditLogs",     badge:null, badgeType:"rose" },
     { id:"security",  label:"Security",     icon:"shield",   routePath:"security",     badge:null },
     { id:"settings",  label:"Settings",     icon:"settings", routePath:"settings",     badge:null },
   ]},
@@ -71,16 +71,47 @@ const getActiveId = (pathname) => {
   }
   return "dashboard";
 };
+import api from "../../../utils/api";
 
 export default function AdminSystemConfiguration() {
   const navigate        = useNavigate();
   const location        = useLocation();
   const [sidebarOpen, setSidebar] = useState(false);
+  const [stats, setStats] = useState({ uptime: "0%", cpu: "0%", degraded: 0, backup_size: "0GB" });
+  const [envVars, setEnvVars] = useState([]);
+  const [navBadges, setNavBadges] = useState({});
+  const [configStats, setConfigStats] = useState({ uptime: "99.9%", cpu: "0%", memory: "0%", backup_size: "0GB" });
+  const [loading, setLoading] = useState(true);
+
   const pageRef       = useRef(null);
   const cursorRef     = useRef(null);
   const cursorRingRef = useRef(null);
   const active = getActiveId(location.pathname);
   const now    = new Date().toLocaleDateString();
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [sRes, eRes, cRes, nb] = await Promise.all([
+        api.get("/admin/config/stats"),
+        api.get("/admin/config/env-vars"),
+        api.get("/admin/config/stats"), // Redundant but consistent
+        api.get("/admin/config/badges")
+      ]);
+      setStats(sRes);
+      setEnvVars(eRes);
+      setConfigStats(cRes);
+      setNavBadges(nb);
+    } catch (err) {
+      console.error("Failed to fetch config data", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleExportConfig = () => {
     const csvContent = "data:text/csv;charset=utf-8,Config Key,Config Value\nSystem_State,Healthy";
@@ -108,7 +139,7 @@ export default function AdminSystemConfiguration() {
     const fills = document.querySelectorAll("[data-width]");
     const timeout = setTimeout(() => { fills.forEach(el => { el.style.width = el.dataset.width; }); }, 300);
     return () => clearTimeout(timeout);
-  }, [active]);
+  }, [active, configStats]);
 
   return (
     <>
@@ -140,7 +171,7 @@ export default function AdminSystemConfiguration() {
                     className={`sb-link ${active === item.id ? "active" : ""}`}
                     onClick={e => { e.preventDefault(); navigate(item.routePath === "" ? "/admindashboard" : `/admindashboard/${item.routePath}`); setSidebar(false); }}>
                     <I n={item.icon} size={15} />{item.label}
-                    {item.badge && <span className={`sb-badge ${item.badgeType || ""}`}>{item.badge}</span>}
+                    {navBadges[item.id] && <span className={`sb-badge ${item.badgeType || ""}`}>{navBadges[item.id]}</span>}
                   </a>
                 ))}
               </div>
@@ -149,10 +180,14 @@ export default function AdminSystemConfiguration() {
           <div className="sb-bottom">
             <div className="sb-health">
               <div className="sb-health-lbl">System Health</div>
-              {[["Uptime","99.8%"],["CPU","34%"],["Memory","61%"]].map(([n,v]) => (
-                <div key={n}>
-                  <div className="sb-health-row"><span className="sb-health-name">{n}</span><span className="sb-health-val">{v}</span></div>
-                  <div className="sb-health-bar"><div className="sb-health-fill" data-width={v} style={{ width:0 }} /></div>
+              {[
+                { n: "Uptime", v: configStats.uptime },
+                { n: "CPU",    v: configStats.cpu },
+                { n: "Memory", v: configStats.memory }
+              ].map((item) => (
+                <div key={item.n}>
+                  <div className="sb-health-row"><span className="sb-health-name">{item.n}</span><span className="sb-health-val">{item.v}</span></div>
+                  <div className="sb-health-bar"><div className="sb-health-fill" style={{ width: item.v.includes("%") ? item.v : "60%" }} /></div>
                 </div>
               ))}
             </div>
@@ -170,8 +205,8 @@ export default function AdminSystemConfiguration() {
             <div className="tb-right">
               <span className="tb-role-tag">Admin</span>
               <span className="tb-date">{now}</span>
-              <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="tb-icon-btn tooltip" data-tip="Refresh"><I n="refresh" size={15} /></button>
-              <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="tb-icon-btn tooltip" data-tip="Notifications"><I n="bell" size={15} /><span className="notif-dot" /></button>
+              <button onClick={() => fetchData()} className="tb-icon-btn tooltip" data-tip="Refresh"><I n="refresh" size={15} /></button>
+              <button onClick={() => navigate("/admindashboard/notifications")} className="tb-icon-btn tooltip" data-tip="Notifications"><I n="bell" size={15} /><span className="notif-dot" /></button>
               <button className="tb-icon-btn tooltip" data-tip="Settings" onClick={() => navigate("/admindashboard/settings")}><I n="settings" size={15} /></button>
             </div>
           </header>
@@ -181,9 +216,9 @@ export default function AdminSystemConfiguration() {
             <div className="greet-row">
               <div className="greet-tag"><div className="greet-pip" /><span className="greet-pip-txt">System Config</span></div>
               <h1 className="greet-title">System <em>Configuration.</em></h1>
-              <p className="greet-sub">Infrastructure status, resource monitor, and environment variables &nbsp;·&nbsp; 5/6 services healthy</p>
+              <p className="greet-sub">Infrastructure status, resource monitor, and environment variables &nbsp;·&nbsp; {stats.degraded > 0 ? `${stats.degraded} services degraded` : "All services healthy"}</p>
               <div className="greet-actions">
-                <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="btn btn-solid"><I n="refresh" size={14} /> Restart</button>
+                <button onClick={() => fetchData()} className="btn btn-solid"><I n="refresh" size={14} /> Restart</button>
                 <button onClick={handleExportConfig} className="btn btn-ghost"><I n="download" size={14} /> Export Config</button>
               </div>
             </div>
@@ -191,10 +226,10 @@ export default function AdminSystemConfiguration() {
             {/* STAT CARDS */}
             <div className="stat-grid">
               {[
-                { accent:"sc-teal",   icon:"activity", val:"99.8%", lbl:"Overall Uptime",       delta:"last 30 days" },
-                { accent:"sc-indigo", icon:"cpu",      val:"34%",   lbl:"Avg CPU Usage",        delta:"below threshold" },
-                { accent:"sc-amber",  icon:"zap",      val:"1",     lbl:"Degraded Services",    delta:"WebRTC" },
-                { accent:"sc-violet", icon:"db",       val:"2.4GB", lbl:"Last Backup Size",     delta:"6 hrs ago" },
+                { accent:"sc-teal",   icon:"activity", val:stats.uptime, lbl:"Overall Uptime",       delta:"last 30 days" },
+                { accent:"sc-indigo", icon:"cpu",      val:stats.cpu,   lbl:"Avg CPU Usage",        delta:"below threshold" },
+                { accent:"sc-amber",  icon:"zap",      val:stats.degraded, lbl:"Degraded Services",    delta:"WebRTC" },
+                { accent:"sc-violet", icon:"db",       val:stats.backup_size, lbl:"Last Backup Size",     delta:"6 hrs ago" },
               ].map((s, i) => (
                 <div key={i} className={`stat-card ${s.accent}`} style={{ animationDelay:`${i * 80}ms`, cursor:"default" }}>
                   <div className="stat-ic"><I n={s.icon} size={16} /></div>
@@ -210,7 +245,7 @@ export default function AdminSystemConfiguration() {
               <div className="panel">
                 <div className="panel-hd">
                   <div className="panel-ttl"><I n="cpu" size={15} /> Service Status</div>
-                  <span style={{ fontSize:"10px", padding:"3px 9px", borderRadius:"5px", background:"rgba(39,201,176,.1)", color:"var(--teal)", fontWeight:600 }}>5/6 Healthy</span>
+                  <span style={{ fontSize:"10px", padding:"3px 9px", borderRadius:"5px", background:"rgba(39,201,176,.1)", color:"var(--teal)", fontWeight:600 }}>Operational</span>
                 </div>
                 <div className="panel-body">
                   {[
@@ -250,7 +285,7 @@ export default function AdminSystemConfiguration() {
                     { label:"Reload Nginx Config",  icon:"globe",   color:"var(--violet)" },
                     { label:"View Error Logs",      icon:"activity",color:"var(--rose)" },
                   ].map((a, i) => (
-                    <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} key={i} style={{ display:"flex", alignItems:"center", gap:"10px", width:"100%", padding:"10px 12px", background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:"9px", cursor:"pointer", marginBottom:"6px", transition:"all .18s" }}>
+                    <button onClick={() => {}} key={i} style={{ display:"flex", alignItems:"center", gap:"10px", width:"100%", padding:"10px 12px", background:"var(--surface2)", border:"1px solid var(--border)", borderRadius:"9px", cursor:"pointer", marginBottom:"6px", transition:"all .18s" }}>
                       <div style={{ width:28, height:28, borderRadius:7, background:`${a.color}18`, color:a.color, display:"flex", alignItems:"center", justifyContent:"center" }}>
                         <I n={a.icon} size={13} />
                       </div>
@@ -263,9 +298,9 @@ export default function AdminSystemConfiguration() {
                   <div style={{ padding:"13px 14px", background:"linear-gradient(135deg,rgba(91,78,248,.07),rgba(39,201,176,.03))", border:"1px solid rgba(91,78,248,.14)", borderRadius:"10px" }}>
                     <div style={{ fontSize:"10px", fontWeight:700, letterSpacing:".1em", textTransform:"uppercase", color:"var(--text3)", marginBottom:"8px" }}>Resource Monitor</div>
                     {[
-                      { label:"CPU Usage", val:"34%", pct:34, color:"var(--indigo-l)" },
+                      { label:"CPU Usage", val:stats.cpu, pct:parseInt(stats.cpu), color:"var(--indigo-l)" },
                       { label:"RAM",       val:"61%", pct:61, color:"var(--violet)" },
-                      { label:"Disk",      val:"48%", pct:48, color:"var(--teal)" },
+                      { label:"Disk",      val:stats.backup_size, pct:48, color:"var(--teal)" },
                       { label:"Bandwidth", val:"27%", pct:27, color:"var(--amber)" },
                     ].map((r, i) => (
                       <div key={i} style={{ marginBottom:"8px" }}>
@@ -287,34 +322,31 @@ export default function AdminSystemConfiguration() {
             <div className="panel">
               <div className="panel-hd">
                 <div className="panel-ttl"><I n="settings" size={15} /> Environment Variables</div>
-                <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="btn btn-ghost btn-sm"><I n="plus" size={12} /> Add Variable</button>
+                <button onClick={() => {}} className="btn btn-ghost btn-sm"><I n="plus" size={12} /> Add Variable</button>
               </div>
               <div className="panel-body">
-                <table className="user-table">
-                  <thead><tr><th>Key</th><th>Value</th><th>Sensitive</th><th></th></tr></thead>
-                  <tbody>
-                    {[
-                      { key:"NODE_ENV",        value:"production",            sensitive:false },
-                      { key:"DB_HOST",         value:"db.campus.local",       sensitive:false },
-                      { key:"DB_PORT",         value:"5432",                  sensitive:false },
-                      { key:"JWT_SECRET",      value:"••••••••••••",          sensitive:true  },
-                      { key:"SMTP_HOST",       value:"smtp.sendgrid.net",     sensitive:false },
-                      { key:"REDIS_URL",       value:"redis://cache.campus.local", sensitive:false },
-                      { key:"S3_BUCKET",       value:"smart-campus-prod",     sensitive:false },
-                      { key:"API_RATE_LIMIT",  value:"1000/hr",               sensitive:false },
-                    ].map((v, i) => (
-                      <tr key={i}>
-                        <td><code style={{ fontFamily:"monospace", fontSize:"11px", color:"var(--indigo-ll)", background:"rgba(91,78,248,.08)", padding:"2px 6px", borderRadius:"4px" }}>{v.key}</code></td>
-                        <td style={{ fontSize:"11px", color:"var(--text2)", fontFamily:"monospace" }}>{v.value}</td>
-                        <td>{v.sensitive && <span className="status-tag status-pending"><span className="status-dot" />Hidden</span>}</td>
-                        <td><div style={{ display:"flex", gap:"5px" }}>
-                          <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="ut-action tooltip" data-tip="Edit"><I n="edit" size={11} /></button>
-                          <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="ut-action tooltip" data-tip="Delete"><I n="trash" size={11} /></button>
-                        </div></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                {loading ? (
+                    <div style={{ padding:"20px", textAlign:"center", color:"var(--text3)" }}>Loading environment variables...</div>
+                ) : envVars.length === 0 ? (
+                    <div style={{ padding:"20px", textAlign:"center", color:"var(--text3)" }}>No variables found.</div>
+                ) : (
+                    <table className="user-table">
+                    <thead><tr><th>Key</th><th>Value</th><th>Sensitive</th><th></th></tr></thead>
+                    <tbody>
+                        {envVars.map((v, i) => (
+                        <tr key={i}>
+                            <td><code style={{ fontFamily:"monospace", fontSize:"11px", color:"var(--indigo-ll)", background:"rgba(91,78,248,.08)", padding:"2px 6px", borderRadius:"4px" }}>{v.key}</code></td>
+                            <td style={{ fontSize:"11px", color:"var(--text2)", fontFamily:"monospace" }}>{v.value}</td>
+                            <td>{v.sensitive && <span className="status-tag status-pending"><span className="status-dot" />Hidden</span>}</td>
+                            <td><div style={{ display:"flex", gap:"5px" }}>
+                            <button onClick={() => {}} className="ut-action tooltip" data-tip="Edit"><I n="edit" size={11} /></button>
+                            <button onClick={() => {}} className="ut-action tooltip" data-tip="Delete"><I n="trash" size={11} /></button>
+                            </div></td>
+                        </tr>
+                        ))}
+                    </tbody>
+                    </table>
+                )}
               </div>
             </div>
           </main>

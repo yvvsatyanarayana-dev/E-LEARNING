@@ -1,5 +1,5 @@
-// AdminCourseManagement.jsx - SMART CAMPUS Admin Panel
 import { useState, useEffect, useRef } from "react";
+import api from "../../../utils/api";
 import { useNavigate, useLocation } from "react-router-dom";
 import "./AdminCourseManagement.css";
 import "../../../styles/modals.css";
@@ -49,14 +49,14 @@ const NAV = [
     { id:"analytics", label:"Analytics",       icon:"bar",       routePath:"adminAnalytics",  badge:null },
   ]},
   { section:"Management", items:[
-    { id:"users",       label:"User Management", icon:"users",     routePath:"userManagement",   badge:"1.3k" },
-    { id:"courses",     label:"Courses",         icon:"book",      routePath:"courseManagement", badge:"47" },
-    { id:"departments", label:"Departments",     icon:"layers",    routePath:"department",       badge:null },
-    { id:"placement",   label:"Placement",       icon:"briefcase", routePath:"placement",        badge:"3", badgeType:"teal" },
+    { id:"users",       label:"User Management", icon:"users",     routePath:"userManagement",   badge:null },
+    { id:"courses",     label:"Courses",         icon:"book",      routePath:"courseManagement", badge:null },
+    { id:"departments", label:"Departments",     icon:"layers",    routePath:"departments",      badge:null },
+    { id:"placement",   label:"Placement",       icon:"briefcase", routePath:"placements",       badge:null, badgeType:"teal" },
   ]},
   { section:"Platform", items:[
     { id:"reports",   label:"Reports",      icon:"download", routePath:"adminReports", badge:null },
-    { id:"activity",  label:"Activity Log", icon:"activity", routePath:"activitylog",  badge:"12", badgeType:"rose" },
+    { id:"activity",  label:"Activity Log", icon:"activity", routePath:"auditLogs",     badge:null, badgeType:"rose" },
     { id:"security",  label:"Security",     icon:"shield",   routePath:"security",     badge:null },
     { id:"settings",  label:"Settings",     icon:"settings", routePath:"settings",     badge:null },
   ]},
@@ -82,23 +82,35 @@ export default function AdminCourseManagement() {
   const [filterDept, setFilterDept] = useState("All Depts");
   const [filterStatus, setFilterStatus] = useState("All Status");
   const [formData, setFormData] = useState({ name: "", dept: "CSE", instructor: "", modules: "10", quizzes: "5", status: "active" });
-  const [courses, setCourses] = useState([
-    { name:"Data Structures & Algorithms",  dept:"CSE",   instructor:"Dr. Ramesh Kumar", enrolled:142, completion:76, status:"active",  color:"var(--indigo-l)",  modules:12, quizzes:8 },
-    { name:"Digital Signal Processing",     dept:"ECE",   instructor:"Dr. Meera Nair",   enrolled:98,  completion:61, status:"active",  color:"var(--violet)",    modules:10, quizzes:6 },
-    { name:"Thermodynamics",                dept:"MECH",  instructor:"Dr. Vijay Anand",  enrolled:84,  completion:48, status:"active",  color:"var(--amber)",     modules:9,  quizzes:5 },
-    { name:"Machine Learning Fundamentals", dept:"CSE",   instructor:"Dr. Priya Nair",   enrolled:127, completion:83, status:"active",  color:"var(--teal)",      modules:14, quizzes:10 },
-    { name:"Structural Analysis",           dept:"CIVIL", instructor:"Dr. Suresh Babu",  enrolled:72,  completion:35, status:"draft",   color:"var(--rose)",      modules:8,  quizzes:4 },
-    { name:"Marketing Management",          dept:"MBA",   instructor:"Prof. Anita Rao",  enrolled:63,  completion:52, status:"active",  color:"var(--indigo-ll)", modules:11, quizzes:7 },
-    { name:"Operating Systems",            dept:"CSE",   instructor:"Dr. Kiran Reddy",  enrolled:110, completion:69, status:"active",  color:"var(--teal)",      modules:13, quizzes:9 },
-    { name:"VLSI Design",                  dept:"ECE",   instructor:"Dr. Meera Nair",   enrolled:56,  completion:24, status:"active",  color:"var(--violet)",    modules:7,  quizzes:5 },
-    { name:"Fluid Mechanics",              dept:"MECH",  instructor:"Dr. Vijay Anand",  enrolled:74,  completion:41, status:"active",  color:"var(--amber)",     modules:8,  quizzes:5 },
-  ]);
-
-  // Load courses from localStorage on mount
+  const [courses, setCourses] = useState([]);
+  const [stats, setStats] = useState({ total_courses: 0, active_courses: 0, draft_courses: 0, total_enrollments: 0, avg_completion: 0 });
+  const [navBadges, setNavBadges] = useState({});
+  const [configStats, setConfigStats] = useState({ uptime: "99.9%", cpu: "0%", memory: "0%", backup_size: "0GB" });
+  const [loading, setLoading] = useState(true);
+  
+  // Load courses and stats from API
   useEffect(() => {
-    const saved = localStorage.getItem("schoolCourses");
-    if (saved) setCourses(JSON.parse(saved));
-  }, []);
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [courseData, statData, nb, cs] = await Promise.all([
+          api.get(`/admin/courses?dept=${filterDept === "All Depts" ? "" : filterDept}&search=${searchTerm}`),
+          api.get("/admin/courses/stats"),
+          api.get("/admin/config/badges"),
+          api.get("/admin/config/stats")
+        ]);
+        setCourses(courseData);
+        setStats(statData);
+        setNavBadges(nb);
+        setConfigStats(cs);
+      } catch (err) {
+        console.error("Failed to fetch course data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [filterDept, searchTerm]);
 
   const pageRef = useRef(null);
   const cursorRef = useRef(null);
@@ -107,12 +119,7 @@ export default function AdminCourseManagement() {
   const now    = new Date().toLocaleDateString();
 
   // Filter courses
-  const filteredCourses = courses.filter(c => {
-    const matchesSearch = c.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesDept = filterDept === "All Depts" || c.dept === filterDept;
-    const matchesStatus = filterStatus === "All Status" || c.status === filterStatus.toLowerCase();
-    return matchesSearch && matchesDept && matchesStatus;
-  });
+  const filteredCourses = courses; // Filtering handled by backend
 
   // Handle form changes
   const handleFormChange = (e) => {
@@ -121,56 +128,32 @@ export default function AdminCourseManagement() {
   };
 
   // Handle add course
-  const handleAddCourse = () => {
+  const handleAddCourse = async () => {
     if (!formData.name.trim() || !formData.instructor.trim()) {
       alert("Please fill in all required fields");
       return;
     }
 
-    const colors = ["var(--indigo-l)", "var(--teal)", "var(--amber)", "var(--violet)", "var(--rose)"];
-    const newCourse = {
-      ...formData,
-      enrolled: 0,
-      completion: 0,
-      color: colors[Math.floor(Math.random() * colors.length)],
-      modules: parseInt(formData.modules),
-      quizzes: parseInt(formData.quizzes)
-    };
-
-    const updatedCourses = [...courses, newCourse];
-    setCourses(updatedCourses);
-    localStorage.setItem("schoolCourses", JSON.stringify(updatedCourses));
-
-    // Log activity
-    const logs = JSON.parse(localStorage.getItem("activityLogs") || "[]");
-    logs.unshift({
-      id: Date.now(),
-      action: `Added new course: ${formData.name}`,
-      details: `Instructor: ${formData.instructor}, Department: ${formData.dept}`,
-      timestamp: new Date().toLocaleString(),
-      category: "course"
-    });
-    localStorage.setItem("activityLogs", JSON.stringify(logs));
-
-    setAddCourseModal(false);
-    setFormData({ name: "", dept: "CSE", instructor: "", modules: "10", quizzes: "5", status: "active" });
+    try {
+      await api.post("/admin/courses", formData);
+      setAddCourseModal(false);
+      setFormData({ name: "", dept: "CSE", instructor: "", modules: "10", quizzes: "5", status: "active" });
+      // Refresh list
+      const data = await api.get(`/admin/courses?dept=${filterDept === "All Depts" ? "" : filterDept}&search=${searchTerm}`);
+      setCourses(data);
+    } catch (err) {
+      alert("Failed to add course");
+    }
   };
 
-  const handleDeleteCourse = (name) => {
+  const handleDeleteCourse = async (id, name) => {
     if (confirm(`Delete course "${name}"?`)) {
-      const updatedCourses = courses.filter(c => c.name !== name);
-      setCourses(updatedCourses);
-      localStorage.setItem("schoolCourses", JSON.stringify(updatedCourses));
-
-      const logs = JSON.parse(localStorage.getItem("activityLogs") || "[]");
-      logs.unshift({
-        id: Date.now(),
-        action: `Deleted course: ${name}`,
-        details: `Removed from course list`,
-        timestamp: new Date().toLocaleString(),
-        category: "course"
-      });
-      localStorage.setItem("activityLogs", JSON.stringify(logs));
+      try {
+        await api.delete(`/admin/courses/${id}`);
+        setCourses(prev => prev.filter(c => c.id !== id));
+      } catch (err) {
+        alert("Failed to delete course");
+      }
     }
   };
 
@@ -221,7 +204,7 @@ export default function AdminCourseManagement() {
                     className={`sb-link ${active === item.id ? "active" : ""}`}
                     onClick={e => { e.preventDefault(); navigate(item.routePath === "" ? "/admindashboard" : `/admindashboard/${item.routePath}`); setSidebar(false); }}>
                     <I n={item.icon} size={15} />{item.label}
-                    {item.badge && <span className={`sb-badge ${item.badgeType || ""}`}>{item.badge}</span>}
+                    {navBadges[item.id] && <span className={`sb-badge ${item.badgeType || ""}`}>{navBadges[item.id]}</span>}
                   </a>
                 ))}
               </div>
@@ -230,10 +213,14 @@ export default function AdminCourseManagement() {
           <div className="sb-bottom">
             <div className="sb-health">
               <div className="sb-health-lbl">System Health</div>
-              {[["Uptime","99.8%"],["CPU","34%"],["Memory","61%"]].map(([n,v]) => (
-                <div key={n}>
-                  <div className="sb-health-row"><span className="sb-health-name">{n}</span><span className="sb-health-val">{v}</span></div>
-                  <div className="sb-health-bar"><div className="sb-health-fill" data-width={v} style={{ width:0 }} /></div>
+              {[
+                { n: "Uptime", v: configStats.uptime },
+                { n: "CPU",    v: configStats.cpu },
+                { n: "Memory", v: configStats.memory }
+              ].map((item) => (
+                <div key={item.n}>
+                  <div className="sb-health-row"><span className="sb-health-name">{item.n}</span><span className="sb-health-val">{item.v}</span></div>
+                  <div className="sb-health-bar"><div className="sb-health-fill" style={{ width: item.v.includes("%") ? item.v : "60%" }} /></div>
                 </div>
               ))}
             </div>
@@ -262,7 +249,7 @@ export default function AdminCourseManagement() {
             <div className="greet-row">
               <div className="greet-tag"><div className="greet-pip" /><span className="greet-pip-txt">Course Management</span></div>
               <h1 className="greet-title">Manage <em>Courses.</em></h1>
-              <p className="greet-sub">47 active courses &nbsp;â”¬â•–&nbsp; 752 total enrollments &nbsp;â”¬â•–&nbsp; Semester 2 Î“Ã‡Ã¶ 2024</p>
+              <p className="greet-sub">{stats.active_courses} active courses &nbsp;·&nbsp; {stats.total_enrollments.toLocaleString()} total enrollments &nbsp;·&nbsp; Semester 2 · 2024</p>
               <div className="greet-actions">
                 <button onClick={() => setAddCourseModal(true)} className="btn btn-solid"><I n="plus" size={14} /> Add Course</button>
                 <button onClick={() => {
@@ -282,10 +269,10 @@ export default function AdminCourseManagement() {
             {/* STAT CARDS */}
             <div className="stat-grid">
               {[
-                { accent:"sc-indigo", icon:"book",    val:"47",   lbl:"Total Courses",       delta:"+3 this sem" },
-                { accent:"sc-teal",   icon:"users",   val:"752",  lbl:"Total Enrollments",   delta:"across all" },
-                { accent:"sc-amber",  icon:"zap",     val:"68%",  lbl:"Avg Completion Rate", delta:"+4% vs last" },
-                { accent:"sc-rose",   icon:"layers",  val:"1",    lbl:"Courses in Draft",    delta:"needs review" },
+                { accent:"sc-indigo", icon:"book",    val:stats.total_courses,   lbl:"Total Courses",       delta:"+3 this sem" },
+                { accent:"sc-teal",   icon:"users",   val:stats.total_enrollments.toLocaleString(),  lbl:"Total Enrollments",   delta:"across all" },
+                { accent:"sc-amber",  icon:"zap",     val:`${stats.avg_completion}%`,  lbl:"Avg Completion Rate", delta:"+4% vs last" },
+                { accent:"sc-rose",   icon:"layers",  val:stats.draft_courses,    lbl:"Courses in Draft",    delta:"needs review" },
               ].map((s, i) => (
                 <div key={i} className={`stat-card ${s.accent}`} style={{ animationDelay:`${i * 80}ms`, cursor:"default" }}>
                   <div className="stat-ic"><I n={s.icon} size={16} /></div>
@@ -351,7 +338,7 @@ export default function AdminCourseManagement() {
                         </div>
                         <div style={{ display:"flex", gap:"6px" }}>
                           <button onClick={() => alert("Edit feature coming soon")} className="btn btn-ghost btn-sm" style={{ flex:1, justifyContent:"center" }}><I n="edit" size={11} /> Edit</button>
-                          <button onClick={() => handleDeleteCourse(c.name)} className="ut-action tooltip" data-tip="Delete"><I n="trash" size={11} /></button>
+                          <button onClick={() => handleDeleteCourse(c.id, c.name)} className="ut-action tooltip" data-tip="Delete"><I n="trash" size={11} /></button>
                         </div>
                       </div>
                     </div>

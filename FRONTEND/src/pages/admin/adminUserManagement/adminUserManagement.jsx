@@ -1,5 +1,5 @@
-// AdminUserManagement.jsx — SMART CAMPUS Admin Panel
 import { useState, useEffect, useRef } from "react";
+import api from "../../../utils/api";
 import { useNavigate, useLocation } from "react-router-dom";
 import "./AdminUserManagement.css";
 import "../../../styles/modals.css";
@@ -49,14 +49,14 @@ const NAV = [
     { id:"analytics", label:"Analytics",       icon:"bar",       routePath:"adminAnalytics",  badge:null },
   ]},
   { section:"Management", items:[
-    { id:"users",       label:"User Management", icon:"users",     routePath:"userManagement",   badge:"1.3k" },
-    { id:"courses",     label:"Courses",         icon:"book",      routePath:"courseManagement", badge:"47" },
-    { id:"departments", label:"Departments",     icon:"layers",    routePath:"department",       badge:null },
-    { id:"placement",   label:"Placement",       icon:"briefcase", routePath:"placement",        badge:"3", badgeType:"teal" },
+    { id:"users",       label:"User Management", icon:"users",     routePath:"userManagement",   badge:null },
+    { id:"courses",     label:"Courses",         icon:"book",      routePath:"courseManagement", badge:null },
+    { id:"departments", label:"Departments",     icon:"layers",    routePath:"departments",      badge:null },
+    { id:"placement",   label:"Placement",       icon:"briefcase", routePath:"placements",       badge:null, badgeType:"teal" },
   ]},
   { section:"Platform", items:[
     { id:"reports",   label:"Reports",      icon:"download", routePath:"adminReports", badge:null },
-    { id:"activity",  label:"Activity Log", icon:"activity", routePath:"activitylog",  badge:"12", badgeType:"rose" },
+    { id:"activity",  label:"Activity Log", icon:"activity", routePath:"auditLogs",     badge:null, badgeType:"rose" },
     { id:"security",  label:"Security",     icon:"shield",   routePath:"security",     badge:null },
     { id:"settings",  label:"Settings",     icon:"settings", routePath:"settings",     badge:null },
   ]},
@@ -82,24 +82,35 @@ export default function AdminUserManagement() {
   const [filterRole, setFilterRole] = useState("All");
   const [filterStatus, setFilterStatus] = useState("All Status");
   const [formData, setFormData] = useState({ name: "", email: "", role: "student", dept: "CSE", status: "active" });
-  const [users, setUsers] = useState([
-    { id:1,  name:"Aditya Sharma",   email:"aditya@college.edu",  role:"student",   dept:"CSE",   status:"active",   joined:"Jan 2024", av:"AS", avC:"rgba(91,78,248,.2)",   avT:"var(--indigo-ll)" },
-    { id:2,  name:"Dr. Meera Nair",  email:"meera@college.edu",   role:"faculty",   dept:"ECE",   status:"active",   joined:"Aug 2022", av:"MN", avC:"rgba(39,201,176,.15)", avT:"var(--teal)" },
-    { id:3,  name:"Rohit Verma",     email:"rohit@college.edu",   role:"student",   dept:"MECH",  status:"inactive", joined:"Jan 2024", av:"RV", avC:"rgba(242,68,92,.15)",  avT:"var(--rose)" },
-    { id:4,  name:"Priya Krishnan",  email:"priya@college.edu",   role:"placement", dept:"HR",    status:"active",   joined:"Mar 2023", av:"PK", avC:"rgba(244,165,53,.15)", avT:"var(--amber)" },
-    { id:5,  name:"Ankit Gupta",     email:"ankit@college.edu",   role:"student",   dept:"CSE",   status:"pending",  joined:"Jan 2025", av:"AG", avC:"rgba(159,122,234,.15)",avT:"var(--violet)" },
-    { id:6,  name:"Dr. Suresh Babu", email:"suresh@college.edu",  role:"faculty",   dept:"CIVIL", status:"active",   joined:"Jun 2021", av:"SB", avC:"rgba(39,201,176,.15)", avT:"var(--teal)" },
-    { id:7,  name:"Kavitha Rao",     email:"kavitha@college.edu", role:"student",   dept:"MBA",   status:"active",   joined:"Jul 2024", av:"KR", avC:"rgba(91,78,248,.2)",   avT:"var(--indigo-ll)" },
-    { id:8,  name:"Vikram Singh",    email:"vikram@college.edu",  role:"student",   dept:"CSE",   status:"active",   joined:"Jan 2024", av:"VS", avC:"rgba(242,68,92,.15)",  avT:"var(--rose)" },
-    { id:9,  name:"Dr. Anita Reddy", email:"anita@college.edu",   role:"faculty",   dept:"MBA",   status:"active",   joined:"Jul 2020", av:"AR", avC:"rgba(244,165,53,.15)", avT:"var(--amber)" },
-    { id:10, name:"Sanjay Kumar",    email:"sanjay@college.edu",  role:"student",   dept:"ECE",   status:"inactive", joined:"Jul 2023", av:"SK", avC:"rgba(159,122,234,.15)",avT:"var(--violet)" },
-  ]);
+  const [users, setUsers] = useState([]);
+  const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0, pending: 0 });
+  const [navBadges, setNavBadges] = useState({});
+  const [configStats, setConfigStats] = useState({ uptime: "99.9%", cpu: "0%", memory: "0%", backup_size: "0GB" });
+  const [loading, setLoading] = useState(true);
   
-  // Load users from localStorage on mount
+  // Load users and stats from API
   useEffect(() => {
-    const saved = localStorage.getItem("schoolUsers");
-    if (saved) setUsers(JSON.parse(saved));
-  }, []);
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [userData, statData, nb, cs] = await Promise.all([
+          api.get(`/admin/users?role=${filterRole === "All" ? "" : filterRole.toLowerCase()}&search=${searchTerm}`),
+          api.get("/admin/users/stats"),
+          api.get("/admin/config/badges"),
+          api.get("/admin/config/stats")
+        ]);
+        setUsers(userData);
+        setStats(statData);
+        setNavBadges(nb);
+        setConfigStats(cs);
+      } catch (err) {
+        console.error("Failed to fetch user data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, [filterRole, searchTerm]);
 
   const pageRef       = useRef(null);
   const cursorRef     = useRef(null);
@@ -108,12 +119,7 @@ export default function AdminUserManagement() {
   const now    = new Date().toLocaleDateString();
 
   // Filter users based on search and filters
-  const filteredUsers = users.filter(u => {
-    const matchesSearch = u.name.toLowerCase().includes(searchTerm.toLowerCase()) || u.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesRole = filterRole === "All" || u.role === filterRole.toLowerCase();
-    const matchesStatus = filterStatus === "All Status" || u.status === filterStatus.toLowerCase();
-    return matchesSearch && matchesRole && matchesStatus;
-  });
+  const filteredUsers = users; // Filtering handled by backend
 
   // Handle form input changes
   const handleFormChange = (e) => {
@@ -122,62 +128,32 @@ export default function AdminUserManagement() {
   };
 
   // Handle add user submission
-  const handleAddUser = () => {
+  const handleAddUser = async () => {
     if (!formData.name.trim() || !formData.email.trim()) {
       alert("Please fill in all fields");
       return;
     }
     
-    if (users.some(u => u.email === formData.email)) {
-      alert("Email already exists");
-      return;
+    try {
+      await api.post("/admin/users", formData);
+      setAddUserModal(false);
+      setFormData({ name: "", email: "", role: "student", dept: "CSE", status: "active" });
+      // Refresh list
+      const data = await api.get(`/admin/users?role=${filterRole === "All" ? "" : filterRole.toLowerCase()}&search=${searchTerm}`);
+      setUsers(data);
+    } catch (err) {
+      alert(err.response?.data?.detail || "Failed to add user");
     }
-
-    const initials = formData.name.split(" ").map(n => n[0]).join("").toUpperCase();
-    const newUser = {
-      id: Math.max(...users.map(u => u.id), 0) + 1,
-      ...formData,
-      av: initials,
-      avC: "rgba(91,78,248,.2)",
-      avT: "var(--indigo-ll)",
-      joined: new Date().toLocaleDateString("en-US", { month: "short", year: "numeric" })
-    };
-
-    const updatedUsers = [...users, newUser];
-    setUsers(updatedUsers);
-    localStorage.setItem("schoolUsers", JSON.stringify(updatedUsers));
-    
-    // Log activity
-    const logs = JSON.parse(localStorage.getItem("activityLogs") || "[]");
-    logs.unshift({
-      id: Date.now(),
-      action: `Added new user: ${formData.name}`,
-      details: `Email: ${formData.email}, Role: ${formData.role}`,
-      timestamp: new Date().toLocaleString(),
-      category: "user"
-    });
-    localStorage.setItem("activityLogs", JSON.stringify(logs));
-
-    setAddUserModal(false);
-    setFormData({ name: "", email: "", role: "student", dept: "CSE", status: "active" });
   };
 
-  const handleDeleteUser = (id) => {
+  const handleDeleteUser = async (id) => {
     if (confirm("Are you sure you want to delete this user?")) {
-      const deletedUser = users.find(u => u.id === id);
-      const updatedUsers = users.filter(u => u.id !== id);
-      setUsers(updatedUsers);
-      localStorage.setItem("schoolUsers", JSON.stringify(updatedUsers));
-
-      const logs = JSON.parse(localStorage.getItem("activityLogs") || "[]");
-      logs.unshift({
-        id: Date.now(),
-        action: `Deleted user: ${deletedUser.name}`,
-        details: `Email: ${deletedUser.email}`,
-        timestamp: new Date().toLocaleString(),
-        category: "user"
-      });
-      localStorage.setItem("activityLogs", JSON.stringify(logs));
+      try {
+        await api.delete(`/admin/users/${id}`);
+        setUsers(prev => prev.filter(u => u.id !== id));
+      } catch (err) {
+        alert("Failed to delete user");
+      }
     }
   };
 
@@ -228,7 +204,7 @@ export default function AdminUserManagement() {
                     className={`sb-link ${active === item.id ? "active" : ""}`}
                     onClick={e => { e.preventDefault(); navigate(item.routePath === "" ? "/admindashboard" : `/admindashboard/${item.routePath}`); setSidebar(false); }}>
                     <I n={item.icon} size={15} />{item.label}
-                    {item.badge && <span className={`sb-badge ${item.badgeType || ""}`}>{item.badge}</span>}
+                    {navBadges[item.id] && <span className={`sb-badge ${item.badgeType || ""}`}>{navBadges[item.id]}</span>}
                   </a>
                 ))}
               </div>
@@ -237,10 +213,14 @@ export default function AdminUserManagement() {
           <div className="sb-bottom">
             <div className="sb-health">
               <div className="sb-health-lbl">System Health</div>
-              {[["Uptime","99.8%"],["CPU","34%"],["Memory","61%"]].map(([n,v]) => (
-                <div key={n}>
-                  <div className="sb-health-row"><span className="sb-health-name">{n}</span><span className="sb-health-val">{v}</span></div>
-                  <div className="sb-health-bar"><div className="sb-health-fill" data-width={v} style={{ width:0 }} /></div>
+              {[
+                { n: "Uptime", v: configStats.uptime },
+                { n: "CPU",    v: configStats.cpu },
+                { n: "Memory", v: configStats.memory }
+              ].map((item) => (
+                <div key={item.n}>
+                  <div className="sb-health-row"><span className="sb-health-name">{item.n}</span><span className="sb-health-val">{item.v}</span></div>
+                  <div className="sb-health-bar"><div className="sb-health-fill" style={{ width: item.v.includes("%") ? item.v : "60%" }} /></div>
                 </div>
               ))}
             </div>
@@ -269,7 +249,7 @@ export default function AdminUserManagement() {
             <div className="greet-row">
               <div className="greet-tag"><div className="greet-pip" /><span className="greet-pip-txt">User Management</span></div>
               <h1 className="greet-title">Manage <em>Users.</em></h1>
-              <p className="greet-sub">1,347 registered users &nbsp;·&nbsp; 3 pending approvals &nbsp;·&nbsp; 2 inactive accounts</p>
+              <p className="greet-sub">{stats.total.toLocaleString()} registered users &nbsp;·&nbsp; {stats.pending} pending approvals &nbsp;·&nbsp; {stats.inactive} inactive accounts</p>
               <div className="greet-actions">
                 <button onClick={() => setAddUserModal(true)} className="btn btn-solid"><I n="userPlus" size={14} /> Add User</button>
                 <button onClick={() => {
@@ -289,10 +269,10 @@ export default function AdminUserManagement() {
             {/* STAT CARDS */}
             <div className="stat-grid">
               {[
-                { accent:"sc-indigo", icon:"users",   val:"1,347", lbl:"Total Users",       delta:"+12 this week" },
-                { accent:"sc-teal",   icon:"check",   val:"1,199", lbl:"Active Users",      delta:"89%" },
-                { accent:"sc-amber",  icon:"bell",    val:"3",     lbl:"Pending Approval",  delta:"needs action" },
-                { accent:"sc-rose",   icon:"x",       val:"145",   lbl:"Inactive Users",    delta:"11%" },
+                { accent:"sc-indigo", icon:"users",   val:stats.total.toLocaleString(), lbl:"Total Users",       delta:"+12 this week" },
+                { accent:"sc-teal",   icon:"check",   val:stats.active.toLocaleString(), lbl:"Active Users",      delta:`${stats.total ? Math.round(stats.active/stats.total*100) : 0}%` },
+                { accent:"sc-amber",  icon:"bell",    val:stats.pending, lbl:"Pending Approval",  delta:"needs action" },
+                { accent:"sc-rose",   icon:"x",       val:stats.inactive.toLocaleString(), lbl:"Inactive Users",    delta:`${stats.total ? Math.round(stats.inactive/stats.total*100) : 0}%` },
               ].map((s, i) => (
                 <div key={i} className={`stat-card ${s.accent}`} style={{ animationDelay:`${i * 80}ms`, cursor:"default" }}>
                   <div className="stat-ic"><I n={s.icon} size={16} /></div>

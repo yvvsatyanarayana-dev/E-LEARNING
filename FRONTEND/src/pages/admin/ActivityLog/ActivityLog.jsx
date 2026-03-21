@@ -1,5 +1,5 @@
-// ActivityLog.jsx — SMART CAMPUS Admin Panel
 import { useState, useEffect, useRef } from "react";
+import api from "../../../utils/api";
 import { useNavigate, useLocation } from "react-router-dom";
 import "./ActivityLog.css";
 
@@ -50,14 +50,14 @@ const NAV = [
     { id:"analytics", label:"Analytics",       icon:"bar",       routePath:"adminAnalytics", badge:null },
   ]},
   { section:"Management", items:[
-    { id:"users",      label:"User Management", icon:"users",     routePath:"userManagement",   badge:"1.3k" },
-    { id:"courses",    label:"Courses",         icon:"book",      routePath:"courseManagement", badge:"47" },
-    { id:"departments",label:"Departments",     icon:"layers",    routePath:"department",       badge:null },
-    { id:"placement",  label:"Placement",       icon:"briefcase", routePath:"placement",        badge:"3", badgeType:"teal" },
+    { id:"users",      label:"User Management", icon:"users",     routePath:"userManagement",   badge:null },
+    { id:"courses",    label:"Courses",         icon:"book",      routePath:"courseManagement", badge:null },
+    { id:"departments",label:"Departments",     icon:"layers",    routePath:"departments",      badge:null },
+    { id:"placement",  label:"Placement",       icon:"briefcase", routePath:"placements",       badge:null, badgeType:"teal" },
   ]},
   { section:"Platform", items:[
     { id:"reports",  label:"Reports",      icon:"download", routePath:"adminReports", badge:null },
-    { id:"activity", label:"Activity Log", icon:"activity", routePath:"activitylog",  badge:"12", badgeType:"rose" },
+    { id:"activity", label:"Activity Log", icon:"activity", routePath:"auditLogs",     badge:null, badgeType:"rose" },
     { id:"security", label:"Security",     icon:"shield",   routePath:"security",     badge:null },
     { id:"settings", label:"Settings",     icon:"settings", routePath:"settings",     badge:null },
   ]},
@@ -81,14 +81,45 @@ export default function ActivityLog() {
   const location        = useLocation();
   const [sidebarOpen,  setSidebar]  = useState(false);
   const [logs, setLogs] = useState([]);
+  const [totalEvents, setTotalEvents] = useState(0);
+  const [totalPages, setTotalPages] = useState(1);
   const [cat,          setCat]      = useState("all");
   const [search,       setSearch]   = useState("");
   const [page,         setPage]     = useState(1);
+  const [loading,      setLoading]  = useState(true);
+  const [navBadges, setNavBadges] = useState({});
+  const [configStats, setConfigStats] = useState({ uptime: "99.9%", cpu: "0%", memory: "0%", backup_size: "0GB" });
+
   const pageRef       = useRef(null);
   const cursorRef     = useRef(null);
   const cursorRingRef = useRef(null);
   const active = getActiveId(location.pathname);
   const now    = new Date().toLocaleDateString();
+
+  // Fetch logs and config stats
+  useEffect(() => {
+    fetchData();
+  }, [cat, search, page]);
+
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [lRes, cRes, nb] = await Promise.all([
+        api.get(`/admin/activity/logs?page=${page}&cat=${cat}&q=${search}`),
+        api.get("/admin/config/stats"),
+        api.get("/admin/config/badges")
+      ]);
+      setLogs(lRes.logs || []);
+      setTotalEvents(lRes.total || 0);
+      setTotalPages(lRes.pages || 1);
+      setConfigStats(cRes);
+      setNavBadges(nb);
+    } catch (err) {
+      console.error("Failed to fetch activity logs:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleExportLog = () => {
     const csvContent = "data:text/csv;charset=utf-8,Activity.Log\nSample,Log,Data";
@@ -101,47 +132,7 @@ export default function ActivityLog() {
     document.body.removeChild(link);
   };
 
-  // Load logs from localStorage
-  useEffect(() => {
-    const savedLogs = localStorage.getItem("activityLogs");
-    if (savedLogs) {
-      try {
-        const parsed = JSON.parse(savedLogs);
-        setLogs(parsed);
-      } catch (e) {
-        setLogs([]);
-      }
-    }
-  }, []);
-
-  // Map categories from action strings
-  const getCategoryFromAction = (action) => {
-    if (action.includes("user") || action.includes("student") || action.includes("faculty")) return "user";
-    if (action.includes("course") || action.includes("module") || action.includes("quiz")) return "course";
-    if (action.includes("placement") || action.includes("drive")) return "placement";
-    if (action.includes("department")) return "course";
-    if (action.includes("failed") || action.includes("security") || action.includes("password")) return "security";
-    return "system";
-  };
-
-  // Transform logs for display with required fields
-  const transformedLogs = logs.map(log => ({
-    id: log.id,
-    category: log.category || getCategoryFromAction(log.action),
-    title: log.action,
-    detail: log.details || "",
-    time: new Date(log.timestamp).toLocaleDateString() === new Date().toLocaleDateString() ? "Today" : log.timestamp,
-    icon: log.category === "user" ? "userPlus" : log.category === "placement" ? "briefcase" : log.category === "course" ? "book" : "activity",
-    color: log.category === "user" ? "rgba(91,78,248,.15)" : log.category === "placement" ? "rgba(159,122,234,.12)" : log.category === "course" ? "rgba(39,201,176,.12)" : "rgba(244,165,53,.12)",
-    badge: null,
-    badgeColor: "",
-    badgeText: ""
-  }));
-
-  const PER_PAGE = 8;
-  const filtered   = transformedLogs.filter(l => (cat === "all" || l.category === cat) && (l.title.toLowerCase().includes(search.toLowerCase()) || l.detail.toLowerCase().includes(search.toLowerCase())));
-  const totalPages = Math.ceil(filtered.length / PER_PAGE);
-  const paged      = filtered.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const paged = logs; // data already paginated by backend
 
   const handleNavClick = (e, item) => {
     e.preventDefault();
@@ -164,7 +155,7 @@ export default function ActivityLog() {
     const fills = document.querySelectorAll("[data-width]");
     const timeout = setTimeout(() => { fills.forEach(el => { el.style.width = el.dataset.width; }); }, 300);
     return () => clearTimeout(timeout);
-  }, [active]);
+  }, [active, configStats, logs]);
 
   return (
     <>
@@ -194,10 +185,9 @@ export default function ActivityLog() {
                 {sec.items.map(item => (
                   <a key={item.id} href={item.routePath === "" ? "/admindashboard" : `/admindashboard/${item.routePath}`}
                     className={`sb-link ${active === item.id ? "active" : ""}`}
-                    onClick={e => handleNavClick(e, item)}>
-                    <I n={item.icon} size={15} />
-                    {item.label}
-                    {item.badge && <span className={`sb-badge ${item.badgeType || ""}`}>{item.badge}</span>}
+                    onClick={e => { e.preventDefault(); navigate(item.routePath === "" ? "/admindashboard" : `/admindashboard/${item.routePath}`); setSidebar(false); }}>
+                    <I n={item.icon} size={15} />{item.label}
+                    {navBadges[item.id] && <span className={`sb-badge ${item.badgeType || ""}`}>{navBadges[item.id]}</span>}
                   </a>
                 ))}
               </div>
@@ -206,10 +196,14 @@ export default function ActivityLog() {
           <div className="sb-bottom">
             <div className="sb-health">
               <div className="sb-health-lbl">System Health</div>
-              {[["Uptime","99.8%"],["CPU","34%"],["Memory","61%"]].map(([n,v]) => (
-                <div key={n}>
-                  <div className="sb-health-row"><span className="sb-health-name">{n}</span><span className="sb-health-val">{v}</span></div>
-                  <div className="sb-health-bar"><div className="sb-health-fill" data-width={v} style={{ width:0 }} /></div>
+              {[
+                { n: "Uptime", v: configStats.uptime },
+                { n: "CPU",    v: configStats.cpu },
+                { n: "Memory", v: configStats.memory }
+              ].map((item) => (
+                <div key={item.n}>
+                  <div className="sb-health-row"><span className="sb-health-name">{item.n}</span><span className="sb-health-val">{item.v}</span></div>
+                  <div className="sb-health-bar"><div className="sb-health-fill" style={{ width: item.v.includes("%") ? item.v : "60%" }} /></div>
                 </div>
               ))}
             </div>
@@ -227,8 +221,8 @@ export default function ActivityLog() {
             <div className="tb-right">
               <span className="tb-role-tag">Admin</span>
               <span className="tb-date">{now}</span>
-              <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="tb-icon-btn tooltip" data-tip="Refresh"><I n="refresh" size={15} /></button>
-              <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="tb-icon-btn tooltip" data-tip="Notifications"><I n="bell" size={15} /><span className="notif-dot" /></button>
+              <button onClick={() => fetchData()} className="tb-icon-btn tooltip" data-tip="Refresh"><I n="refresh" size={15} /></button>
+              <button onClick={() => navigate("/admindashboard/notifications")} className="tb-icon-btn tooltip" data-tip="Notifications"><I n="bell" size={15} /><span className="notif-dot" /></button>
               <button className="tb-icon-btn tooltip" data-tip="Settings" onClick={() => navigate("/admindashboard/settings")}><I n="settings" size={15} /></button>
             </div>
           </header>
@@ -239,17 +233,17 @@ export default function ActivityLog() {
             <div className="greet-row">
               <div className="greet-tag"><div className="greet-pip" /><span className="greet-pip-txt">Activity Log</span></div>
               <h1 className="greet-title">Platform <em>Activity.</em></h1>
-              <p className="greet-sub">Real-time audit trail of all platform events &nbsp;·&nbsp; {transformedLogs.length} total records &nbsp;·&nbsp; Auto-refreshes every 30s</p>
+              <p className="greet-sub">Real-time audit trail of all platform events &nbsp;·&nbsp; {totalEvents} total records &nbsp;·&nbsp; Auto-refreshes every 30s</p>
               <div className="greet-actions">
                 <button onClick={handleExportLog} className="btn btn-solid"><I n="download" size={14} /> Export Log</button>
-                <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="btn btn-ghost"><I n="refresh" size={14} /> Refresh Now</button>
+                <button onClick={() => fetchData()} className="btn btn-ghost"><I n="refresh" size={14} /> Refresh Now</button>
               </div>
             </div>
 
             {/* STAT CARDS */}
             <div className="stat-grid">
               {[
-                { accent:"sc-rose",   icon:"shield",    val:"2",  lbl:"Security Alerts",    delta:"1 critical", dir:"neu" },
+                { accent:"sc-rose",   icon:"shield",    val:configStats.degraded,  lbl:"Security Alerts",    delta:"active", dir:"neu" },
                 { accent:"sc-indigo", icon:"userPlus",  val:"17", lbl:"User Events Today",  delta:"+4 this hr", dir:"up" },
                 { accent:"sc-teal",   icon:"book",      val:"24", lbl:"Course Events",      delta:"this week",  dir:"up" },
                 { accent:"sc-violet", icon:"briefcase", val:"5",  lbl:"Placement Events",   delta:"this month", dir:"up" },
@@ -266,7 +260,7 @@ export default function ActivityLog() {
             {/* MAIN LOG PANEL */}
             <div className="panel">
               <div className="panel-hd">
-                <div className="panel-ttl"><I n="activity" size={15} /> Event Log <span>{filtered.length} events</span></div>
+                <div className="panel-ttl"><I n="activity" size={15} /> Event Log <span>{totalEvents} events</span></div>
                 <button onClick={handleExportLog} className="btn btn-ghost btn-sm"><I n="download" size={12} /> Export CSV</button>
               </div>
               <div className="panel-body">
@@ -283,7 +277,9 @@ export default function ActivityLog() {
                 </div>
 
                 <div className="al-list">
-                  {paged.map((a, i) => (
+                  {loading ? (
+                      <div style={{ textAlign:"center", padding:"40px", color:"var(--text3)" }}>Loading events...</div>
+                  ) : paged.map((a, i) => (
                     <div key={a.id} className="al-item" style={{ animationDelay:`${i * 40}ms` }}>
                       <div className="al-icon" style={{ background:a.color }}><I n={a.icon} size={14} /></div>
                       <div className="al-body">
@@ -295,10 +291,10 @@ export default function ActivityLog() {
                         <div className="al-time">{a.time}</div>
                       </div>
                       <span className="al-cat-tag">{a.category}</span>
-                      <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="ut-action tooltip" data-tip="View Details"><I n="chevronR" size={11} /></button>
+                      <button onClick={() => {}} className="ut-action tooltip" data-tip="View Details"><I n="chevronR" size={11} /></button>
                     </div>
                   ))}
-                  {paged.length === 0 && (
+                  {!loading && paged.length === 0 && (
                     <div style={{ textAlign:"center", padding:"40px", color:"var(--text3)", display:"flex", flexDirection:"column", alignItems:"center", gap:"8px" }}>
                       <I n="info" size={20} /><span style={{ fontSize:"13px" }}>No events match your filter</span>
                     </div>
@@ -348,7 +344,7 @@ export default function ActivityLog() {
                   <button className="panel-act" onClick={() => navigate("/admindashboard/security")}>View All <I n="chevronR" size={11} /></button>
                 </div>
                 <div className="panel-body">
-                  {transformedLogs.filter(l => l.category === "security").map((a, i) => (
+                  {logs.filter(l => l.category === "security").map((a, i) => (
                     <div key={i} className="activity-item">
                       <div className="act-icon" style={{ background:a.color }}><I n={a.icon} size={14} /></div>
                       <div className="act-body">
@@ -360,7 +356,7 @@ export default function ActivityLog() {
                   ))}
                   <div style={{ marginTop:"14px", padding:"12px 14px", background:"rgba(242,68,92,.04)", border:"1px solid rgba(242,68,92,.14)", borderRadius:"10px" }}>
                     <div style={{ fontSize:"11px", fontWeight:700, color:"var(--rose)", marginBottom:"4px" }}>Security Summary</div>
-                    <div style={{ fontSize:"11px", color:"var(--text3)", lineHeight:1.6 }}>2 active alerts · 1 IP auto-blocked · All admin sessions verified</div>
+                    <div style={{ fontSize:"11px", color:"var(--text3)", lineHeight:1.6 }}>{configStats.degraded} active alerts · {configStats.degraded > 0 ? "IP auto-blocked" : "No active threats"} · All admin sessions verified</div>
                   </div>
                 </div>
               </div>
