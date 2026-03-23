@@ -245,8 +245,8 @@ export default function facultyQuestionBank({ onBack }) {
           api.get("/faculty/metadata"),
           api.get("/faculty/questions")
         ]);
-        setCoursesMeta(metaRes.data.courses_meta || {});
-        setQuestions(qRes.data || []);
+        setCoursesMeta(metaRes.courses_meta || {});
+        setQuestions(qRes || []);
       } catch (err) {
         console.error("Failed to load question bank data", err);
         showToast("Error loading question bank");
@@ -262,11 +262,11 @@ export default function facultyQuestionBank({ onBack }) {
     try {
       if (updated.id < 0) { // New question (mock id)
         const res = await api.post("/faculty/questions", updated);
-        setQuestions(qs => qs.map(q => q.id === updated.id ? res.data : q));
+        setQuestions(qs => qs.map(q => q.id === updated.id ? res : q));
         showToast("Question created successfully");
       } else {
         const res = await api.put(`/faculty/questions/${updated.id}`, updated);
-        setQuestions(qs => qs.map(q => q.id === updated.id ? res.data : q));
+        setQuestions(qs => qs.map(q => q.id === updated.id ? res : q));
         showToast("Question updated successfully");
       }
       setEditQ(null);
@@ -281,7 +281,7 @@ export default function facultyQuestionBank({ onBack }) {
     try {
       const clone = { ...q, used: 0 };
       const res = await api.post("/faculty/questions", clone);
-      setQuestions(qs => [...qs, res.data]);
+      setQuestions(qs => [...qs, res]);
       showToast("Question duplicated");
     } catch (err) {
       showToast("Error duplicating question");

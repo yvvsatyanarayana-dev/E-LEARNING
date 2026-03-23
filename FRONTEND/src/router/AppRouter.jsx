@@ -16,6 +16,7 @@ import PlacementProfile from "../pages/placement/placementProfile/placementProfi
 import PlacementReports from "../pages/placement/placementReports/placementReports";
 import PlacementMeeting from "../pages/placement/placementMeeting/placementMeeting";
 import StudentPlacementMeetings from "../pages/Student/studentPlacementMeetings/studentPlacementMeetings";
+import PlacementMail from "../pages/placement/placementMail/placementMail";
 
 
 import FacultyQuickaction from "../pages/Faculty/facultyQuickaction/facultyQuickaction";
@@ -31,6 +32,8 @@ import Notifications from "../pages/Admin/adminNotifications/adminNotifications"
 import AuditLogs from "../pages/Admin/ActivityLog/ActivityLog";
 import AdminSecurity from "../pages/admin/adminSecurity/adminSecurity";
 import SystemConfig from "../pages/Admin/AdminSystemConfiguration/AdminSystemConfiguration";
+import MailSystem from "../pages/shared/MailSystem/MailSystem";
+import AdminMail from "../pages/Admin/AdminMail/AdminMail";
 import ErrorBoundary from "./ErrorBoundary";
 
 const SD = (
@@ -82,6 +85,7 @@ const router = createBrowserRouter([
   { path: "/studentdashboard/studentResume",             element: SD, errorElement: <ErrorBoundary /> },
   { path: "/studentdashboard/studentMeetings",           element: SD, errorElement: <ErrorBoundary /> },
   { path: "/studentdashboard/studentPlacementMeetings",  element: SD, errorElement: <ErrorBoundary /> },
+  { path: "/studentdashboard/studentMail",               element: SD, errorElement: <ErrorBoundary /> },
 
   // ──────── FACULTY DASHBOARD ROUTES ────────
   {
@@ -169,6 +173,11 @@ const router = createBrowserRouter([
     element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
     errorElement: <ErrorBoundary />,
   },
+  {
+    path: "/facultydashboard/facultyMail",
+    element: <RoleRoute allowedRoles={["faculty","admin"]}><FacultyDashboard/></RoleRoute>,
+    errorElement: <ErrorBoundary />,
+  },
 
   // ──────── PLACEMENT DASHBOARD ROUTES ────────
   {
@@ -207,6 +216,11 @@ const router = createBrowserRouter([
     path: "/placementdashboard/meetings",
     element: <RoleRoute allowedRoles={["placement_officer","admin"]}><PlacementMeeting /></RoleRoute>,
   },
+  {
+    path: "/placementdashboard/placementMail",
+    element: <RoleRoute allowedRoles={["placement_officer","admin"]}><PlacementMail /></RoleRoute>,
+    errorElement: <ErrorBoundary />,
+  },
 
 
   //  ──────── ADMIN DASHBOARD ROUTE ────────
@@ -215,15 +229,15 @@ const router = createBrowserRouter([
     element: <RoleRoute allowedRoles={["admin"]}><AdminDashboard/></RoleRoute>,
   },
   {
-    path: "/admindashboard/adminAnalytics",
+    path: "/admindashboard/analytics",
     element: <RoleRoute allowedRoles={["admin"]}><AdminAnalytics /></RoleRoute>,
   },
   {
-    path: "/admindashboard/userManagement",
+    path: "/admindashboard/users",
     element: <RoleRoute allowedRoles={["admin"]}><UserManagement /></RoleRoute>,
   },
   {
-    path: "/admindashboard/courseManagement",
+    path: "/admindashboard/courses",
     element: <RoleRoute allowedRoles={["admin"]}><CourseManagement /></RoleRoute>,
   },
   {
@@ -235,7 +249,7 @@ const router = createBrowserRouter([
     element: <RoleRoute allowedRoles={["admin"]}><Placements /></RoleRoute>,
   },
   {
-    path: "/admindashboard/adminReports",
+    path: "/admindashboard/reports",
     element: <RoleRoute allowedRoles={["admin"]}><Reports /></RoleRoute>,
   },
   {
@@ -243,7 +257,7 @@ const router = createBrowserRouter([
     element: <RoleRoute allowedRoles={["admin"]}><Notifications /></RoleRoute>,
   },
   {
-    path: "/admindashboard/auditLogs",
+    path: "/admindashboard/auditlogs",
     element: <RoleRoute allowedRoles={["admin"]}><AuditLogs /></RoleRoute>,
   },
   {
@@ -253,6 +267,11 @@ const router = createBrowserRouter([
   {
     path: "/admindashboard/settings",
     element: <RoleRoute allowedRoles={["admin"]}><SystemConfig /></RoleRoute>,
+  },
+  {
+    path: "/admindashboard/mail",
+    element: <RoleRoute allowedRoles={["admin"]}><AdminMail /></RoleRoute>,
+    errorElement: <ErrorBoundary />,
   },
   // ──────── FALLBACK ROUTE ────────
   { path: "*", element: <Navigate to="/" replace /> },

@@ -604,7 +604,7 @@ export default function StudentMeetings({ onBack, onNavigate }) {
     const fetchMeeting = async () => {
       try {
         const res = await api.get("/student/dashboard");
-        const data = res.data || res;
+        const data = res;
         if (data?.active_meeting) {
           setActiveMeeting(data.active_meeting);
           const urlParams = new URLSearchParams(window.location.search);

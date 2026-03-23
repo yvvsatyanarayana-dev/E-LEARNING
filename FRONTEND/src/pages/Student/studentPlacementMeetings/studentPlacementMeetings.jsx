@@ -499,7 +499,7 @@ export default function StudentPlacementMeetings({ onBack }) {
     const poll = async () => {
       try {
         const res = await api.get('/student/dashboard');
-        const d = res.data || res;
+        const d = res;
         setMeeting(d?.active_placement_meeting || null);
         if (!d?.active_placement_meeting && joined) setJoined(false);
       } catch (e) {

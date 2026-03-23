@@ -371,6 +371,7 @@ export default function PlacementProfile() {
 
   const [savingSet,    setSavingSet]    = useState(false);
   const [searchVal,    setSearchVal]    = useState("");
+  const [mailUnread,    setMailUnread]   = useState(0);
 
   /* ── Custom cursor ── */
   const curRef  = useRef(null);
@@ -420,6 +421,7 @@ export default function PlacementProfile() {
           api.get("/auth/me"),
           api.get("/placement/dashboard/stats"),
           api.get("/placement/internships?limit=5"),
+          api.get("/mail/unread/count"),
         ]);
 
         // ── Officer profile from /auth/me ──
@@ -463,6 +465,10 @@ export default function PlacementProfile() {
           const raw = Array.isArray(drivesRes.value) ? drivesRes.value : (drivesRes.value?.items ?? []);
           setRecentDrives(raw);
         }
+
+        if (results[3]?.status === "fulfilled") {
+          setMailUnread(results[3].value.count || 0);
+        }
       } catch (err) {
         console.error("Profile fetch error:", err);
       } finally {
@@ -471,6 +477,15 @@ export default function PlacementProfile() {
       }
     };
     fetchAll();
+
+    const pollUnread = setInterval(async () => {
+      try {
+        const res = await api.get("/mail/unread/count");
+        setMailUnread(res.count || 0);
+      } catch {}
+    }, 30000);
+
+    return () => clearInterval(pollUnread);
   }, []);
 
 
@@ -631,6 +646,7 @@ export default function PlacementProfile() {
             <SbLink to="/placementdashboard/offers"       icon={I.star}>Offers &amp; Placed</SbLink>
             <SbLink to="/placementdashboard/internships"  icon={I.box}>Internships</SbLink>
             <div className="sb-sec-label">Tools</div>
+            <SbLink to="/placementdashboard/placementMail" badge={mailUnread > 0 ? mailUnread : null} badgeCls="teal" icon={I.mail}>Mail System</SbLink>
             <SbLink to="/placementdashboard/ai-assistant" icon={I.zap}>AI Assistant</SbLink>
             <SbLink to="/placementdashboard/reports"      icon={I.file}>Reports</SbLink>
             <div className="sb-sec-label">Account</div>

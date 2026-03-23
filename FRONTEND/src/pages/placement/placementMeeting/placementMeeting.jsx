@@ -555,7 +555,7 @@ export default function PlacementMeeting() {
       const fetchGroups = async () => {
         try {
           const res = await api.get('/placement/meetings/groups');
-          const groups = res.data || res;
+          const groups = res;
           setAvailableGroups(groups);
           if (groups.length > 0) setSelectedGroup(groups[0]);
         } catch (err) { console.error('Failed to fetch groups:', err); }
@@ -570,7 +570,7 @@ export default function PlacementMeeting() {
     setLaunching(true);
     try {
       const res = await api.post('/placement/meetings/start', { course_id: selectedGroup.id });
-      const data = res.data || res;
+      const data = res;
       const newUrl = `${window.location.pathname}?room=${data.room_code}&group=${encodeURIComponent(data.course_name || selectedGroup.name)}`;
       window.history.pushState({}, '', newUrl);
       setLiveMeeting(data);

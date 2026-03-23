@@ -44,32 +44,36 @@ const I = ({ n, size = 16 }) => <Icon size={size} d={icons[n]} />;
 
 const CATS = ["all","user","course","security","placement","system"];
 
-const NAV = [
-  { section:"Overview", items:[
-    { id:"dashboard", label:"Dashboard",       icon:"grid",      routePath:"",              badge:null },
-    { id:"analytics", label:"Analytics",       icon:"bar",       routePath:"adminAnalytics", badge:null },
-  ]},
-  { section:"Management", items:[
-    { id:"users",      label:"User Management", icon:"users",     routePath:"userManagement",   badge:null },
-    { id:"courses",    label:"Courses",         icon:"book",      routePath:"courseManagement", badge:null },
-    { id:"departments",label:"Departments",     icon:"layers",    routePath:"departments",      badge:null },
-    { id:"placement",  label:"Placement",       icon:"briefcase", routePath:"placements",       badge:null, badgeType:"teal" },
-  ]},
-  { section:"Platform", items:[
-    { id:"reports",  label:"Reports",      icon:"download", routePath:"adminReports", badge:null },
-    { id:"activity", label:"Activity Log", icon:"activity", routePath:"auditLogs",     badge:null, badgeType:"rose" },
-    { id:"security", label:"Security",     icon:"shield",   routePath:"security",     badge:null },
-    { id:"settings", label:"Settings",     icon:"settings", routePath:"settings",     badge:null },
-  ]},
-];
+function buildNav(navBadges = {}) {
+  return [
+    { section: "Overview", items: [
+      { id: "dashboard", label: "Dashboard",       icon: "grid",      routePath: "",              badge: null },
+      { id: "analytics", label: "Analytics",       icon: "bar",       routePath: "analytics",     badge: null },
+    ]},
+    { section: "Management", items: [
+      { id: "users",       label: "User Management", icon: "users",     routePath: "users",          badge: null },
+      { id: "courses",     label: "Courses",         icon: "book",      routePath: "courses",        badge: null },
+      { id: "departments", label: "Departments",     icon: "layers",    routePath: "departments",    badge: null },
+      { id: "placement",   label: "Placement",       icon: "briefcase", routePath: "placements",     badge: null,  badgeType: "teal" },
+    ]},
+    { section: "Platform", items: [
+      { id: "reports",   label: "Reports",      icon: "download", routePath: "reports",   badge: null },
+      { id: "activity",  label: "Activity Log", icon: "activity", routePath: "auditlogs", badge: null,  badgeType: "rose" },
+      { id: "mail",      label: "Mail System",  icon: "mail",     routePath: "mail",      badge: navBadges.mail || 0, badgeType: "teal" },
+      { id: "security",  label: "Security",     icon: "shield",   routePath: "security",  badge: null },
+      { id: "settings",  label: "Settings",     icon: "settings", routePath: "settings",  badge: null },
+    ]},
+  ];
+}
 
 const getActiveId = (pathname) => {
+  const NAV = buildNav();
   for (const sec of NAV) {
     for (const item of sec.items) {
       if (item.routePath === "") {
         if (pathname === "/admindashboard" || pathname === "/admindashboard/") return item.id;
       } else {
-        if (pathname.includes(item.routePath)) return item.id;
+        if (pathname.includes(`/admindashboard/${item.routePath}`)) return item.id;
       }
     }
   }
@@ -96,9 +100,22 @@ export default function ActivityLog() {
   const active = getActiveId(location.pathname);
   const now    = new Date().toLocaleDateString();
 
+  const NAV = buildNav(navBadges);
+
   // Fetch logs and config stats
   useEffect(() => {
+    const fetchMailCount = async () => {
+      try {
+        const res = await api.get("/mail/unread/count");
+        setNavBadges(prev => ({ ...prev, mail: res.count || 0 }));
+      } catch (err) {
+        console.error("Failed to poll mail count", err);
+      }
+    };
+
     fetchData();
+    const interval = setInterval(fetchMailCount, 30000);
+    return () => clearInterval(interval);
   }, [cat, search, page]);
 
   const fetchData = async () => {
@@ -162,7 +179,7 @@ export default function ActivityLog() {
       <div className="sc-cursor" ref={cursorRef} />
       <div className="sc-cursor-ring" ref={cursorRingRef} />
       <div className="sc-noise" />
-      <div className="app" ref={pageRef}>
+      <div className="admin-activity-page app" ref={pageRef}>
         <div className={`sb-overlay ${sidebarOpen ? "visible" : ""}`} onClick={() => setSidebar(false)} />
 
         {/* ── SIDEBAR ── */}

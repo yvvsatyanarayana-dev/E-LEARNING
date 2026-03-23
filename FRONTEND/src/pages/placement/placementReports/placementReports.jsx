@@ -161,6 +161,7 @@ export default function PlacementReports() {
   const [students,      setStudents]     = useState([]);
   const [drives,        setDrives]       = useState([]);
   const [officerName,   setOfficerName]  = useState("Placement Officer");
+  const [mailUnread,    setMailUnread]   = useState(0);
 
   /* ── UI state ── */
   const [filter,      setFilter]      = useState("All");
@@ -211,6 +212,7 @@ export default function PlacementReports() {
           api.get("/placement/dashboard/stats"),
           api.get("/placement/dashboard/students?limit=200"),
           api.get("/placement/internships?limit=20"),
+          api.get("/mail/unread/count"),
         ]);
 
         if (meRes.status === "fulfilled") {
@@ -230,6 +232,10 @@ export default function PlacementReports() {
           const raw = Array.isArray(drivesRes.value) ? drivesRes.value : (drivesRes.value?.items ?? []);
           setDrives(raw);
         }
+
+        if (results[4]?.status === "fulfilled") {
+          setMailUnread(results[4].value.count || 0);
+        }
       } catch (err) {
         console.error("Reports fetch error:", err);
       } finally {
@@ -237,6 +243,15 @@ export default function PlacementReports() {
       }
     };
     fetchAll();
+
+    const pollUnread = setInterval(async () => {
+      try {
+        const res = await api.get("/mail/unread/count");
+        setMailUnread(res.count || 0);
+      } catch {}
+    }, 30000);
+
+    return () => clearInterval(pollUnread);
   }, []);
 
   /* ── Computed ── */
@@ -324,6 +339,7 @@ export default function PlacementReports() {
             <SbLink to="/placementdashboard/offers-placed" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>}>Offers &amp; Placed</SbLink>
             <SbLink to="/placementdashboard/internships"   icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>}>Internships</SbLink>
             <div className="sb-sec-label">Tools</div>
+            <SbLink to="/placementdashboard/placementMail" badge={mailUnread > 0 ? mailUnread : null} badgeCls="teal" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>}>Mail System</SbLink>
             <SbLink to="/placementdashboard/meetings" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>}>Virtual Meeting</SbLink>
             <SbLink to="/placementdashboard/ai-assistant"  icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>}>AI Assistant</SbLink>
             <SbLink active to="/placementdashboard/reports" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>}>Reports</SbLink>

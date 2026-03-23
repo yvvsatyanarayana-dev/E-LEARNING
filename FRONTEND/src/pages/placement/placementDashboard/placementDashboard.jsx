@@ -987,6 +987,7 @@ export default function PlacementDashboard() {
   const [students,      setStudents]     = useState([]);
   const [officerName,   setOfficerName]  = useState("");
   const [profile,       setProfile]      = useState({}); // Added profile state
+  const [mailUnread,    setMailUnread]   = useState(0);
 
   // ── Modal state ───────────────────────────────────────────────
   const [showAddDrive,  setShowAddDrive] = useState(false);
@@ -1051,6 +1052,7 @@ export default function PlacementDashboard() {
           api.get("/placement/dashboard/students?limit=50"),
           api.get("/placement/dashboard/tasks"),
           api.get("/placement/dashboard/events"),
+          api.get("/mail/unread/count"),
         ]);
 
         const [meRes, statsRes, drivesRes, studentsRes, tasksRes, eventsRes] = results;
@@ -1095,6 +1097,11 @@ export default function PlacementDashboard() {
           const raw = eventsRes.value || [];
           setSchedule(raw.map(mapApiEvent));
         }
+
+        // Mail unread
+        if (results[6]?.status === "fulfilled") {
+          setMailUnread(results[6].value.count || 0);
+        }
       } catch (err) {
         console.error("Placement dashboard fetch error:", err);
       } finally {
@@ -1104,6 +1111,17 @@ export default function PlacementDashboard() {
     };
 
     fetchAll();
+
+    const pollUnread = setInterval(async () => {
+      try {
+        const res = await api.get("/mail/unread/count");
+        setMailUnread(res.count || 0);
+      } catch {}
+    }, 30000);
+
+    return () => {
+      clearInterval(pollUnread);
+    };
   }, []);
 
   // Re-fetch students when search or filter changes (debounced)
@@ -1294,6 +1312,7 @@ export default function PlacementDashboard() {
             <SbLink to="/placementdashboard/internships"    icon={<BoxIco/>}>Internships</SbLink>
 
             <div className="sb-sec-label">Tools</div>
+            <SbLink to="/placementdashboard/placementMail" badge={mailUnread > 0 ? mailUnread : null} badgeCls="teal" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>}>Mail System</SbLink>
             <SbLink to="/placementdashboard/ai-assistant"   icon={<ZapIco/>}>AI Assistant</SbLink>
             <SbLink to="/placementdashboard/reports"        icon={<FileIco/>}>Reports</SbLink>
 

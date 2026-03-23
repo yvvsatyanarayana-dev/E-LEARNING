@@ -707,6 +707,7 @@ export default function PlacementStudents() {
   const [dashStats,     setDashStats]     = useState(null);
   const [officerName,   setOfficerName]   = useState("");
   const [upcomingCount, setUpcomingCount] = useState(0);
+  const [mailUnread,    setMailUnread]    = useState(0);
 
   // ── UI state ──────────────────────────────────────────────────
   const [filter,         setFilter]         = useState("All");
@@ -778,6 +779,7 @@ export default function PlacementStudents() {
           api.get("/placement/dashboard/stats"),
           api.get("/placement/dashboard/students?limit=100"),
           api.get("/placement/internships?limit=50"),
+          api.get("/mail/unread/count"),
         ]);
 
         // Officer name
@@ -808,6 +810,10 @@ export default function PlacementStudents() {
             : (drivesRes.value?.items ?? []);
           setUpcomingCount(raw.filter(d => d.status === "Upcoming").length);
         }
+
+        if (results[4]?.status === "fulfilled") {
+          setMailUnread(results[4].value.count || 0);
+        }
       } catch (err) {
         console.error("PlacementStudents fetch error:", err);
       } finally {
@@ -817,6 +823,15 @@ export default function PlacementStudents() {
     };
 
     fetchAll();
+
+    const pollUnread = setInterval(async () => {
+      try {
+        const res = await api.get("/mail/unread/count");
+        setMailUnread(res.count || 0);
+      } catch {}
+    }, 30000);
+
+    return () => clearInterval(pollUnread);
   }, []);
 
   /* ════════════════════════════════════════════
@@ -978,6 +993,7 @@ export default function PlacementStudents() {
             </SbLink>
 
             <div className="sb-sec-label">Tools</div>
+            <SbLink to="/placementdashboard/placementMail" badge={mailUnread > 0 ? mailUnread : null} badgeCls="teal" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>}>Mail System</SbLink>
             <SbLink to="/placementdashboard/meetings"
               icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>}>
               Virtual Meeting

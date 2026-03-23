@@ -38,35 +38,42 @@ const icons = {
   download:<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>,
   refresh:<><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></>,
   briefcase:<><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></>,
-  activity:<><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></>,
+  mail:       <><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></>,
 };
 const I = ({ n, size = 16 }) => <Icon size={size} d={icons[n]} />;
 
-const NAV = [
-  { section:"Overview", items:[
-    { id:"dashboard", label:"Dashboard",       icon:"grid",      routePath:"",               badge:null },
-    { id:"analytics", label:"Analytics",       icon:"bar",       routePath:"adminAnalytics",  badge:null },
-  ]},
-  { section:"Management", items:[
-    { id:"users",       label:"User Management", icon:"users",     routePath:"userManagement",   badge:null },
-    { id:"courses",     label:"Courses",         icon:"book",      routePath:"courseManagement", badge:null },
-    { id:"departments", label:"Departments",     icon:"layers",    routePath:"departments",      badge:null },
-    { id:"placement",   label:"Placement",       icon:"briefcase", routePath:"placements",       badge:null, badgeType:"teal" },
-  ]},
-  { section:"Platform", items:[
-    { id:"reports",   label:"Reports",      icon:"download", routePath:"adminReports", badge:null },
-    { id:"activity",  label:"Activity Log", icon:"activity", routePath:"auditLogs",     badge:null, badgeType:"rose" },
-    { id:"security",  label:"Security",     icon:"shield",   routePath:"security",     badge:null },
-    { id:"settings",  label:"Settings",     icon:"settings", routePath:"settings",     badge:null },
-  ]},
-];
+/* ─────────────────────────────────────────
+   NAV HELPER — id maps to route path segment
+───────────────────────────────────────── */
+function buildNav(navBadges = {}) {
+  return [
+    { section:"Overview", items:[
+      { id:"dashboard", label:"Dashboard",       icon:"grid",      routePath:"",               badge:null },
+      { id:"analytics", label:"Analytics",       icon:"bar",       routePath:"analytics",      badge:null },
+    ]},
+    { section:"Management", items:[
+      { id:"users",       label:"User Management", icon:"users",     routePath:"users",          badge:null },
+      { id:"courses",     label:"Courses",         icon:"book",      routePath:"courses",        badge:null },
+      { id:"departments", label:"Departments",     icon:"layers",    routePath:"departments",      badge:null },
+      { id:"placement",   label:"Placement",       icon:"briefcase", routePath:"placements",       badge:null, badgeType:"teal" },
+    ]},
+    { section:"Platform", items:[
+      { id:"reports",   label:"Reports",      icon:"download", routePath:"reports",   badge:null },
+      { id:"activity",  label:"Activity Log", icon:"activity", routePath:"auditlogs", badge:null, badgeType:"rose" },
+      { id:"mail",      label:"Mail System",  icon:"mail",     routePath:"mail",      badge:navBadges.mail || 0, badgeType:"teal" },
+      { id:"security",  label:"Security",     icon:"shield",   routePath:"security",  badge:null },
+      { id:"settings",  label:"Settings",     icon:"settings", routePath:"settings",  badge:null },
+    ]},
+  ];
+}
 
 const getActiveId = (pathname) => {
+  const NAV = buildNav();
   for (const sec of NAV) {
     for (const item of sec.items) {
       if (item.routePath === "") {
         if (pathname === "/admindashboard" || pathname === "/admindashboard/") return item.id;
-      } else { if (pathname.includes(item.routePath)) return item.id; }
+      } else { if (pathname.includes(`/admindashboard/${item.routePath}`)) return item.id; }
     }
   }
   return "dashboard";
@@ -88,8 +95,21 @@ export default function AdminSettings() {
   const active = getActiveId(location.pathname);
   const now    = new Date().toLocaleDateString();
 
+  const NAV = buildNav(navBadges);
+
   useEffect(() => {
+    const fetchMailCount = async () => {
+      try {
+        const res = await api.get("/mail/unread/count");
+        setNavBadges(prev => ({ ...prev, mail: res.count || 0 }));
+      } catch (err) {
+        console.error("Failed to poll mail count", err);
+      }
+    };
+
     fetchData();
+    const interval = setInterval(fetchMailCount, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchData = async () => {

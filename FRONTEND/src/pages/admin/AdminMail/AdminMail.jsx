@@ -1,7 +1,8 @@
-// AdminReports.jsx — SMART CAMPUS Admin Panel
 import { useState, useEffect, useRef } from "react";
+import api from "../../../utils/api";
 import { useNavigate, useLocation } from "react-router-dom";
-import "./AdminReports.css";
+import MailSystem from "../../shared/MailSystem/MailSystem";
+import "./AdminMail.css";
 
 const Icon = ({ d, size = 16, stroke = "currentColor", fill = "none", strokeWidth = 1.6 }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={stroke} strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round">{d}</svg>
@@ -38,31 +39,29 @@ const icons = {
   download:<><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></>,
   refresh:<><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></>,
   briefcase:<><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></>,
-  mail:       <><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></>,
+  activity:<><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></>,
+  mail:<><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></>,
 };
 const I = ({ n, size = 16 }) => <Icon size={size} d={icons[n]} />;
 
-/* ─────────────────────────────────────────
-   NAV HELPER — id maps to route path segment
-───────────────────────────────────────── */
 function buildNav(navBadges = {}) {
   return [
-    { section:"Overview", items:[
-      { id:"dashboard", label:"Dashboard",       icon:"grid",      routePath:"",               badge:null },
-      { id:"analytics", label:"Analytics",       icon:"bar",       routePath:"analytics",      badge:null },
+    { section: "Overview",   items: [
+      { id: "dashboard",       label: "Dashboard",       icon: "grid",      routePath: "",               badge: null },
+      { id: "analytics",       label: "Analytics",       icon: "bar",       routePath: "analytics",      badge: null },
     ]},
-    { section:"Management", items:[
-      { id:"users",       label:"User Management", icon:"users",     routePath:"users",          badge:null },
-      { id:"courses",     label:"Courses",         icon:"book",      routePath:"courses",        badge:null },
-      { id:"departments", label:"Departments",     icon:"layers",    routePath:"departments",      badge:null },
-      { id:"placement",   label:"Placement",       icon:"briefcase", routePath:"placements",       badge:null, badgeType:"teal" },
+    { section: "Management", items: [
+      { id: "users",           label: "User Management", icon: "users",     routePath: "users",          badge: null },
+      { id: "courses",         label: "Courses",         icon: "book",      routePath: "courses",        badge: null },
+      { id: "departments",     label: "Departments",     icon: "layers",    routePath: "departments",     badge: null },
+      { id: "placement",       label: "Placement",       icon: "briefcase", routePath: "placements",      badge: null,   badgeType: "teal" },
     ]},
-    { section:"Platform", items:[
-      { id:"reports",   label:"Reports",      icon:"download", routePath:"reports",   badge:null },
-      { id:"activity",  label:"Activity Log", icon:"activity", routePath:"auditlogs", badge:null, badgeType:"rose" },
-      { id:"mail",      label:"Mail System",  icon:"mail",     routePath:"mail",      badge:navBadges.mail || 0, badgeType:"teal" },
-      { id:"security",  label:"Security",     icon:"shield",   routePath:"security",  badge:null },
-      { id:"settings",  label:"Settings",     icon:"settings", routePath:"settings",  badge:null },
+    { section: "Platform",   items: [
+      { id: "reports",         label: "Reports",         icon: "download",  routePath: "reports",    badge: null },
+      { id: "activity",        label: "Activity Log",    icon: "activity",  routePath: "auditlogs",       badge: null,  badgeType: "rose" },
+      { id: "mail",            label: "Mail System",     icon: "mail",      routePath: "mail",           badge: navBadges.mail || 0, badgeType: "teal" },
+      { id: "security",        label: "Security",        icon: "shield",    routePath: "security",        badge: null },
+      { id: "settings",        label: "Settings",        icon: "settings",  routePath: "settings",        badge: null },
     ]},
   ];
 }
@@ -78,15 +77,15 @@ const getActiveId = (pathname) => {
   }
   return "dashboard";
 };
-export default function AdminReports() {
+
+export default function AdminMail() {
   const navigate        = useNavigate();
   const location        = useLocation();
   const [sidebarOpen, setSidebar] = useState(false);
-  const [stats, setStats] = useState({ generated: 0, types: 0, export_size: "0 MB", scheduled: 0 });
-  const [library, setLibrary] = useState([]);
   const [navBadges, setNavBadges] = useState({});
   const [configStats, setConfigStats] = useState({ uptime: "99.9%", cpu: "0%", memory: "0%", backup_size: "0GB" });
   const [loading, setLoading] = useState(true);
+
   const pageRef       = useRef(null);
   const cursorRef     = useRef(null);
   const cursorRingRef = useRef(null);
@@ -105,40 +104,25 @@ export default function AdminReports() {
       }
     };
 
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const [cs, nb] = await Promise.all([
+          api.get("/admin/config/stats"),
+          api.get("/admin/config/badges")
+        ]);
+        setConfigStats(cs);
+        setNavBadges(nb);
+      } catch (err) {
+        console.error("Failed to fetch admin data:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
     fetchData();
     const interval = setInterval(fetchMailCount, 30000);
     return () => clearInterval(interval);
   }, []);
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const [sRes, lRes, cRes, nb] = await Promise.all([
-        api.get("/admin/reports/stats"),
-        api.get("/admin/reports/library"),
-        api.get("/admin/config/stats"),
-        api.get("/admin/config/badges")
-      ]);
-      setStats(sRes);
-      setLibrary(lRes);
-      setConfigStats(cRes);
-      setNavBadges(nb);
-    } catch (err) {
-      console.error("Failed to fetch reports data", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleExportReport = async () => {
-    try {
-      const res = await api.post("/admin/reports/generate", { type: "General" });
-      alert(`Report Generated: ${res.filename || "Platform_Report.pdf"}`);
-      fetchData();
-    } catch (err) {
-      alert("Failed to generate report");
-    }
-  };
 
   useEffect(() => {
     const cursor = cursorRef.current; const cursorRing = cursorRingRef.current;
@@ -151,18 +135,12 @@ export default function AdminReports() {
     return () => { window.removeEventListener("mousemove", onMove); cancelAnimationFrame(raf); };
   }, []);
 
-  useEffect(() => {
-    const fills = document.querySelectorAll("[data-width]");
-    const timeout = setTimeout(() => { fills.forEach(el => { el.style.width = el.dataset.width; }); }, 300);
-    return () => clearTimeout(timeout);
-  }, [active, configStats]);
-
   return (
     <>
       <div className="sc-cursor" ref={cursorRef} />
       <div className="sc-cursor-ring" ref={cursorRingRef} />
       <div className="sc-noise" />
-      <div className="admin-reports-page app" ref={pageRef}>
+      <div className="admin-mail-page app" ref={pageRef}>
         <div className={`sb-overlay ${sidebarOpen ? "visible" : ""}`} onClick={() => setSidebar(false)} />
 
         {/* ── SIDEBAR ── */}
@@ -187,7 +165,7 @@ export default function AdminReports() {
                     className={`sb-link ${active === item.id ? "active" : ""}`}
                     onClick={e => { e.preventDefault(); navigate(item.routePath === "" ? "/admindashboard" : `/admindashboard/${item.routePath}`); setSidebar(false); }}>
                     <I n={item.icon} size={15} />{item.label}
-                    {navBadges[item.id] && <span className={`sb-badge ${item.badgeType || ""}`}>{navBadges[item.id]}</span>}
+                    {navBadges[item.id] > 0 && <span className={`sb-badge ${item.badgeType || ""}`}>{navBadges[item.id]}</span>}
                   </a>
                 ))}
               </div>
@@ -215,110 +193,20 @@ export default function AdminReports() {
         <div className="main">
           <header className="topbar">
             <button className="tb-hamburger" onClick={() => setSidebar(true)}><I n="menu" size={16} /></button>
-            <span className="tb-page">Reports</span>
+            <span className="tb-page">Mail System</span>
             <div className="tb-sep" />
             <div className="tb-search"><I n="search" size={14} /><input placeholder="Search users, courses…" /></div>
             <div className="tb-right">
               <span className="tb-role-tag">Admin</span>
               <span className="tb-date">{now}</span>
-              <button onClick={() => fetchData()} className="tb-icon-btn tooltip" data-tip="Refresh"><I n="refresh" size={15} /></button>
-              <button onClick={() => navigate("/admindashboard/notifications")} className="tb-icon-btn tooltip" data-tip="Notifications"><I n="bell" size={15} /><span className="notif-dot" /></button>
+              <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="tb-icon-btn tooltip" data-tip="Refresh"><I n="refresh" size={15} /></button>
+              <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="tb-icon-btn tooltip" data-tip="Notifications"><I n="bell" size={15} /><span className="notif-dot" /></button>
               <button className="tb-icon-btn tooltip" data-tip="Settings" onClick={() => navigate("/admindashboard/settings")}><I n="settings" size={15} /></button>
             </div>
           </header>
 
-          <main className="content">
-            {/* ── GREETING ── */}
-            <div className="greet-row">
-              <div className="greet-tag"><div className="greet-pip" /><span className="greet-pip-txt">Reports</span></div>
-              <h1 className="greet-title">Download <em>Reports.</em></h1>
-              <p className="greet-sub">Generate and export platform reports &nbsp;·&nbsp; Last generated: Jan 15, 2025</p>
-              <div className="greet-actions">
-                <button onClick={handleExportReport} className="btn btn-solid"><I n="plus" size={14} /> Generate Report</button>
-                <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="btn btn-ghost"><I n="refresh" size={14} /> Schedule Auto</button>
-              </div>
-            </div>
-
-            {/* STAT CARDS */}
-            <div className="stat-grid">
-              {[
-                { accent:"sc-indigo", icon:"download", val:stats.generated,  lbl:"Reports Generated",   delta:"this month" },
-                { accent:"sc-teal",   icon:"users",    val:stats.types,   lbl:"Report Types",        delta:"available" },
-                { accent:"sc-amber",  icon:"db",       val:stats.export_size,lbl:"Total Export Size",  delta:"last 30 days" },
-                { accent:"sc-rose",   icon:"activity", val:stats.scheduled,   lbl:"Scheduled Reports",   delta:"auto-running" },
-              ].map((s, i) => (
-                <div key={i} className={`stat-card ${s.accent}`} style={{ animationDelay:`${i * 80}ms`, cursor:"default" }}>
-                  <div className="stat-ic"><I n={s.icon} size={16} /></div>
-                  <div className="stat-val">{s.val}</div>
-                  <div className="stat-lbl">{s.lbl}</div>
-                  <span className="stat-delta delta-neu">· {s.delta}</span>
-                </div>
-              ))}
-            </div>
-
-            {/* QUICK GENERATE */}
-            <div className="panel">
-              <div className="panel-hd">
-                <div className="panel-ttl"><I n="zap" size={15} /> Quick Generate</div>
-                <span style={{ fontSize:"10px", color:"var(--text3)" }}>Instant report creation</span>
-              </div>
-              <div className="panel-body">
-                <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:"10px" }}>
-                  {[
-                    { label:"User Growth Report",    icon:"users",     color:"rgba(91,78,248,.12)",   tc:"var(--indigo-ll)" },
-                    { label:"Course Analytics",      icon:"book",      color:"rgba(39,201,176,.1)",   tc:"var(--teal)" },
-                    { label:"Placement Stats",       icon:"briefcase", color:"rgba(244,165,53,.1)",   tc:"var(--amber)" },
-                    { label:"Security Audit",        icon:"shield",    color:"rgba(255,107,107,.1)",  tc:"var(--rose)" },
-                  ].map((q, i) => (
-                    <button key={i} className="q-gen-btn" style={{ background:q.color, color:q.tc }} 
-                      onClick={async () => {
-                        try {
-                          await api.post("/admin/reports/generate", { type: q.label });
-                          alert(`${q.label} Generated!`);
-                          fetchData();
-                        } catch (err) { alert("Failed to generate " + q.label); }
-                      }}>
-                      <div className="q-gen-ic"><I n={q.icon} size={15} /></div>
-                      <div className="q-gen-lbl">{q.label}</div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* REPORT LIBRARY */}
-            <div className="panel">
-              <div className="panel-hd">
-                <div className="panel-ttl"><I n="download" size={15} /> Report Library <span>{library.length} files</span></div>
-                <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="btn btn-ghost btn-sm"><I n="search" size={12} /> Filter</button>
-              </div>
-              <div className="panel-body">
-                <div className="filter-row">
-                  <div className="tb-search" style={{ flex:"1", height:"32px" }}><I n="search" size={13} /><input placeholder="Search reports…" /></div>
-                </div>
-                {loading ? (
-                    <div style={{ padding:"20px", textAlign:"center", color:"var(--text3)" }}>Loading report library...</div>
-                ) : library.length === 0 ? (
-                    <div style={{ padding:"20px", textAlign:"center", color:"var(--text3)" }}>No reports found.</div>
-                ) : library.map((r, i) => (
-                  <div key={i} style={{ display:"flex", alignItems:"center", gap:"14px", padding:"13px 0", borderBottom:"1px solid var(--border)" }}>
-                    <div style={{ width:38, height:38, borderRadius:10, background:`rgba(0,0,0,.2)`, color:r.color, display:"flex", alignItems:"center", justifyContent:"center", flexShrink:0, border:`1px solid ${r.color}22` }}>
-                      <I n={r.icon} size={15} />
-                    </div>
-                    <div style={{ flex:1 }}>
-                      <div style={{ fontSize:"13px", fontWeight:600, color:"var(--text)", marginBottom:"3px" }}>{r.name}</div>
-                      <div style={{ fontSize:"11px", color:"var(--text3)", marginBottom:"5px" }}>{r.desc}</div>
-                      <div style={{ display:"flex", gap:"10px", alignItems:"center" }}>
-                        <span style={{ fontSize:"9px", fontWeight:700, padding:"2px 7px", borderRadius:"4px", background:"rgba(91,78,248,.1)", color:"var(--indigo-ll)", border:"1px solid rgba(91,78,248,.2)" }}>{r.type}</span>
-                        <span style={{ fontSize:"10px", color:"var(--text3)" }}>{r.size}</span>
-                        <span style={{ fontSize:"10px", color:"var(--text3)" }}>{r.date}</span>
-                      </div>
-                    </div>
-                    <button onClick={handleExportReport} className="btn btn-ghost btn-sm"><I n="download" size={12} /> Download</button>
-                  </div>
-                ))}
-              </div>
-            </div>
+          <main className="content" style={{ padding: 0 }}>
+            <MailSystem userRole="admin" />
           </main>
         </div>
       </div>

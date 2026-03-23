@@ -32,6 +32,7 @@ import StudentSchedule from "../studentSchedules/studentSchedules";
 import "../studentSchedules/studentSchedules.css";
 import lucynaJpg from "../../../assets/Cyberpunk 2077.jpg";
 import api from "../../../utils/api.js";
+import MailSystem from "../../shared/MailSystem/MailSystem";
 
 // ─── ICONS ───────────────────────────────────────────────────────
 const IcoDashboard = (p) => <svg {...p} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>;
@@ -81,6 +82,7 @@ const ROUTES = {
   PROFILE:        "Profile",
   RESUME:         "Resume",
   PLACEMENT_MEETINGS: "Placement Meetings",
+  MAIL:            "Mail",
 };
 
 const PAGE_PARAM_MAP = {
@@ -100,6 +102,7 @@ const PAGE_PARAM_MAP = {
   "studentprofile":       "Profile",
   "studentresume":        "Resume",
   "studentplacementmeetings": "Placement Meetings",
+  "studentmail":          "Mail",
 };
 
 const ROUTABLE = new Set(Object.values(ROUTES));
@@ -197,7 +200,7 @@ const AI_RESPONSES = [
   "Your CGPA of 8.4 puts you in the <strong style='color:var(--teal)'>top 15%</strong>. Improving Crypto would push you to the top 10%.",
 ];
 
-function buildNavItems(hasActivePlacementMeeting) {
+function buildNavItems(hasActivePlacementMeeting, mailUnread) {
   return [
     { section:"Overview", links:[
       {label:ROUTES.DASHBOARD, icon:<IcoDashboard/>},
@@ -220,6 +223,9 @@ function buildNavItems(hasActivePlacementMeeting) {
       {label:ROUTES.INTERNSHIPS,     icon:<IcoBrief/>},
       {label:ROUTES.MOCK_INTERVIEW,  icon:<IcoPen/>},
       {label:ROUTES.PLACEMENT_MEETINGS, icon:<IcoVideo/>, badge: hasActivePlacementMeeting ? "LIVE" : undefined, badgeClass: hasActivePlacementMeeting ? "rose" : undefined},
+    ]},
+    { section:"Others", links:[
+       {label:ROUTES.MAIL, icon:<IcoBell/>, badge: mailUnread > 0 ? mailUnread : null, badgeClass: "teal"},
     ]},
   ];
 }
@@ -289,11 +295,11 @@ function AnimatedProgressBar({pct,color,height=3,delay=500}){
 }
 
 // ─── SIDEBAR ─────────────────────────────────────────────────────
-function Sidebar({activePage, onNavigate, mobileOpen, onMobileClose, onNavigateSettings, onNavigateProfile, userName, userAvatar, priScore, hasActivePlacementMeeting}){
+function Sidebar({activePage, onNavigate, mobileOpen, onMobileClose, onNavigateSettings, onNavigateProfile, userName, userAvatar, priScore, hasActivePlacementMeeting, mailUnread}){
   const logoutNavigate=useNavigate();
   const [priW,setPriW]=useState(0);
   useEffect(()=>{const t=setTimeout(()=>setPriW(Math.round(priScore||0)),600);return()=>clearTimeout(t);},[priScore]);
-  const NAV_ITEMS = buildNavItems(hasActivePlacementMeeting);
+  const NAV_ITEMS = buildNavItems(hasActivePlacementMeeting, mailUnread);
 
   const handleLogout=()=>{
     localStorage.removeItem("token");localStorage.removeItem("user");
@@ -742,6 +748,7 @@ export default function StudentDashboard() {
   const [skills,      setSkills]      = useState([]);
   const [activeMeeting, setActiveMeeting]= useState(null);
   const [activePlacementMeeting, setActivePlacementMeeting]= useState(null);
+  const [mailUnread, setMailUnread] = useState(0);
 
   useEffect(() => {
     const pathParts = location.pathname.split("/").filter(Boolean);
@@ -761,9 +768,10 @@ export default function StudentDashboard() {
     const fetchData = async (isInitial = false) => {
       try {
         if (isInitial) setLoading(true);
-        const [meData, dashData] = await Promise.allSettled([
+        const [meData, dashData, mailData] = await Promise.allSettled([
           api.get("/auth/me"),
           api.get("/student/dashboard"),
+          api.get("/mail/unread/count"),
         ]);
         if (meData.status === "fulfilled") {
           setUserName(meData.value.full_name || meData.value.email || "");
@@ -779,6 +787,9 @@ export default function StudentDashboard() {
           setActiveMeeting(d.active_meeting || null);
           setActivePlacementMeeting(d.active_placement_meeting || null);
           if (d.full_name && !userName) setUserName(d.full_name);
+        }
+        if (mailData.status === "fulfilled") {
+          setMailUnread(mailData.value.count || 0);
         }
       } catch (err) {
         console.error("Dashboard fetch failed:", err);
@@ -825,6 +836,7 @@ export default function StudentDashboard() {
     [ROUTES.PROFILE]:         "/studentdashboard/studentProfile",
     [ROUTES.RESUME]:          "/studentdashboard/studentResume",
     [ROUTES.PLACEMENT_MEETINGS]: "/studentdashboard/studentPlacementMeetings",
+    [ROUTES.MAIL]:            "/studentdashboard/studentMail",
   };
 
   const navigate = (targetPage) => {
@@ -855,6 +867,7 @@ export default function StudentDashboard() {
           userAvatar={userAvatar}
           priScore={stats.pri_score||0}
           hasActivePlacementMeeting={!!activePlacementMeeting}
+          mailUnread={mailUnread}
         />
         <main className="main">
           <Topbar
@@ -900,6 +913,7 @@ export default function StudentDashboard() {
           {activePage === ROUTES.INTERNSHIPS    && <StudentInternships  onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
           {activePage === ROUTES.MOCK_INTERVIEW && <StudentMockInterview onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
           {activePage === ROUTES.PLACEMENT_MEETINGS && <StudentPlacementMeetings onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
+          {activePage === ROUTES.MAIL           && <MailSystem           onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
 
           {/* ── NEW PAGES ── */}
           {activePage === ROUTES.SETTINGS && (

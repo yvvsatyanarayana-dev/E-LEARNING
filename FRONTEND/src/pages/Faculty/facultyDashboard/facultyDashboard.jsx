@@ -20,6 +20,7 @@ import FacultyNotification from "../facultyNotification/facultyNotification";
 import FacultyMeeting from "../facultyMeeting/facultyMeeting";
 import api from "../../../utils/api";
 import lucynaJpg from "../../../assets/Cyberpunk 2077.jpg";
+import MailSystem from "../../shared/MailSystem/MailSystem";
 
 // ─── ICONS ───────────────────────────────────────────────────────
 const IcoDashboard = (p) => <svg {...p} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>;
@@ -71,6 +72,7 @@ const ROUTES = {
   SETTINGS: "Settings",
   QUICKACTIONS: "Quick Actions",
   NOTIFICATIONS: "Notifications",
+  MAIL: "Mail System",
 };
 
 const PAGE_PARAM_MAP = {
@@ -90,6 +92,7 @@ const PAGE_PARAM_MAP = {
   "settings": ROUTES.SETTINGS,
   "quickactions": ROUTES.QUICKACTIONS,
   "notifications": ROUTES.NOTIFICATIONS,
+  "facultymail": ROUTES.MAIL,
 };
 
 const ROUTE_TO_URL = {
@@ -110,6 +113,7 @@ const ROUTE_TO_URL = {
   [ROUTES.SETTINGS]: "/facultydashboard/settings",
   [ROUTES.QUICKACTIONS]: "/facultydashboard/quickactions",
   [ROUTES.NOTIFICATIONS]: "/facultydashboard/notifications",
+  [ROUTES.MAIL]: "/facultydashboard/facultyMail",
 };
 
 // Constants removed as they are fetched from API
@@ -144,6 +148,11 @@ const NAV_ITEMS = [
       { label: ROUTES.QUESTION_BANK, icon: <IcoAward /> },
       { label: ROUTES.AI_ASSISTANT, icon: <IcoBrain width={16} height={16} /> },
       { label: ROUTES.REPORTS, icon: <IcoTrend /> },
+    ]
+  },
+  {
+    section: "Communication", links: [
+      { label: ROUTES.MAIL, icon: <IcoBell /> },
     ]
   },
   {
@@ -249,7 +258,7 @@ function AnimatedProgressBar({ pct, color, height = 3, delay = 500 }) {
 }
 
 // ─── SIDEBAR ─────────────────────────────────────────────────────
-function Sidebar({ open, onClose, activePage, onNavigate, userName, userAvatar, stats, tasks }) {
+function Sidebar({ open, onClose, activePage, onNavigate, userName, userAvatar, stats, tasks, mailUnread }) {
   const logoutNavigate = useNavigate();
   const handleLogout = () => { localStorage.removeItem("token"); localStorage.removeItem("user"); logoutNavigate("/login", { replace: true }); };
 
@@ -290,6 +299,9 @@ function Sidebar({ open, onClose, activePage, onNavigate, userName, userAvatar, 
                   let finalBadge = badge;
                   if (label === ROUTES.MY_COURSES && stats?.active_courses != null) {
                     finalBadge = stats.active_courses > 0 ? stats.active_courses : null;
+                  }
+                  if (label === ROUTES.MAIL && mailUnread > 0) {
+                    finalBadge = mailUnread;
                   }
                   
                   return (
@@ -460,17 +472,28 @@ export default function FacultyDashboard() {
   const [weakTopics, setWeakTopics] = useState([]);
   const [topStudents, setTopStudents] = useState([]);
   const [aiInsights, setAiInsights] = useState([]);
-  const [notifications, setNotifications] = useState([]);
+   const [notifications, setNotifications] = useState([]);
   const [recentActivity, setRecentActivity] = useState([]);
   const [academicMeta, setAcademicMeta] = useState({ year: "2024–25", semester: "5", week: "11", today: "" });
+  const [mailUnread, setMailUnread] = useState(0);
 
   useEffect(() => {
+    const fetchMailCount = async () => {
+      try {
+        const res = await api.get("/mail/unread/count");
+        setMailUnread(res.count || 0);
+      } catch (err) {
+        console.error("Failed to poll mail count", err);
+      }
+    };
+
     const fetchData = async () => {
       try {
         setLoading(true);
-        const [meData, dashData] = await Promise.allSettled([
+        const [meData, dashData, mailData] = await Promise.allSettled([
           api.get("/auth/me"),
           api.get("/faculty/dashboard"),
+          api.get("/mail/unread/count"),
         ]);
         if (meData.status === "fulfilled") {
           setUserName(meData.value.full_name || meData.value.email || "");
@@ -490,12 +513,17 @@ export default function FacultyDashboard() {
           if (d.recent_activity) setRecentActivity(d.recent_activity);
           if (d.academic_meta) setAcademicMeta(d.academic_meta);
         }
+        if (mailData.status === "fulfilled") {
+          setMailUnread(mailData.value.count || 0);
+        }
       } catch (err) {
         console.error("Dashboard fetch failed:", err);
         setError("Could not load dashboard data.");
       } finally { setLoading(false); }
     };
     fetchData();
+    const interval = setInterval(fetchMailCount, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   useCursor();
@@ -538,6 +566,7 @@ export default function FacultyDashboard() {
       case ROUTES.REPORTS: return <Reports onBack={() => navigate(ROUTES.DASHBOARD)} />;
       case ROUTES.SETTINGS: return <FacultySettings onBack={() => navigate(ROUTES.DASHBOARD)} />;
       case ROUTES.PROFILE: return <FacultyProfile onBack={() => navigate(ROUTES.DASHBOARD)} />;
+      case ROUTES.MAIL: return <MailSystem onBack={() => navigate(ROUTES.DASHBOARD)} />;
       case ROUTES.QUICKACTIONS: return (
         <FacultyQuickaction 
           onBack={() => navigate(ROUTES.DASHBOARD)} 
@@ -570,6 +599,7 @@ export default function FacultyDashboard() {
           userAvatar={userAvatar}
           stats={stats}
           tasks={tasks}
+          mailUnread={mailUnread}
         />
         <main className="main">
           <Topbar

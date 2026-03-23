@@ -26,8 +26,8 @@ export default function AiAssistant({ onBack }) {
     const fetchMetadata = async () => {
       try {
         const res = await api.get("/faculty/metadata");
-        if (res.data?.ai_replies?.length > 0) setAiReplies(res.data.ai_replies);
-        if (res.data?.ai_suggestions?.length > 0) setSuggestions(res.data.ai_suggestions);
+        if (res.ai_replies?.length > 0) setAiReplies(res.ai_replies);
+        if (res.ai_suggestions?.length > 0) setSuggestions(res.ai_suggestions);
       } catch (err) {
         console.error("Failed to load AI metadata:", err);
       }

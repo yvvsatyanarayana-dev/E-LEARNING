@@ -45,6 +45,7 @@ const icons = {
   refresh:    <><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></>,
   briefcase:  <><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></>,
   activity:   <><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></>,
+  mail:       <><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></>,
 };
 const I = ({ n, size = 16 }) => <Icon size={size} d={icons[n]} />;
 
@@ -58,33 +59,40 @@ const I = ({ n, size = 16 }) => <Icon size={size} d={icons[n]} />;
    Root dashboard  → /admindashboard
    Others          → /admindashboard/<routePath>
 ───────────────────────────────────────── */
-const NAV = [
-  { section:"Overview",   items:[
-    { id:"dashboard",       label:"Dashboard",       icon:"grid",      routePath:"",               badge:null },
-    { id:"analytics",       label:"Analytics",       icon:"bar",       routePath:"adminAnalytics",  badge:null },
-  ]},
-  { section:"Management", items:[
-    { id:"users",           label:"User Management", icon:"users",     routePath:"userManagement",  badge:null },
-    { id:"courses",         label:"Courses",         icon:"book",      routePath:"courseManagement",badge:null },
-    { id:"departments",     label:"Departments",     icon:"layers",    routePath:"departments",     badge:null },
-    { id:"placement",       label:"Placement",       icon:"briefcase", routePath:"placements",      badge:null,   badgeType:"teal" },
-  ]},
-  { section:"Platform",   items:[
-    { id:"reports",         label:"Reports",         icon:"download",  routePath:"adminReports",    badge:null },
-    { id:"activity",        label:"Activity Log",    icon:"activity",  routePath:"auditLogs",       badge:null,  badgeType:"rose" },
-    { id:"security",        label:"Security",        icon:"shield",    routePath:"security",        badge:null },
-    { id:"settings",        label:"Settings",        icon:"settings",  routePath:"settings",        badge:null },
-  ]},
-];
+/* ─────────────────────────────────────────
+   NAV HELPER — id maps to route path segment
+───────────────────────────────────────── */
+function buildNav(navBadges = {}) {
+  return [
+    { section: "Overview", items: [
+      { id: "dashboard", label: "Dashboard",       icon: "grid",      routePath: "",               badge: null },
+      { id: "analytics", label: "Analytics",       icon: "bar",       routePath: "analytics",      badge: null },
+    ]},
+    { section: "Management", items: [
+      { id: "users",       label: "User Management", icon: "users",     routePath: "users",          badge: null },
+      { id: "courses",     label: "Courses",         icon: "book",      routePath: "courses",        badge: null },
+      { id: "departments", label: "Departments",     icon: "layers",    routePath: "departments",    badge: null },
+      { id: "placement",   label: "Placement",       icon: "briefcase", routePath: "placements",     badge: null, badgeType: "teal" },
+    ]},
+    { section: "Platform", items: [
+      { id: "reports",   label: "Reports",      icon: "download", routePath: "reports",     badge: null },
+      { id: "activity",  label: "Activity Log", icon: "activity", routePath: "auditlogs",   badge: null, badgeType: "rose" },
+      { id: "mail",      label: "Mail System",  icon: "mail",     routePath: "mail",        badge: navBadges.mail || 0, badgeType: "teal" },
+      { id: "security",  label: "Security",     icon: "shield",   routePath: "security",    badge: null },
+      { id: "settings",  label: "Settings",     icon: "settings", routePath: "settings",    badge: null },
+    ]},
+  ];
+}
 
 /* Helper: derive active nav id from current pathname */
 const getActiveId = (pathname) => {
+  const NAV = buildNav();
   for (const sec of NAV) {
     for (const item of sec.items) {
       if (item.routePath === "") {
         if (pathname === "/admindashboard" || pathname === "/admindashboard/") return item.id;
       } else {
-        if (pathname.includes(item.routePath)) return item.id;
+        if (pathname.includes(`/admindashboard/${item.routePath}`)) return item.id;
       }
     }
   }
@@ -118,6 +126,8 @@ export default function AdminDashboard() {
   const [configStats, setConfigStats] = useState({ uptime: "99.9%", cpu: "0%", memory: "0%", backup_size: "0GB" });
   const [loading, setLoading]       = useState(true);
 
+  const NAV = buildNav(navBadges);
+
   // User table filters
   const [userFilter, setUserFilter] = useState("all");
   const [userSearch, setUserSearch] = useState("");
@@ -125,6 +135,15 @@ export default function AdminDashboard() {
 
   // FETCH INITIAL DASHBOARD DATA
   useEffect(() => {
+    const fetchMailCount = async () => {
+      try {
+        const res = await api.get("/mail/unread/count");
+        setNavBadges(prev => ({ ...prev, mail: res.count || 0 }));
+      } catch (err) {
+        console.error("Failed to poll mail count", err);
+      }
+    };
+
     const fetchDashboardData = async () => {
       setLoading(true);
       try {
@@ -155,6 +174,8 @@ export default function AdminDashboard() {
       }
     };
     fetchDashboardData();
+    const interval = setInterval(fetchMailCount, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   // FETCH USER AND COURSE DATA (dependent on filters/pagination)
@@ -196,7 +217,17 @@ export default function AdminDashboard() {
     const cursor = cursorRef.current; const cursorRing = cursorRingRef.current;
     if (!cursor || !cursorRing) return;
     let mouseX = 0, mouseY = 0, ringX = 0, ringY = 0;
-    const onMove = (e) => { mouseX = e.clientX; mouseY = e.clientY; cursor.style.transform = `translate(${mouseX}px,${mouseY}px)`; };
+    const onMove = (e) => { 
+      mouseX = e.clientX; mouseY = e.clientY; 
+      if (cursor) {
+        cursor.style.opacity = "1";
+        cursor.style.transform = `translate(${mouseX}px,${mouseY}px)`; 
+      }
+      if (cursorRing) {
+        cursorRing.style.opacity = "1";
+        cursorRing.style.transform = `translate(${mouseX}px,${mouseY}px)`; 
+      }
+    };
     let raf;
     const animate = () => { ringX += (mouseX - ringX) * 0.12; ringY += (mouseY - ringY) * 0.12; cursorRing.style.transform = `translate(${ringX}px,${ringY}px)`; raf = requestAnimationFrame(animate); };
     window.addEventListener("mousemove", onMove); raf = requestAnimationFrame(animate);
@@ -219,7 +250,7 @@ export default function AdminDashboard() {
       <div className="sc-cursor-ring" ref={cursorRingRef} />
       <div className="sc-noise" />
 
-      <div className="app" ref={pageRef}>
+      <div className="admin-dashboard-page app" ref={pageRef}>
 
         {/* ── SIDEBAR OVERLAY (mobile) ── */}
         <div
@@ -349,19 +380,19 @@ export default function AdminDashboard() {
               <div className="greet-actions">
                 <button
                   className="btn btn-solid"
-                  onClick={() => navigate("/admindashboard/userManagement")}
+                  onClick={() => navigate("/admindashboard/users")}
                 >
                   <I n="userPlus" size={14} /> Add User
                 </button>
                 <button
                   className="btn btn-ghost"
-                  onClick={() => navigate("/admindashboard/adminReports")}
+                  onClick={() => navigate("/admindashboard/reports")}
                 >
                   <I n="download" size={14} /> Export Report
                 </button>
                 <button
                   className="btn btn-ghost"
-                  onClick={() => navigate("/admindashboard/courseManagement")}
+                  onClick={() => navigate("/admindashboard/courses")}
                 >
                   <I n="plus" size={14} /> New Course
                 </button>
@@ -371,16 +402,16 @@ export default function AdminDashboard() {
             {/* ── STAT CARDS ── */}
             <div className="stat-grid">
               {[
-                { accent:"sc-indigo", icon:"users",    val:stats.total_users || 0,     lbl:"Total Users",       delta:stats.deltas?.users || "+12%",  dir:"up",  sub:"vs last month",  route:"userManagement" },
-                { accent:"sc-teal",   icon:"book",     val:stats.active_courses || 0,  lbl:"Active Courses",    delta:stats.deltas?.courses || "+3",    dir:"up",  sub:"this semester",  route:"courseManagement" },
-                { accent:"sc-amber",  icon:"zap",      val:stats.placement_readiness || "0%", lbl:"Placement Readiness",   delta:stats.deltas?.readiness || "73%",   dir:"up",  sub:"avg PRI score",  route:"placement" },
-                { accent:"sc-rose",   icon:"bell",     val:stats.alerts || 0,          lbl:"System Alerts",     delta:stats.deltas?.alerts || "0",     dir:"neu", sub:"require action", route:"activitylog" },
+                { accent: "sc-indigo", icon: "users",    val: stats.total_users || 0,     lbl: "Total Users",       delta: stats.deltas?.users || "+12%",  dir: "up",  sub: "vs last month",  route: "users" },
+                { accent: "sc-teal",   icon: "book",     val: stats.active_courses || 0,  lbl: "Active Courses",    delta: stats.deltas?.courses || "+3",    dir: "up",  sub: "this semester",  route: "courses" },
+                { accent: "sc-amber",  icon: "zap",      val: stats.placement_readiness || "0%", lbl: "Placement Readiness",   delta: stats.deltas?.readiness || "73%",   dir: "up",  sub: "avg PRI score",  route: "placements" },
+                { accent: "sc-rose",   icon: "bell",     val: stats.alerts || 0,          lbl: "System Alerts",     delta: stats.deltas?.alerts || "0",     dir: "neu", sub: "require action", route: "auditlogs" },
               ].map((s, i) => (
                 <div
                   key={i}
                   className={`stat-card ${s.accent}`}
-                  style={{ animationDelay:`${i * 80}ms`, cursor:"pointer" }}
-                  onClick={() => navigate(`/admindashboard/${s.route}`)}
+                  style={{ animationDelay:`${i * 80}ms` }}
+                  onClick={() => navigate(`/admindashboard/${s.routePath || s.route}`)}
                 >
                   <div className="stat-ic"><I n={s.icon} size={16} /></div>
                   <div className="stat-val">{s.val}</div>
@@ -396,16 +427,16 @@ export default function AdminDashboard() {
             {/* ── QUICK ACTIONS ── */}
             <div className="action-grid">
                 {[
-                  { icon:"userPlus", ttl:"Add User",    sub:`${stats.total_users || 0} users`,  route:"userManagement" },
-                  { icon:"plus",     ttl:"New Course",  sub:`${stats.active_courses || 0} active`, route:"courseManagement" },
-                  { icon:"briefcase",ttl:"Schedule",    sub:`Upcoming drives`,    route:"placement" },
-                  { icon:"download", ttl:"Reports",     sub:"Full reports",    route:"adminReports" },
+                  { icon: "userPlus", ttl: "Add User",    sub: `${stats.total_users || 0} users`,  route: "users" },
+                  { icon: "plus",     ttl: "New Course",  sub: `${stats.active_courses || 0} active`, route: "courses" },
+                  { icon:"briefcase",ttl:"Schedule",    sub:`Upcoming drives`,    route:"placements" },
+                  { icon:"download", ttl:"Reports",     sub:"Full reports",    route:"reports" },
                 ].map((a, i) => (
                 <div
                   key={i}
                   className="qa-card"
-                  style={{ animationDelay:`${i * 60}ms`, cursor:"pointer" }}
-                  onClick={() => navigate(`/admindashboard/${a.route}`)}
+                  style={{ animationDelay:`${i * 60}ms` }}
+                  onClick={() => navigate(`/admindashboard/${a.routePath || a.route}`)}
                 >
                   <div className="qa-icon" style={{ background:a.color, color:a.tc }}>
                     <I n={a.icon} size={17} />
@@ -429,7 +460,7 @@ export default function AdminDashboard() {
                   </div>
                   <button
                     className="btn btn-solid btn-sm"
-                    onClick={() => navigate("/admindashboard/userManagement")}
+                    onClick={() => navigate("/admindashboard/users")}
                   >
                     <I n="userPlus" size={12} /> Add
                   </button>
@@ -535,7 +566,7 @@ export default function AdminDashboard() {
                   <div className="panel-ttl"><I n="activity" size={15} /> Activity Log <span>Live</span></div>
                   <button
                     className="panel-act"
-                    onClick={() => navigate("/admindashboard/activitylog")}
+                    onClick={() => navigate("/admindashboard/auditlogs")}
                   >
                     <I n="refresh" size={12} /> View All
                   </button>
@@ -581,7 +612,7 @@ export default function AdminDashboard() {
                   <div className="panel-ttl"><I n="layers" size={15} /> Departments</div>
                   <button
                     className="panel-act"
-                    onClick={() => navigate("/admindashboard/department")}
+                    onClick={() => navigate("/admindashboard/departments")}
                   >
                     View All <I n="chevronR" size={11} />
                   </button>

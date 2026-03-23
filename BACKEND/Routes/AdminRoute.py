@@ -4,6 +4,7 @@ from Core.Database import engine, get_db
 from Service.AdminService import AdminService
 from Models.User import User, UserRole
 from typing import Optional, List
+from Core.Security import get_current_user
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -27,9 +28,9 @@ async def get_dashboard_usage(db: Session = Depends(get_db)):
 async def get_dashboard_placement(db: Session = Depends(get_db)):
     return AdminService.get_dashboard_placement(db)
 
-@router.get("/dashboard/system-status")
-async def get_dashboard_system_status():
-    return AdminService.get_dashboard_system_status()
+@router.get("/dashboard/system")
+async def get_system_status(db: Session = Depends(get_db)):
+    return AdminService.get_system_status(db)
 
 @router.get("/users")
 async def get_users(
@@ -65,10 +66,6 @@ async def create_course(course_data: dict, db: Session = Depends(get_db)):
 async def delete_course(course_id: int, db: Session = Depends(get_db)):
     return AdminService.delete_course(db, course_id)
 
-@router.get("/analytics/engagement")
-async def get_engagement_scores(db: Session = Depends(get_db)):
-    return AdminService.get_engagement_scores(db)
-
 @router.get("/activity")
 async def get_activity_log(
     category: Optional[str] = None,
@@ -94,10 +91,6 @@ async def get_weekly_usage(db: Session = Depends(get_db)):
 @router.get("/analytics/engagement")
 async def get_engagement_scores(db: Session = Depends(get_db)):
     return AdminService.get_engagement_scores(db)
-
-@router.get("/dashboard/system")
-async def get_system_status(db: Session = Depends(get_db)):
-    return AdminService.get_system_status(db)
 
 @router.get("/dashboard/resources")
 async def get_resource_monitor(db: Session = Depends(get_db)):
@@ -175,6 +168,10 @@ async def get_report_stats(db: Session = Depends(get_db)):
 async def get_report_library(db: Session = Depends(get_db)):
     return AdminService.get_report_library(db)
 
+@router.post("/reports/generate")
+async def generate_report(data: dict, db: Session = Depends(get_db)):
+    return AdminService.generate_report(db, data)
+
 # ── Security ─────────────────────────────────────────
 @router.get("/security/stats")
 async def get_security_stats(db: Session = Depends(get_db)):
@@ -206,14 +203,14 @@ async def get_env_vars(db: Session = Depends(get_db)):
     return AdminService.get_env_vars(db)
 
 @router.get("/config/badges")
-async def get_nav_badges(db: Session = Depends(get_db)):
-    return AdminService.get_nav_badges(db)
-
-@router.post("/reports/generate")
-async def generate_report(data: dict, db: Session = Depends(get_db)):
-    return AdminService.generate_report(db, data)
+async def get_nav_badges(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    return AdminService.get_nav_badges(db, current_user.id)
 
 # ── Settings ─────────────────────────────────────────
 @router.get("/settings/platform")
 async def get_platform_settings(db: Session = Depends(get_db)):
     return AdminService.get_platform_settings(db)
+
+@router.post("/settings/platform")
+async def update_platform_settings(data: dict, db: Session = Depends(get_db)):
+    return AdminService.update_platform_settings(db, data)
