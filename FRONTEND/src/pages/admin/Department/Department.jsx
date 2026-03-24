@@ -100,6 +100,7 @@ export default function Department() {
   const cursorRef = useRef(null);
   const cursorRingRef = useRef(null);
   const active = getActiveId(location.pathname);
+  const NAV = buildNav(navBadges);
   const now = new Date().toLocaleDateString();
 
   // Load departments from API
