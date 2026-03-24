@@ -285,7 +285,7 @@ function TabOverview({ analyticsData = {}, students = [], atRisk = [] }) {
             </div>
           </div>
           <div className="panel-body">
-            <HBarChart data={SCORE_DIST} />
+            <HBarChart data={scoreDist} />
             <div className="dist-summary">
               <div className="ds-item">
                 <span className="ds-dot" style={{ background: "var(--teal)" }} />
@@ -467,7 +467,7 @@ function TabCourses({ courseSummary = [] }) {
           </div>
           <div className="panel-body an-chart-body">
             <LineChart
-              datasets={[{ label: c.code || "N/A", values: WEEKLY_SCORES[c.code] || WEEKLY_SCORES["CS501"] || [0,0,0,0,0,0,0], color: c.color || "var(--indigo-l)" }]}
+              datasets={[{ label: c.code || "N/A", values: c.weeklyScores || [0,0,0,0,0,0,0], color: c.color || "var(--indigo-l)" }]}
               labels={WEEKS} height={150} />
           </div>
         </div>
@@ -480,7 +480,7 @@ function TabCourses({ courseSummary = [] }) {
           </div>
           <div className="panel-body an-chart-body">
             <LineChart
-              datasets={[{ label: c.code || "N/A", values: ATTENDANCE_WEEKLY[c.code] || ATTENDANCE_WEEKLY["CS501"] || [0,0,0,0,0,0,0], color: c.color || "var(--indigo-l)" }]}
+              datasets={[{ label: c.code || "N/A", values: c.weeklyAttendance || [0,0,0,0,0,0,0], color: c.color || "var(--indigo-l)" }]}
               labels={WEEKS} height={150} />
           </div>
         </div>
@@ -822,7 +822,9 @@ export default function FacultyAnalytics({ onBack }) {
           code: c.code, name: c.name, color: colors[i % colors.length], colorRaw: colors[i % colors.length],
           enrolled: c.student_count || 0, avgScore: c.avg_score || 0, avgAttend: c.avg_attendance || 0, completion: c.completion || 75,
           quizCount: c.quiz_count || 0, asgmtCount: c.assignment_count || 0, highestScore: c.highest_score || 90, lowestScore: c.lowest_score || 40,
-          scoreDist: mappedScoreDist // Use global for now or calculate per course if API supports
+          scoreDist: mappedScoreDist, // Use global for now or calculate per course if API supports
+          weeklyScores: aData.engagement?.map(e => e.score || 70) || [0,0,0,0,0,0,0],
+          weeklyAttendance: aData.engagement?.map(e => e.attendance || 80) || [0,0,0,0,0,0,0]
         }));
         setCourseSummary(mappedCourses);
 
