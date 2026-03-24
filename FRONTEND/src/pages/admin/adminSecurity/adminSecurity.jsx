@@ -100,20 +100,26 @@ export default function AdminSecurity() {
 
   const NAV = buildNav(navBadges);
 
-  useEffect(() => {
-    const fetchMailCount = async () => {
-      try {
-        const res = await api.get("/mail/unread/count");
-        setNavBadges(prev => ({ ...prev, mail: res.count || 0 }));
-      } catch (err) {
-        console.error("Failed to poll mail count", err);
-      }
-    };
+  const fetchMailCount = async () => {
+    try {
+      const res = await api.get("/mail/unread/count");
+      setNavBadges(prev => ({ ...prev, mail: res.count || 0 }));
+    } catch (err) {
+      console.error("Failed to poll mail count", err);
+    }
+  };
 
+  useEffect(() => {
+    fetchMailCount();
     fetchData();
     const interval = setInterval(fetchMailCount, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  const handleRefresh = () => {
+    fetchData();
+    fetchMailCount();
+  };
 
   const fetchData = async () => {
     try {
@@ -171,12 +177,37 @@ export default function AdminSecurity() {
     const cursor = cursorRef.current; const cursorRing = cursorRingRef.current;
     if (!cursor || !cursorRing) return;
     let mouseX = 0, mouseY = 0, ringX = 0, ringY = 0;
-    const onMove = (e) => { mouseX = e.clientX; mouseY = e.clientY; cursor.style.transform = `translate(${mouseX}px,${mouseY}px)`; };
+    const onMove = (e) => { 
+      mouseX = e.clientX; mouseY = e.clientY; 
+      if (cursor) {
+        cursor.style.opacity = "1";
+        cursor.style.transform = `translate(${mouseX}px,${mouseY}px)`; 
+      }
+      if (cursorRing) {
+        cursorRing.style.opacity = "1";
+        cursorRing.style.transform = `translate(${mouseX}px,${mouseY}px)`; 
+      }
+    };
     let raf;
     const animate = () => { ringX += (mouseX - ringX) * 0.12; ringY += (mouseY - ringY) * 0.12; cursorRing.style.transform = `translate(${ringX}px,${ringY}px)`; raf = requestAnimationFrame(animate); };
     window.addEventListener("mousemove", onMove); raf = requestAnimationFrame(animate);
-    return () => { window.removeEventListener("mousemove", onMove); cancelAnimationFrame(raf); };
-  }, []);
+
+    const handleHover = () => document.querySelector(".admin-security-page")?.classList.add("c-hover");
+    const handleUnhover = () => document.querySelector(".admin-security-page")?.classList.remove("c-hover");
+    const handleClick = () => {
+      const p = document.querySelector(".admin-security-page");
+      p?.classList.add("c-click"); setTimeout(() => p?.classList.remove("c-click"), 200);
+    };
+    const interactive = document.querySelectorAll("button, a, input, .stat-card, .al-item, .ut-action");
+    interactive.forEach(el => { el.addEventListener("mouseenter", handleHover); el.addEventListener("mouseleave", handleUnhover); });
+    window.addEventListener("mousedown", handleClick);
+
+    return () => { 
+      window.removeEventListener("mousemove", onMove); cancelAnimationFrame(raf); 
+      interactive.forEach(el => { el.removeEventListener("mouseenter", handleHover); el.removeEventListener("mouseleave", handleUnhover); });
+      window.removeEventListener("mousedown", handleClick);
+    };
+  }, [loading, alerts, sessions]);
 
   useEffect(() => {
     const fills = document.querySelectorAll("[data-width]");
@@ -214,7 +245,7 @@ export default function AdminSecurity() {
                     className={`sb-link ${active === item.id ? "active" : ""}`}
                     onClick={e => { e.preventDefault(); navigate(item.routePath === "" ? "/admindashboard" : `/admindashboard/${item.routePath}`); setSidebar(false); }}>
                     <I n={item.icon} size={15} />{item.label}
-                    {navBadges[item.id] && <span className={`sb-badge ${item.badgeType || ""}`}>{navBadges[item.id]}</span>}
+                    {navBadges[item.id] > 0 && <span className={`sb-badge ${item.badgeType || ""}`}>{navBadges[item.id]}</span>}
                   </a>
                 ))}
               </div>
@@ -248,7 +279,7 @@ export default function AdminSecurity() {
             <div className="tb-right">
               <span className="tb-role-tag">Admin</span>
               <span className="tb-date">{now}</span>
-              <button onClick={() => fetchData()} className="tb-icon-btn tooltip" data-tip="Refresh"><I n="refresh" size={15} /></button>
+              <button onClick={handleRefresh} className="tb-icon-btn tooltip" data-tip="Refresh"><I n="refresh" size={15} /></button>
               <button onClick={() => navigate("/admindashboard/notifications")} className="tb-icon-btn tooltip" data-tip="Notifications"><I n="bell" size={15} /><span className="notif-dot" /></button>
               <button className="tb-icon-btn tooltip" data-tip="Settings" onClick={() => navigate("/admindashboard/settings")}><I n="settings" size={15} /></button>
             </div>

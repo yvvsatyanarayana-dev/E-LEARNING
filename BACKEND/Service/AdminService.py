@@ -248,7 +248,23 @@ class AdminService:
     @staticmethod
     def get_admin_notifications(db: Session, type: str = None):
         notifs = db.query(Notification).filter(or_(Notification.user_id == None, Notification.user_id == 1)).order_by(desc(Notification.created_at)).all()
-        result = [{"id": n.id, "type": n.type, "title": n.title, "msg": n.message, "time": "Just now", "is_read": n.is_read} for n in notifs]
+        result = []
+        for n in notifs:
+            # Format time nicely
+            diff = datetime.utcnow() - n.created_at
+            if diff.days > 0: time_str = f"{diff.days}d ago"
+            elif diff.seconds > 3600: time_str = f"{diff.seconds // 3600}h ago"
+            elif diff.seconds > 60: time_str = f"{diff.seconds // 60}m ago"
+            else: time_str = "Just now"
+
+            result.append({
+                "id": n.id,
+                "type": n.type,
+                "title": n.title,
+                "msg": n.message,
+                "time": time_str,
+                "is_read": n.is_read
+            })
         return {"notifications": result, "unread": sum(1 for n in notifs if not n.is_read), "total": len(result)}
 
     @staticmethod
@@ -270,8 +286,44 @@ class AdminService:
 
     @staticmethod
     def send_broadcast_notif(db: Session, data: dict):
-        new = Notification(type=data.get("type", "system"), title=data.get("title"), message=data.get("message"))
-        db.add(new); db.commit(); return {"success": True}
+        from Models.MailMessage import MailMessage
+        title = data.get("title")
+        msg = data.get("message")
+        target = data.get("target", "all")
+        send_email = data.get("send_email", False)
+        
+        # 1. Determine targets
+        query = db.query(User)
+        if target == "students": query = query.filter(User.role == "student")
+        elif target == "faculty": query = query.filter(User.role == "faculty")
+        elif target in ["cs", "ece", "ds"]: query = query.filter(User.department.ilike(f"%{target}%"))
+        
+        target_users = query.all()
+
+        # 2. Create System Notification
+        # For simplicity, we create one broadcast record (user_id=None) 
+        # or targeted ones if we want them to show up for specific users.
+        # Here we do a global one if "all", or targeted ones.
+        if target == "all":
+            new_notif = Notification(type=data.get("type", "system"), title=title, message=msg, user_id=None)
+            db.add(new_notif)
+        else:
+            for u in target_users:
+                db.add(Notification(type=data.get("type", "system"), title=title, message=msg, user_id=u.id))
+
+        # 3. Handle Email also
+        if send_email:
+            for u in target_users:
+                mail = MailMessage(
+                    sender_id=1, # Admin
+                    receiver_id=u.id,
+                    subject=f"Notification: {title}",
+                    body=msg
+                )
+                db.add(mail)
+        
+        db.commit()
+        return {"success": True, "count": len(target_users)}
 
     @staticmethod
     def get_report_stats(db: Session): return {"generated": db.query(PlatformReport).count() or 24, "types": 6, "export_size": "18.4 MB", "scheduled": 3}

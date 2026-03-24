@@ -134,45 +134,63 @@ export default function AdminDashboard() {
   const [userPage, setUserPage]     = useState(1);
 
   // FETCH INITIAL DASHBOARD DATA
-  useEffect(() => {
-    const fetchMailCount = async () => {
-      try {
-        const res = await api.get("/mail/unread/count");
-        setNavBadges(prev => ({ ...prev, mail: res.count || 0 }));
-      } catch (err) {
-        console.error("Failed to poll mail count", err);
-      }
-    };
+  const fetchMailCount = async () => {
+    try {
+      const res = await api.get("/mail/unread/count");
+      setNavBadges(prev => ({ ...prev, mail: res.count || 0 }));
+    } catch (err) {
+      console.error("Failed to poll mail count", err);
+    }
+  };
 
-    const fetchDashboardData = async () => {
-      setLoading(true);
-      try {
-        const [s, a, d, u, p, sys, res, nb, cs] = await Promise.all([
-          api.get("/admin/dashboard/stats"),
-          api.get("/admin/dashboard/activity"),
-          api.get("/admin/dashboard/departments"),
-          api.get("/admin/dashboard/usage"),
-          api.get("/admin/dashboard/placement"),
-          api.get("/admin/dashboard/system"),
-          api.get("/admin/dashboard/resources"),
-          api.get("/admin/config/badges"),
-          api.get("/admin/config/stats")
-        ]);
-        setStats(s);
-        setActivities(a);
-        setDepartments(d);
-        setUsageData(u);
-        setPlacementData(p);
-        setSystemStatus(sys);
-        setResources(res);
-        setNavBadges(nb);
-        setConfigStats(cs);
-      } catch (err) {
-        console.error("Failed to fetch dashboard data:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchDashboardData = async () => {
+    setLoading(true);
+    try {
+      const [s, a, d, u, p, sys, res, nb, cs] = await Promise.all([
+        api.get("/admin/dashboard/stats"),
+        api.get("/admin/dashboard/activity"),
+        api.get("/admin/dashboard/departments"),
+        api.get("/admin/dashboard/usage"),
+        api.get("/admin/dashboard/placement"),
+        api.get("/admin/dashboard/system"),
+        api.get("/admin/dashboard/resources"),
+        api.get("/admin/config/badges"),
+        api.get("/admin/config/stats")
+      ]);
+      setStats(s);
+      setActivities(a);
+      setDepartments(d);
+      setUsageData(u);
+      setPlacementData(p);
+      setSystemStatus(sys);
+      setResources(res);
+      setNavBadges(nb);
+      setConfigStats(cs);
+    } catch (err) {
+      console.error("Failed to fetch dashboard data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchUsersAndCourses = async () => {
+    setLoading(true);
+    try {
+      const [u, c] = await Promise.all([
+        api.get(`/admin/users?role=${userFilter}&search=${userSearch}&page=${userPage}`),
+        api.get("/admin/courses")
+      ]);
+      setUsers(u);
+      setCourses(c);
+    } catch (err) {
+      console.error("Failed to fetch user/course data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // FETCH INITIAL DASHBOARD DATA
+  useEffect(() => {
     fetchDashboardData();
     const interval = setInterval(fetchMailCount, 30000);
     return () => clearInterval(interval);
@@ -180,24 +198,14 @@ export default function AdminDashboard() {
 
   // FETCH USER AND COURSE DATA (dependent on filters/pagination)
   useEffect(() => {
-    const fetchUsersAndCourses = async () => {
-      setLoading(true);
-      try {
-        const [u, c] = await Promise.all([
-          api.get(`/admin/users?role=${userFilter}&search=${userSearch}&page=${userPage}`),
-          api.get("/admin/courses")
-        ]);
-        setUsers(u);
-        setCourses(c);
-      } catch (err) {
-        console.error("Failed to fetch user/course data:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchUsersAndCourses();
   }, [userFilter, userSearch, userPage]);
 
+  const handleRefresh = () => {
+    fetchDashboardData();
+    fetchUsersAndCourses();
+    fetchMailCount();
+  };
 
   // Helpers
   const roleBadge   = (role)   => role === "student" ? "badge-student" : role === "faculty" ? "badge-faculty" : role === "placement" ? "badge-placement" : "";
@@ -231,8 +239,23 @@ export default function AdminDashboard() {
     let raf;
     const animate = () => { ringX += (mouseX - ringX) * 0.12; ringY += (mouseY - ringY) * 0.12; cursorRing.style.transform = `translate(${ringX}px,${ringY}px)`; raf = requestAnimationFrame(animate); };
     window.addEventListener("mousemove", onMove); raf = requestAnimationFrame(animate);
-    return () => { window.removeEventListener("mousemove", onMove); cancelAnimationFrame(raf); };
-  }, []);
+
+    const handleHover = () => document.querySelector(".admin-dashboard-page")?.classList.add("c-hover");
+    const handleUnhover = () => document.querySelector(".admin-dashboard-page")?.classList.remove("c-hover");
+    const handleClick = () => {
+      const p = document.querySelector(".admin-dashboard-page");
+      p?.classList.add("c-click"); setTimeout(() => p?.classList.remove("c-click"), 200);
+    };
+    const interactive = document.querySelectorAll("button, a, input, .stat-card, .ut-action, .cov-item");
+    interactive.forEach(el => { el.addEventListener("mouseenter", handleHover); el.addEventListener("mouseleave", handleUnhover); });
+    window.addEventListener("mousedown", handleClick);
+
+    return () => { 
+      window.removeEventListener("mousemove", onMove); cancelAnimationFrame(raf); 
+      interactive.forEach(el => { el.removeEventListener("mouseenter", handleHover); el.removeEventListener("mouseleave", handleUnhover); });
+      window.removeEventListener("mousedown", handleClick);
+    };
+  }, [loading, users, activities, departments, courses]);
 
   // Animate progress bars on mount
   useEffect(() => {
@@ -291,7 +314,7 @@ export default function AdminDashboard() {
                   >
                     <I n={item.icon} size={15} />
                     {item.label}
-                    {navBadges[item.id] && <span className={`sb-badge ${item.badgeType || ""}`}>{navBadges[item.id]}</span>}
+                    {navBadges[item.id] > 0 && <span className={`sb-badge ${item.badgeType || ""}`}>{navBadges[item.id]}</span>}
                   </a>
                 ))}
               </div>
@@ -345,10 +368,10 @@ export default function AdminDashboard() {
             <div className="tb-right">
               <span className="tb-role-tag">Admin</span>
               <span className="tb-date">{now}</span>
-              <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="tb-icon-btn tooltip" data-tip="Refresh">
+              <button onClick={handleRefresh} className="tb-icon-btn tooltip" data-tip="Refresh">
                 <I n="refresh" size={15} />
               </button>
-              <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="tb-icon-btn tooltip" data-tip="Notifications">
+              <button onClick={() => navigate("/admindashboard/notifications")} className="tb-icon-btn tooltip" data-tip="Notifications">
                 <I n="bell" size={15} />
                 <span className="notif-dot" />
               </button>

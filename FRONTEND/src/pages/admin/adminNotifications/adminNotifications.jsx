@@ -122,9 +122,10 @@ export default function AdminNotifications({onBack}){
   const [catFilter,setCat] = useState("All");
   const [showUnread,setShowUnread]=useState(false);
   const [compose,setCompose]=useState(false);
-  const [composeTarget,setComposeTarget]=useState("all");
-  const [composeTitle,setComposeTitle]=useState("");
-  const [composeBody,setComposeBody]=useState("");
+  const [composeTarget, setComposeTarget] = useState("all");
+  const [composeTitle, setComposeTitle]   = useState("System Update: New Features Available");
+  const [composeBody, setComposeBody]     = useState("Hello Students and Faculty,\n\nWe have successfully implemented several new features in the Smart Campus portal, including enhanced analytics and a standardized administration interface.\n\nBest Regards,\nAdmin Team");
+  const [composeEmail, setComposeEmail]   = useState(true);
   const [sent,setSent]=useState(false);
   const [navBadges, setNavBadges] = useState({});
   const [configStats, setConfigStats] = useState({ uptime: "99.9%", cpu: "0%", memory: "0%", backup_size: "0GB" });
@@ -137,20 +138,62 @@ export default function AdminNotifications({onBack}){
 
   const NAV = buildNav(navBadges);
 
-  useEffect(() => {
-    const fetchMailCount = async () => {
-      try {
-        const res = await api.get("/mail/unread/count");
-        setNavBadges(prev => ({ ...prev, mail: res.count || 0 }));
-      } catch (err) {
-        console.error("Failed to poll mail count", err);
-      }
-    };
+  const fetchMailCount = async () => {
+    try {
+      const res = await api.get("/mail/unread/count");
+      setNavBadges(prev => ({ ...prev, mail: res.count || 0 }));
+    } catch (err) {
+      console.error("Failed to poll mail count", err);
+    }
+  };
 
+  useEffect(() => {
+    fetchMailCount();
     fetchData();
     const interval = setInterval(fetchMailCount, 30000);
     return () => clearInterval(interval);
   }, [catFilter]);
+
+  useEffect(() => {
+    const cursor = cursorRef.current; const cursorRing = cursorRingRef.current;
+    if (!cursor || !cursorRing) return;
+    let mouseX = 0, mouseY = 0, ringX = 0, ringY = 0;
+    const onMove = (e) => { 
+      mouseX = e.clientX; mouseY = e.clientY; 
+      if (cursor) {
+        cursor.style.opacity = "1";
+        cursor.style.transform = `translate(${mouseX}px,${mouseY}px)`; 
+      }
+      if (cursorRing) {
+        cursorRing.style.opacity = "1";
+        cursorRing.style.transform = `translate(${mouseX}px,${mouseY}px)`; 
+      }
+    };
+    let raf;
+    const animate = () => { ringX += (mouseX - ringX) * 0.12; ringY += (mouseY - ringY) * 0.12; cursorRing.style.transform = `translate(${ringX}px,${ringY}px)`; raf = requestAnimationFrame(animate); };
+    window.addEventListener("mousemove", onMove); raf = requestAnimationFrame(animate);
+
+    const handleHover = () => document.querySelector(".admin-notifications-page")?.classList.add("c-hover");
+    const handleUnhover = () => document.querySelector(".admin-notifications-page")?.classList.remove("c-hover");
+    const handleClick = () => {
+      const p = document.querySelector(".admin-notifications-page");
+      p?.classList.add("c-click"); setTimeout(() => p?.classList.remove("c-click"), 200);
+    };
+    const interactive = document.querySelectorAll("button, a, input, .nt-item-body");
+    interactive.forEach(el => { el.addEventListener("mouseenter", handleHover); el.addEventListener("mouseleave", handleUnhover); });
+    window.addEventListener("mousedown", handleClick);
+
+    return () => { 
+      window.removeEventListener("mousemove", onMove); cancelAnimationFrame(raf); 
+      interactive.forEach(el => { el.removeEventListener("mouseenter", handleHover); el.removeEventListener("mouseleave", handleUnhover); });
+      window.removeEventListener("mousedown", handleClick);
+    };
+  }, [loading, notifs]);
+
+  const handleRefresh = () => {
+    fetchData();
+    fetchMailCount();
+  };
 
   const fetchData = async () => {
     try {
@@ -208,18 +251,18 @@ export default function AdminNotifications({onBack}){
     if(!composeTitle.trim()) return;
     try {
       await api.post("/admin/notifications/broadcast", {
-        type: "system", // default for admin broadcast
+        type: "broadcast",
         title: composeTitle,
         message: composeBody,
-        target: composeTarget
+        target: composeTarget,
+        send_email: composeEmail
       });
       setSent(true);
       setTimeout(() => {
         setSent(false);
-        setCompose(false);
-        setComposeTitle("");
-        setComposeBody("");
-        fetchNotifs();
+        setComposeTitle("System Update: New Features Available");
+        setComposeBody("Hello Students and Faculty,\n\nWe have successfully implemented several new features in the Smart Campus portal, including enhanced analytics and a standardized administration interface.\n\nBest Regards,\nAdmin Team");
+        fetchData();
       }, 2000);
     } catch (err) {
       console.error("Failed to send broadcast", err);
@@ -234,67 +277,65 @@ export default function AdminNotifications({onBack}){
       <div className="admin-notifications-page app" ref={pageRef}>
         <div className={`sb-overlay ${sidebarOpen ? "visible" : ""}`} onClick={() => setSidebar(false)} />
 
-        {/* SIDEBAR */}
+        {/* ── SIDEBAR ── */}
         <aside className={`sidebar ${sidebarOpen ? "sb-open" : ""}`}>
-          <div className="sb-logo">
-            <div className="sb-logo-icon">SC</div>
-            <div className="sb-logo-text">
-              <span className="sb-logo-main">SMART CAMPUS</span>
-              <span className="sb-logo-sub">ADMIN PORTAL</span>
-            </div>
+          <div className="sb-top">
+            <a href="/admindashboard" className="sb-brand" onClick={e => { e.preventDefault(); navigate("/admindashboard"); }}>
+              <div className="sb-mark">SC</div><span className="sb-name">Smart Campus</span>
+            </a>
+            <button className="sb-mobile-close" onClick={() => setSidebar(false)}><I n="x" size={14} /></button>
           </div>
-
+          <div className="sb-user">
+            <div className="sb-avatar">SA</div>
+            <div><div className="sb-uname">Super Admin</div><div className="sb-urole">System Administrator</div></div>
+          </div>
           <nav className="sb-nav">
             {NAV.map(sec => (
-              <div key={sec.section} className="sb-sec">
+              <div key={sec.section}>
                 <div className="sb-sec-label">{sec.section}</div>
                 {sec.items.map(item => (
-                  <button
-                    key={item.id}
-                    className={`sb-item ${active === item.id ? "active" : ""}`}
-                    onClick={() => navigate("/admindashboard" + (item.routePath ? "/" + item.routePath : ""))}
-                  >
-                    <I n={item.icon} size={18} />
-                    <span className="sb-label">{item.label}</span>
-                    {navBadges[item.id] && <span className={`sb-badge ${item.badgeType || ""}`}>{navBadges[item.id]}</span>}
-                  </button>
+                  <a key={item.id}
+                    href={item.routePath === "" ? "/admindashboard" : `/admindashboard/${item.routePath}`}
+                    className={`sb-link ${active === item.id ? "active" : ""}`}
+                    onClick={e => { e.preventDefault(); navigate(item.routePath === "" ? "/admindashboard" : `/admindashboard/${item.routePath}`); setSidebar(false); }}>
+                    <I n={item.icon} size={15} />{item.label}
+                    {navBadges[item.id] > 0 && <span className={`sb-badge ${item.badgeType || ""}`}>{navBadges[item.id]}</span>}
+                  </a>
                 ))}
               </div>
             ))}
           </nav>
-
-          <div className="sb-health">
-            <div className="sb-health-head">
-              <span>System Health</span>
-              <span className="sb-health-val">{configStats.uptime}</span>
+          <div className="sb-bottom">
+            <div className="sb-health">
+              <div className="sb-health-lbl">System Health</div>
+              {[
+                { n: "Uptime", v: configStats.uptime },
+                { n: "CPU",    v: configStats.cpu },
+                { n: "Memory", v: configStats.memory }
+              ].map((item) => (
+                <div key={item.n}>
+                  <div className="sb-health-row"><span className="sb-health-name">{item.n}</span><span className="sb-health-val">{item.v}</span></div>
+                  <div className="sb-health-bar"><div className="sb-health-fill" style={{ width: item.v.includes("%") ? item.v : "60%" }} /></div>
+                </div>
+              ))}
             </div>
-            <div className="sb-health-bar"><div className="sb-health-fill" style={{ width: configStats.cpu }}></div></div>
-            <div className="sb-health-bar"><div className="sb-health-fill" style={{ width: configStats.memory, background: "var(--violet)" }}></div></div>
+            <button className="sb-logout" onClick={() => navigate("/login")}><I n="logout" size={14} /> Sign Out</button>
           </div>
-
-          <button className="sb-logout" onClick={() => navigate("/")}>
-            <I n="logout" size={16} />
-            <span>Logout</span>
-          </button>
         </aside>
 
         {/* MAIN */}
         <div className="main">
           <header className="topbar">
-            <div className="tb-left">
-              <button className="tb-menu" onClick={() => setSidebar(true)}><I n="menu" size={20} /></button>
-              <div className="tb-search">
-                <I n="search" size={15} />
-                <input type="text" placeholder="Search analytics, logs, users..." />
-              </div>
-            </div>
+            <button className="tb-hamburger" onClick={() => setSidebar(true)}><I n="menu" size={16} /></button>
+            <span className="tb-page">Notifications</span>
+            <div className="tb-sep" />
+            <div className="tb-search"><I n="search" size={14} /><input placeholder="Search users, courses…" /></div>
             <div className="tb-right">
-              <div className="tb-clock">{now}</div>
-              <button className="tb-icon-btn tooltip" data-tip="System Health"><I n="cpu" size={15} /></button>
-              <button className="tb-icon-btn tooltip" data-tip="Notifications" onClick={() => navigate("/admindashboard/notifications")}><I n="bell" size={15} /><span className="notif-dot" /></button>
-              <div className="tb-profile">
-                <div className="tb-avatar">AD</div>
-              </div>
+              <span className="tb-role-tag">Admin</span>
+              <span className="tb-date">{now}</span>
+              <button onClick={handleRefresh} className="tb-icon-btn tooltip" data-tip="Refresh"><I n="refresh" size={15} /></button>
+              <button onClick={() => navigate("/admindashboard/notifications")} className="tb-icon-btn tooltip" data-tip="Notifications"><I n="bell" size={15} /><span className="notif-dot" /></button>
+              <button className="tb-icon-btn tooltip" data-tip="Settings" onClick={() => navigate("/admindashboard/settings")}><I n="settings" size={15} /></button>
             </div>
           </header>
 
@@ -405,9 +446,15 @@ export default function AdminNotifications({onBack}){
                       <div className="nt-compose-label">Message</div>
                       <textarea className="nt-compose-ta" value={composeBody} onChange={e=>setComposeBody(e.target.value)}
                         placeholder="Type your message here…" rows={4}/>
-                      <button className={`nt-send-btn ${sent?"sent":""}`} onClick={handleSend} disabled={sent}>
-                        {sent?"✓ Sent!":"Send Notification"}
-                      </button>
+                      <div className="nt-form-footer">
+                        <label className="nt-email-toggle">
+                          <input type="checkbox" checked={composeEmail} onChange={e=>setComposeEmail(e.target.checked)} />
+                          <span>Also send as Email</span>
+                        </label>
+                        <button className={`nt-send-btn ${sent?"sent":""}`} onClick={handleSend} disabled={sent}>
+                          {sent?"✓ Sent!":"Send Broadcast"}
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>

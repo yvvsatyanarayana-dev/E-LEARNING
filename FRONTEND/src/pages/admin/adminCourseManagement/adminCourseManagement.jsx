@@ -93,39 +93,49 @@ export default function AdminCourseManagement() {
   const [loading, setLoading] = useState(true);
   
   // Load courses and stats from API
-  useEffect(() => {
-    const fetchMailCount = async () => {
-      try {
-        const res = await api.get("/mail/unread/count");
-        setNavBadges(prev => ({ ...prev, mail: res.count || 0 }));
-      } catch (err) {
-        console.error("Failed to poll mail count", err);
-      }
-    };
+  const fetchMailCount = async () => {
+    try {
+      const res = await api.get("/mail/unread/count");
+      setNavBadges(prev => ({ ...prev, mail: res.count || 0 }));
+    } catch (err) {
+      console.error("Failed to poll mail count", err);
+    }
+  };
 
-    const fetchData = async () => {
-      setLoading(true);
-      try {
-        const [courseData, statData, nb, cs] = await Promise.all([
-          api.get(`/admin/courses?dept=${filterDept === "All Depts" ? "" : filterDept}&search=${searchTerm}`),
-          api.get("/admin/courses/stats"),
-          api.get("/admin/config/badges"),
-          api.get("/admin/config/stats")
-        ]);
-        setCourses(courseData);
-        setStats(statData);
-        setNavBadges(nb);
-        setConfigStats(cs);
-      } catch (err) {
-        console.error("Failed to fetch course data:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchData = async () => {
+    setLoading(true);
+    try {
+      const [courseData, statData, nb, cs] = await Promise.all([
+        api.get(`/admin/courses?dept=${filterDept === "All Depts" ? "" : filterDept}&search=${searchTerm}`),
+        api.get("/admin/courses/stats"),
+        api.get("/admin/config/badges"),
+        api.get("/admin/config/stats")
+      ]);
+      setCourses(courseData);
+      setStats(statData);
+      setNavBadges(nb);
+      setConfigStats(cs);
+    } catch (err) {
+      console.error("Failed to fetch course data:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchData();
+  }, [filterDept, searchTerm]);
+
+  useEffect(() => {
+    fetchMailCount();
     const interval = setInterval(fetchMailCount, 30000);
     return () => clearInterval(interval);
-  }, [filterDept, searchTerm]);
+  }, []);
+
+  const handleRefresh = () => {
+    fetchData();
+    fetchMailCount();
+  };
 
   const pageRef = useRef(null);
   const cursorRef = useRef(null);
@@ -178,12 +188,37 @@ export default function AdminCourseManagement() {
     const cursor = cursorRef.current; const cursorRing = cursorRingRef.current;
     if (!cursor || !cursorRing) return;
     let mouseX = 0, mouseY = 0, ringX = 0, ringY = 0;
-    const onMove = (e) => { mouseX = e.clientX; mouseY = e.clientY; cursor.style.transform = `translate(${mouseX}px,${mouseY}px)`; };
+    const onMove = (e) => { 
+      mouseX = e.clientX; mouseY = e.clientY; 
+      if (cursor) {
+        cursor.style.opacity = "1";
+        cursor.style.transform = `translate(${mouseX}px,${mouseY}px)`; 
+      }
+      if (cursorRing) {
+        cursorRing.style.opacity = "1";
+        cursorRing.style.transform = `translate(${mouseX}px,${mouseY}px)`; 
+      }
+    };
     let raf;
     const animate = () => { ringX += (mouseX - ringX) * 0.12; ringY += (mouseY - ringY) * 0.12; cursorRing.style.transform = `translate(${ringX}px,${ringY}px)`; raf = requestAnimationFrame(animate); };
     window.addEventListener("mousemove", onMove); raf = requestAnimationFrame(animate);
-    return () => { window.removeEventListener("mousemove", onMove); cancelAnimationFrame(raf); };
-  }, []);
+
+    const handleHover = () => document.querySelector(".admin-courses-page")?.classList.add("c-hover");
+    const handleUnhover = () => document.querySelector(".admin-courses-page")?.classList.remove("c-hover");
+    const handleClick = () => {
+      const p = document.querySelector(".admin-courses-page");
+      p?.classList.add("c-click"); setTimeout(() => p?.classList.remove("c-click"), 200);
+    };
+    const interactive = document.querySelectorAll("button, a, input, .cm-card, .ut-action");
+    interactive.forEach(el => { el.addEventListener("mouseenter", handleHover); el.addEventListener("mouseleave", handleUnhover); });
+    window.addEventListener("mousedown", handleClick);
+
+    return () => { 
+      window.removeEventListener("mousemove", onMove); cancelAnimationFrame(raf); 
+      interactive.forEach(el => { el.removeEventListener("mouseenter", handleHover); el.removeEventListener("mouseleave", handleUnhover); });
+      window.removeEventListener("mousedown", handleClick);
+    };
+  }, [loading, courses]);
 
   useEffect(() => {
     const fills = document.querySelectorAll("[data-width]");
@@ -221,7 +256,7 @@ export default function AdminCourseManagement() {
                     className={`sb-link ${active === item.id ? "active" : ""}`}
                     onClick={e => { e.preventDefault(); navigate(item.routePath === "" ? "/admindashboard" : `/admindashboard/${item.routePath}`); setSidebar(false); }}>
                     <I n={item.icon} size={15} />{item.label}
-                    {navBadges[item.id] && <span className={`sb-badge ${item.badgeType || ""}`}>{navBadges[item.id]}</span>}
+                    {navBadges[item.id] > 0 && <span className={`sb-badge ${item.badgeType || ""}`}>{navBadges[item.id]}</span>}
                   </a>
                 ))}
               </div>
@@ -255,8 +290,8 @@ export default function AdminCourseManagement() {
             <div className="tb-right">
               <span className="tb-role-tag">Admin</span>
               <span className="tb-date">{now}</span>
-              <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="tb-icon-btn tooltip" data-tip="Refresh"><I n="refresh" size={15} /></button>
-              <button onClick={(e) => alert(e.currentTarget.innerText.trim() + " action triggered!")} className="tb-icon-btn tooltip" data-tip="Notifications"><I n="bell" size={15} /><span className="notif-dot" /></button>
+              <button onClick={handleRefresh} className="tb-icon-btn tooltip" data-tip="Refresh"><I n="refresh" size={15} /></button>
+              <button onClick={() => navigate("/admindashboard/notifications")} className="tb-icon-btn tooltip" data-tip="Notifications"><I n="bell" size={15} /><span className="notif-dot" /></button>
               <button className="tb-icon-btn tooltip" data-tip="Settings" onClick={() => navigate("/admindashboard/settings")}><I n="settings" size={15} /></button>
             </div>
           </header>
@@ -354,7 +389,7 @@ export default function AdminCourseManagement() {
                           ))}
                         </div>
                         <div style={{ display:"flex", gap:"6px" }}>
-                          <button onClick={() => alert("Edit feature coming soon")} className="btn btn-ghost btn-sm" style={{ flex:1, justifyContent:"center" }}><I n="edit" size={11} /> Edit</button>
+                          <button onClick={() => alert("Edit course feature coming soon!")} className="btn btn-ghost btn-sm" style={{ flex:1, justifyContent:"center" }}><I n="edit" size={11} /> Edit</button>
                           <button onClick={() => handleDeleteCourse(c.id, c.name)} className="ut-action tooltip" data-tip="Delete"><I n="trash" size={11} /></button>
                         </div>
                       </div>
