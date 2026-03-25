@@ -55,7 +55,7 @@ html, body {
   font-family: 'Plus Jakarta Sans', sans-serif;
   overflow-x: hidden;
   line-height: 1;
-  cursor: none;
+  line-height: 1;
   min-height: 100vh;
 }
 ::-webkit-scrollbar       { width: 5px; }
@@ -64,22 +64,6 @@ html, body {
 /* ══════════════════════════════════════════════
    CUSTOM CURSOR  (matches dashboard exactly)
 ══════════════════════════════════════════════ */
-.sc-cursor {
-  position: fixed; width: 9px; height: 9px;
-  background: var(--indigo-l); border-radius: 50%;
-  pointer-events: none; transform: translate(-50%, -50%);
-  mix-blend-mode: screen;
-  transition: width .16s, height .16s, background .16s;
-}
-.sc-cursor-ring {
-  position: fixed; width: 30px; height: 30px;
-  border: 1.5px solid rgba(91,78,248,.4); border-radius: 50%;
-  pointer-events: none; transform: translate(-50%, -50%);
-  transition: width .2s, height .2s;
-}
-body.c-hover .sc-cursor       { width: 18px; height: 18px; background: var(--indigo-ll); }
-body.c-hover .sc-cursor-ring  { width: 46px; height: 46px; }
-body.c-click .sc-cursor       { width: 5px; height: 5px; background: #fff; }
 
 /* ══════════════════════════════════════════════
    NOISE OVERLAY
@@ -159,7 +143,7 @@ body.c-click .sc-cursor       { width: 5px; height: 5px; background: #fff; }
   border: 1.5px solid rgba(39,201,176,.28);
   display: flex; align-items: center; justify-content: center;
   font-size: 12px; font-weight: 700; color: var(--teal);
-  cursor: none;
+
 }
 .sb-uname { font-size: 12.5px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .sb-urole { font-size: 10px; color: var(--text3); margin-top: 3px; font-weight: 300; }
@@ -254,7 +238,7 @@ body.c-click .sc-cursor       { width: 5px; height: 5px; background: #fff; }
   width: 34px; height: 34px; border-radius: 8px;
   background: var(--surface2); border: 1px solid var(--border);
   display: flex; align-items: center; justify-content: center;
-  cursor: none; transition: background .2s, border-color .2s;
+ transition: background .2s, border-color .2s;
   position: relative; color: var(--text2);
 }
 .tb-icon-btn:hover { background: var(--surface3); border-color: var(--border2); }
@@ -297,7 +281,7 @@ body.c-click .sc-cursor       { width: 5px; height: 5px; background: #fff; }
   font-family: 'Plus Jakarta Sans', sans-serif;
   font-size: 11px; font-weight: 700;
   padding: 9px 16px; border-radius: 9px;
-  cursor: none; border: none;
+ border: none;
   transition: all .25s cubic-bezier(.16,1,.3,1);
   display: inline-flex; align-items: center; gap: 7px;
   letter-spacing: .02em; position: relative; overflow: hidden;
@@ -520,7 +504,7 @@ body.c-click .sc-cursor       { width: 5px; height: 5px; background: #fff; }
   border-radius: 8px; color: var(--text);
   font-family: 'Plus Jakarta Sans', sans-serif; font-size: 12.5px;
   outline: none; transition: border-color .18s, box-shadow .18s;
-  cursor: none; appearance: none;
+ appearance: none;
 }
 .pp-input:focus {
   border-color: rgba(91,78,248,.5);
@@ -625,7 +609,7 @@ body.c-click .sc-cursor       { width: 5px; height: 5px; background: #fff; }
    MONTH STATS BARS
 ══════════════════════════════════════════════ */
 .pp-month-stats { display: flex; flex-direction: column; gap: 14px; }
-.pp-month-row   { }
+.pp-month-row   { margin-bottom: 2px; }
 .pp-month-hd    { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
 .pp-month-label { font-size: 11.5px; color: var(--text2); }
 .pp-month-val   { font-family: 'Fraunces', serif; font-size: 15px; font-weight: 400; }
@@ -759,7 +743,7 @@ body.c-click .sc-cursor       { width: 5px; height: 5px; background: #fff; }
   display: flex; flex-direction: column; align-items: center; gap: 8px;
   padding: 18px 10px; border-radius: 10px;
   background: var(--surface2); border: 1px solid var(--border);
-  cursor: none; transition: border-color .2s, transform .2s, background .2s;
+ transition: border-color .2s, transform .2s, background .2s;
   font-family: inherit;
 }
 .pp-quick-btn:hover { border-color: rgba(91,78,248,.25); background: rgba(91,78,248,.05); transform: translateY(-2px); }
@@ -869,7 +853,7 @@ body.c-click .sc-cursor       { width: 5px; height: 5px; background: #fff; }
 .pp-toast-sub     { font-size: 11px; color: var(--text3); line-height: 1.45; }
 .pp-toast-x {
   background: none; border: none; color: var(--text3);
-  cursor: none; font-size: 18px; padding: 0 2px; line-height: 1;
+ font-size: 18px; padding: 0 2px; line-height: 1;
   flex-shrink: 0; margin-top: -2px; transition: color .15s;
 }
 .pp-toast-x:hover { color: var(--text); }

@@ -85,11 +85,7 @@ function PlacementMeetingRoom({ meeting, onEnd }) {
   const pendingConnections = useRef(new Set());
   const initDone = useRef(false);
   const timerRef = useRef(null);
-  const curRef = useRef(null);
-  const ringRef = useRef(null);
-  const mx = useRef(0), my = useRef(0);
-  const tx = useRef(0), ty = useRef(0);
-  const rafRef = useRef(null);
+
 
   const [localStream, setLocalStream] = useState(null);
   const [remoteStreams, setRemoteStreams] = useState({});
@@ -107,22 +103,7 @@ function PlacementMeetingRoom({ meeting, onEnd }) {
 
   const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
 
-  // Custom cursor
-  useEffect(() => {
-    const onMove = (e) => {
-      mx.current = e.clientX; my.current = e.clientY;
-      if (curRef.current) { curRef.current.style.left = `${e.clientX}px`; curRef.current.style.top = `${e.clientY}px`; }
-    };
-    window.addEventListener('mousemove', onMove);
-    const tick = () => {
-      tx.current += (mx.current - tx.current) * 0.15;
-      ty.current += (my.current - ty.current) * 0.15;
-      if (ringRef.current) { ringRef.current.style.left = `${tx.current}px`; ringRef.current.style.top = `${ty.current}px`; }
-      rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => { window.removeEventListener('mousemove', onMove); cancelAnimationFrame(rafRef.current); };
-  }, []);
+
 
   useEffect(() => {
     if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -354,8 +335,7 @@ function PlacementMeetingRoom({ meeting, onEnd }) {
 
   return (
     <div className="placement-meeting-container">
-      <div className="sc-cursor" ref={curRef} style={{ zIndex: 99999 }} />
-      <div className="sc-cursor-ring" ref={ringRef} style={{ zIndex: 99999 }} />
+
       <div className="sc-noise" />
 
       {/* Header */}
@@ -528,27 +508,9 @@ export default function PlacementMeeting() {
   const [loadingGroups, setLoadingGroups] = useState(!roomCodeFromUrl);
   const [launching, setLaunching] = useState(false);
 
-  const curRef = useRef(null);
-  const ringRef = useRef(null);
-  const mx = useRef(0), my = useRef(0);
-  const tx = useRef(0), ty = useRef(0);
-  const rafRef = useRef(null);
 
-  useEffect(() => {
-    const onMove = (e) => {
-      mx.current = e.clientX; my.current = e.clientY;
-      if (curRef.current) { curRef.current.style.left = `${e.clientX}px`; curRef.current.style.top = `${e.clientY}px`; }
-    };
-    window.addEventListener('mousemove', onMove);
-    const tick = () => {
-      tx.current += (mx.current - tx.current) * 0.15;
-      ty.current += (my.current - ty.current) * 0.15;
-      if (ringRef.current) { ringRef.current.style.left = `${tx.current}px`; ringRef.current.style.top = `${ty.current}px`; }
-      rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => { window.removeEventListener('mousemove', onMove); cancelAnimationFrame(rafRef.current); };
-  }, []);
+
+
 
   useEffect(() => {
     if (!liveMeeting) {
@@ -595,8 +557,7 @@ export default function PlacementMeeting() {
   // ── SETUP SCREEN ──────────────────────────────────────────────────
   return (
     <div className="placement-meeting-container setup-mode">
-      <div className="sc-cursor" ref={curRef} style={{ zIndex: 99999 }} />
-      <div className="sc-cursor-ring" ref={ringRef} style={{ zIndex: 99999 }} />
+
       <div className="sc-noise" />
 
       <div className="setup-panel">

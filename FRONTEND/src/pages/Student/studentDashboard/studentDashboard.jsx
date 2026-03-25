@@ -230,60 +230,6 @@ function buildNavItems(hasActivePlacementMeeting, mailUnread) {
   ];
 }
 
-// ─── HELPERS ────────────────────────────────────────────────────
-function addRipple(e, el) {
-  const r = document.createElement("span"); r.className = "ripple";
-  const rect = el.getBoundingClientRect(), s = Math.max(rect.width, rect.height);
-  r.style.cssText = `width:${s}px;height:${s}px;left:${e.clientX-rect.left-s/2}px;top:${e.clientY-rect.top-s/2}px`;
-  el.appendChild(r); r.addEventListener("animationend", ()=>r.remove());
-}
-
-function useCursor() {
-  useEffect(()=>{
-    const cur=document.getElementById("sc-cursor"), ring=document.getElementById("sc-cursor-ring");
-    if(!cur||!ring) return;
-    let mx=0,my=0,rx=0,ry=0,rafId;
-    const onMove=e=>{mx=e.clientX;my=e.clientY;};
-    const tick=()=>{
-      cur.style.left=mx+"px";cur.style.top=my+"px";
-      rx+=(mx-rx)*.12;ry+=(my-ry)*.12;
-      ring.style.left=rx+"px";ring.style.top=ry+"px";
-      rafId=requestAnimationFrame(tick);
-    };
-    const onDown=()=>document.body.classList.add("c-click");
-    const onUp=()=>document.body.classList.remove("c-click");
-    document.addEventListener("mousemove",onMove);
-    document.addEventListener("mousedown",onDown);
-    document.addEventListener("mouseup",onUp);
-    rafId=requestAnimationFrame(tick);
-    return()=>{
-      document.removeEventListener("mousemove",onMove);
-      document.removeEventListener("mousedown",onDown);
-      document.removeEventListener("mouseup",onUp);
-      cancelAnimationFrame(rafId);
-    };
-  },[]);
-}
-
-function Hoverable({children,className="",style,...rest}){
-  const enter=()=>document.body.classList.add("c-hover");
-  const leave=()=>document.body.classList.remove("c-hover");
-  return <div className={className} style={style} onMouseEnter={enter} onMouseLeave={leave} {...rest}>{children}</div>;
-}
-
-function Btn({children,className="",onClick,style}){
-  const ref=useRef();
-  const enter=()=>document.body.classList.add("c-hover");
-  const leave=()=>document.body.classList.remove("c-hover");
-  return(
-    <button ref={ref} className={`btn ${className}`} style={style}
-      onMouseEnter={enter} onMouseLeave={leave}
-      onClick={e=>{addRipple(e,ref.current);onClick?.(e);}}>
-      {children}
-    </button>
-  );
-}
-
 function AnimatedProgressBar({pct,color,height=3,delay=500}){
   const [width,setWidth]=useState(0);
   useEffect(()=>{const t=setTimeout(()=>setWidth(pct),delay);return()=>clearTimeout(t);},[pct,delay]);
@@ -408,9 +354,9 @@ function Topbar({activePage,onHamburger,onNavigateProfile,onNavigateResume,notif
           {userAvatar ? <img src={userAvatar} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} /> : <IcoUser/>}
         </div>
         {/* Resume button */}
-        <Btn className="btn-solid" style={{padding:"7px 16px",fontSize:11,gap:5}} onClick={onNavigateResume}>
+        <button className="btn-solid" style={{padding:"7px 16px",fontSize:11,gap:5}} onClick={onNavigateResume}>
           <IcoFileText/> Resume
-        </Btn>
+        </button>
       </div>
     </div>
   );
@@ -579,10 +525,10 @@ function DashboardContent({ stats, courses, schedule, quizzes, skills, activeMee
           <h1 className="greet-title">{greeting}, <em>{firstName}</em></h1>
           <p className="greet-sub">You have {stats.pending_assignments} pending assignments and {stats.upcoming_quizzes} quizzes scheduled this week.</p>
           <div className="greet-actions">
-            <Hoverable className="btn btn-solid" onClick={onNavigateToVideoLectures} style={{display:"flex",alignItems:"center",gap:8}}><IcoPlay /> Continue Learning</Hoverable>
-            <Hoverable className="btn btn-ghost btn-assignments" onClick={onNavigateToAssignments} style={{display:"flex",alignItems:"center",gap:8}}><IcoFile width={12} height={12} /> Assignments</Hoverable>
-            <Hoverable className="btn btn-ghost btn-quizzes" onClick={onNavigateToQuizzes} style={{display:"flex",alignItems:"center",gap:8}}><IcoClock width={12} height={12} /> Quizzes</Hoverable>
-            <Hoverable className="btn btn-ghost btn-analytics" onClick={onNavigateToAnalytics} style={{display:"flex",alignItems:"center",gap:8}}><IcoBar width={12} height={12} /> Analytics</Hoverable>
+            <div className="btn btn-solid" onClick={onNavigateToVideoLectures} style={{display:"flex",alignItems:"center",gap:8}}><IcoPlay /> Continue Learning</div>
+            <div className="btn btn-ghost btn-assignments" onClick={onNavigateToAssignments} style={{display:"flex",alignItems:"center",gap:8}}><IcoFile width={12} height={12} /> Assignments</div>
+            <div className="btn btn-ghost btn-quizzes" onClick={onNavigateToQuizzes} style={{display:"flex",alignItems:"center",gap:8}}><IcoClock width={12} height={12} /> Quizzes</div>
+            <div className="btn btn-ghost btn-analytics" onClick={onNavigateToAnalytics} style={{display:"flex",alignItems:"center",gap:8}}><IcoBar width={12} height={12} /> Analytics</div>
           </div>
         </div>
       </div>
@@ -594,12 +540,12 @@ function DashboardContent({ stats, courses, schedule, quizzes, skills, activeMee
           { cls: "sc-amber", val: stats.pending_assignments, lbl: "Assignments", delta: "Need attention", Icon: IcoFile, onClick: onNavigateToAssignments },
           { cls: "sc-violet", val: stats.upcoming_quizzes, lbl: "Quizzes", delta: "Scheduled", Icon: IcoClock, onClick: onNavigateToQuizzes },
         ].map(({ cls, val, lbl, delta, Icon, onClick }, i) => (
-          <Hoverable key={lbl} className={`stat-card ${cls}`} onClick={onClick} style={{ animationDelay: `${(i + 1) * .07}s` }}>
+          <div key={lbl} className={`stat-card ${cls}`} onClick={onClick} style={{ animationDelay: `${(i + 1) * .07}s` }}>
             <div className="stat-ic"><Icon width={18} height={18} /></div>
             <div className="stat-val">{val}</div>
             <div className="stat-lbl">{lbl}</div>
             <span className="stat-delta">{delta}</span>
-          </Hoverable>
+          </div>
         ))}
       </div>
 
@@ -611,7 +557,7 @@ function DashboardContent({ stats, courses, schedule, quizzes, skills, activeMee
         <div className="panel-body">
           <div className="course-list">
             {courses.map(c => (
-              <Hoverable key={c.id} className="course-item">
+              <div key={c.id} className="course-item">
                 <div className="ci-badge" style={c.badgeStyle}>{c.icon}</div>
                 <div className="ci-info">
                   <div className="ci-name">{c.name}</div>
@@ -650,7 +596,7 @@ function DashboardContent({ stats, courses, schedule, quizzes, skills, activeMee
                   <div className="ci-grade" style={c.gradeStyle}>{c.grade}</div>
                   <div className="ci-due">{c.due}</div>
                 </div>
-              </Hoverable>
+              </div>
             ))}
           </div>
         </div>
@@ -665,14 +611,14 @@ function DashboardContent({ stats, courses, schedule, quizzes, skills, activeMee
           <div className="panel-body">
             <div className="sched-list">
               {schedule.map((s, idx) => (
-                <Hoverable key={s.id || idx} className="sched-item">
+                <div key={s.id || idx} className="sched-item">
                   <div className="sched-time"><div className="st-from" style={{ color: s.color }}>{s.from}</div><div className="st-to">{s.to}</div></div>
                   <div className="sched-div" style={{ background: s.color }} />
                   <div className="sched-info">
                     <div className="si-name">{s.name}</div><div className="si-room">{s.room}</div>
                     <span className="si-tag" style={s.tagStyle}>{s.tag}</span>
                   </div>
-                </Hoverable>
+                </div>
               ))}
             </div>
           </div>
@@ -686,11 +632,11 @@ function DashboardContent({ stats, courses, schedule, quizzes, skills, activeMee
           <div className="panel-body">
             <div className="quiz-list">
               {quizzes.map(q => (
-                <Hoverable key={q.name} className="quiz-item">
+                <div key={q.name} className="quiz-item">
                   <div className="qi-top"><span className="qi-name">{q.name}</span><span className="qi-score" style={q.scoreStyle}>{q.score}</span></div>
                   <div className="qi-bar"><div className="qi-fill" style={{ width: `${q.pct}%`, background: q.bar }} /></div>
                   <div className="qi-meta"><span>{q.answered}</span><span>{q.rank}</span></div>
-                </Hoverable>
+                </div>
               ))}
             </div>
           </div>
@@ -704,11 +650,11 @@ function DashboardContent({ stats, courses, schedule, quizzes, skills, activeMee
           <div className="panel-body">
             <div className="skill-list">
               {skills.map(s => (
-                <Hoverable key={s.label} className="skill-item">
+                <div key={s.label} className="skill-item">
                   <span className="sk-label">{s.label}</span>
                   <AnimatedProgressBar pct={s.pct} color={s.color} height={5} delay={600} />
                   <span className="sk-pct" style={{ color: s.pctColor }}>{s.pct}%</span>
-                </Hoverable>
+                </div>
               ))}
             </div>
             <div className="skill-summary">
@@ -771,7 +717,7 @@ export default function StudentDashboard() {
     }
   }, [location.pathname]);
 
-  useCursor();
+
 
   useEffect(() => {
     const fetchData = async (isInitial = false) => {
@@ -857,8 +803,7 @@ export default function StudentDashboard() {
 
   return (
     <>
-      <div className="sc-cursor" id="sc-cursor"/>
-      <div className="sc-cursor-ring" id="sc-cursor-ring"/>
+
       <div className="sc-noise"/>
 
       <LucynaFab onClick={()=>setAiOpen(o=>!o)}/>

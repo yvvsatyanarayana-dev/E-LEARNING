@@ -9,10 +9,7 @@
    The overlay needs cursor:none so the sc-cursor
    element (which is position:fixed) stays visible
 ══════════════════════════════════════════ */
-.ps-overlay,
-.ps-overlay * {
-  cursor: none !important;
-}
+
 
 /* ══════════════════════════════════════════
    FIX 2: Topbar right side must not clip children
@@ -38,7 +35,7 @@
   align-items: center;
   justify-content: center;
   color: var(--text2);
-  cursor: none;
+
   flex-shrink: 0;
   transition: border-color .15s, color .15s, background .15s;
 }
@@ -136,7 +133,7 @@
   border:1px solid var(--border);
   display:flex; align-items:center; justify-content:center;
   color:var(--text3);
-  cursor:none;
+
   transition:border-color .15s,color .15s;
   flex-shrink:0;
 }

@@ -9,7 +9,7 @@
 ══════════════════════════════════════════ */
 .pd-overlay,
 .pd-overlay * {
-  cursor: none !important;
+
 }
 
 /* ══════════════════════════════════════════
@@ -34,7 +34,7 @@
   align-items: center;
   justify-content: center;
   color: var(--text2);
-  cursor: none;
+
   flex-shrink: 0;
   position: relative;
   transition: border-color .15s, color .15s, background .15s;

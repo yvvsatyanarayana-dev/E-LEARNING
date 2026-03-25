@@ -8,10 +8,7 @@
 /* ══════════════════════════════════════════
    FIX: Custom cursor must persist inside modals
 ══════════════════════════════════════════ */
-.pi-overlay,
-.pi-overlay * {
-  cursor: none !important;
-}
+
 
 /* ══════════════════════════════════════════
    FIX: Topbar right side
@@ -27,7 +24,7 @@
   width: 32px; height: 32px; border-radius: 8px;
   background: var(--surface2); border: 1px solid var(--border);
   display: flex !important; align-items: center; justify-content: center;
-  color: var(--text2); cursor: none; flex-shrink: 0;
+  color: var(--text2); flex-shrink: 0;
   transition: border-color .15s, color .15s, background .15s;
 }
 .tb-icon-btn:hover { border-color: rgba(91,78,248,.4); color: var(--indigo-ll); background: rgba(91,78,248,.06); }
@@ -85,7 +82,7 @@
   width:28px; height:28px; border-radius:7px;
   background:var(--surface2); border:1px solid var(--border);
   display:flex; align-items:center; justify-content:center;
-  color:var(--text3); cursor:none;
+  color:var(--text3);
   transition:border-color .15s,color .15s; flex-shrink:0;
 }
 .pi-close:hover { border-color:var(--rose); color:var(--rose); }
@@ -157,7 +154,7 @@
   font-family:'Plus Jakarta Sans',sans-serif;
   font-size:11px; font-weight:600; padding:6px 14px; border-radius:8px;
   background:none; border:1px solid transparent;
-  color:var(--text3); cursor:none; transition:all .15s;
+  color:var(--text3); transition:all .15s;
 }
 .pi-tab:hover:not(.active) { background:var(--surface2); color:var(--text); }
 .pi-tab.active { background:rgba(91,78,248,.1); border-color:rgba(91,78,248,.3); color:var(--indigo-ll); }
@@ -179,12 +176,12 @@
   background:var(--surface2); border:1px solid var(--border2);
   border-radius:7px; padding:6px 10px; font-size:11px; color:var(--text);
   font-family:'Plus Jakarta Sans',sans-serif;
-  outline:none; cursor:none; flex-shrink:0; transition:border-color .15s;
+  outline:none; flex-shrink:0; transition:border-color .15s;
 }
 .pi-select:focus { border-color:rgba(91,78,248,.5); }
 
 /* ── TOGGLE ── */
-.pi-toggle { position:relative; display:inline-flex; align-items:center; cursor:none; flex-shrink:0; }
+.pi-toggle { position:relative; display:inline-flex; align-items:center; flex-shrink:0; }
 .pi-toggle input { display:none; }
 .pi-toggle-track {
   width:36px; height:20px; border-radius:99px;
@@ -217,7 +214,7 @@
 ══════════════════════════════════════════ */
 .pi-card-del {
   background:none; border:none; padding:3px 5px; border-radius:5px;
-  color:var(--text3); cursor:none; display:flex; align-items:center;
+  color:var(--text3); display:flex; align-items:center;
   transition:color .15s,background .15s; line-height:1;
 }
 .pi-card-del:hover { color:var(--rose); background:rgba(240,83,106,.08); }
@@ -240,7 +237,7 @@
 }
 .af-input:focus        { border-color:rgba(91,78,248,.5); }
 .af-input::placeholder { color:var(--text3); }
-.af-select             { appearance:none; cursor:none; }
+.af-select             { appearance:none; }
 .af-errors       { display:flex; flex-direction:column; gap:3px; margin-top:-8px; margin-bottom:10px; }
 .af-error        { display:flex; align-items:center; gap:5px; font-size:10px; color:var(--rose); }
 .af-error-inline { font-size:10px; color:var(--rose); margin-top:2px; }
@@ -256,7 +253,7 @@
 .af-radio-btn {
   font-size:11px; font-weight:600; padding:6px 14px; border-radius:8px;
   background:var(--surface2); border:1px solid var(--border2);
-  color:var(--text3); cursor:none; transition:all .15s;
+  color:var(--text3); transition:all .15s;
   font-family:'Plus Jakarta Sans',sans-serif;
 }
 .af-radio-btn.active { background:rgba(91,78,248,.1); border-color:rgba(91,78,248,.35); color:var(--indigo-ll); }

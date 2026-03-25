@@ -373,37 +373,10 @@ export default function PlacementProfile() {
   const [searchVal,    setSearchVal]    = useState("");
   const [mailUnread,    setMailUnread]   = useState(0);
 
-  /* ── Custom cursor ── */
-  const curRef  = useRef(null);
-  const ringRef = useRef(null);
-  const mx = useRef(0), my = useRef(0), rx = useRef(0), ry = useRef(0);
 
 
-  useEffect(() => {
-    const onMove = e => {
-      mx.current = e.clientX; my.current = e.clientY;
-      if (curRef.current) { curRef.current.style.left = `${e.clientX}px`; curRef.current.style.top = `${e.clientY}px`; }
-    };
-    const onDown = () => document.body.classList.add("c-click");
-    const onUp   = () => document.body.classList.remove("c-click");
-    document.addEventListener("mousemove", onMove);
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("mouseup",   onUp);
-    let raf;
-    const loop = () => {
-      rx.current += (mx.current - rx.current) * 0.13;
-      ry.current += (my.current - ry.current) * 0.13;
-      if (ringRef.current) { ringRef.current.style.left = `${rx.current}px`; ringRef.current.style.top = `${ry.current}px`; }
-      raf = requestAnimationFrame(loop);
-    };
-    loop();
-    return () => {
-      document.removeEventListener("mousemove", onMove);
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("mouseup",   onUp);
-      cancelAnimationFrame(raf);
-    };
-  }, []);
+
+
 
   useEffect(() => {
     document.body.style.overflow = showPwdModal ? "hidden" : "";
@@ -594,8 +567,7 @@ export default function PlacementProfile() {
   ══════════════════════════════════════════════ */
   return (
     <>
-      <div className="sc-cursor"      ref={curRef}  style={{ zIndex:99999 }} />
-      <div className="sc-cursor-ring" ref={ringRef} style={{ zIndex:99999 }} />
+
       <div className="sc-noise" />
 
       {showPwdModal && (
@@ -682,7 +654,7 @@ export default function PlacementProfile() {
               <span className="tb-date">{new Date().toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"})}</span>
               <div className="tb-search">
                 <span style={{ color:"var(--text3)", flexShrink:0 }}>{I.search}</span>
-                <input type="search" placeholder="Search…" value={searchVal} onChange={e => setSearchVal(e.target.value)} style={{ cursor:"none" }} />
+                <input type="search" placeholder="Search…" value={searchVal} onChange={e => setSearchVal(e.target.value)} />
               </div>
               <div className="pp-tb-avatar">
                 {profile.avatar ? (

@@ -3,8 +3,6 @@
    come from adminSettings.css which is imported before this file. */
 
 /* ── PROFILE PAGE ROOT ── */
-.admin-profile-page.app { cursor: none !important; }
-.admin-profile-page.app * { cursor: none !important; }
 
 /* ── PROFILE HERO CARD ── */
 .profile-hero {

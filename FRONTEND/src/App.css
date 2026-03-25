@@ -2433,10 +2433,7 @@ html {
     display: none;
   }
 
-  .sc-root,
-  .sc-root * {
-    cursor: auto !important;
-  }
+
 
   /* Re-enable pointer on interactive elements */
   button,

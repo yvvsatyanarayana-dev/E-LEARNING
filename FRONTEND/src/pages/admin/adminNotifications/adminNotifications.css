@@ -9,16 +9,9 @@
   --text:#ddddf0; --text2:#9898b8; --text3:#60608a; --muted:#44445e; --sw:242px;
 }
 
-.sc-cursor { position:fixed; width:9px; height:9px; background:var(--indigo-l); border-radius:50%; pointer-events:none; z-index:9999; transform:translate(-50%,-50%); mix-blend-mode:screen; opacity:0; transition:width .16s,height .16s,background .16s,opacity .3s; }
-.sc-cursor-ring { position:fixed; width:30px; height:30px; border:1.5px solid rgba(91,78,248,.4); border-radius:50%; pointer-events:none; z-index:9998; transform:translate(-50%,-50%); opacity:0; transition:width .2s,height .2s,opacity .3s; }
-.admin-notifications-page.c-hover .sc-cursor      { width:18px; height:18px; background:var(--indigo-ll); }
-.admin-notifications-page.c-hover .sc-cursor-ring { width:46px; height:46px; }
-.admin-notifications-page.c-click .sc-cursor      { width:5px; height:5px; background:#fff; }
-
 .sc-noise { position:fixed; inset:0; pointer-events:none; z-index:5000; opacity:.024; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
 
-.admin-notifications-page.app { display:flex; min-height:100vh; cursor: none !important; }
-.app * { cursor: none !important; }
+.admin-notifications-page.app { display:flex; min-height:100vh; }
 .admin-notifications-page .sb-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); backdrop-filter:blur(4px); z-index:99; opacity:0; pointer-events:none; transition:opacity .3s ease; }
 .admin-notifications-page .sb-overlay.visible { display:block; opacity:1; pointer-events:all; }
 
@@ -53,7 +46,7 @@
 .sb-health-bar { height:2px; background:var(--surface3); border-radius:2px; overflow:hidden; margin-bottom:7px; }
 .sb-health-fill { height:100%; background:linear-gradient(90deg,var(--teal),var(--indigo)); transition:width 1s ease; }
 
-.sb-logout { display:flex; align-items:center; gap:9px; width:100%; padding:9px 12px; background:transparent; border:1px solid rgba(242,68,92,.2); border-radius:8px; color:var(--rose); font-size:12px; font-weight:500; transition:all .18s; cursor: none; }
+.sb-logout { display:flex; align-items:center; gap:9px; width:100%; padding:9px 12px; background:transparent; border:1px solid rgba(242,68,92,.2); border-radius:8px; color:var(--rose); font-size:12px; font-weight:500; transition:all .18s; }
 .sb-logout:hover { background:rgba(242,68,92,.08); border-color:rgba(242,68,92,.45); transform:translateX(2px); }
 
 .admin-notifications-page .main { margin-left:var(--sw); flex:1; display:flex; flex-direction:column; min-width:0; }

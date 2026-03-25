@@ -111,7 +111,7 @@
   background: rgba(91,78,248,.07);
   border: 1px solid rgba(91,78,248,.18);
   color: var(--indigo-ll);
-  cursor: none;
+
   transition: background .2s, border-color .2s, transform .2s;
   line-height: 1;
 }
@@ -163,7 +163,7 @@
   border: none;
   background: linear-gradient(135deg, var(--indigo), var(--indigo-l));
   color: #fff;
-  cursor: none;
+
   display: flex;
   align-items: center;
   gap: 7px;

@@ -827,36 +827,6 @@ export default function PlacementDrives() {
   const [settings,     setSettings]     = useState(defaultSettings);
 
   // ── Custom cursor ───────────────────────────────────
-  const curRef  = useRef(null);
-  const ringRef = useRef(null);
-  const mx=useRef(0), my=useRef(0), rx=useRef(0), ry=useRef(0);
-
-  useEffect(() => {
-    const onMove = e => {
-      mx.current = e.clientX; my.current = e.clientY;
-      if (curRef.current) { curRef.current.style.left = e.clientX+"px"; curRef.current.style.top = e.clientY+"px"; }
-    };
-    const onDown = () => document.body.classList.add("c-click");
-    const onUp   = () => document.body.classList.remove("c-click");
-    document.addEventListener("mousemove", onMove);
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("mouseup",   onUp);
-    let raf;
-    const loop = () => {
-      rx.current += (mx.current - rx.current) * 0.14;
-      ry.current += (my.current - ry.current) * 0.14;
-      if (ringRef.current) { ringRef.current.style.left = rx.current+"px"; ringRef.current.style.top = ry.current+"px"; }
-      raf = requestAnimationFrame(loop);
-    };
-    loop();
-    return () => {
-      document.removeEventListener("mousemove", onMove);
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("mouseup",   onUp);
-      cancelAnimationFrame(raf);
-    };
-  }, []);
-
   // Body scroll lock
   const anyModal = showAdd || !!editTarget || !!notifyTarget || !!deleteTarget || showSettings;
   useEffect(() => {
@@ -1010,8 +980,6 @@ export default function PlacementDrives() {
   ════════════════════════════════════════ */
   return (
     <>
-      <div className="sc-cursor"      ref={curRef}  style={{ zIndex:99999 }} />
-      <div className="sc-cursor-ring" ref={ringRef} style={{ zIndex:99999 }} />
       <div className="sc-noise" />
 
       {/* Modals */}
@@ -1110,7 +1078,7 @@ export default function PlacementDrives() {
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color:"var(--text3)", flexShrink:0 }}>
                 <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
               </svg>
-              <input type="text" placeholder="Search drives…" value={search} onChange={e => setSearch(e.target.value)} style={{ cursor:"none" }} />
+              <input type="text" placeholder="Search drives…" value={search} onChange={e => setSearch(e.target.value)} />
             </div>
             <div className="tb-right">
               <span className="tb-date">Placement · AY {settings.academicYear}</span>

@@ -86,8 +86,6 @@ export default function AdminProfile() {
   const [saveLoading, setSaveLoading] = useState(false);
 
   const pageRef       = useRef(null);
-  const cursorRef     = useRef(null);
-  const cursorRingRef = useRef(null);
   const active = getActiveId(location.pathname);
   const now    = new Date().toLocaleDateString();
 
@@ -125,31 +123,6 @@ export default function AdminProfile() {
     return () => clearInterval(interval);
   }, []);
 
-  // Cursor animation
-  useEffect(() => {
-    const cursor = cursorRef.current; const cursorRing = cursorRingRef.current;
-    if (!cursor || !cursorRing) return;
-    let mouseX = 0, mouseY = 0, ringX = 0, ringY = 0;
-    const onMove = (e) => {
-      mouseX = e.clientX; mouseY = e.clientY;
-      if (cursor) { cursor.style.opacity = "1"; cursor.style.transform = `translate(${mouseX}px,${mouseY}px)`; }
-      if (cursorRing) { cursorRing.style.opacity = "1"; cursorRing.style.transform = `translate(${mouseX}px,${mouseY}px)`; }
-    };
-    let raf;
-    const animate = () => { ringX += (mouseX - ringX) * 0.12; ringY += (mouseY - ringY) * 0.12; cursorRing.style.transform = `translate(${ringX}px,${ringY}px)`; raf = requestAnimationFrame(animate); };
-    window.addEventListener("mousemove", onMove); raf = requestAnimationFrame(animate);
-    const handleHover = () => document.querySelector(".admin-profile-page")?.classList.add("c-hover");
-    const handleUnhover = () => document.querySelector(".admin-profile-page")?.classList.remove("c-hover");
-    const handleClick = () => { const p = document.querySelector(".admin-profile-page"); p?.classList.add("c-click"); setTimeout(() => p?.classList.remove("c-click"), 200); };
-    const interactive = document.querySelectorAll("button, a, input, .stat-card");
-    interactive.forEach(el => { el.addEventListener("mouseenter", handleHover); el.addEventListener("mouseleave", handleUnhover); });
-    window.addEventListener("mousedown", handleClick);
-    return () => {
-      window.removeEventListener("mousemove", onMove); cancelAnimationFrame(raf);
-      interactive.forEach(el => { el.removeEventListener("mouseenter", handleHover); el.removeEventListener("mouseleave", handleUnhover); });
-      window.removeEventListener("mousedown", handleClick);
-    };
-  }, [loading]);
 
   const handleSaveProfile = async () => {
     try {
@@ -185,8 +158,6 @@ export default function AdminProfile() {
 
   return (
     <>
-      <div className="sc-cursor" ref={cursorRef} />
-      <div className="sc-cursor-ring" ref={cursorRingRef} />
       <div className="sc-noise" />
       <div className="admin-profile-page app" ref={pageRef}>
         <div className={`sb-overlay ${sidebarOpen ? "visible" : ""}`} onClick={() => setSidebar(false)} />

@@ -23,7 +23,7 @@
   border: none;
   background: transparent;
   color: var(--text3);
-  cursor: none;
+
   transition: all .2s ease;
   text-transform: capitalize;
   letter-spacing: .02em;

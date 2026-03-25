@@ -19,29 +19,9 @@ export default function PlacementMail() {
   const [dashStats, setDashStats] = useState(null);
   const [mailUnread, setMailUnread] = useState(0);
 
-  // Cursor state
-  const curRef = useRef(null);
-  const ringRef = useRef(null);
-  const mx = useRef(0), my = useRef(0), rx = useRef(0), ry = useRef(0);
 
-  useEffect(() => {
-    const onMove = e => {
-      mx.current = e.clientX; my.current = e.clientY;
-      if (curRef.current) { curRef.current.style.left = e.clientX + "px"; curRef.current.style.top = e.clientY + "px"; }
-    };
-    document.addEventListener("mousemove", onMove);
-    const loop = () => {
-      rx.current += (mx.current - rx.current) * 0.14;
-      ry.current += (my.current - ry.current) * 0.14;
-      if (ringRef.current) { ringRef.current.style.left = rx.current + "px"; ringRef.current.style.top = ry.current + "px"; }
-      requestAnimationFrame(loop);
-    };
-    const raf = requestAnimationFrame(loop);
-    return () => {
-      document.removeEventListener("mousemove", onMove);
-      cancelAnimationFrame(raf);
-    };
-  }, []);
+
+
 
   useEffect(() => {
     const fetchBasic = async () => {
@@ -76,8 +56,7 @@ export default function PlacementMail() {
 
   return (
     <>
-      <div className="sc-cursor" ref={curRef} />
-      <div className="sc-cursor-ring" ref={ringRef} />
+
       <div className="sc-noise" />
 
       <div className="app">

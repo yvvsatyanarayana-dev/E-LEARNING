@@ -116,47 +116,13 @@ function MeetingRoom({ meeting, onEnd }) {
   const [newMessage, setNewMessage] = useState('');
   const chatEndRef = useRef(null);
 
-  // Custom Cursor Refs
-  const curRef = useRef(null);
-  const ringRef = useRef(null);
-  const mx = useRef(0), my = useRef(0);
-  const tx = useRef(0), ty = useRef(0);
-  const rafRef = useRef(null);
+
 
   const rtcConfig = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
 
   useEffect(() => {
     if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
-
-  // Custom Cursor Effect
-  useEffect(() => {
-    const onMove = (e) => {
-      mx.current = e.clientX;
-      my.current = e.clientY;
-      if (curRef.current) {
-        curRef.current.style.left = `${e.clientX}px`;
-        curRef.current.style.top = `${e.clientY}px`;
-      }
-    };
-    window.addEventListener("mousemove", onMove);
-
-    const tick = () => {
-      tx.current += (mx.current - tx.current) * 0.15;
-      ty.current += (my.current - ty.current) * 0.15;
-      if (ringRef.current) {
-        ringRef.current.style.left = `${tx.current}px`;
-        ringRef.current.style.top = `${ty.current}px`;
-      }
-      rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      cancelAnimationFrame(rafRef.current);
-    };
-  }, []);
 
   const stopLocalMedia = () => {
     if (localStreamRef.current) {
@@ -491,8 +457,6 @@ function MeetingRoom({ meeting, onEnd }) {
 
   return (
     <div className="placement-meeting-container">
-      <div className="sc-cursor" ref={curRef} style={{ zIndex: 99999 }} />
-      <div className="sc-cursor-ring" ref={ringRef} style={{ zIndex: 99999 }} />
       <div className="sc-noise" />
 
       {/* Header */}

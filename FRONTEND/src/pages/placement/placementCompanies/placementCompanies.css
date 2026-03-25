@@ -9,9 +9,7 @@
    FIX: Custom cursor must persist inside modals
 ══════════════════════════════════════════ */
 .pc-overlay,
-.pc-overlay * {
-  cursor: none !important;
-}
+
 
 /* ══════════════════════════════════════════
    FIX: Topbar right side
@@ -376,7 +374,7 @@
   background:rgba(91,78,248,.08);
   border:1px solid rgba(91,78,248,.2);
   color:var(--indigo-ll);
-  cursor:none; transition:all .15s;
+  transition:all .15s;
 }
 .cc-view-btn:hover { background:rgba(91,78,248,.15); border-color:rgba(91,78,248,.4); }
 

@@ -93,9 +93,6 @@ export default function Placement() {
   const [navBadges, setNavBadges] = useState({});
   const [configStats, setConfigStats] = useState({ uptime: "99.9%", cpu: "0%", memory: "0%", backup_size: "0GB" });
   const [loading, setLoading] = useState(true);
-  const cursorRef     = useRef(null);
-  const cursorRingRef = useRef(null);
-  const pageRef       = useRef(null);
   const active = getActiveId(location.pathname);
   const now    = new Date().toLocaleDateString();
 
@@ -137,42 +134,6 @@ export default function Placement() {
     return () => clearInterval(interval);
   }, []);
 
-  // Cursor animation effect
-  useEffect(() => {
-    const cursor = cursorRef.current; const cursorRing = cursorRingRef.current;
-    if (!cursor || !cursorRing) return;
-    let mouseX = 0, mouseY = 0, ringX = 0, ringY = 0;
-    const onMove = (e) => { 
-      mouseX = e.clientX; mouseY = e.clientY; 
-      if (cursor) {
-        cursor.style.opacity = "1";
-        cursor.style.transform = `translate(${mouseX}px,${mouseY}px)`; 
-      }
-      if (cursorRing) {
-        cursorRing.style.opacity = "1";
-        cursorRing.style.transform = `translate(${mouseX}px,${mouseY}px)`; 
-      }
-    };
-    let raf;
-    const animate = () => { ringX += (mouseX - ringX) * 0.12; ringY += (mouseY - ringY) * 0.12; cursorRing.style.transform = `translate(${ringX}px,${ringY}px)`; raf = requestAnimationFrame(animate); };
-    window.addEventListener("mousemove", onMove); raf = requestAnimationFrame(animate);
-
-    const handleHover = () => document.querySelector(".admin-placements-page")?.classList.add("c-hover");
-    const handleUnhover = () => document.querySelector(".admin-placements-page")?.classList.remove("c-hover");
-    const handleClick = () => {
-      const p = document.querySelector(".admin-placements-page");
-      p?.classList.add("c-click"); setTimeout(() => p?.classList.remove("c-click"), 200);
-    };
-    const interactive = document.querySelectorAll("button, a, input, .stat-card, .drive-item, .ut-action");
-    interactive.forEach(el => { el.addEventListener("mouseenter", handleHover); el.addEventListener("mouseleave", handleUnhover); });
-    window.addEventListener("mousedown", handleClick);
-
-    return () => { 
-      window.removeEventListener("mousemove", onMove); cancelAnimationFrame(raf); 
-      interactive.forEach(el => { el.removeEventListener("mouseenter", handleHover); el.removeEventListener("mouseleave", handleUnhover); });
-      window.removeEventListener("mousedown", handleClick);
-    };
-  }, [loading, drives]);
 
   const handleRefresh = () => {
     fetchData();
@@ -220,16 +181,6 @@ export default function Placement() {
     return matchSearch && matchStatus;
   });
 
-  useEffect(() => {
-    const cursor = cursorRef.current; const cursorRing = cursorRingRef.current;
-    if (!cursor || !cursorRing) return;
-    let mouseX = 0, mouseY = 0, ringX = 0, ringY = 0;
-    const onMove = (e) => { mouseX = e.clientX; mouseY = e.clientY; cursor.style.transform = `translate(${mouseX}px,${mouseY}px)`; };
-    let raf;
-    const animate = () => { ringX += (mouseX - ringX) * 0.12; ringY += (mouseY - ringY) * 0.12; cursorRing.style.transform = `translate(${ringX}px,${ringY}px)`; raf = requestAnimationFrame(animate); };
-    window.addEventListener("mousemove", onMove); raf = requestAnimationFrame(animate);
-    return () => { window.removeEventListener("mousemove", onMove); cancelAnimationFrame(raf); };
-  }, []);
 
   useEffect(() => {
     const fills = document.querySelectorAll("[data-width]");
@@ -239,8 +190,6 @@ export default function Placement() {
 
   return (
     <>
-      <div className="sc-cursor"      ref={cursorRef} />
-      <div className="sc-cursor-ring" ref={cursorRingRef} />
       <div className="sc-noise" />
       <div className="admin-placements-page app" ref={pageRef}>
         <div className={`sb-overlay ${sidebarOpen ? "visible" : ""}`} onClick={() => setSidebar(false)} />

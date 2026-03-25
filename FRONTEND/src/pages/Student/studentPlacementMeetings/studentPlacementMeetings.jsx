@@ -86,43 +86,20 @@ function PlacementMeetingRoom({ meeting, onLeave }) {
   const lastProcessedOfferSdp = useRef(null);
   const initDone = useRef(false);
   const timerRef = useRef(null);
-  const curRef = useRef(null);
-  const ringRef = useRef(null);
-  const mx = useRef(0), my = useRef(0);
-  const tx = useRef(0), ty = useRef(0);
-  const rafRef = useRef(null);
-
-  const [localStream, setLocalStream] = useState(null);
-  const [remoteStream, setRemoteStream] = useState(null);
-  const [officerName, setOfficerName] = useState(meeting.officer_name || 'Placement Officer');
-  const [micOn, setMicOn] = useState(true);
-  const [camOn, setCamOn] = useState(true);
-  const [elapsed, setElapsed] = useState(0);
-  const [activeTab, setActiveTab] = useState('participants');
-  const [sockStatus, setSockStatus] = useState('Connecting...');
-  const [webrtcStatus, setWebrtcStatus] = useState({ conn: 'new', ice: 'new' });
-  const [messages, setMessages] = useState([]);
-  const [newMessage, setNewMessage] = useState('');
-  const chatEndRef = useRef(null);
+   const [localStream, setLocalStream] = useState(null);
+   const [remoteStream, setRemoteStream] = useState(null);
+   const [officerName, setOfficerName] = useState(meeting.officer_name || 'Placement Officer');
+   const [micOn, setMicOn] = useState(true);
+   const [camOn, setCamOn] = useState(true);
+   const [elapsed, setElapsed] = useState(0);
+   const [activeTab, setActiveTab] = useState('participants');
+   const [sockStatus, setSockStatus] = useState('Connecting...');
+   const [webrtcStatus, setWebrtcStatus] = useState({ conn: 'new', ice: 'new' });
+   const [messages, setMessages] = useState([]);
+   const [newMessage, setNewMessage] = useState('');
+   const chatEndRef = useRef(null);
 
   const rtcConfig = { iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] };
-
-  // Custom cursor
-  useEffect(() => {
-    const onMove = (e) => {
-      mx.current = e.clientX; my.current = e.clientY;
-      if (curRef.current) { curRef.current.style.left = `${e.clientX}px`; curRef.current.style.top = `${e.clientY}px`; }
-    };
-    window.addEventListener('mousemove', onMove);
-    const tick = () => {
-      tx.current += (mx.current - tx.current) * 0.15;
-      ty.current += (my.current - ty.current) * 0.15;
-      if (ringRef.current) { ringRef.current.style.left = `${tx.current}px`; ringRef.current.style.top = `${ty.current}px`; }
-      rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-    return () => { window.removeEventListener('mousemove', onMove); cancelAnimationFrame(rafRef.current); };
-  }, []);
 
   useEffect(() => {
     if (chatEndRef.current) chatEndRef.current.scrollIntoView({ behavior: 'smooth' });
@@ -341,8 +318,6 @@ function PlacementMeetingRoom({ meeting, onLeave }) {
 
   return (
     <div className="placement-meeting-container">
-      <div className="sc-cursor" ref={curRef} style={{ zIndex: 99999 }} />
-      <div className="sc-cursor-ring" ref={ringRef} style={{ zIndex: 99999 }} />
       <div className="sc-noise" />
 
       {/* Header */}

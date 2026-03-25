@@ -141,8 +141,6 @@ export default function AdminUserManagement() {
   };
 
   const pageRef       = useRef(null);
-  const cursorRef     = useRef(null);
-  const cursorRingRef = useRef(null);
   const active = getActiveId(location.pathname);
   const now    = new Date().toLocaleDateString();
 
@@ -187,41 +185,6 @@ export default function AdminUserManagement() {
     }
   };
 
-  useEffect(() => {
-    const cursor = cursorRef.current; const cursorRing = cursorRingRef.current;
-    if (!cursor || !cursorRing) return;
-    let mouseX = 0, mouseY = 0, ringX = 0, ringY = 0;
-    const onMove = (e) => { 
-      mouseX = e.clientX; mouseY = e.clientY; 
-      if (cursor) {
-        cursor.style.opacity = "1";
-        cursor.style.transform = `translate(${mouseX}px,${mouseY}px)`; 
-      }
-      if (cursorRing) {
-        cursorRing.style.opacity = "1";
-        cursorRing.style.transform = `translate(${mouseX}px,${mouseY}px)`; 
-      }
-    };
-    let raf;
-    const animate = () => { ringX += (mouseX - ringX) * 0.12; ringY += (mouseY - ringY) * 0.12; if (cursorRing) cursorRing.style.transform = `translate(${ringX}px,${ringY}px)`; raf = requestAnimationFrame(animate); };
-    window.addEventListener("mousemove", onMove); raf = requestAnimationFrame(animate);
-
-    const handleHover = () => document.querySelector(".admin-users-page")?.classList.add("c-hover");
-    const handleUnhover = () => document.querySelector(".admin-users-page")?.classList.remove("c-hover");
-    const handleClick = () => {
-      const p = document.querySelector(".admin-users-page");
-      p?.classList.add("c-click"); setTimeout(() => p?.classList.remove("c-click"), 200);
-    };
-    const interactive = document.querySelectorAll("button, a, input, .ut-user, .ut-action");
-    interactive.forEach(el => { el.addEventListener("mouseenter", handleHover); el.addEventListener("mouseleave", handleUnhover); });
-    window.addEventListener("mousedown", handleClick);
-
-    return () => { 
-      window.removeEventListener("mousemove", onMove); cancelAnimationFrame(raf); 
-      interactive.forEach(el => { el.removeEventListener("mouseenter", handleHover); el.removeEventListener("mouseleave", handleUnhover); });
-      window.removeEventListener("mousedown", handleClick);
-    };
-  }, [loading, users]);
 
   useEffect(() => {
     const fills = document.querySelectorAll("[data-width]");
@@ -231,8 +194,6 @@ export default function AdminUserManagement() {
 
   return (
     <>
-      <div className="sc-cursor" ref={cursorRef} />
-      <div className="sc-cursor-ring" ref={cursorRingRef} />
       <div className="sc-noise" />
       <div className="admin-users-page app" ref={pageRef}>
         <div className={`sb-overlay ${sidebarOpen ? "visible" : ""}`} onClick={() => setSidebar(false)} />
