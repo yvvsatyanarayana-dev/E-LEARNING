@@ -2,16 +2,11 @@
 import { useState, useEffect, useRef } from "react";
 import "./NotificationsPopup.css";
 
-// ─── ICONS ───────────────────────────────────────────────────────
-const IcoClose   = (p) => <svg {...p} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
-const IcoBell    = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>;
-const IcoPen     = (p) => <svg {...p} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>;
-const IcoUsers   = (p) => <svg {...p} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
-const IcoClock   = (p) => <svg {...p} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
-const IcoAlert   = (p) => <svg {...p} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
-const IcoBrain   = (p) => <svg {...p} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-1.66Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-1.66Z"/></svg>;
-const IcoCheck   = (p) => <svg {...p} width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>;
-const IcoCheckAll= (p) => <svg {...p} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/><polyline points="20 6 9 17 4 12" transform="translate(4,0)"/></svg>;
+// ─── ICONS (react-icons) ───────────────────────────────────────
+const IcoClose = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
+const IcoBell = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" /><path d="M13.73 21a2 2 0 0 1-3.46 0" /></svg>;
+const IcoCheck = (p) => <svg {...p} width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12" /></svg>;
+const IcoCheckAll = (p) => <svg {...p} width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 11 12 14 22 4" /><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" /></svg>;
 
 // ─── DATA ────────────────────────────────────────────────────────
 const TABS = ["All", "Unread", "Urgent"];
@@ -88,7 +83,7 @@ export default function NotificationsPopup({ open, onClose, anchorRef, onBack, i
               <IcoCheckAll /> Mark all read
             </button>
           )}
-          <button className="np-hclose" onClick={handleClose}><IcoClose /></button>
+          <button className="lp-close" onClick={handleClose}><IcoClose /></button>
         </div>
       </div>
 
@@ -118,10 +113,21 @@ export default function NotificationsPopup({ open, onClose, anchorRef, onBack, i
               key={n.id}
               className={`np-item ${n.unread ? "unread" : ""}`}
               onClick={() => markRead(n.id)}
+              style={{ position: 'relative' }}
             >
-              <div className="np-item-ic" style={{ background: n.bg, color: n.color }}>
-                {n.icon}
+              <div className="np-item-ic" style={{ background: n.bg, color: n.color, position: 'relative' }}>
+                {/* Use react-icon or fallback */}
+                {n.icon || <IcoBell />}
                 {n.urgent && <div className="np-item-urgent-dot" />}
+                {/* Always show cancel button in icon area */}
+                <button
+                  className="np-item-btn dismiss"
+                  title="Dismiss"
+                  style={{ position: 'absolute', top: 8, right: 8, zIndex: 2, background: 'transparent', border: 'none', padding: 0, cursor: 'pointer' }}
+                  onClick={e => { e.stopPropagation(); dismiss(n.id); }}
+                >
+                  <IcoClose />
+                </button>
               </div>
               <div className="np-item-body">
                 <div className="np-item-title">
@@ -137,9 +143,6 @@ export default function NotificationsPopup({ open, onClose, anchorRef, onBack, i
                     <IcoCheck />
                   </button>
                 )}
-                <button className="np-item-btn dismiss" title="Dismiss" onClick={(e) => { e.stopPropagation(); dismiss(n.id); }}>
-                  <IcoClose />
-                </button>
               </div>
             </div>
           ))

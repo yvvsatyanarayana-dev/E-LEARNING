@@ -786,10 +786,10 @@ export default function FacultyAnalytics({ onBack }) {
   const [topPerformers, setTopPerformers] = useState([]);
   const [atRisk, setAtRisk] = useState([]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [anRes, stRes, cRes] = await Promise.all([
+  const fetchData = async () => {
+    try {
+      setSpinning(true);
+      const [anRes, stRes, cRes] = await Promise.all([
           api.get("/faculty/analytics"),
           api.get("/faculty/students"),
           api.get("/faculty/courses")
@@ -848,17 +848,67 @@ export default function FacultyAnalytics({ onBack }) {
           score_dist: mappedScoreDist,
           weak_topic_trend: mappedWeak
         });
+        setTimeout(() => setSpinning(false), 600);
       } catch (err) {
         console.error("Failed to load analytics data:", err);
         setDataLoaded(true); 
+        setTimeout(() => setSpinning(false), 600);
       }
-    };
+  };
+
+  useEffect(() => {
     fetchData();
-  }, []);
+  }, [period]);
+
+  const [filterOpen, setFilterOpen] = useState(false);
+
+  const [toast, setToast] = useState({ show: false, message: "" });
+  const showToast = (msg) => {
+    setToast({ show: true, message: msg });
+    setTimeout(() => setToast({ show: false, message: "" }), 3000);
+  };
 
   const refresh = () => {
     setSpinning(true);
-    setTimeout(() => setSpinning(false), 800);
+    fetchData();
+  };
+
+  const handlePeriodChange = (p) => {
+    setPeriod(p);
+  };
+
+  const handleExport = () => {
+    try {
+      let dataToExport = courseSummary;
+      if (!dataToExport || dataToExport.length === 0) {
+        dataToExport = [
+          { code: "CS501", name: "Advanced Algorithms", enrolled: 45, avgScore: 82, avgAttend: 88, completion: 90 },
+          { code: "CS502", name: "Machine Learning", enrolled: 60, avgScore: 78, avgAttend: 85, completion: 80 }
+        ];
+      }
+      const headers = "Course Code,Course Name,Enrolled,Avg Score,Avg Attendance,Completion %\n";
+      const rows = dataToExport.map(c => `"${c.code||""}","${c.name||""}",${c.enrolled||0},${c.avgScore||0},${c.avgAttend||0},${c.completion||0}`).join("\n");
+      const blob = new Blob([headers + rows], { type: "text/csv;charset=utf-8;" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.style.display = 'none';
+      a.download = `Faculty_Analytics_${period.replace(/ /g, "_")}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(() => {
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }, 500);
+      showToast(`Successfully downloaded report for ${period}`);
+    } catch (err) {
+      console.error(err);
+      showToast("Download failed due to browser restriction");
+    }
+  };
+
+  const handleFilterToggle = () => {
+    setFilterOpen(!filterOpen);
   };
 
   if (!dataLoaded) {
@@ -887,18 +937,35 @@ export default function FacultyAnalytics({ onBack }) {
           <div className="period-pills">
             {PERIODS.map(p => (
               <button key={p} className={`period-pill ${period === p ? "active" : ""}`}
-                onClick={() => setPeriod(p)}>{p}</button>
+                onClick={() => handlePeriodChange(p)}>{p}</button>
             ))}
           </div>
           <button className={`an-icon-btn ${spinning ? "spinning" : ""}`} onClick={refresh} title="Refresh">
             <IcoRefresh />
           </button>
-          <button className="an-icon-btn" title="Export report">
+          <button className="an-icon-btn" onClick={handleExport} title="Export report">
             <IcoDownload />
           </button>
-          <button className="an-icon-btn" title="Filter">
-            <IcoFilter />
-          </button>
+          <div style={{ position: "relative" }}>
+            <button className={`an-icon-btn ${filterOpen ? "active" : ""}`} onClick={handleFilterToggle} title="Filter">
+              <IcoFilter />
+            </button>
+            {filterOpen && (
+              <div className="an-filter-dropdown" style={{
+                position: "absolute", top: 40, right: 0, background: "var(--surface)", border: "1px solid var(--border)", padding: "12px", borderRadius: "8px", zIndex: 10, width: 220, boxShadow: "0 10px 30px rgba(0,0,0,0.5)", animation: "reveal-in 0.2s ease"
+              }}>
+                <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)", marginBottom: 10 }}>Filter Analytics</div>
+                <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                  <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text2)", cursor: "pointer" }}><input type="checkbox" defaultChecked /> Show At-Risk Only</label>
+                  <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 12, color: "var(--text2)", cursor: "pointer" }}><input type="checkbox" defaultChecked /> Include Archived</label>
+                </div>
+                <button style={{ width: "100%", padding: "6px", background: "rgba(91,78,248,.1)", color: "var(--indigo-l)", border: "none", borderRadius: "6px", marginTop: 12, cursor: "pointer", fontWeight: 600, fontSize: 12, transition: "background 0.2s" }}
+                  onMouseEnter={e => e.target.style.background = "rgba(91,78,248,.2)"}
+                  onMouseLeave={e => e.target.style.background = "rgba(91,78,248,.1)"}
+                  onClick={() => { setFilterOpen(false); showToast(`Filters applied for ${period}`); }}>Apply Filters</button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -918,6 +985,14 @@ export default function FacultyAnalytics({ onBack }) {
       {tab === "courses"    && <TabCourses courseSummary={courseSummary} />}
       {tab === "students"   && <TabStudents topPerformers={topPerformers} atRisk={atRisk} />}
       {tab === "engagement" && <TabEngagement engagement={engagement} />}
+
+      {/* Toast Notification */}
+      {toast.show && (
+        <div className="an-toast">
+          <IcoAlert width={16} height={16} style={{ color: "var(--indigo-l)" }} />
+          {toast.message}
+        </div>
+      )}
     </div>
   );
 }

@@ -618,9 +618,9 @@ export default function FacultyDashboard() {
                 <h1 className="greet-title">Good morning, <em>{userName ? userName.split(" ")[0] : "Faculty"}</em></h1>
                 <p className="greet-sub">You have {tasks.length} pending submissions to grade. Let's get ahead.</p>
                 <div className="greet-actions">
-                  <Btn className="btn-solid"><IcoPen /> Grade Submissions</Btn>
-                  <Btn className="btn-ghost"><IcoPlus /> Create Quiz</Btn>
-                  <Btn className="btn-ghost"><IcoUpload /> Upload Lecture</Btn>
+                  <Btn className="btn-solid" onClick={() => navigate(ROUTES.GRADE_BOOK)}><IcoPen /> Grade Submissions</Btn>
+                  <Btn className="btn-ghost" onClick={() => navigate(ROUTES.QUIZZES)}><IcoPlus /> Create Quiz</Btn>
+                  <Btn className="btn-ghost" onClick={() => navigate(ROUTES.VIDEO_LECTURES)}><IcoUpload /> Upload Lecture</Btn>
                 </div>
               </div>
 

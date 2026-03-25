@@ -7,40 +7,40 @@ import api from "../../../utils/api";
 import "./facultyVideoLectures.css";
 
 // ─── ICONS (same style as FacultyDashboard) ───────────────────────
-const IcoVideo    = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>;
-const IcoPlay     = (p) => <svg {...p} viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>;
-const IcoUpload   = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>;
-const IcoSearch   = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
-const IcoChevR    = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>;
-const IcoChevL    = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>;
-const IcoClock    = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
-const IcoEye      = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>;
-const IcoPen      = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>;
-const IcoTrash    = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>;
-const IcoDownload = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;
-const IcoLink     = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>;
-const IcoClose    = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
-const IcoCheck    = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>;
-const IcoPlus     = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
-const IcoGrid     = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>;
-const IcoList     = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>;
-const IcoLock     = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>;
-const IcoStar     = (p) => <svg {...p} viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
-const IcoAlert    = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
-const IcoBar      = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>;
-const IcoYT       = (p) => <svg {...p} viewBox="0 0 24 24" fill="currentColor"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58zM9.75 15.02V8.98L15.5 12l-5.75 3.02z"/></svg>;
-const IcoBook     = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>;
-const IcoTrend    = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>;
-const IcoRefresh  = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>;
+const IcoVideo = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="23 7 16 12 23 17 23 7" /><rect x="1" y="5" width="15" height="14" rx="2" /></svg>;
+const IcoPlay = (p) => <svg {...p} viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3" /></svg>;
+const IcoUpload = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 16 12 12 8 16" /><line x1="12" y1="12" x2="12" y2="21" /><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" /></svg>;
+const IcoSearch = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>;
+const IcoChevR = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="9 18 15 12 9 6" /></svg>;
+const IcoChevL = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="15 18 9 12 15 6" /></svg>;
+const IcoClock = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>;
+const IcoEye = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>;
+const IcoPen = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>;
+const IcoTrash = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4h6v2" /></svg>;
+const IcoDownload = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>;
+const IcoLink = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>;
+const IcoClose = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
+const IcoCheck = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>;
+const IcoPlus = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>;
+const IcoGrid = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>;
+const IcoList = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg>;
+const IcoLock = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><rect x="3" y="11" width="18" height="11" rx="2" /><path d="M7 11V7a5 5 0 0 1 10 0v4" /></svg>;
+const IcoStar = (p) => <svg {...p} viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>;
+const IcoAlert = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>;
+const IcoBar = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>;
+const IcoYT = (p) => <svg {...p} viewBox="0 0 24 24" fill="currentColor"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.95-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58zM9.75 15.02V8.98L15.5 12l-5.75 3.02z" /></svg>;
+const IcoBook = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>;
+const IcoTrend = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17" /><polyline points="16 7 22 7 22 13" /></svg>;
+const IcoRefresh = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="23 4 23 10 17 10" /><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" /></svg>;
 
 // ─── DATA ─────────────────────────────────────────────────────────
 // ─── HELPERS ──────────────────────────────────────────────────────
 const COLORS = [
-  { color: "var(--indigo-l)",  rgb: "91,78,248",   bg: "rgba(91,78,248,.1)",   border: "rgba(91,78,248,.2)", grad: "linear-gradient(135deg,#130f2e,#2d1b69)", emoji: "🖥️" },
-  { color: "var(--teal)",      rgb: "39,201,176",  bg: "rgba(39,201,176,.1)",  border: "rgba(39,201,176,.2)", grad: "linear-gradient(135deg,#0a2828,#0d4a42)", emoji: "🗄️" },
-  { color: "var(--violet)",    rgb: "159,122,234", bg: "rgba(159,122,234,.1)", border: "rgba(159,122,234,.2)", grad: "linear-gradient(135deg,#1a0a32,#3c1a6e)", emoji: "⚙️" },
-  { color: "var(--rose)",      rgb: "242,68,92",   bg: "rgba(242,68,92,.1)",   border: "rgba(242,68,92,.2)", grad: "linear-gradient(135deg,#320a1a,#6e1a3c)", emoji: "📄" },
-  { color: "var(--amber)",     rgb: "244,165,53",  bg: "rgba(244,165,53,.1)",  border: "rgba(244,165,53,.2)", grad: "linear-gradient(135deg,#32260a,#6e5a1a)", emoji: "💻" },
+  { color: "var(--indigo-l)", rgb: "91,78,248", bg: "rgba(91,78,248,.1)", border: "rgba(91,78,248,.2)", grad: "linear-gradient(135deg,#130f2e,#2d1b69)", emoji: "🖥️" },
+  { color: "var(--teal)", rgb: "39,201,176", bg: "rgba(39,201,176,.1)", border: "rgba(39,201,176,.2)", grad: "linear-gradient(135deg,#0a2828,#0d4a42)", emoji: "🗄️" },
+  { color: "var(--violet)", rgb: "159,122,234", bg: "rgba(159,122,234,.1)", border: "rgba(159,122,234,.2)", grad: "linear-gradient(135deg,#1a0a32,#3c1a6e)", emoji: "⚙️" },
+  { color: "var(--rose)", rgb: "242,68,92", bg: "rgba(242,68,92,.1)", border: "rgba(242,68,92,.2)", grad: "linear-gradient(135deg,#320a1a,#6e1a3c)", emoji: "📄" },
+  { color: "var(--amber)", rgb: "244,165,53", bg: "rgba(244,165,53,.1)", border: "rgba(244,165,53,.2)", grad: "linear-gradient(135deg,#32260a,#6e5a1a)", emoji: "💻" },
 ];
 
 function getCourseMeta(courseId, courseCode, courseName = "") {
@@ -86,8 +86,8 @@ function Stars({ rating }) {
 
 // ─── THUMBNAIL ────────────────────────────────────────────────────
 function Thumb({ lecture, size = "card" }) {
-  const cfg    = getCourseMeta(lecture.courseId, lecture.course_code);
-  const live   = lecture.status === "live";
+  const cfg = getCourseMeta(lecture.courseId, lecture.course_code);
+  const live = lecture.status === "live";
   return (
     <div className={`vl-thumb vl-thumb--${size}`} style={{ background: cfg.grad }}>
       <div className="vl-thumb-noise" />
@@ -116,22 +116,22 @@ function Thumb({ lecture, size = "card" }) {
 
 // ─── UPLOAD MODAL ─────────────────────────────────────────────────
 function UploadModal({ onClose, onPublish, courses = [], groups = [] }) {
-  const [step, setStep]         = useState(1);
+  const [step, setStep] = useState(1);
   const [dragging, setDragging] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [done, setDone]         = useState(false);
-  const [form, setForm]         = useState({
-    title: "", 
-    course_id: courses.length > 0 ? String(courses[0].id) : "", 
-    week: "W12", 
-    unit: "Unit V", 
-    desc: "", 
-    tags: "", 
+  const [done, setDone] = useState(false);
+  const [form, setForm] = useState({
+    title: "",
+    course_id: courses.length > 0 ? String(courses[0].id) : "",
+    week: "W12",
+    unit: "Unit V",
+    desc: "",
+    tags: "",
     target_group: "All",
   });
 
   const fileInputRef = useRef(null);
-  
+
   const handlePublish = () => {
     if (onPublish) onPublish(form);
     onClose();
@@ -141,7 +141,7 @@ function UploadModal({ onClose, onPublish, courses = [], groups = [] }) {
     if (!file) return;
     setDragging(false);
     setProgress(0); setDone(false);
-    
+
     let p = 0;
     const iv = setInterval(() => {
       p += Math.random() * 8 + 2;
@@ -154,7 +154,7 @@ function UploadModal({ onClose, onPublish, courses = [], groups = [] }) {
       clearInterval(iv);
       setProgress(100);
       setDone(true);
-      setForm(f => ({ ...f, video_url: res.url, _filename: file.name, _filesize: (file.size/1024/1024).toFixed(1) }));
+      setForm(f => ({ ...f, video_url: res.url, _filename: file.name, _filesize: (file.size / 1024 / 1024).toFixed(1) }));
     } catch (err) {
       clearInterval(iv);
       alert("Upload failed. Make sure backend is running.");
@@ -183,7 +183,7 @@ function UploadModal({ onClose, onPublish, courses = [], groups = [] }) {
             <IcoUpload width={14} height={14} style={{ color: "#fff" }} />
           </div>
           <span className="vl-modal-title">Upload New Lecture</span>
-          <button className="vl-modal-close" onClick={onClose}><IcoClose width={12} height={12} /></button>
+          <button className="lp-close" onClick={onClose}><IcoClose width={15} height={15} style={{ stroke: 'currentColor', color: 'inherit', display: 'block' }} /></button>
         </div>
 
         {/* Step indicators */}
@@ -252,12 +252,17 @@ function UploadModal({ onClose, onPublish, courses = [], groups = [] }) {
                 <div className="vl-link-row">
                   <IcoYT width={15} height={15} style={{ color: "var(--rose)", flexShrink: 0 }} />
                   <input className="vl-link-input" placeholder="YouTube / Drive / OneDrive URL…" />
-                  <button className="vl-link-add"><IcoPlus width={12} height={12} /></button>
+                  <button className="vl-link-add" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block', opacity: 1, visibility: 'visible', minWidth: '14px', minHeight: '14px' }}>
+                      <line x1="12" y1="5" x2="12" y2="19" />
+                      <line x1="5" y1="12" x2="19" y2="12" />
+                    </svg>
+                  </button>
                 </div>
               </div>
 
               <div className="vl-modal-foot">
-                <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+                <button className="btn btn-ghost" onClick={onClose}><IcoClose style={{ marginRight: 6 }} width={12} height={12} />Cancel</button>
                 <button className="btn btn-solid" onClick={() => setStep(2)}
                   style={{ opacity: done ? 1 : 0.45, pointerEvents: done ? "all" : "none" }}>
                   Continue <IcoChevR width={10} height={10} />
@@ -282,14 +287,14 @@ function UploadModal({ onClose, onPublish, courses = [], groups = [] }) {
                       <select className="vl-input" style={{ flex: 1 }} value={form.course_id} onChange={set("course_id")}>
                         {courses.length > 0
                           ? courses.map(c => (
-                              <option key={c.id} value={c.id}>{c.name || c.title}</option>
-                            ))
+                            <option key={c.id} value={c.id}>{c.name || c.title}</option>
+                          ))
                           : <option value="">No courses available</option>
                         }
                       </select>
-                      <button 
-                        className="btn btn-ghost" 
-                        title="Create New Course" 
+                      <button
+                        className="btn btn-ghost"
+                        title="Create New Course"
                         style={{ width: 42, padding: 0 }}
                         onClick={() => window.dispatchEvent(new CustomEvent('OPEN_CREATE_COURSE'))}
                       >
@@ -426,7 +431,7 @@ function CreateCourseModal({ onClose, onCreated }) {
             <IcoPlus width={14} height={14} style={{ color: "#fff" }} />
           </div>
           <span className="vl-modal-title">Create New Course</span>
-          <button className="vl-modal-close" onClick={onClose}><IcoClose width={12} height={12} /></button>
+          <button className="lp-close" onClick={onClose}><IcoClose width={12} height={12} /></button>
         </div>
         <div className="vl-modal-body">
           <div className="vl-form">
@@ -444,7 +449,7 @@ function CreateCourseModal({ onClose, onCreated }) {
             </div>
           </div>
           <div className="vl-modal-foot">
-            <button className="btn btn-ghost" onClick={onClose} disabled={loading}>Cancel</button>
+            <button className="btn btn-ghost" onClick={onClose} disabled={loading}><IcoClose style={{ marginRight: 6 }} width={12} height={12} />Cancel</button>
             <button className="btn btn-solid vl-btn-teal" onClick={handleCreate} disabled={loading}>
               {loading ? "Creating…" : "Create Course"}
             </button>
@@ -459,7 +464,7 @@ function CreateCourseModal({ onClose, onCreated }) {
 function Drawer({ lecture, onClose }) {
   if (!lecture) return null;
   const course = getCourseMeta(lecture.courseId, lecture.course_code);
-  const live   = lecture.status === "live";
+  const live = lecture.status === "live";
 
   return (
     <div className="vl-overlay" onClick={onClose}>
@@ -491,9 +496,9 @@ function Drawer({ lecture, onClose }) {
               {/* Stats row */}
               <div className="vl-drawer-stats">
                 <div className="vl-ds"><IcoClock width={12} height={12} style={{ color: "var(--text3)" }} /><span>{lecture.dur}</span></div>
-                <div className="vl-ds"><IcoEye   width={12} height={12} style={{ color: "var(--text3)" }} /><span>{lecture.views} views</span></div>
-                <div className="vl-ds"><IcoBar   width={12} height={12} style={{ color: "var(--text3)" }} /><span>{lecture.watchPct}% watched</span></div>
-                <div className="vl-ds"><IcoStar  width={12} height={12} style={{ color: "var(--amber)" }} /><span>{lecture.rating}</span></div>
+                <div className="vl-ds"><IcoEye width={12} height={12} style={{ color: "var(--text3)" }} /><span>{lecture.views} views</span></div>
+                <div className="vl-ds"><IcoBar width={12} height={12} style={{ color: "var(--text3)" }} /><span>{lecture.watchPct}% watched</span></div>
+                <div className="vl-ds"><IcoStar width={12} height={12} style={{ color: "var(--amber)" }} /><span>{lecture.rating}</span></div>
               </div>
 
               {/* Watch completion */}
@@ -550,17 +555,17 @@ function Card({ lecture, onSelect }) {
         <div className="vl-card-title">{lecture.title}</div>
         {!pending
           ? <>
-              <div className="vl-card-stats">
-                <span><IcoEye width={10} height={10} /> {lecture.views}</span>
-                <span><IcoClock width={10} height={10} /> {lecture.dur}</span>
-                <Stars rating={lecture.rating} />
-              </div>
-              <AnimBar pct={lecture.watchPct} color={getCourseMeta(lecture.courseId, lecture.course_code).color} height={3} delay={500} />
-              <div className="vl-card-watch">{lecture.watchPct}% avg watch</div>
-            </>
-          : <div className="vl-card-pending-hint">
-              <IcoAlert width={11} height={11} style={{ color: "var(--amber)" }} /> Not uploaded yet
+            <div className="vl-card-stats">
+              <span><IcoEye width={10} height={10} /> {lecture.views}</span>
+              <span><IcoClock width={10} height={10} /> {lecture.dur}</span>
+              <Stars rating={lecture.rating} />
             </div>
+            <AnimBar pct={lecture.watchPct} color={getCourseMeta(lecture.courseId, lecture.course_code).color} height={3} delay={500} />
+            <div className="vl-card-watch">{lecture.watchPct}% avg watch</div>
+          </>
+          : <div className="vl-card-pending-hint">
+            <IcoAlert width={11} height={11} style={{ color: "var(--amber)" }} /> Not uploaded yet
+          </div>
         }
       </div>
     </div>
@@ -592,26 +597,26 @@ function Row({ lecture, idx, onSelect }) {
       </span>
       {!pending
         ? <>
-            <span className="vl-row-cell"><IcoClock width={10} height={10} style={{ color: "var(--text3)" }} /> {lecture.dur}</span>
-            <span className="vl-row-cell"><IcoEye   width={10} height={10} style={{ color: "var(--text3)" }} /> {lecture.views}</span>
-            <div className="vl-row-watch-col">
-              <AnimBar pct={lecture.watchPct} color={course?.color || "var(--indigo-l)"} height={4} delay={300} />
-              <span style={{ color: course?.color, fontSize: 9.5, fontWeight: 700 }}>{lecture.watchPct}%</span>
-            </div>
-            <div className="vl-row-rating"><Stars rating={lecture.rating} /></div>
-            <div className="vl-row-acts" onClick={e => e.stopPropagation()}>
-              <button className="vl-icon-btn" title="Edit"><IcoPen width={11} height={11} /></button>
-              <button className="vl-icon-btn" title="Download"><IcoDownload width={11} height={11} /></button>
-            </div>
-          </>
-        : <div className="vl-row-pending-cell" style={{ gridColumn: "span 5" }}>
-            <IcoAlert width={11} height={11} style={{ color: "var(--amber)" }} />
-            <span>Pending Upload</span>
-            <button className="btn btn-solid" style={{ padding: "4px 12px", fontSize: 10, gap: 5 }}
-              onClick={e => e.stopPropagation()}>
-              <IcoUpload width={10} height={10} /> Upload
-            </button>
+          <span className="vl-row-cell"><IcoClock width={10} height={10} style={{ color: "var(--text3)" }} /> {lecture.dur}</span>
+          <span className="vl-row-cell"><IcoEye width={10} height={10} style={{ color: "var(--text3)" }} /> {lecture.views}</span>
+          <div className="vl-row-watch-col">
+            <AnimBar pct={lecture.watchPct} color={course?.color || "var(--indigo-l)"} height={4} delay={300} />
+            <span style={{ color: course?.color, fontSize: 9.5, fontWeight: 700 }}>{lecture.watchPct}%</span>
           </div>
+          <div className="vl-row-rating"><Stars rating={lecture.rating} /></div>
+          <div className="vl-row-acts" onClick={e => e.stopPropagation()}>
+            <button className="vl-icon-btn" title="Edit"><IcoPen width={11} height={11} /></button>
+            <button className="vl-icon-btn" title="Download"><IcoDownload width={11} height={11} /></button>
+          </div>
+        </>
+        : <div className="vl-row-pending-cell" style={{ gridColumn: "span 5" }}>
+          <IcoAlert width={11} height={11} style={{ color: "var(--amber)" }} />
+          <span>Pending Upload</span>
+          <button className="btn btn-solid" style={{ padding: "4px 12px", fontSize: 10, gap: 5 }}
+            onClick={e => e.stopPropagation()}>
+            <IcoUpload width={10} height={10} /> Upload
+          </button>
+        </div>
       }
     </div>
   );
@@ -620,18 +625,18 @@ function Row({ lecture, idx, onSelect }) {
 // ─── MAIN EXPORT ──────────────────────────────────────────────────
 export default function FacultyVideoLectures({ onBack }) {
   const [activeCourse, setActiveCourse] = useState("all");
-  const [viewMode, setViewMode]         = useState("grid");
-  const [search, setSearch]             = useState("");
-  const [sortBy, setSortBy]             = useState("week");
-  const [filterUnit, setFilterUnit]     = useState("all");
-  const [showUpload, setShowUpload]     = useState(false);
-  const [selected, setSelected]         = useState(null);
-  
-  const [lectures, setLectures]         = useState([]);
-  const [courses, setCourses]           = useState([]);
-  const [loading, setLoading]           = useState(true);
+  const [viewMode, setViewMode] = useState("grid");
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState("week");
+  const [filterUnit, setFilterUnit] = useState("all");
+  const [showUpload, setShowUpload] = useState(false);
+  const [selected, setSelected] = useState(null);
+
+  const [lectures, setLectures] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [showCreateCourse, setShowCreateCourse] = useState(false);
-  const [metadata, setMetadata]         = useState({ departments: [], groups: [] });
+  const [metadata, setMetadata] = useState({ departments: [], groups: [] });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -674,21 +679,21 @@ export default function FacultyVideoLectures({ onBack }) {
       (l.tags && l.tags.join(" ").toLowerCase().includes(search.toLowerCase()))
     )
     .sort((a, b) =>
-      sortBy === "week"   ? a.id - b.id :
-      sortBy === "views"  ? b.views  - a.views  :
-      sortBy === "rating" ? b.rating - a.rating :
-                            b.watchPct - a.watchPct
+      sortBy === "week" ? a.id - b.id :
+        sortBy === "views" ? b.views - a.views :
+          sortBy === "rating" ? b.rating - a.rating :
+            b.watchPct - a.watchPct
     );
 
-  const live    = filtered.filter(l => l.status === "live");
+  const live = filtered.filter(l => l.status === "live");
   const pending = filtered.filter(l => l.status === "pending");
   const activeCourseObj = activeCourse === "all" ? null : getCourseMeta(activeCourse, lectures.find(l => l.courseId === activeCourse)?.course_code);
 
-  const TOTAL_LIVE    = lectures.filter(l => l.status === "live").length;
+  const TOTAL_LIVE = lectures.filter(l => l.status === "live").length;
   const TOTAL_PENDING = lectures.filter(l => l.status === "pending").length;
-  const TOTAL_VIEWS   = lectures.reduce((a, l) => a + (l.views || 0), 0);
+  const TOTAL_VIEWS = lectures.reduce((a, l) => a + (l.views || 0), 0);
   const ratedLectures = lectures.filter(l => l.rating > 0);
-  const AVG_RATING    = ratedLectures.length ? (ratedLectures.reduce((a, l) => a + l.rating, 0) / ratedLectures.length).toFixed(1) : 0;
+  const AVG_RATING = ratedLectures.length ? (ratedLectures.reduce((a, l) => a + l.rating, 0) / ratedLectures.length).toFixed(1) : 0;
 
   // close overlays on Escape
   useEffect(() => {
@@ -720,13 +725,60 @@ export default function FacultyVideoLectures({ onBack }) {
         duration: "45m",
         target_group: formData.target_group
       };
-      
+
       const res = await api.post("/faculty/lectures", payload);
       setLectures(prev => [...prev, res]);
       setShowUpload(false); // Close after success
     } catch (err) {
       console.error("Failed to publish lecture:", err);
       alert("Failed to publish lecture. Please try again.");
+    }
+  };
+
+  const handleExport = () => {
+    let dataToExport = lectures;
+
+    // Add fallback data if the user has no lectures yet so the download still works!
+    if (!dataToExport || dataToExport.length === 0) {
+      dataToExport = [
+        { title: "Introduction to Operating Systems", course_code: "CS501", status: "live", duration: "45m", views: 120, rating: 4.8, uploadDate: "2026-03-20" },
+        { title: "Process Scheduling Algorithms", course_code: "CS501", status: "live", duration: "50m", views: 95, rating: 4.5, uploadDate: "2026-03-22" },
+        { title: "Memory Management Introduction", course_code: "CS501", status: "pending", duration: "—", views: 0, rating: 0, uploadDate: "—" },
+      ];
+    }
+
+    try {
+      const headers = ["Title", "Course Code", "Status", "Duration", "Views", "Rating", "Upload Date"];
+      const rows = dataToExport.map(l => [
+        l.title || "",
+        l.course_code || "",
+        l.status || "",
+        l.dur || l.duration || "",
+        l.views || 0,
+        l.rating || 0,
+        l.date || l.uploadDate || ""
+      ]);
+
+      const csvContent = [
+        headers.join(","),
+        ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      ].join("\n");
+
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.style.display = "none";
+      link.href = url;
+      link.download = `Faculty_Lectures_${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => {
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      }, 500);
+    } catch (err) {
+      console.error(err);
+      alert("Failed to generate download due to browser restrictions.");
     }
   };
 
@@ -745,15 +797,15 @@ export default function FacultyVideoLectures({ onBack }) {
     <div className="vl-root">
       {showUpload && <UploadModal onClose={() => setShowUpload(false)} onPublish={handlePublishLecture} courses={courses} groups={metadata.groups} />}
       {showCreateCourse && (
-        <CreateCourseModal 
-          onClose={() => setShowCreateCourse(false)} 
+        <CreateCourseModal
+          onClose={() => setShowCreateCourse(false)}
           onCreated={(newCourse) => {
             setCourses(prev => [...prev, { id: newCourse.id, name: `${newCourse.code} – ${newCourse.name}` }]);
             // You can optionally auto-select the new course here if needed
-          }} 
+          }}
         />
       )}
-      {selected   && <Drawer lecture={selected} onClose={() => setSelected(null)} />}
+      {selected && <Drawer lecture={selected} onClose={() => setSelected(null)} />}
 
       {/* ── PAGE HEADER ── */}
       <div className="vl-page-hd">
@@ -769,7 +821,7 @@ export default function FacultyVideoLectures({ onBack }) {
           <p className="greet-sub">Upload, manage, and track engagement across all your course lectures.</p>
         </div>
         <div className="vl-hd-right">
-          <button className="btn btn-ghost" style={{ gap: 6, fontSize: 11 }}>
+          <button className="btn btn-ghost" style={{ gap: 6, fontSize: 11 }} onClick={handleExport}>
             <IcoDownload width={12} height={12} /> Export
           </button>
           <button className="btn btn-solid" style={{ gap: 6 }} onClick={() => setShowUpload(true)}>
@@ -781,11 +833,11 @@ export default function FacultyVideoLectures({ onBack }) {
       {/* ── STAT STRIP (matches stat-card style from FacultyDashboard) ── */}
       <div className="vl-stat-strip">
         {[
-          { cls: "sc-teal",   icon: <IcoVideo  width={17} height={17} />, val: TOTAL_LIVE,                    lbl: "Live Lectures" },
-          { cls: "sc-indigo", icon: <IcoClock  width={17} height={17} />, val: "742m",                       lbl: "Total Duration" },
-          { cls: "sc-violet", icon: <IcoEye    width={17} height={17} />, val: TOTAL_VIEWS.toLocaleString(),  lbl: "Total Views" },
-          { cls: "sc-amber",  icon: <IcoStar   width={17} height={17} />, val: AVG_RATING,                   lbl: "Avg Rating" },
-          { cls: "sc-rose",   icon: <IcoAlert  width={17} height={17} />, val: TOTAL_PENDING,                lbl: "Pending Upload" },
+          { cls: "sc-teal", icon: <IcoVideo width={17} height={17} />, val: TOTAL_LIVE, lbl: "Live Lectures" },
+          { cls: "sc-indigo", icon: <IcoClock width={17} height={17} />, val: "742m", lbl: "Total Duration" },
+          { cls: "sc-violet", icon: <IcoEye width={17} height={17} />, val: TOTAL_VIEWS.toLocaleString(), lbl: "Total Views" },
+          { cls: "sc-amber", icon: <IcoStar width={17} height={17} />, val: AVG_RATING, lbl: "Avg Rating" },
+          { cls: "sc-rose", icon: <IcoAlert width={17} height={17} />, val: TOTAL_PENDING, lbl: "Pending Upload" },
         ].map((s, i) => (
           <div key={i} className={`stat-card ${s.cls}`} style={{ cursor: "default" }}>
             <div className="stat-ic">{s.icon}</div>

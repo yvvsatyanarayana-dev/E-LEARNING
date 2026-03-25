@@ -86,19 +86,23 @@
 }
 .np-mark-all:hover { background: rgba(91,78,248,.1); }
 .np-hclose {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
   border-radius: 6px;
-  background: var(--surface2);
-  border: 1px solid var(--border);
+  background: var(--surface3);
+  border: 1px solid var(--border2);
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: var(--text3);
-  transition: background .18s, color .18s;
+  color: var(--text);
+  transition: all .2s ease;
 }
-.np-hclose:hover { background: var(--surface3); color: var(--text); }
+.np-hclose:hover {
+  background: rgba(242,68,92,.15);
+  color: var(--rose);
+  border-color: rgba(242,68,92,.3);
+}
 
 /* ── TABS ── */
 .np-tabs {

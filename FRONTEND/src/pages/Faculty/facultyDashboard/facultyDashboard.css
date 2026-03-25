@@ -580,7 +580,7 @@ html,body {
 
 /* Delta arrows */
 .stat-delta svg {
-  width: 10px; height: 10px;
+  width: 10px; height: 10px;  
   stroke: currentColor; fill: none;
   stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round;
   display: block; flex-shrink: 0;

@@ -19,7 +19,11 @@ export default function AiAssistant({ onBack }) {
   const [input, setInput]   = useState("");
   const [typing, setTyping] = useState(false);
   const [aiReplies, setAiReplies] = useState(["I'm processing that..."]);
-  const [suggestions, setSuggestions] = useState([]);
+  const [suggestions, setSuggestions] = useState([
+    { icon: "📊", label: "Analyze student performance", prompt: "Analyze the current student performance and identify students who need attention." },
+    { icon: "⚠️", label: "Find at-risk students", prompt: "Which students are at risk based on attendance and grades?" },
+    { icon: "📝", label: "Generate quiz questions", prompt: "Generate 5 multiple choice quiz questions for the current course topic." },
+  ]);
   const msgRef = useRef();
 
   useEffect(() => {

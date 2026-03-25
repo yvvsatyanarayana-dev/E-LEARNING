@@ -54,6 +54,27 @@
 .gb-dist-range { font-size:9.5px; color:var(--text3); }
 .gb-dist-bar   { height:4px; background:rgba(255,255,255,.06); border-radius:4px; overflow:hidden; margin-top:4px; }
 
+/* Toast */
+.gb-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 12px 20px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  animation: slideUp 0.3s ease-out;
+  z-index: 1000;
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 @media(max-width:900px){ .gb-dist-row{grid-template-columns:1fr 1fr;} }
 @media(max-width:768px){ .gb-root{padding:18px 14px 100px;} .gb-stat-strip{grid-template-columns:1fr 1fr;} }
 @media(min-width:1400px){ .gb-root{padding:30px 40px 100px;} }

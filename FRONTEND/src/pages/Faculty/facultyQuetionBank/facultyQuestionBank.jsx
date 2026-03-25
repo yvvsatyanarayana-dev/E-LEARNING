@@ -4,26 +4,26 @@ import { createPortal } from "react-dom";
 import api from "../../../utils/api";
 import "./facultyQuestionBank.css";
 
-const IcoChevL  = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>;
-const IcoPlus   = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
-const IcoSearch = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
-const IcoClose  = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
-const IcoCopy   = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>;
-const IcoTrash  = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>;
-const IcoPen    = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>;
-const IcoZap    = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>;
-const IcoCheck  = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>;
+const IcoChevL = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="15 18 9 12 15 6" /></svg>;
+const IcoPlus = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>;
+const IcoSearch = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>;
+const IcoClose = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
+const IcoCopy = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>;
+const IcoTrash = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4h6v2" /></svg>;
+const IcoPen = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>;
+const IcoZap = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" /></svg>;
+const IcoCheck = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>;
 
 const DIFF_META = {
-  Easy:   { color:"var(--teal)",  bg:"rgba(39,201,176,.1)",  border:"rgba(39,201,176,.22)" },
-  Medium: { color:"var(--amber)", bg:"rgba(244,165,53,.1)",  border:"rgba(244,165,53,.2)"  },
-  Hard:   { color:"var(--rose)",  bg:"rgba(242,68,92,.1)",   border:"rgba(242,68,92,.2)"   },
+  Easy: { color: "var(--teal)", bg: "rgba(39,201,176,.1)", border: "rgba(39,201,176,.22)" },
+  Medium: { color: "var(--amber)", bg: "rgba(244,165,53,.1)", border: "rgba(244,165,53,.2)" },
+  Hard: { color: "var(--rose)", bg: "rgba(242,68,92,.1)", border: "rgba(242,68,92,.2)" },
 };
 const TYPE_META = {
-  MCQ:  { color:"var(--indigo-l)", bg:"rgba(91,78,248,.1)",  icon:"🔵" },
-  TF:   { color:"var(--teal)",     bg:"rgba(39,201,176,.1)", icon:"✅" },
-  FIB:  { color:"var(--amber)",    bg:"rgba(244,165,53,.1)", icon:"✏️" },
-  Desc: { color:"var(--violet)",   bg:"rgba(159,122,234,.1)",icon:"📝" },
+  MCQ: { color: "var(--indigo-l)", bg: "rgba(91,78,248,.1)", icon: "🔵" },
+  TF: { color: "var(--teal)", bg: "rgba(39,201,176,.1)", icon: "✅" },
+  FIB: { color: "var(--amber)", bg: "rgba(244,165,53,.1)", icon: "✏️" },
+  Desc: { color: "var(--violet)", bg: "rgba(159,122,234,.1)", icon: "📝" },
 };
 
 
@@ -54,9 +54,9 @@ function EditModal({ question, onSave, onClose }) {
       <div className="qb-overlay" onClick={onClose}>
         <div className="qb-modal" onClick={e => e.stopPropagation()}>
           <div className="qb-modal-hd">
-            <div className="qb-modal-ico"><IcoPen style={{ width: 15, height: 15, color: "#fff" }}/></div>
+            <div className="qb-modal-ico"><IcoPen style={{ width: 15, height: 15, color: "#fff" }} /></div>
             <span className="qb-modal-title">Edit Question</span>
-            <button className="qb-modal-close" onClick={onClose}><IcoClose style={{ width: 12, height: 12 }}/></button>
+            <button className="lp-close" onClick={onClose}><IcoClose style={{ width: 12, height: 12 }} /></button>
           </div>
 
           <form className="qb-modal-body" onSubmit={handleSave}>
@@ -70,7 +70,7 @@ function EditModal({ question, onSave, onClose }) {
               </div>
               <div className="qb-field">
                 <label className="qb-field-lbl">Unit</label>
-                <input className="qb-input" value={form.unit} onChange={e => set("unit", e.target.value)} placeholder="e.g. Unit II"/>
+                <input className="qb-input" value={form.unit} onChange={e => set("unit", e.target.value)} placeholder="e.g. Unit II" />
               </div>
             </div>
 
@@ -93,13 +93,13 @@ function EditModal({ question, onSave, onClose }) {
             {/* Marks */}
             <div className="qb-field" style={{ marginBottom: 12 }}>
               <label className="qb-field-lbl">Marks</label>
-              <input className="qb-input" type="number" min={1} max={20} value={form.marks} onChange={e => set("marks", e.target.value)}/>
+              <input className="qb-input" type="number" min={1} max={20} value={form.marks} onChange={e => set("marks", e.target.value)} />
             </div>
 
             {/* Question text */}
             <div className="qb-field" style={{ marginBottom: 12 }}>
               <label className="qb-field-lbl">Question</label>
-              <textarea className="qb-input qb-textarea" rows={3} value={form.q} onChange={e => set("q", e.target.value)} placeholder="Enter question text…"/>
+              <textarea className="qb-input qb-textarea" rows={3} value={form.q} onChange={e => set("q", e.target.value)} placeholder="Enter question text…" />
             </div>
 
             {/* MCQ options */}
@@ -107,23 +107,23 @@ function EditModal({ question, onSave, onClose }) {
               <div className="qb-field" style={{ marginBottom: 12 }}>
                 <label className="qb-field-lbl">Options — click circle to mark correct</label>
                 {form.options.map((opt, i) => (
-                  <div key={i} style={{ display:"flex", alignItems:"center", gap:8, marginBottom:6 }}>
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                     <button
                       type="button"
                       onClick={() => set("ans", i)}
                       style={{
-                        width:22, height:22, borderRadius:"50%", flexShrink:0,
-                        border:`2px solid ${form.ans === i ? "var(--teal)" : "var(--border2)"}`,
+                        width: 22, height: 22, borderRadius: "50%", flexShrink: 0,
+                        border: `2px solid ${form.ans === i ? "var(--teal)" : "var(--border2)"}`,
                         background: form.ans === i ? "rgba(39,201,176,.15)" : "var(--surface3)",
-                        display:"flex", alignItems:"center", justifyContent:"center",
-                        cursor:"pointer", transition:"all .18s",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        cursor: "pointer", transition: "all .18s",
                       }}
                     >
-                      {form.ans === i && <IcoCheck style={{ width:9, height:9, color:"var(--teal)" }}/>}
+                      {form.ans === i && <IcoCheck style={{ width: 9, height: 9, color: "var(--teal)" }} />}
                     </button>
                     <input
                       className="qb-input"
-                      style={{ flex:1, padding:"7px 10px" }}
+                      style={{ flex: 1, padding: "7px 10px" }}
                       value={opt}
                       onChange={e => setOption(i, e.target.value)}
                       placeholder={`Option ${String.fromCharCode(65 + i)}`}
@@ -137,19 +137,19 @@ function EditModal({ question, onSave, onClose }) {
             {form.type === "TF" && (
               <div className="qb-field" style={{ marginBottom: 12 }}>
                 <label className="qb-field-lbl">Correct Answer</label>
-                <div style={{ display:"flex", gap:8 }}>
+                <div style={{ display: "flex", gap: 8 }}>
                   {[true, false].map(v => (
                     <button
                       key={String(v)}
                       type="button"
                       onClick={() => set("ans", v)}
                       style={{
-                        flex:1, padding:"9px 12px", borderRadius:8, cursor:"pointer",
-                        border:`1px solid ${form.ans === v ? "rgba(39,201,176,.35)" : "var(--border)"}`,
+                        flex: 1, padding: "9px 12px", borderRadius: 8, cursor: "pointer",
+                        border: `1px solid ${form.ans === v ? "rgba(39,201,176,.35)" : "var(--border)"}`,
                         background: form.ans === v ? "rgba(39,201,176,.1)" : "var(--surface3)",
                         color: form.ans === v ? "var(--teal)" : "var(--text2)",
-                        fontWeight: form.ans === v ? 700 : 600, fontSize:12,
-                        fontFamily:"'Plus Jakarta Sans', sans-serif", transition:"all .18s",
+                        fontWeight: form.ans === v ? 700 : 600, fontSize: 12,
+                        fontFamily: "'Plus Jakarta Sans', sans-serif", transition: "all .18s",
                       }}
                     >
                       {v ? "True" : "False"}
@@ -163,13 +163,13 @@ function EditModal({ question, onSave, onClose }) {
             {form.type === "FIB" && (
               <div className="qb-field" style={{ marginBottom: 12 }}>
                 <label className="qb-field-lbl">Correct Answer</label>
-                <input className="qb-input" value={form.ans || ""} onChange={e => set("ans", e.target.value)} placeholder="Expected fill-in answer…"/>
+                <input className="qb-input" value={form.ans || ""} onChange={e => set("ans", e.target.value)} placeholder="Expected fill-in answer…" />
               </div>
             )}
 
             <div className="qb-modal-foot">
-              <button type="button" className="btn btn-ghost" style={{ fontSize:12 }} onClick={onClose}>Cancel</button>
-              <button type="submit" className="btn btn-primary" style={{ fontSize:12 }}>Save Changes</button>
+              <button type="button" className="btn btn-ghost" style={{ fontSize: 12 }} onClick={onClose}><IcoClose style={{ marginRight: 6 }} width={12} height={12} />Cancel</button>
+              <button type="submit" className="btn btn-primary" style={{ fontSize: 12 }}>Save Changes</button>
             </div>
           </form>
         </div>
@@ -183,33 +183,33 @@ function DeleteModal({ question, onConfirm, onClose }) {
   return (
     <Portal>
       <div className="qb-overlay" onClick={onClose}>
-        <div className="qb-modal" style={{ maxWidth:400 }} onClick={e => e.stopPropagation()}>
+        <div className="qb-modal" style={{ maxWidth: 400 }} onClick={e => e.stopPropagation()}>
           <div className="qb-modal-hd">
-            <div className="qb-modal-ico" style={{ background:"linear-gradient(140deg,var(--rose),#a0243a)" }}>
-              <IcoTrash style={{ width:15, height:15, color:"#fff" }}/>
+            <div className="qb-modal-ico" style={{ background: "linear-gradient(140deg,var(--rose),#a0243a)" }}>
+              <IcoTrash style={{ width: 15, height: 15, color: "#fff" }} />
             </div>
             <span className="qb-modal-title">Delete Question</span>
-            <button className="qb-modal-close" onClick={onClose}><IcoClose style={{ width:12, height:12 }}/></button>
+            <button className="qb-modal-close" onClick={onClose}><IcoClose style={{ width: 12, height: 12 }} /></button>
           </div>
           <div className="qb-modal-body">
-            <p style={{ fontSize:13, color:"var(--text2)", lineHeight:1.6, marginBottom:8 }}>
+            <p style={{ fontSize: 13, color: "var(--text2)", lineHeight: 1.6, marginBottom: 8 }}>
               Are you sure you want to delete this question?
             </p>
             <div style={{
-              padding:"10px 14px", borderRadius:8,
-              background:"var(--surface2)", border:"1px solid var(--border)",
-              fontSize:12, color:"var(--text3)", lineHeight:1.5, marginBottom:4,
+              padding: "10px 14px", borderRadius: 8,
+              background: "var(--surface2)", border: "1px solid var(--border)",
+              fontSize: 12, color: "var(--text3)", lineHeight: 1.5, marginBottom: 4,
             }}>
               {question.q}
             </div>
-            <p style={{ fontSize:11, color:"var(--rose)", marginTop:8 }}>
+            <p style={{ fontSize: 11, color: "var(--rose)", marginTop: 8 }}>
               This question has been used {question.used}× in quizzes. This action cannot be undone.
             </p>
             <div className="qb-modal-foot">
-              <button className="btn btn-ghost" style={{ fontSize:12 }} onClick={onClose}>Cancel</button>
+              <button className="btn btn-ghost" style={{ fontSize: 12 }} onClick={onClose}><IcoClose style={{ marginRight: 6 }} width={12} height={12} />Cancel</button>
               <button
                 className="btn btn-primary"
-                style={{ fontSize:12, background:"var(--rose)", boxShadow:"0 0 14px rgba(242,68,92,.3)" }}
+                style={{ fontSize: 12, background: "var(--rose)", boxShadow: "0 0 14px rgba(242,68,92,.3)" }}
                 onClick={onConfirm}
               >
                 Delete Question
@@ -226,15 +226,15 @@ function DeleteModal({ question, onConfirm, onClose }) {
 export default function facultyQuestionBank({ onBack }) {
   const [questions, setQuestions] = useState([]);
   const [coursesMeta, setCoursesMeta] = useState({});
-  const [loading, setLoading]     = useState(true);
-  const [search,    setSearch]    = useState("");
-  const [courseF,   setCourseF]   = useState("all");
-  const [diffF,     setDiffF]     = useState("all");
-  const [typeF,     setTypeF]     = useState("all");
-  const [selected,  setSelected]  = useState([]);
-  const [toast,     setToast]     = useState("");
-  const [editQ,     setEditQ]     = useState(null);
-  const [deleteQ,   setDeleteQ]   = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [courseF, setCourseF] = useState("all");
+  const [diffF, setDiffF] = useState("all");
+  const [typeF, setTypeF] = useState("all");
+  const [selected, setSelected] = useState([]);
+  const [toast, setToast] = useState("");
+  const [editQ, setEditQ] = useState(null);
+  const [deleteQ, setDeleteQ] = useState(null);
 
   const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(""), 2500); };
 
@@ -302,20 +302,20 @@ export default function facultyQuestionBank({ onBack }) {
 
   const openAddModal = () => {
     const firstCourse = Object.keys(coursesMeta)[0] || "cs501";
-    setEditQ({ id: -Date.now(), course: firstCourse, unit: "Unit I", type: "MCQ", diff: "Medium", marks: 1, q: "", options: ["","","",""], ans: 0, used: 0, coursesMeta });
+    setEditQ({ id: -Date.now(), course: firstCourse, unit: "Unit I", type: "MCQ", diff: "Medium", marks: 1, q: "", options: ["", "", "", ""], ans: 0, used: 0, coursesMeta });
   };
 
 
   // ── Filters ─────────────────────────────────────────────────────────────────
   const filtered = questions.filter(q => {
     if (courseF !== "all" && q.course !== courseF) return false;
-    if (diffF   !== "all" && q.diff   !== diffF)   return false;
-    if (typeF   !== "all" && q.type   !== typeF)    return false;
+    if (diffF !== "all" && q.diff !== diffF) return false;
+    if (typeF !== "all" && q.type !== typeF) return false;
     if (search && !q.q.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });
 
-  const toggle    = (id) => setSelected(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
+  const toggle = (id) => setSelected(s => s.includes(id) ? s.filter(x => x !== id) : [...s, id]);
   const toggleAll = () => setSelected(s => s.length === filtered.length ? [] : filtered.map(q => q.id));
 
   const totals = Object.fromEntries(
@@ -324,172 +324,172 @@ export default function facultyQuestionBank({ onBack }) {
 
   return (
     <div className="qb-root">
-      {loading && <div style={{textAlign: "center", padding: "40px", color: "var(--text3)"}}>Loading Question Bank...</div>}
+      {loading && <div style={{ textAlign: "center", padding: "40px", color: "var(--text3)" }}>Loading Question Bank...</div>}
       {!loading && <>
 
-      {/* Modals — rendered via Portal into document.body, always viewport-centred */}
-      {editQ   && <EditModal   question={{...editQ, coursesMeta}}   onSave={handleEdit}          onClose={() => setEditQ(null)}   />}
-      {deleteQ && <DeleteModal question={deleteQ} onConfirm={handleDeleteConfirm} onClose={() => setDeleteQ(null)} />}
+        {/* Modals — rendered via Portal into document.body, always viewport-centred */}
+        {editQ && <EditModal question={{ ...editQ, coursesMeta }} onSave={handleEdit} onClose={() => setEditQ(null)} />}
+        {deleteQ && <DeleteModal question={deleteQ} onConfirm={handleDeleteConfirm} onClose={() => setDeleteQ(null)} />}
 
-      {/* Page header */}
-      <div className="qb-page-hd">
-        <div>
-          <button className="qb-back-btn" onClick={onBack}><IcoChevL style={{ width:13, height:13 }}/> Dashboard</button>
-          <div className="greet-title" style={{ marginBottom:2 }}>Question Bank</div>
-          <div className="greet-sub">Manage reusable questions for quizzes and question papers</div>
-        </div>
-        <div className="qb-hd-right">
-          {selected.length > 0 && (
-            <button
-              className="btn btn-ghost"
-              style={{ display:"flex", alignItems:"center", gap:6, fontSize:12 }}
-              onClick={() => { showToast(`${selected.length} questions added to quiz`); setSelected([]); }}
-            >
-              <IcoZap style={{ width:12, height:12 }}/> Use {selected.length} in Quiz
-            </button>
-          )}
-          <button className="btn btn-primary" onClick={openAddModal} style={{ display:"flex", alignItems:"center", gap:6, fontSize:12 }}>
-            <IcoPlus style={{ width:13, height:13 }}/> Add Question
-          </button>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className="qb-stat-strip">
-        {[
-          { label:"Total Questions", value:questions.length, cls:"sc-indigo" },
-          { label:"Easy",            value:totals.Easy,      cls:"sc-teal"   },
-          { label:"Medium",          value:totals.Medium,    cls:"sc-amber"  },
-          { label:"Hard",            value:totals.Hard,      cls:"sc-rose"   },
-          { label:"Selected",        value:selected.length,  cls:"sc-violet" },
-        ].map(({ label, value, cls }) => (
-          <div key={label} className={`stat-card ${cls}`}>
-            <div className="stat-val">{value}</div>
-            <div className="stat-label">{label}</div>
+        {/* Page header */}
+        <div className="qb-page-hd">
+          <div>
+            <button className="qb-back-btn" onClick={onBack}><IcoChevL style={{ width: 13, height: 13 }} /> Dashboard</button>
+            <div className="greet-title" style={{ marginBottom: 2 }}>Question Bank</div>
+            <div className="greet-sub">Manage reusable questions for quizzes and question papers</div>
           </div>
-        ))}
-      </div>
-
-      {/* Toolbar */}
-      <div className="qb-toolbar">
-        <div className="qb-search">
-          <IcoSearch style={{ width:13, height:13, flexShrink:0, color:"var(--text3)" }}/>
-          <input className="qb-search-inp" placeholder="Search questions…" value={search} onChange={e => setSearch(e.target.value)}/>
-          {search && <button className="qb-search-clear" onClick={() => setSearch("")}><IcoClose style={{ width:10, height:10 }}/></button>}
+          <div className="qb-hd-right">
+            {selected.length > 0 && (
+              <button
+                className="btn btn-ghost"
+                style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}
+                onClick={() => { showToast(`${selected.length} questions added to quiz`); setSelected([]); }}
+              >
+                <IcoZap style={{ width: 12, height: 12 }} /> Use {selected.length} in Quiz
+              </button>
+            )}
+            <button className="btn btn-primary" onClick={openAddModal} style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 12 }}>
+              <IcoPlus style={{ width: 13, height: 13 }} /> Add Question
+            </button>
+          </div>
         </div>
-        <div className="qb-toolbar-right">
-          <select className="qb-select" value={courseF} onChange={e => setCourseF(e.target.value)}>
-            <option value="all">All Courses</option>
-            {Object.entries(coursesMeta).map(([k, c]) => <option key={k} value={k}>{c.code}</option>)}
-          </select>
-          <select className="qb-select" value={diffF} onChange={e => setDiffF(e.target.value)}>
-            <option value="all">All Difficulty</option>
-            {Object.keys(DIFF_META).map(d => <option key={d}>{d}</option>)}
-          </select>
-          <select className="qb-select" value={typeF} onChange={e => setTypeF(e.target.value)}>
-            <option value="all">All Types</option>
-            {Object.keys(TYPE_META).map(t => <option key={t}>{t}</option>)}
-          </select>
+
+        {/* Stats */}
+        <div className="qb-stat-strip">
+          {[
+            { label: "Total Questions", value: questions.length, cls: "sc-indigo" },
+            { label: "Easy", value: totals.Easy, cls: "sc-teal" },
+            { label: "Medium", value: totals.Medium, cls: "sc-amber" },
+            { label: "Hard", value: totals.Hard, cls: "sc-rose" },
+            { label: "Selected", value: selected.length, cls: "sc-violet" },
+          ].map(({ label, value, cls }) => (
+            <div key={label} className={`stat-card ${cls}`}>
+              <div className="stat-val">{value}</div>
+              <div className="stat-label">{label}</div>
+            </div>
+          ))}
         </div>
-      </div>
 
-      {/* List header */}
-      <div className="qb-list-hd">
-        <label className="qb-check-wrap">
-          <input type="checkbox" checked={selected.length === filtered.length && filtered.length > 0} onChange={toggleAll}/>
-          <span className="qb-check-box">{selected.length === filtered.length && filtered.length > 0 && <IcoCheck style={{ width:9, height:9 }}/>}</span>
-        </label>
-        <span style={{ fontSize:11, color:"var(--text3)" }}>{filtered.length} questions</span>
-        {selected.length > 0 && <span style={{ fontSize:11, fontWeight:700, color:"var(--indigo-ll)", marginLeft:8 }}>{selected.length} selected</span>}
-      </div>
+        {/* Toolbar */}
+        <div className="qb-toolbar">
+          <div className="qb-search">
+            <IcoSearch style={{ width: 13, height: 13, flexShrink: 0, color: "var(--text3)" }} />
+            <input className="qb-search-inp" placeholder="Search questions…" value={search} onChange={e => setSearch(e.target.value)} />
+            {search && <button className="qb-search-clear" onClick={() => setSearch("")}><IcoClose style={{ width: 10, height: 10 }} /></button>}
+          </div>
+          <div className="qb-toolbar-right">
+            <select className="qb-select" value={courseF} onChange={e => setCourseF(e.target.value)}>
+              <option value="all">All Courses</option>
+              {Object.entries(coursesMeta).map(([k, c]) => <option key={k} value={k}>{c.code}</option>)}
+            </select>
+            <select className="qb-select" value={diffF} onChange={e => setDiffF(e.target.value)}>
+              <option value="all">All Difficulty</option>
+              {Object.keys(DIFF_META).map(d => <option key={d}>{d}</option>)}
+            </select>
+            <select className="qb-select" value={typeF} onChange={e => setTypeF(e.target.value)}>
+              <option value="all">All Types</option>
+              {Object.keys(TYPE_META).map(t => <option key={t}>{t}</option>)}
+            </select>
+          </div>
+        </div>
 
-      {/* Question list */}
-      <div className="qb-list">
-        {filtered.map(q => {
-          const dm    = DIFF_META[q.diff] || DIFF_META.Medium;
-          const tm    = TYPE_META[q.type] || TYPE_META.MCQ;
-          const cm    = coursesMeta[q.course] || { color:"var(--teal)", bg:"rgba(39,201,176,.1)", border:"rgba(39,201,176,.2)", code: q.course.toUpperCase() };
-          const isSel = selected.includes(q.id);
-          return (
-            <div key={q.id} className={`qb-card ${isSel ? "qb-card--sel" : ""}`} onClick={() => toggle(q.id)}>
-              <label className="qb-check-wrap" onClick={e => e.stopPropagation()}>
-                <input type="checkbox" checked={isSel} onChange={() => toggle(q.id)}/>
-                <span className="qb-check-box">{isSel && <IcoCheck style={{ width:9, height:9 }}/>}</span>
-              </label>
+        {/* List header */}
+        <div className="qb-list-hd">
+          <label className="qb-check-wrap">
+            <input type="checkbox" checked={selected.length === filtered.length && filtered.length > 0} onChange={toggleAll} />
+            <span className="qb-check-box">{selected.length === filtered.length && filtered.length > 0 && <IcoCheck style={{ width: 9, height: 9 }} />}</span>
+          </label>
+          <span style={{ fontSize: 11, color: "var(--text3)" }}>{filtered.length} questions</span>
+          {selected.length > 0 && <span style={{ fontSize: 11, fontWeight: 700, color: "var(--indigo-ll)", marginLeft: 8 }}>{selected.length} selected</span>}
+        </div>
 
-              <div className="qb-card-body">
-                <div className="qb-card-top">
-                  <div className="qb-card-badges">
-                    <span className="qb-course-chip" style={{ color:cm.color, background:cm.bg, borderColor:cm.border }}>{cm.code}</span>
-                    <span className="qb-unit-chip">{q.unit}</span>
-                    <span className="qb-type-badge"  style={{ color:tm.color, background:tm.bg }}>{tm.icon} {q.type}</span>
-                    <span className="qb-diff-badge"  style={{ color:dm.color, background:dm.bg, borderColor:dm.border }}>{q.diff}</span>
-                    <span className="qb-marks-badge">{q.marks} pt{q.marks > 1 ? "s" : ""}</span>
+        {/* Question list */}
+        <div className="qb-list">
+          {filtered.map(q => {
+            const dm = DIFF_META[q.diff] || DIFF_META.Medium;
+            const tm = TYPE_META[q.type] || TYPE_META.MCQ;
+            const cm = coursesMeta[q.course] || { color: "var(--teal)", bg: "rgba(39,201,176,.1)", border: "rgba(39,201,176,.2)", code: q.course.toUpperCase() };
+            const isSel = selected.includes(q.id);
+            return (
+              <div key={q.id} className={`qb-card ${isSel ? "qb-card--sel" : ""}`} onClick={() => toggle(q.id)}>
+                <label className="qb-check-wrap" onClick={e => e.stopPropagation()}>
+                  <input type="checkbox" checked={isSel} onChange={() => toggle(q.id)} />
+                  <span className="qb-check-box">{isSel && <IcoCheck style={{ width: 9, height: 9 }} />}</span>
+                </label>
+
+                <div className="qb-card-body">
+                  <div className="qb-card-top">
+                    <div className="qb-card-badges">
+                      <span className="qb-course-chip" style={{ color: cm.color, background: cm.bg, borderColor: cm.border }}>{cm.code}</span>
+                      <span className="qb-unit-chip">{q.unit}</span>
+                      <span className="qb-type-badge" style={{ color: tm.color, background: tm.bg }}>{tm.icon} {q.type}</span>
+                      <span className="qb-diff-badge" style={{ color: dm.color, background: dm.bg, borderColor: dm.border }}>{q.diff}</span>
+                      <span className="qb-marks-badge">{q.marks} pt{q.marks > 1 ? "s" : ""}</span>
+                    </div>
+
+                    {/* Action buttons */}
+                    <div className="qb-card-acts" onClick={e => e.stopPropagation()}>
+                      <button
+                        className="qb-act-btn"
+                        title="Edit question"
+                        onClick={() => setEditQ(q)}
+                      >
+                        <IcoPen style={{ width: 11, height: 11 }} />
+                      </button>
+                      <button
+                        className="qb-act-btn"
+                        title="Duplicate question"
+                        onClick={e => handleDuplicate(q, e)}
+                      >
+                        <IcoCopy style={{ width: 11, height: 11 }} />
+                      </button>
+                      <button
+                        className="qb-act-btn qb-act-del"
+                        title="Delete question"
+                        onClick={e => { e.stopPropagation(); setDeleteQ(q); }}
+                      >
+                        <IcoTrash style={{ width: 11, height: 11 }} />
+                      </button>
+                    </div>
                   </div>
 
-                  {/* Action buttons */}
-                  <div className="qb-card-acts" onClick={e => e.stopPropagation()}>
-                    <button
-                      className="qb-act-btn"
-                      title="Edit question"
-                      onClick={() => setEditQ(q)}
-                    >
-                      <IcoPen style={{ width:11, height:11 }}/>
-                    </button>
-                    <button
-                      className="qb-act-btn"
-                      title="Duplicate question"
-                      onClick={e => handleDuplicate(q, e)}
-                    >
-                      <IcoCopy style={{ width:11, height:11 }}/>
-                    </button>
-                    <button
-                      className="qb-act-btn qb-act-del"
-                      title="Delete question"
-                      onClick={e => { e.stopPropagation(); setDeleteQ(q); }}
-                    >
-                      <IcoTrash style={{ width:11, height:11 }}/>
-                    </button>
+                  <div className="qb-question-text">{q.q}</div>
+
+                  {q.options && (
+                    <div className="qb-options">
+                      {q.options.map((opt, i) => (
+                        <span key={i} className={`qb-opt ${i === q.ans ? "qb-opt--correct" : ""}`}>
+                          {String.fromCharCode(65 + i)}. {opt}
+                          {i === q.ans && <IcoCheck style={{ width: 8, height: 8, marginLeft: 3 }} />}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {typeof q.ans === "boolean" && (
+                    <div className="qb-answer">Answer: <strong style={{ color: "var(--teal)" }}>{q.ans ? "True" : "False"}</strong></div>
+                  )}
+                  {typeof q.ans === "string" && q.type === "FIB" && (
+                    <div className="qb-answer">Answer: <strong style={{ color: "var(--teal)" }}>"{q.ans}"</strong></div>
+                  )}
+
+                  <div className="qb-card-footer">
+                    <span className="qb-used">Used {q.used}×</span>
                   </div>
-                </div>
-
-                <div className="qb-question-text">{q.q}</div>
-
-                {q.options && (
-                  <div className="qb-options">
-                    {q.options.map((opt, i) => (
-                      <span key={i} className={`qb-opt ${i === q.ans ? "qb-opt--correct" : ""}`}>
-                        {String.fromCharCode(65 + i)}. {opt}
-                        {i === q.ans && <IcoCheck style={{ width:8, height:8, marginLeft:3 }}/>}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                {typeof q.ans === "boolean" && (
-                  <div className="qb-answer">Answer: <strong style={{ color:"var(--teal)" }}>{q.ans ? "True" : "False"}</strong></div>
-                )}
-                {typeof q.ans === "string" && q.type === "FIB" && (
-                  <div className="qb-answer">Answer: <strong style={{ color:"var(--teal)" }}>"{q.ans}"</strong></div>
-                )}
-
-                <div className="qb-card-footer">
-                  <span className="qb-used">Used {q.used}×</span>
                 </div>
               </div>
-            </div>
-          );
-        })}
-      </div>
-
-      {filtered.length === 0 && (
-        <div className="qb-empty">
-          <div style={{ fontSize:36, marginBottom:10, opacity:.2 }}>🗂️</div>
-          <div style={{ fontSize:14, fontWeight:700 }}>No questions found</div>
+            );
+          })}
         </div>
-      )}
 
-      {/* Toast */}
-      {toast && createPortal(<div className="qb-toast">{toast}</div>, document.body)}
+        {filtered.length === 0 && (
+          <div className="qb-empty">
+            <div style={{ fontSize: 36, marginBottom: 10, opacity: .2 }}>🗂️</div>
+            <div style={{ fontSize: 14, fontWeight: 700 }}>No questions found</div>
+          </div>
+        )}
+
+        {/* Toast */}
+        {toast && createPortal(<div className="qb-toast">{toast}</div>, document.body)}
       </>}
     </div>
   );

@@ -7,41 +7,41 @@ import api from "../../../utils/api";
 import "./facultyAssignments.css";
 
 // ─── ICONS ────────────────────────────────────────────────────────
-const IcoFile     = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="15" y2="17"/></svg>;
-const IcoPlus     = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>;
-const IcoSearch   = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;
-const IcoChevR    = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>;
-const IcoChevL    = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>;
-const IcoPen      = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>;
-const IcoTrash    = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/></svg>;
-const IcoDownload = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>;
-const IcoClose    = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
-const IcoCheck    = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>;
-const IcoAlert    = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>;
-const IcoCal      = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>;
-const IcoUsers    = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>;
-const IcoBook     = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>;
-const IcoClock    = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
-const IcoBar      = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>;
-const IcoChevUp   = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="18 15 12 9 6 15"/></svg>;
-const IcoChevDn   = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="6 9 12 15 18 9"/></svg>;
-const IcoMinus    = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12"/></svg>;
-const IcoStar     = (p) => <svg {...p} viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>;
-const IcoCopy     = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>;
-const IcoUpload   = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>;
-const IcoEye      = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>;
-const IcoBrain    = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-1.66Z"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-1.66Z"/></svg>;
-const IcoLink     = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>;
-const IcoGrid     = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>;
-const IcoList     = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>;
+const IcoFile = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" /><polyline points="14 2 14 8 20 8" /><line x1="9" y1="13" x2="15" y2="13" /><line x1="9" y1="17" x2="15" y2="17" /></svg>;
+const IcoPlus = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" /></svg>;
+const IcoSearch = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>;
+const IcoChevR = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="9 18 15 12 9 6" /></svg>;
+const IcoChevL = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="15 18 9 12 15 6" /></svg>;
+const IcoPen = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" /></svg>;
+const IcoTrash = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6" /><path d="M19 6l-1 14H6L5 6" /><path d="M10 11v6" /><path d="M14 11v6" /><path d="M9 6V4h6v2" /></svg>;
+const IcoDownload = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" /></svg>;
+const IcoClose = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.3" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" /></svg>;
+const IcoCheck = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12" /></svg>;
+const IcoAlert = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" /><line x1="12" y1="9" x2="12" y2="13" /><line x1="12" y1="17" x2="12.01" y2="17" /></svg>;
+const IcoCal = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" /><line x1="16" y1="2" x2="16" y2="6" /><line x1="8" y1="2" x2="8" y2="6" /><line x1="3" y1="10" x2="21" y2="10" /></svg>;
+const IcoUsers = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" /></svg>;
+const IcoBook = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" /><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" /></svg>;
+const IcoClock = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>;
+const IcoBar = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="20" x2="18" y2="10" /><line x1="12" y1="20" x2="12" y2="4" /><line x1="6" y1="20" x2="6" y2="14" /></svg>;
+const IcoChevUp = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="18 15 12 9 6 15" /></svg>;
+const IcoChevDn = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="6 9 12 15 18 9" /></svg>;
+const IcoMinus = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="5" y1="12" x2="19" y2="12" /></svg>;
+const IcoStar = (p) => <svg {...p} viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>;
+const IcoCopy = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>;
+const IcoUpload = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="16 16 12 12 8 16" /><line x1="12" y1="12" x2="12" y2="21" /><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3" /></svg>;
+const IcoEye = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" /></svg>;
+const IcoBrain = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44 2.5 2.5 0 0 1-2.96-3.08 3 3 0 0 1-.34-5.58 2.5 2.5 0 0 1 1.32-4.24 2.5 2.5 0 0 1 4.44-1.66Z" /><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44 2.5 2.5 0 0 0 2.96-3.08 3 3 0 0 0 .34-5.58 2.5 2.5 0 0 0-1.32-4.24 2.5 2.5 0 0 0-4.44-1.66Z" /></svg>;
+const IcoLink = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" /><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" /></svg>;
+const IcoGrid = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /></svg>;
+const IcoList = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="8" y1="6" x2="21" y2="6" /><line x1="8" y1="12" x2="21" y2="12" /><line x1="8" y1="18" x2="21" y2="18" /><line x1="3" y1="6" x2="3.01" y2="6" /><line x1="3" y1="12" x2="3.01" y2="12" /><line x1="3" y1="18" x2="3.01" y2="18" /></svg>;
 
 // ─── HELPERS ──────────────────────────────────────────────────────
 const COLORS = [
-  { color: "var(--indigo-l)",  rgb: "91,78,248",   bg: "rgba(91,78,248,.1)",   border: "rgba(91,78,248,.2)" },
-  { color: "var(--teal)",      rgb: "39,201,176",  bg: "rgba(39,201,176,.1)",  border: "rgba(39,201,176,.2)" },
-  { color: "var(--violet)",    rgb: "159,122,234", bg: "rgba(159,122,234,.1)", border: "rgba(159,122,234,.2)" },
-  { color: "var(--rose)",      rgb: "242,68,92",   bg: "rgba(242,68,92,.1)",   border: "rgba(242,68,92,.2)" },
-  { color: "var(--amber)",     rgb: "244,165,53",  bg: "rgba(244,165,53,.1)",  border: "rgba(244,165,53,.2)" },
+  { color: "var(--indigo-l)", rgb: "91,78,248", bg: "rgba(91,78,248,.1)", border: "rgba(91,78,248,.2)" },
+  { color: "var(--teal)", rgb: "39,201,176", bg: "rgba(39,201,176,.1)", border: "rgba(39,201,176,.2)" },
+  { color: "var(--violet)", rgb: "159,122,234", bg: "rgba(159,122,234,.1)", border: "rgba(159,122,234,.2)" },
+  { color: "var(--rose)", rgb: "242,68,92", bg: "rgba(242,68,92,.1)", border: "rgba(242,68,92,.2)" },
+  { color: "var(--amber)", rgb: "244,165,53", bg: "rgba(244,165,53,.1)", border: "rgba(244,165,53,.2)" },
 ];
 
 function getCourseMeta(courseId, courseCode) {
@@ -54,18 +54,18 @@ function getCourseMeta(courseId, courseCode) {
 }
 
 const TYPE_META = {
-  Lab:     { color: "var(--indigo-l)",  bg: "rgba(91,78,248,.1)",   icon: "🧪" },
-  Theory:  { color: "var(--teal)",      bg: "rgba(39,201,176,.1)",  icon: "📖" },
-  Project: { color: "var(--violet)",    bg: "rgba(159,122,234,.1)", icon: "🏗️" },
-  Coding:  { color: "var(--amber)",     bg: "rgba(244,165,53,.1)",  icon: "💻" },
-  Report:  { color: "var(--rose)",      bg: "rgba(242,68,92,.1)",   icon: "📄" },
+  Lab: { color: "var(--indigo-l)", bg: "rgba(91,78,248,.1)", icon: "🧪" },
+  Theory: { color: "var(--teal)", bg: "rgba(39,201,176,.1)", icon: "📖" },
+  Project: { color: "var(--violet)", bg: "rgba(159,122,234,.1)", icon: "🏗️" },
+  Coding: { color: "var(--amber)", bg: "rgba(244,165,53,.1)", icon: "💻" },
+  Report: { color: "var(--rose)", bg: "rgba(242,68,92,.1)", icon: "📄" },
 };
 
 const STATUS_META = {
-  grading:  { label: "Grading",  color: "var(--amber)",     bg: "rgba(244,165,53,.1)",  border: "rgba(244,165,53,.2)"   },
-  upcoming: { label: "Upcoming", color: "var(--text3)",     bg: "var(--surface3)",       border: "rgba(255,255,255,.06)" },
-  done:     { label: "Graded",   color: "var(--teal)",      bg: "rgba(39,201,176,.1)",  border: "rgba(39,201,176,.2)"   },
-  live:     { label: "Live",     color: "var(--indigo-ll)", bg: "rgba(91,78,248,.1)",   border: "rgba(91,78,248,.2)"    },
+  grading: { label: "Grading", color: "var(--amber)", bg: "rgba(244,165,53,.1)", border: "rgba(244,165,53,.2)" },
+  upcoming: { label: "Upcoming", color: "var(--text3)", bg: "var(--surface3)", border: "rgba(255,255,255,.06)" },
+  done: { label: "Graded", color: "var(--teal)", bg: "rgba(39,201,176,.1)", border: "rgba(39,201,176,.2)" },
+  live: { label: "Live", color: "var(--indigo-ll)", bg: "rgba(91,78,248,.1)", border: "rgba(91,78,248,.2)" },
 };
 
 // ─── ANIMATED BAR ─────────────────────────────────────────────────
@@ -125,7 +125,7 @@ function CreateModal({ onClose, onCreated, courses = [], editData, groups = [] }
     setForm(f => ({ ...f, rubric: f.rubric.filter((_, x) => x !== i) }));
 
   const totalRubric = form.rubric.reduce((s, r) => s + Number(r.marks || 0), 0);
-  const canProceed  = form.title.trim() && form.dueDate;
+  const canProceed = form.title.trim() && form.dueDate;
   const cm = getCourseMeta(form.course_id, form.course_id);
 
   return (
@@ -135,13 +135,13 @@ function CreateModal({ onClose, onCreated, courses = [], editData, groups = [] }
         <div className="as-modal-hd">
           <div className="as-modal-ico"><IcoFile width={14} height={14} style={{ color: "#fff" }} /></div>
           <span className="as-modal-title">Create Assignment</span>
-          <button className="as-modal-close" onClick={onClose}><IcoClose width={12} height={12} /></button>
+          <button className="lp-close" onClick={onClose}><IcoClose width={12} height={12} /></button>
         </div>
 
         <div className="as-steps">
           {["Details", "Rubric", "Publish"].map((s, i) => (
-            <div key={s} className={`as-step ${step === i+1 ? "as-step--active" : ""} ${step > i+1 ? "as-step--done" : ""}`}>
-              <div className="as-step-dot">{step > i+1 ? <IcoCheck width={8} height={8}/> : i+1}</div>
+            <div key={s} className={`as-step ${step === i + 1 ? "as-step--active" : ""} ${step > i + 1 ? "as-step--done" : ""}`}>
+              <div className="as-step-dot">{step > i + 1 ? <IcoCheck width={8} height={8} /> : i + 1}</div>
               <span>{s}</span>
               {i < 2 && <div className="as-step-line" />}
             </div>
@@ -166,9 +166,9 @@ function CreateModal({ onClose, onCreated, courses = [], editData, groups = [] }
                           : <option value="">No courses found</option>
                         }
                       </select>
-                      <button 
-                        className="btn btn-ghost" 
-                        title="Create New Course" 
+                      <button
+                        className="btn btn-ghost"
+                        title="Create New Course"
                         style={{ height: 42, width: 42, padding: 0 }}
                         onClick={() => window.dispatchEvent(new CustomEvent('OPEN_CREATE_COURSE'))}
                       >
@@ -187,7 +187,7 @@ function CreateModal({ onClose, onCreated, courses = [], editData, groups = [] }
                   <div className="as-field">
                     <div className="as-field-lbl">Week</div>
                     <select className="as-input" value={form.week} onChange={set("week")}>
-                      {Array.from({ length: 16 }, (_, i) => `W${i+1}`).map(w => <option key={w}>{w}</option>)}
+                      {Array.from({ length: 16 }, (_, i) => `W${i + 1}`).map(w => <option key={w}>{w}</option>)}
                     </select>
                   </div>
                   <div className="as-field">
@@ -224,7 +224,7 @@ function CreateModal({ onClose, onCreated, courses = [], editData, groups = [] }
                 </div>
               </div>
               <div className="as-modal-foot">
-                <button className="btn btn-ghost" onClick={onClose}>Cancel</button>
+                <button className="btn btn-ghost" onClick={onClose}><IcoClose style={{ marginRight: 6 }} width={12} height={12} />Cancel</button>
                 <button className="btn btn-solid"
                   style={{ opacity: canProceed ? 1 : .45, pointerEvents: canProceed ? "all" : "none" }}
                   onClick={() => setStep(2)}>
@@ -243,9 +243,9 @@ function CreateModal({ onClose, onCreated, courses = [], editData, groups = [] }
               <div className="as-rubric-list">
                 {form.rubric.map((r, i) => (
                   <div key={`rubric-row-${i}`} className="as-rubric-row">
-                    <span className="as-rubric-idx">{i+1}</span>
+                    <span className="as-rubric-idx">{i + 1}</span>
                     <input className="as-input as-rubric-item-inp" value={r.item}
-                      placeholder={`Criterion ${i+1}…`}
+                      placeholder={`Criterion ${i + 1}…`}
                       onChange={e => setRubric(i, "item", e.target.value)} />
                     <input className="as-input as-rubric-marks-inp" type="number"
                       value={r.marks} min={0} max={100}
@@ -355,7 +355,7 @@ function CreateModal({ onClose, onCreated, courses = [], editData, groups = [] }
 
 // ─── DETAIL DRAWER ────────────────────────────────────────────────
 function DetailDrawer({ assignment, onClose, onEdit, onDuplicate, onDelete }) {
-  const [tab, setTab]           = useState("overview");
+  const [tab, setTab] = useState("overview");
   const [subSearch, setSubSearch] = useState("");
   const [subFilter, setSubFilter] = useState("all");
   const [activeGrader, setActiveGrader] = useState(null);
@@ -378,7 +378,7 @@ function DetailDrawer({ assignment, onClose, onEdit, onDuplicate, onDelete }) {
       <div className="as-drawer" onClick={e => e.stopPropagation()}>
 
         <div className="as-drawer-hd">
-          <button className="as-drawer-back" onClick={onClose}><IcoChevL width={11} height={11}/> Close</button>
+          <button className="as-drawer-back" onClick={onClose}><IcoChevL width={11} height={11} /> Close</button>
           <div className="as-drawer-course" style={{ color: cm?.color }}>{cm?.code} · {assignment.week} · {assignment.unit}</div>
           <div className="as-drawer-title">{assignment.title}</div>
           <div className="as-drawer-badges">
@@ -405,14 +405,16 @@ function DetailDrawer({ assignment, onClose, onEdit, onDuplicate, onDelete }) {
             <>
               <p className="as-drawer-desc">{assignment.description}</p>
 
-              {["grading","done"].includes(assignment.status) && (
+              {["grading", "done"].includes(assignment.status) && (
                 <div className="as-drawer-stats">
                   {[
                     { lbl: "Submitted", val: `${assignment.submissions}/${cm?.total}`, color: "var(--text)" },
-                    { lbl: "Avg Score", val: assignment.avgScore != null ? `${assignment.avgScore}%` : "—",
-                      color: assignment.avgScore >= 75 ? "var(--teal)" : assignment.avgScore >= 60 ? "var(--amber)" : "var(--rose)" },
+                    {
+                      lbl: "Avg Score", val: assignment.avgScore != null ? `${assignment.avgScore}%` : "—",
+                      color: assignment.avgScore >= 75 ? "var(--teal)" : assignment.avgScore >= 60 ? "var(--amber)" : "var(--rose)"
+                    },
                     { lbl: "Highest", val: assignment.highest != null ? `${assignment.highest}%` : "—", color: "var(--teal)" },
-                    { lbl: "Lowest",  val: assignment.lowest  != null ? `${assignment.lowest}%`  : "—", color: "var(--rose)" },
+                    { lbl: "Lowest", val: assignment.lowest != null ? `${assignment.lowest}%` : "—", color: "var(--rose)" },
                   ].map((s, i) => (
                     <div key={s.lbl} className="as-ds">
                       <div className="as-ds-val" style={{ color: s.color }}>{s.val}</div>
@@ -436,14 +438,14 @@ function DetailDrawer({ assignment, onClose, onEdit, onDuplicate, onDelete }) {
                 <div style={{ marginTop: 16 }}>
                   <div className="as-drawer-sec">Score Breakdown</div>
                   {[
-                    { lbl: "Avg",  pct: assignment.avgScore, color: cm?.color || "var(--indigo-l)" },
-                    { lbl: "High", pct: assignment.highest,  color: "var(--teal)"  },
-                    { lbl: "Low",  pct: assignment.lowest,   color: "var(--rose)"  },
-                    { lbl: "Sub%", pct: subPct,              color: "var(--violet)"},
+                    { lbl: "Avg", pct: assignment.avgScore, color: cm?.color || "var(--indigo-l)" },
+                    { lbl: "High", pct: assignment.highest, color: "var(--teal)" },
+                    { lbl: "Low", pct: assignment.lowest, color: "var(--rose)" },
+                    { lbl: "Sub%", pct: subPct, color: "var(--violet)" },
                   ].map((b, i) => (
                     <div key={b.lbl} className="as-score-row">
                       <span className="as-score-lbl">{b.lbl}</span>
-                      <div style={{ flex: 1 }}><AnimBar pct={b.pct} color={b.color} height={5} delay={200 + i*80} /></div>
+                      <div style={{ flex: 1 }}><AnimBar pct={b.pct} color={b.color} height={5} delay={200 + i * 80} /></div>
                       <span className="as-score-val" style={{ color: b.color }}>{b.pct}%</span>
                     </div>
                   ))}
@@ -451,19 +453,19 @@ function DetailDrawer({ assignment, onClose, onEdit, onDuplicate, onDelete }) {
               )}
 
               <div className="as-drawer-meta-grid">
-                <div className="as-meta-item"><IcoCal  width={12} height={12}/><span>Due: <strong>{assignment.dueDate || assignment.due}</strong></span></div>
-                <div className="as-meta-item"><IcoBook width={12} height={12}/><span>Week: <strong>{assignment.week}</strong></span></div>
-                <div className="as-meta-item"><IcoStar width={12} height={12}/><span>Marks: <strong>{assignment.marks}</strong></span></div>
-                <div className="as-meta-item"><IcoClock width={12} height={12}/><span>Created: <strong>{assignment.created}</strong></span></div>
+                <div className="as-meta-item"><IcoCal width={12} height={12} /><span>Due: <strong>{assignment.dueDate || assignment.due}</strong></span></div>
+                <div className="as-meta-item"><IcoBook width={12} height={12} /><span>Week: <strong>{assignment.week}</strong></span></div>
+                <div className="as-meta-item"><IcoStar width={12} height={12} /><span>Marks: <strong>{assignment.marks}</strong></span></div>
+                <div className="as-meta-item"><IcoClock width={12} height={12} /><span>Created: <strong>{assignment.created}</strong></span></div>
               </div>
 
               <div className="as-drawer-actions">
-                <button className="btn btn-ghost" style={{ flex:1, justifyContent:"center", gap:5, fontSize:11 }} onClick={() => { onClose(); onEdit(assignment); }}><IcoPen width={11} height={11}/> Edit</button>
-                <button className="btn btn-ghost" style={{ flex:1, justifyContent:"center", gap:5, fontSize:11 }} onClick={() => { onDuplicate(assignment); onClose(); }}><IcoCopy width={11} height={11}/> Duplicate</button>
-                <button className="btn btn-ghost" style={{ flex:1, justifyContent:"center", gap:5, fontSize:11 }}><IcoLink width={11} height={11}/> Share</button>
+                <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center", gap: 5, fontSize: 11 }} onClick={() => { onClose(); onEdit(assignment); }}><IcoPen width={11} height={11} /> Edit</button>
+                <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center", gap: 5, fontSize: 11 }} onClick={() => { onDuplicate(assignment); onClose(); }}><IcoCopy width={11} height={11} /> Duplicate</button>
+                <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center", gap: 5, fontSize: 11 }}><IcoLink width={11} height={11} /> Share</button>
               </div>
-              <button 
-                className="as-danger-btn" 
+              <button
+                className="as-danger-btn"
                 onClick={() => {
                   if (window.confirm("Are you sure you want to delete this assignment?")) {
                     onDelete(assignment.id);
@@ -471,7 +473,7 @@ function DetailDrawer({ assignment, onClose, onEdit, onDuplicate, onDelete }) {
                   }
                 }}
               >
-                <IcoTrash width={11} height={11}/> Delete Assignment
+                <IcoTrash width={11} height={11} /> Delete Assignment
               </button>
             </>
           )}
@@ -485,7 +487,7 @@ function DetailDrawer({ assignment, onClose, onEdit, onDuplicate, onDelete }) {
                     value={subSearch} onChange={e => setSubSearch(e.target.value)} />
                 </div>
                 <div className="as-sub-filter-pills">
-                  {["all","graded","pending","missing"].map(f => (
+                  {["all", "graded", "pending", "missing"].map(f => (
                     <button key={f}
                       className={`as-sub-pill ${subFilter === f ? "active" : ""}`}
                       style={subFilter === f ? { borderColor: cm?.border, color: cm?.color, background: cm?.bg } : {}}
@@ -505,19 +507,19 @@ function DetailDrawer({ assignment, onClose, onEdit, onDuplicate, onDelete }) {
                 <div className="as-sub-list">
                   {filteredSubs.map((s, i) => (
                     <div key={s.roll || i} className="as-sub-row">
-                      <div className="as-sub-avatar">{(s.name || "S").split(" ").map(x=>x[0]).join("")}</div>
+                      <div className="as-sub-avatar">{(s.name || "S").split(" ").map(x => x[0]).join("")}</div>
                       <div className="as-sub-info">
                         <div className="as-sub-name">{s.name}</div>
                         <div className="as-sub-roll">{s.roll} {s.submitted ? `· Submitted ${s.submitted}` : "· Not submitted"}</div>
                       </div>
                       <div className={`as-sub-status as-ss-${s.status}`}>
-                        {s.status === "graded"  ? <><IcoCheck width={10} height={10}/> Graded</> :
-                         s.status === "pending" ? <><IcoClock width={10} height={10}/> Pending</> :
-                                                  <><IcoAlert width={10} height={10}/> Missing</>}
+                        {s.status === "graded" ? <><IcoCheck width={10} height={10} /> Graded</> :
+                          s.status === "pending" ? <><IcoClock width={10} height={10} /> Pending</> :
+                            <><IcoAlert width={10} height={10} /> Missing</>}
                       </div>
-                      <button className="btn btn-solid" style={{ padding:"4px 12px", fontSize:10, gap:4 }}
+                      <button className="btn btn-solid" style={{ padding: "4px 12px", fontSize: 10, gap: 4 }}
                         onClick={() => setActiveGrader(s)}>
-                        <IcoPen width={10} height={10}/> Grade
+                        <IcoPen width={10} height={10} /> Grade
                       </button>
                     </div>
                   ))}
@@ -528,22 +530,22 @@ function DetailDrawer({ assignment, onClose, onEdit, onDuplicate, onDelete }) {
                 <div className="as-grader-panel">
                   <div className="as-grader-hd">
                     <span>Grading: <strong style={{ color: cm?.color }}>{activeGrader.name}</strong></span>
-                    <button className="as-grader-close" onClick={() => setActiveGrader(null)}><IcoClose width={10} height={10}/></button>
+                    <button className="as-grader-close" onClick={() => setActiveGrader(null)}><IcoClose width={10} height={10} /></button>
                   </div>
                   {(assignment.rubric || []).map((r, i) => (
                     <div key={`grader-rubric-${i}-${r.item}`} className="as-grader-row">
-                      <span className="as-grader-criterion">{r.item || `Criterion ${i+1}`}</span>
+                      <span className="as-grader-criterion">{r.item || `Criterion ${i + 1}`}</span>
                       <div className="as-grader-input-wrap">
                         <input className="as-grader-input" type="number" min={0} max={r.marks} placeholder="0" />
                         <span>/ {r.marks}</span>
                       </div>
                     </div>
                   ))}
-                  <textarea className="as-input as-textarea" rows={2} style={{ marginTop:10 }} placeholder="Feedback comments (optional)…" />
-                  <div style={{ display:"flex", gap:8, marginTop:10 }}>
-                    <button className="btn btn-ghost" style={{ flex:1, justifyContent:"center", fontSize:11 }} onClick={() => setActiveGrader(null)}>Cancel</button>
-                    <button className="btn btn-solid as-btn-teal" style={{ flex:2, justifyContent:"center", fontSize:11 }} onClick={() => setActiveGrader(null)}>
-                      <IcoCheck width={11} height={11}/> Submit Grade
+                  <textarea className="as-input as-textarea" rows={2} style={{ marginTop: 10 }} placeholder="Feedback comments (optional)…" />
+                  <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+                    <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center", fontSize: 11 }} onClick={() => setActiveGrader(null)}><IcoClose style={{ marginRight: 6 }} width={12} height={12} />Cancel</button>
+                    <button className="btn btn-solid as-btn-teal" style={{ flex: 2, justifyContent: "center", fontSize: 11 }} onClick={() => setActiveGrader(null)}>
+                      <IcoCheck width={11} height={11} /> Submit Grade
                     </button>
                   </div>
                 </div>
@@ -556,19 +558,19 @@ function DetailDrawer({ assignment, onClose, onEdit, onDuplicate, onDelete }) {
               <div className="as-rv-header"><span>Criterion</span><span>Marks</span></div>
               {(assignment.rubric || []).map((r, i) => (
                 <div key={`view-rubric-${i}-${r.item}`} className="as-rv-row">
-                  <div className="as-rv-num">{i+1}</div>
+                  <div className="as-rv-num">{i + 1}</div>
                   <div className="as-rv-name">{r.item}</div>
                   <div className="as-rv-marks" style={{ color: cm?.color }}>
-                    {r.marks}<span style={{ color:"var(--text3)", fontWeight:400, fontSize:9 }}> m</span>
+                    {r.marks}<span style={{ color: "var(--text3)", fontWeight: 400, fontSize: 9 }}> m</span>
                   </div>
-                  <div style={{ flex:1, paddingRight:10 }}>
-                    <AnimBar pct={(r.marks / assignment.marks)*100} color={cm?.color||"var(--indigo-l)"} height={4} delay={200+i*80} />
+                  <div style={{ flex: 1, paddingRight: 10 }}>
+                    <AnimBar pct={(r.marks / assignment.marks) * 100} color={cm?.color || "var(--indigo-l)"} height={4} delay={200 + i * 80} />
                   </div>
                 </div>
               ))}
               <div className="as-rv-total">
                 <span>Total</span>
-                <span style={{ color: cm?.color, fontWeight:700 }}>{assignment.marks} marks</span>
+                <span style={{ color: cm?.color, fontWeight: 700 }}>{assignment.marks} marks</span>
               </div>
             </div>
           )}
@@ -611,19 +613,19 @@ function AssignmentCard({ assignment, onSelect }) {
 
       <div className="as-card-due-row">
         <div className="as-card-due-info">
-          <IcoCal width={9} height={9} style={{ color:"var(--text3)" }} />
+          <IcoCal width={9} height={9} style={{ color: "var(--text3)" }} />
           <span>Due: {assignment.dueDate || assignment.due}</span>
         </div>
-        <span className="as-status-badge" style={{ background:sm?.bg, color:sm?.color, borderColor:sm?.border }}>{sm?.label}</span>
+        <span className="as-status-badge" style={{ background: sm?.bg, color: sm?.color, borderColor: sm?.border }}>{sm?.label}</span>
       </div>
 
-      {["grading","done"].includes(assignment.status) && (
+      {["grading", "done"].includes(assignment.status) && (
         <div style={{ marginTop: 12 }}>
           <div className="as-card-sub-row">
             <span>{assignment.submissions}/{cm?.total} submitted</span>
-            <span style={{ color:cm?.color, fontWeight:700 }}>{subPct}%</span>
+            <span style={{ color: cm?.color, fontWeight: 700 }}>{subPct}%</span>
           </div>
-          <AnimBar pct={subPct} color={cm?.color||"var(--indigo-l)"} height={3} delay={500} />
+          <AnimBar pct={subPct} color={cm?.color || "var(--indigo-l)"} height={3} delay={500} />
         </div>
       )}
 
@@ -645,24 +647,24 @@ function AssignmentRow({ assignment, idx, onSelect }) {
 
   return (
     <div className="as-row" onClick={() => onSelect(assignment)}>
-      <span className="as-row-num">{idx+1}</span>
+      <span className="as-row-num">{idx + 1}</span>
       <div className="as-row-info">
         <div className="as-row-title">{assignment.title}</div>
         <div className="as-row-meta">
-          <span style={{ color:cm?.color, fontWeight:700 }}>{cm?.code}</span>
+          <span style={{ color: cm?.color, fontWeight: 700 }}>{cm?.code}</span>
           <span>·</span><span>{assignment.unit || assignment.week}</span>
           <span>·</span><span>Due {assignment.dueDate || assignment.due}</span>
         </div>
       </div>
-      <span className="as-type-badge" style={{ background:tm.bg, color:tm.color, flexShrink:0 }}>{tm.icon} {assignment.type}</span>
-      <span className="as-marks-badge" style={{ flexShrink:0 }}>{assignment.marks}m</span>
+      <span className="as-type-badge" style={{ background: tm.bg, color: tm.color, flexShrink: 0 }}>{tm.icon} {assignment.type}</span>
+      <span className="as-marks-badge" style={{ flexShrink: 0 }}>{assignment.marks}m</span>
       <div className="as-row-sub-col">
-        <AnimBar pct={subPct} color={cm?.color||"var(--indigo-l)"} height={4} delay={300} />
-        <span style={{ fontSize:9.5, color:"var(--text3)", marginTop:2 }}>{assignment.submissions}/{cm?.total}</span>
+        <AnimBar pct={subPct} color={cm?.color || "var(--indigo-l)"} height={4} delay={300} />
+        <span style={{ fontSize: 9.5, color: "var(--text3)", marginTop: 2 }}>{assignment.submissions}/{cm?.total}</span>
       </div>
-      <span className="as-status-badge" style={{ background:sm?.bg, color:sm?.color, borderColor:sm?.border, flexShrink:0 }}>{sm?.label}</span>
+      <span className="as-status-badge" style={{ background: sm?.bg, color: sm?.color, borderColor: sm?.border, flexShrink: 0 }}>{sm?.label}</span>
       <div className="as-row-acts" onClick={e => e.stopPropagation()}>
-        <button className="as-icon-btn"><IcoPen width={11} height={11}/></button>
+        <button className="as-icon-btn"><IcoPen width={11} height={11} /></button>
       </div>
     </div>
   );
@@ -714,7 +716,7 @@ function CreateCourseModal({ onClose, onCreated }) {
             </div>
           </div>
           <div className="as-modal-foot" style={{ marginTop: 20, display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-            <button className="btn btn-ghost" onClick={onClose} disabled={loading}>Cancel</button>
+            <button className="btn btn-ghost" onClick={onClose} disabled={loading}><IcoClose style={{ marginRight: 6 }} width={12} height={12} />Cancel</button>
             <button className="btn btn-primary" style={{ background: 'var(--teal)', borderColor: 'var(--teal)' }} onClick={handleCreate} disabled={loading}>
               {loading ? "Creating…" : "Create Course"}
             </button>
@@ -845,9 +847,9 @@ export default function FacultyAssignments({ onBack }) {
   // AGGREGATE STATS
   const safeAssig = Array.isArray(assignments) ? assignments : [];
   const TOTAL_PENDING_GRADE = safeAssig.filter(a => a.status === "grading").length;
-  const TOTAL_LIVE          = safeAssig.filter(a => ["live","grading","upcoming"].includes(a.status)).length;
-  const TOTAL_DONE          = safeAssig.filter(a => a.status === "done").length;
-  const TOTAL_SUBMISSIONS   = safeAssig.reduce((a, x) => a + (x.submissions || 0), 0);
+  const TOTAL_LIVE = safeAssig.filter(a => ["live", "grading", "upcoming"].includes(a.status)).length;
+  const TOTAL_DONE = safeAssig.filter(a => a.status === "done").length;
+  const TOTAL_SUBMISSIONS = safeAssig.reduce((a, x) => a + (x.submissions || 0), 0);
 
   const filtered = safeAssig.filter(a => {
     const q = search.toLowerCase();
@@ -858,69 +860,69 @@ export default function FacultyAssignments({ onBack }) {
     return titleMatch && courseMatch && statusMatch && typeMatch;
   }).sort((a, b) => {
     if (sortBy === "marks") return b.marks - a.marks;
-    if (sortBy === "sub")   return (b.submissions||0) - (a.submissions||0);
-    if (sortBy === "score") return (b.avgScore||0) - (a.avgScore||0);
+    if (sortBy === "sub") return (b.submissions || 0) - (a.submissions || 0);
+    if (sortBy === "score") return (b.avgScore || 0) - (a.avgScore || 0);
     return 0;
   });
 
-  const grading  = filtered.filter(a => a.status === "grading");
-  const live     = filtered.filter(a => a.status === "live");
+  const grading = filtered.filter(a => a.status === "grading");
+  const live = filtered.filter(a => a.status === "live");
   const upcoming = filtered.filter(a => a.status === "upcoming");
-  const done     = filtered.filter(a => a.status === "done");
+  const done = filtered.filter(a => a.status === "done");
 
   if (loading) return <div className="loading-state">Loading assignments...</div>;
 
   return (
     <div className="as-root">
-      {showCreate && <CreateModal 
-        onClose={() => { setShowCreate(false); setEditingAssignment(null); }} 
-        onCreated={handleCreateAssignment} 
+      {showCreate && <CreateModal
+        onClose={() => { setShowCreate(false); setEditingAssignment(null); }}
+        onCreated={handleCreateAssignment}
         courses={courses}
         editData={editingAssignment}
         groups={metadata.groups}
       />}
       {showCreateCourse && (
-        <CreateCourseModal 
-          onClose={() => setShowCreateCourse(false)} 
+        <CreateCourseModal
+          onClose={() => setShowCreateCourse(false)}
           onCreated={(newCourse) => {
             setCourses(prev => [...prev, { id: newCourse.id, name: `${newCourse.code} – ${newCourse.name}` }]);
-          }} 
+          }}
         />
       )}
-      {selected && <DetailDrawer 
-        assignment={selected} 
-        onClose={() => setSelected(null)} 
-        onEdit={handleEditAssignment} 
-        onDuplicate={handleDuplicateAssignment} 
+      {selected && <DetailDrawer
+        assignment={selected}
+        onClose={() => setSelected(null)}
+        onEdit={handleEditAssignment}
+        onDuplicate={handleDuplicateAssignment}
         onDelete={handleDeleteAssignment}
       />}
-      {toast      && <div className="as-toast">{toast}</div>}
+      {toast && <div className="as-toast">{toast}</div>}
 
       <div className="as-page-hd">
         <div>
-          <button className="as-back-btn" onClick={onBack}><IcoChevL width={11} height={11}/> Dashboard</button>
-          <div className="greet-tag" style={{ marginBottom:8, marginTop:10 }}>
-            <div className="greet-pip"/>
+          <button className="as-back-btn" onClick={onBack}><IcoChevL width={11} height={11} /> Dashboard</button>
+          <div className="greet-tag" style={{ marginBottom: 8, marginTop: 10 }}>
+            <div className="greet-pip" />
             <span className="greet-pip-txt">Semester 5 · Week 11 · {TOTAL_PENDING_GRADE} Pending to Grade</span>
           </div>
           <h1 className="greet-title">Assignments <em>&amp; Grading</em></h1>
           <p className="greet-sub">Evaluate submissions and manage curriculum work.</p>
         </div>
         <div className="as-hd-right">
-          <button className="btn btn-solid" style={{ gap:6 }} onClick={() => setShowCreate(true)}>
-            <IcoPlus width={12} height={12}/> New Assignment
+          <button className="btn btn-solid" style={{ gap: 6 }} onClick={() => setShowCreate(true)}>
+            <IcoPlus width={12} height={12} /> New Assignment
           </button>
         </div>
       </div>
 
       <div className="as-stat-strip">
         {[
-          { cls:"sc-rose",   icon:<IcoPen   width={17} height={17}/>, val:TOTAL_PENDING_GRADE, lbl:"Pending Grading"  },
-          { cls:"sc-indigo", icon:<IcoFile  width={17} height={17}/>, val:TOTAL_LIVE,          lbl:"Active/Upcoming"  },
-          { cls:"sc-teal",   icon:<IcoCheck width={17} height={17}/>, val:TOTAL_DONE,          lbl:"Fully Graded"     },
-          { cls:"sc-violet", icon:<IcoUsers width={17} height={17}/>, val:TOTAL_SUBMISSIONS,   lbl:"Total Submitted"  },
+          { cls: "sc-rose", icon: <IcoPen width={17} height={17} />, val: TOTAL_PENDING_GRADE, lbl: "Pending Grading" },
+          { cls: "sc-indigo", icon: <IcoFile width={17} height={17} />, val: TOTAL_LIVE, lbl: "Active/Upcoming" },
+          { cls: "sc-teal", icon: <IcoCheck width={17} height={17} />, val: TOTAL_DONE, lbl: "Fully Graded" },
+          { cls: "sc-violet", icon: <IcoUsers width={17} height={17} />, val: TOTAL_SUBMISSIONS, lbl: "Total Submitted" },
         ].map((s, i) => (
-          <div key={s.lbl} className={`stat-card ${s.cls}`} style={{ cursor:"default" }}>
+          <div key={s.lbl} className={`stat-card ${s.cls}`} style={{ cursor: "default" }}>
             <div className="stat-ic">{s.icon}</div>
             <div className="stat-val">{s.val}</div>
             <div className="stat-lbl">{s.lbl}</div>
@@ -932,9 +934,9 @@ export default function FacultyAssignments({ onBack }) {
         <button
           key="all"
           className={`as-ctab ${activeCourse === "all" ? "as-ctab--active" : ""}`}
-          style={activeCourse === "all" ? { borderColor:"rgba(91,78,248,.2)", color:"var(--indigo-l)", background:"rgba(91,78,248,.1)" } : {}}
+          style={activeCourse === "all" ? { borderColor: "rgba(91,78,248,.2)", color: "var(--indigo-l)", background: "rgba(91,78,248,.1)" } : {}}
           onClick={() => setActiveCourse("all")}>
-          <span className="as-ctab-dot" style={{ background:"var(--indigo-l)" }}/>
+          <span className="as-ctab-dot" style={{ background: "var(--indigo-l)" }} />
           All Courses
           <span className="as-ctab-count">{safeAssig.length}</span>
         </button>
@@ -944,9 +946,9 @@ export default function FacultyAssignments({ onBack }) {
           return (
             <button key={`ctab-${cid || 'none'}`}
               className={`as-ctab ${activeCourse === cid ? "as-ctab--active" : ""}`}
-              style={activeCourse === cid ? { borderColor:cm.border, color:cm.color, background:cm.bg } : {}}
+              style={activeCourse === cid ? { borderColor: cm.border, color: cm.color, background: cm.bg } : {}}
               onClick={() => setActiveCourse(cid)}>
-              <span className="as-ctab-dot" style={{ background:cm.color }}/>
+              <span className="as-ctab-dot" style={{ background: cm.color }} />
               {cm.code}
               <span className="as-ctab-count">{safeAssig.filter(x => x.courseId === cid).length}</span>
             </button>
@@ -962,11 +964,11 @@ export default function FacultyAssignments({ onBack }) {
         <div className="as-toolbar-right">
           <select className="as-select" value={activeStatus} onChange={e => setActiveStatus(e.target.value)}>
             <option value="all">All Status</option>
-            {Object.entries(STATUS_META).map(([k,v]) => <option key={k} value={k}>{v.label}</option>)}
+            {Object.entries(STATUS_META).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
           </select>
           <div className="as-view-toggle">
-            <button className={`as-vbtn ${viewMode==="grid"?"as-vbtn--active":""}`} onClick={() => setViewMode("grid")}><IcoGrid width={12} height={12}/></button>
-            <button className={`as-vbtn ${viewMode==="list"?"as-vbtn--active":""}`} onClick={() => setViewMode("list")}><IcoList width={12} height={12}/></button>
+            <button className={`as-vbtn ${viewMode === "grid" ? "as-vbtn--active" : ""}`} onClick={() => setViewMode("grid")}><IcoGrid width={12} height={12} /></button>
+            <button className={`as-vbtn ${viewMode === "list" ? "as-vbtn--active" : ""}`} onClick={() => setViewMode("list")}><IcoList width={12} height={12} /></button>
           </div>
         </div>
       </div>
@@ -977,13 +979,13 @@ export default function FacultyAssignments({ onBack }) {
 
       {viewMode === "grid" && (
         <div className="as-grid">
-          {filtered.map(a => <AssignmentCard key={a.id} assignment={a} onSelect={setSelected}/>)}
+          {filtered.map(a => <AssignmentCard key={a.id} assignment={a} onSelect={setSelected} />)}
         </div>
       )}
 
       {viewMode === "list" && (
         <div className="panel as-list-panel">
-          {filtered.map((a, i) => <AssignmentRow key={a.id} assignment={a} idx={i} onSelect={setSelected}/>)}
+          {filtered.map((a, i) => <AssignmentRow key={a.id} assignment={a} idx={i} onSelect={setSelected} />)}
         </div>
       )}
     </div>

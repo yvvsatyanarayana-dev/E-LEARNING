@@ -631,6 +631,13 @@
   transition: background .18s, color .18s;
 }
 .vl-modal-close:hover { background: var(--surface3); color: var(--text); }
+.vl-modal-close svg, .vl-link-add svg {
+  display: block;
+  width: 14px !important;
+  height: 14px !important;
+  stroke: currentColor;
+  stroke-width: 2.3;
+}
 
 /* ── Step indicators ── */
 .vl-steps {

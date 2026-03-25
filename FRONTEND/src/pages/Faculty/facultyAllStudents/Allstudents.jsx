@@ -82,6 +82,68 @@ export default function AllStudents({ onBack }) {
   const [status, setStatus]     = useState("all");
   const [sort,   setSort]       = useState("name");
   const [view,   setView]       = useState("grid");
+  const [toast,  setToast]      = useState(null);
+
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const handleExport = () => {
+    try {
+      if (!safeStudents || safeStudents.length === 0) {
+        showToast("No students data available to export.");
+        return;
+      }
+
+      const headers = ["Name", "Roll No", "Email", "Course", "Batch", "Semester", "CGPA", "Attendance (%)", "Score (%)", "Status"];
+      const rows = safeStudents.map(s => [
+        `"${s.name || ""}"`,
+        `"${s.roll || ""}"`,
+        `"${s.email || ""}"`,
+        `"${s.course || ""}"`,
+        `"${s.batch || ""}"`,
+        `"${s.sem || ""}"`,
+        s.cgpa || 0,
+        s.attendance || 0,
+        s.score || 0,
+        `"${s.status || ""}"`
+      ]);
+
+      const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `all_students_export_${new Date().toISOString().split('T')[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 100);
+
+      showToast("Students data exported successfully!");
+    } catch (err) {
+      console.error("Export failed:", err);
+      showToast("Failed to export data. Please try again.");
+    }
+  };
+
+  const handleBulkEmail = () => {
+    if (!safeStudents || safeStudents.length === 0) {
+      showToast("No students available to email.");
+      return;
+    }
+    const emails = safeStudents.map(s => s.email).filter(Boolean).join(",");
+    if (!emails) {
+      showToast("No valid email addresses found.");
+      return;
+    }
+    window.location.href = `mailto:?bcc=${emails}&subject=Course Update for Students`;
+    showToast("Opening default mail client...");
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -125,6 +187,7 @@ export default function AllStudents({ onBack }) {
 
   return (
     <div className="stu-root">
+      {toast && <div className="stu-toast">{toast}</div>}
       {loading && <div style={{textAlign: "center", padding: "40px", color: "var(--text3)"}}>Loading Students...</div>}
       {!loading && <>
       <div className="stu-page-hd">
@@ -134,10 +197,10 @@ export default function AllStudents({ onBack }) {
           <div className="greet-sub">Manage and monitor student performance across all courses</div>
         </div>
         <div className="stu-hd-right">
-          <button className="btn btn-ghost" style={{display:"flex",alignItems:"center",gap:6,fontSize:12}}>
+          <button className="btn btn-ghost" style={{display:"flex",alignItems:"center",gap:6,fontSize:12}} onClick={handleExport}>
             <IcoDownload style={{width:13,height:13}}/> Export CSV
           </button>
-          <button className="btn btn-ghost" style={{display:"flex",alignItems:"center",gap:6,fontSize:12}}>
+          <button className="btn btn-ghost" style={{display:"flex",alignItems:"center",gap:6,fontSize:12}} onClick={handleBulkEmail}>
             <IcoMail style={{width:13,height:13}}/> Bulk Email
           </button>
         </div>

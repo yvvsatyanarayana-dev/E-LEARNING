@@ -140,6 +140,7 @@ export default function FacultyProfile({ onBack }) {
                   <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
                     <button className="fp-btn fp-btn-solid" onClick={saveBio}><IcoCheck /> Save</button>
                     <button className="fp-btn fp-btn-ghost" onClick={() => { setBioEdit(profile.bio || ""); setEditing(false); }}>Cancel</button>
+                                      <button className="fp-btn fp-btn-ghost" onClick={() => { setBioEdit(profile.bio || ""); setEditing(false); }}><IcoClose style={{marginRight:6}} width={12} height={12}/>Cancel</button>
                   </div>
                 </div>
               ) : (

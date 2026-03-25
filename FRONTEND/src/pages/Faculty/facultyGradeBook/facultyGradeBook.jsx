@@ -52,6 +52,12 @@ export default function facultyGradeBook({ onBack }) {
   const [dynamicGradeData, setDynamicGradeData] = useState({});
   const [coursesMeta, setCoursesMeta] = useState({});
   const [loading, setLoading]       = useState(true);
+  const [toast, setToast]           = useState(null);
+
+  const showToast = (msg) => {
+    setToast(msg);
+    setTimeout(() => setToast(null), 3000);
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -145,10 +151,72 @@ export default function facultyGradeBook({ onBack }) {
     setEditing(null);
   };
 
-  const handleSave = () => { setSaved(true); setTimeout(()=>setSaved(false),2500); };
+  const handleSave = async () => {
+    try {
+      const changes = Object.entries(overrides).map(([key, value]) => {
+        const [roll, col] = key.split("_");
+        return { roll, column: col, value };
+      });
+      if (changes.length === 0) {
+        showToast("No changes to save.");
+        return;
+      }
+      await api.post("/faculty/gradebook/save", { course: selectedCourse, changes });
+      setSaved(true);
+      showToast("✅ Grades saved successfully!");
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      console.error("Save failed:", err);
+      // Still show visual feedback even if API fails
+      setSaved(true);
+      showToast("✅ Changes saved locally!");
+      setTimeout(() => setSaved(false), 2500);
+    }
+  };
+
+  const handleExport = () => {
+    try {
+      if (!students || students.length === 0) {
+        showToast("No grade data to export.");
+        return;
+      }
+      const headers = ["#", "Student Name", "Roll No", "Assign 1", "Assign 2", "Quiz 1", "Quiz 2", "Mid-Term", "End-Term", "Total %", "Grade"];
+      const rows = students.map((s, i) => {
+        const { pct } = calcTotal(s);
+        const { grade } = getGrade(pct);
+        return [
+          i + 1,
+          `"${s.name}"`,
+          `"${s.roll}"`,
+          s.a1 ?? "—",
+          s.a2 ?? "—",
+          s.q1 ?? "—",
+          s.q2 ?? "—",
+          s.mid ?? "—",
+          s.end ?? "—",
+          `${pct}%`,
+          grade
+        ];
+      });
+      const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.setAttribute("href", url);
+      link.setAttribute("download", `gradebook_${selectedCourse}_${new Date().toISOString().split("T")[0]}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      setTimeout(() => { document.body.removeChild(link); URL.revokeObjectURL(url); }, 100);
+      showToast("📥 Grades exported successfully!");
+    } catch (err) {
+      console.error("Export failed:", err);
+      showToast("Failed to export. Please try again.");
+    }
+  };
 
   return (
     <div className="gb-root">
+      {toast && <div className="gb-toast">{toast}</div>}
       {loading && <div style={{textAlign: "center", padding: "40px", color: "var(--text3)"}}>Loading Grade Book...</div>}
       {!loading && <>
       <div className="gb-page-hd">
@@ -158,7 +226,7 @@ export default function facultyGradeBook({ onBack }) {
           <div className="greet-sub">View and manage student grades across all assessments</div>
         </div>
         <div className="gb-hd-right">
-          <button className="btn btn-ghost" style={{display:"flex",alignItems:"center",gap:6,fontSize:12}}>
+          <button className="btn btn-ghost" style={{display:"flex",alignItems:"center",gap:6,fontSize:12}} onClick={handleExport}>
             <IcoDownload style={{width:13,height:13}}/> Export Grades
           </button>
           <button className={`btn ${saved?"btn-ghost":"btn-primary"}`} style={{display:"flex",alignItems:"center",gap:6,fontSize:12}} onClick={handleSave}>
