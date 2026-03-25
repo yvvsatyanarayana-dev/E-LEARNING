@@ -31,7 +31,7 @@ import Reports from "../pages/Admin/AdminReports/AdminReports";
 import Notifications from "../pages/Admin/adminNotifications/adminNotifications";
 import AuditLogs from "../pages/Admin/ActivityLog/ActivityLog";
 import AdminSecurity from "../pages/admin/adminSecurity/adminSecurity";
-import SystemConfig from "../pages/Admin/AdminSystemConfiguration/AdminSystemConfiguration";
+import AdminProfile from "../pages/Admin/adminProfile/AdminProfile";
 import MailSystem from "../pages/shared/MailSystem/MailSystem";
 import AdminMail from "../pages/Admin/AdminMail/AdminMail";
 import ErrorBoundary from "./ErrorBoundary";
@@ -266,7 +266,7 @@ const router = createBrowserRouter([
   },
   {
     path: "/admindashboard/settings",
-    element: <RoleRoute allowedRoles={["admin"]}><SystemConfig /></RoleRoute>,
+    element: <RoleRoute allowedRoles={["admin"]}><AdminProfile /></RoleRoute>,
   },
   {
     path: "/admindashboard/mail",

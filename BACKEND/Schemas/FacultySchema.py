@@ -496,4 +496,10 @@ class FacultyQuestionBankUpdate(BaseModel):
     marks: Optional[int] = None
     q: Optional[str] = None
     options: Optional[List[str]] = None
-    ans: Optional[Any] = None
+    
+class AIChatRequest(BaseModel):
+    message: str
+    messages: Optional[List[dict]] = None
+
+class AIChatResponse(BaseModel):
+    reply: str

@@ -51,16 +51,18 @@ export default function SmartCampus({ defaultModal }) {
 
   /* cursor animation */
   useEffect(() => {
+    let moved = false;
     const onMove = (e) => {
       mx.current = e.clientX;
       my.current = e.clientY;
       if (cursorRef.current) {
+        if (!moved) { moved = true; cursorRef.current.style.opacity = "1"; if (ringRef.current) ringRef.current.style.opacity = "1"; }
         cursorRef.current.style.left = `${e.clientX}px`;
         cursorRef.current.style.top = `${e.clientY}px`;
       }
     };
     const onDown = () => {
-      setCursorState("cursor-click");
+      setCursorState("c-click");
       setTimeout(() => setCursorState(""), 160);
     };
     window.addEventListener("mousemove", onMove);
@@ -99,7 +101,7 @@ export default function SmartCampus({ defaultModal }) {
     document.body.style.overflow = loginOpen || signupOpen || forgotOpen ? "hidden" : "";
   }, [loginOpen, signupOpen, forgotOpen]);
 
-  const hoverOn = () => setCursorState((s) => s.includes("click") ? s : "cursor-hover");
+  const hoverOn = () => setCursorState((s) => s.includes("click") ? s : "c-hover");
   const hoverOff = () => setCursorState((s) => s.includes("click") ? s : "");
 
   const openLogin = () => { navigate("/login"); };
@@ -141,8 +143,8 @@ export default function SmartCampus({ defaultModal }) {
         />
       </div>
       {/* ─── CURSORS ─── */}
-      <div className="sc-cursor" ref={cursorRef} />
-      <div className="sc-cursor-ring" ref={ringRef} />
+      <div className="sc-cursor" ref={cursorRef} style={{ opacity: 0 }} />
+      <div className="sc-cursor-ring" ref={ringRef} style={{ opacity: 0 }} />
       <div className="sc-noise" />
 
       {/* ─── MODALS ─── */}

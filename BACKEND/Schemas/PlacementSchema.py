@@ -215,5 +215,12 @@ class PlacementTrendPoint(BaseModel):
     applied: int
     interviews: int
 
+class AIChatRequest(BaseModel):
+    message: str
+    messages: Optional[List[dict]] = None
+
+class AIChatResponse(BaseModel):
+    reply: str
+
 
 

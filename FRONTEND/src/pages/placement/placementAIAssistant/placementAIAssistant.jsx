@@ -269,31 +269,27 @@ Always be specific, data-driven, and actionable. When listing students, show the
     }));
 
     try {
-      const response = await fetch("https://api.anthropic.com/v1/messages", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          model:      "claude-sonnet-4-20250514",
-          max_tokens: 1000,
-          system:     buildSystemPrompt(),
-          messages:   history,
-        }),
+      // Build a concise context string with current data
+      const statsContext = dashStats ? `Stats: ${dashStats.placed_students}/${dashStats.total_students} placed (${dashStats.placement_rate}%). Avg PRI: ${dashStats.avg_pri}. ` : "";
+      
+      let contextStr = statsContext;
+      if (drives?.length > 0) {
+        contextStr += `Active Drives: ${drives.length}. Top: ${drives[0]?.company || ""}. `;
+      }
+
+      // Send the request via the unified backend API
+      const resp = await api.post("/placement/ai/chat", {
+        message: text,
+        context: contextStr,
+        messages: history
       });
 
-      const data = await response.json();
-
-      // Extract text from content blocks
-      const reply = data.content
-        ?.filter(b => b.type === "text")
-        .map(b => b.text)
-        .join("\n") || "I couldn't generate a response. Please try again.";
-
-      setMessages(prev => [...prev, { role:"ai", text:reply }]);
+      setMessages(prev => [...prev, { role:"ai", text: resp.reply }]);
     } catch (err) {
-      console.error("Claude API error:", err);
+      console.error("AI API error:", err);
       setMessages(prev => [...prev, {
         role: "ai",
-        text: "I'm having trouble connecting right now. Please check your connection and try again.",
+        text: "I'm having trouble connecting to my central node. Please check your connection and try again.",
       }]);
     } finally {
       setAiLoading(false);

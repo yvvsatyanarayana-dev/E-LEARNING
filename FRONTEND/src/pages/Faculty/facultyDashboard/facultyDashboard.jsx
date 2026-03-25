@@ -393,22 +393,33 @@ function AiPanel({ open, onClose, insights = [] }) {
 
   const msgRef = useRef();
   useEffect(() => { if (msgRef.current) msgRef.current.scrollTop = msgRef.current.scrollHeight; }, [messages, typing]);
-  const send = useCallback((text) => {
+  const send = useCallback(async (text) => {
     const val = text || input.trim(); if (!val) return;
     setMessages(m => [...m, { role: "user", html: val }]);
     setInput(""); setShowChips(false); setTyping(true);
     
-    // Choose next insight or generic response
-    const nextHtml = insights.length > 0 
-      ? insights[(aiIdx + 1) % insights.length]
-      : "I'm here to help with your course management.";
+    try {
+      const history = messages.map(m => ({
+        role: m.role === "user" ? "user" : "assistant",
+        content: m.html
+      }));
+      history.push({ role: "user", content: val });
 
-    setTimeout(() => { 
-      setTyping(false); 
-      setMessages(m => [...m, { role: "ai", html: nextHtml }]); 
-      setAiIdx(i => i + 1); 
-    }, 950);
-  }, [input, aiIdx, insights]);
+      const resp = await api.post("/faculty/ai/chat", { 
+        message: val,
+        messages: history
+      });
+
+      // Simple markdown-to-html formatter for the basic dashboard panel
+      let replyHtml = (resp.reply || "").replace(/\n/g, "<br/>").replace(/\*\*(.*?)\*\*/g, "<strong>$1</strong>");
+
+      setTyping(false);
+      setMessages(m => [...m, { role: "ai", html: replyHtml }]);
+    } catch (err) {
+      setTyping(false);
+      setMessages(m => [...m, { role: "ai", html: "Hold on, I am experiencing network degradation." }]);
+    }
+  }, [input, messages]);
   return (
     <div className={`lucyna-panel ${open ? "open" : ""}`}>
       <div className="lp-header">

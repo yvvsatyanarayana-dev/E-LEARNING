@@ -220,6 +220,56 @@ html,body {
 .delta-dn  { background:rgba(242,68,92,.1);  color:var(--rose); }
 .delta-neu { background:rgba(244,165,53,.1); color:var(--amber); }
 
+/* ── QUICK ACTIONS ── */
+.admin-dashboard-page .action-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+.admin-dashboard-page .qa-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  transition: all 0.3s cubic-bezier(.16,1,.3,1);
+  cursor: none;
+  animation: reveal-in 0.5s ease both;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+}
+.admin-dashboard-page .qa-card:hover {
+  background: var(--surface2);
+  border-color: rgba(91, 78, 248, 0.4);
+  transform: translateY(-4px);
+  box-shadow: 0 12px 30px rgba(91, 78, 248, 0.15);
+}
+.admin-dashboard-page .qa-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 14px;
+  background: rgba(91, 78, 248, 0.1);
+  color: var(--indigo-ll);
+}
+.admin-dashboard-page .qa-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.admin-dashboard-page .qa-count {
+  font-size: 11px;
+  color: var(--text3);
+}
+
 /* ── PANEL ── */
 .panel     { background:var(--surface); border:1px solid var(--border); border-radius:14px; overflow:hidden; margin-bottom:16px; animation:reveal-in .5s ease both; }
 .panel-hd  { display:flex; align-items:center; justify-content:space-between; padding:15px 20px; border-bottom:1px solid var(--border); }

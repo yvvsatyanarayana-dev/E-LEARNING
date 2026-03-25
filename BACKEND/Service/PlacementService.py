@@ -875,3 +875,47 @@ def get_meeting_history(db: Session):
             })
     history.sort(key=lambda x: x["date"], reverse=True)
     return history[:10]
+
+# ─── AI Chat ──────────────────────────────────────────────────────────────
+
+def placement_ai_chat(db: Session, officer_id: int, payload: dict) -> dict:
+    from Service.GroqService import groq_service
+    from Models.User import User
+    
+    officer = db.query(User).get(officer_id)
+    if not officer:
+        raise ValueError("Officer not found")
+        
+    msg = payload.get("message", "").strip()
+    if not msg:
+        raise ValueError("Message cannot be empty")
+        
+    context_str = payload.get("context", "")
+    
+    system_prompt = f"""You are Lucyna, an elite AI Placement Assistant.
+You are assisting {officer.full_name}, a placement officer at the university.
+Use the following real-time placement statistics and context to inform your answers:
+{context_str}
+
+Provide concise, analytical, and actionable insights based ONLY on the data provided and best practices for university placements.
+Do not hallucinate data. If you don't know, state that the data is not available.
+Format your responses using beautiful markdown, highlight key metrics in bold.
+"""
+    
+    # If the frontend passes a history array, use it. Otherwise just use a single message.
+    history = payload.get("messages", [])
+    
+    if not history:
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": msg}
+        ]
+    else:
+        # Override the system prompt if frontend sent an Anthropic-style messages array
+        messages = [{"role": "system", "content": system_prompt}]
+        for m in history:
+            messages.append({"role": "user" if m.get("role") == "user" else "assistant", "content": m.get("content", m.get("text", ""))})
+    
+    reply = groq_service.generate_chat_response(messages)
+    
+    return {"reply": reply}

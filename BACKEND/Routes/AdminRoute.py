@@ -214,3 +214,27 @@ async def get_platform_settings(db: Session = Depends(get_db)):
 @router.post("/settings/platform")
 async def update_platform_settings(data: dict, db: Session = Depends(get_db)):
     return AdminService.update_platform_settings(db, data)
+
+# ── Admin Profile ─────────────────────────────────────
+@router.get("/profile")
+async def get_admin_profile(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    return AdminService.get_admin_profile(db, current_user.id)
+
+@router.put("/profile")
+async def update_admin_profile(
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    return AdminService.update_admin_profile(db, current_user.id, data)
+
+@router.post("/profile/password")
+async def change_admin_password(
+    data: dict,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user)
+):
+    return AdminService.change_admin_password(db, current_user.id, data)

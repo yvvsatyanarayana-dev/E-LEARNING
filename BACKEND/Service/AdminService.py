@@ -389,3 +389,57 @@ class AdminService:
                 if s: s.value = str(v)
                 else: db.add(PlatformSetting(key=db_key, value=str(v), category="General"))
         db.commit(); return {"success": True}
+
+    # ── Admin Profile ────────────────────────────────────
+    @staticmethod
+    def get_admin_profile(db: Session, user_id: int):
+        u = db.query(User).filter(User.id == user_id).first()
+        if not u:
+            raise HTTPException(status_code=404, detail="Admin not found")
+        return {
+            "id":         u.id,
+            "name":       u.full_name,
+            "email":      u.email,
+            "role":       u.role,
+            "department": u.department or "",
+            "phone":      getattr(u, "phone", "") or "",
+            "joined":     u.created_at.strftime("%B %d, %Y") if u.created_at else "N/A",
+            "is_active":  u.is_active,
+        }
+
+    @staticmethod
+    def update_admin_profile(db: Session, user_id: int, data: dict):
+        u = db.query(User).filter(User.id == user_id).first()
+        if not u:
+            raise HTTPException(status_code=404, detail="Admin not found")
+        if "name" in data and data["name"].strip():
+            u.full_name = data["name"].strip()
+        if "email" in data and data["email"].strip():
+            # ensure email not taken by another user
+            existing = db.query(User).filter(User.email == data["email"], User.id != user_id).first()
+            if existing:
+                raise HTTPException(status_code=400, detail="Email already in use")
+            u.email = data["email"].strip()
+        if "department" in data:
+            u.department = data["department"]
+        db.commit()
+        return {"success": True}
+
+    @staticmethod
+    def change_admin_password(db: Session, user_id: int, data: dict):
+        from Core.Security import verify_password, hash_password
+        u = db.query(User).filter(User.id == user_id).first()
+        if not u:
+            raise HTTPException(status_code=404, detail="Admin not found")
+        old_pwd = data.get("old_password", "")
+        new_pwd = data.get("new_password", "")
+        confirm = data.get("confirm_password", "")
+        if not verify_password(old_pwd, u.password):
+            raise HTTPException(status_code=400, detail="Current password is incorrect")
+        if len(new_pwd) < 6:
+            raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+        if new_pwd != confirm:
+            raise HTTPException(status_code=400, detail="Passwords do not match")
+        u.password = hash_password(new_pwd)
+        db.commit()
+        return {"success": True}

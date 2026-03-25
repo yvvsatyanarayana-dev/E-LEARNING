@@ -39,17 +39,36 @@ export default function AiAssistant({ onBack }) {
     if (msgRef.current) msgRef.current.scrollTop = msgRef.current.scrollHeight;
   }, [messages, typing]);
 
-  const send = useCallback((text) => {
+  const send = useCallback(async (text) => {
     const val = (text || input).trim();
     if (!val) return;
+    
+    // Add user message to UI
     setMessages(m => [...m, { role:"user", html: val }]);
-    setInput(""); setTyping(true);
-    setTimeout(() => {
+    setInput(""); 
+    setTyping(true);
+
+    try {
+      // Build history for Groq. We map "ai" -> "assistant"
+      const history = messages.map(m => ({
+        role: m.role === "user" ? "user" : "assistant",
+        content: m.html
+      }));
+      // Add the new user message to history
+      history.push({ role: "user", content: val });
+
+      const resp = await api.post("/faculty/ai/chat", { 
+        message: val,
+        messages: history
+      });
+      
       setTyping(false);
-      setMessages(m => [...m, { role:"ai", html: aiReplies[replyIdx % aiReplies.length] }]);
-      replyIdx++;
-    }, 1100);
-  }, [input, aiReplies]);
+      setMessages(m => [...m, { role:"ai", html: resp.reply }]);
+    } catch (err) {
+      setTyping(false);
+      setMessages(m => [...m, { role:"ai", html: "Sorry, I'm having trouble connecting to the network right now." }]);
+    }
+  }, [input, messages]);
 
   const clearChat = () => { setMessages([{ role:"ai", html:"Chat cleared. How can I help you, Dr. Prakash?" }]); replyIdx = 0; };
 

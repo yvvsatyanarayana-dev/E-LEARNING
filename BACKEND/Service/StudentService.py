@@ -2,6 +2,8 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
 from datetime import datetime, timezone
+import json
+import re
 from itertools import islice
 from typing import Optional, List, Dict, Any, cast
 
@@ -1518,75 +1520,63 @@ class StudentService:
     def get_courses_ai_suggestions(self, student: User, db: Session) -> List[AICourseSuggestionResponse]:
         _require_student(student)
         enrollments = db.query(Enrollment).filter(Enrollment.student_id == student.id).all()
+        if not enrollments: return []
         
+        from Service.GroqService import groq_service
+        try:
+            ctx = [{"title": en.course.title, "progress": en.progress} for en in enrollments if en.course]
+            sys_p = "You are an AI study coach. Analyze the student's progress and generate 3-4 concise, helpful course suggestions. Return a raw JSON array of objects with keys: course, type (alert|target|award), tip, color (var(--rose)|var(--indigo-ll)|var(--teal)). Max 15 words per tip. No preamble."
+            resp = groq_service.generate_chat_response([{"role": "system", "content": sys_p}, {"role": "user", "content": json.dumps(ctx[:5])}], max_tokens=500)
+            # Find the JSON array in the response
+            import re
+            match = re.search(r'\[.*\]', resp, re.DOTALL)
+            if match:
+                data = json.loads(match.group())
+                return [AICourseSuggestionResponse(**item) for item in data[:5]]
+        except Exception as e:
+            print(f"AI Suggestions Error: {e}")
+            
+        # Fallback to static logic if AI fails
         suggestions = []
-        for en in enrollments:
-            course = en.course
-            if not course: continue
-            
-            # Simple logic: suggest based on progress
-            if en.progress < 30:
-                suggestions.append(AICourseSuggestionResponse(
-                    course=course.title,
-                    type="target",
-                    tip="Just starting? Focus on the first module by Friday.",
-                    color="var(--indigo-ll)"
-                ))
-            elif en.progress < 70:
-                suggestions.append(AICourseSuggestionResponse(
-                    course=course.title,
-                    type="award",
-                    tip="Great progress! Review recent quizzes to solidify your score.",
-                    color="var(--teal)"
-                ))
-            else:
-                suggestions.append(AICourseSuggestionResponse(
-                    course=course.title,
-                    type="alert",
-                    tip="Final stretch! Complete the last assignment to hit 100%.",
-                    color="var(--rose)"
-                ))
-        
-        # Add some global tips if few suggestions
-        if len(suggestions) < 3:
+        for en in enrollments[:3]:
             suggestions.append(AICourseSuggestionResponse(
-                course="Innovation",
+                course=en.course.title,
                 type="target",
-                tip="Check out the newest hackathons in the Innovation Hub.",
-                color="var(--amber)"
+                tip="Keep pushing! You're making steady progress.",
+                color="var(--indigo-ll)"
             ))
-            
-        return suggestions[:5]
+        return suggestions
 
     def get_schedule_ai_plan(self, student: User, db: Session) -> AIStudyPlanResponse:
         _require_student(student)
         
-        # 1. Recommendation based on soonest deadline
+        # 1. Gather context: enrollments, deadlines, etc.
         now = datetime.now(timezone.utc)
-        soonest_asgn = db.query(Assignment).filter(
-            Assignment.due_date >= now
-        ).order_by(Assignment.due_date.asc()).first()
+        enrollments = db.query(Enrollment).filter(Enrollment.student_id == student.id).all()
+        deadlines = db.query(Assignment).filter(Assignment.due_date >= now).order_by(Assignment.due_date.asc()).limit(3).all()
         
-        if soonest_asgn:
-            rec = AIStudyPlanRecommendation(
-                title="Priority focus",
-                text=f"{soonest_asgn.title} is due soon. Aim for 1 hour of deep work tonight."
-            )
-        else:
-            rec = AIStudyPlanRecommendation(
-                title="Keep it up!",
-                text="No urgent deadlines. Review your weakest subjects to stay ahead."
-            )
+        from Service.GroqService import groq_service
+        try:
+            ctx = {
+                "courses": [en.course.title for en in enrollments if en.course],
+                "deadlines": [{"title": d.title, "due": d.due_date.strftime("%Y-%m-%d")} for d in deadlines]
+            }
+            sys_p = "You are a personalized study planner. Generate a 'recommendation' object (title, text) and a 'tasks' array (time, task, done:false). Keep it motivating and data-driven. Return raw JSON only."
+            resp = groq_service.generate_chat_response([{"role": "system", "content": sys_p}, {"role": "user", "content": json.dumps(ctx)}], max_tokens=600)
             
-        # 2. Daily Tasks
-        tasks = [
-            AIStudyPlanTask(time="08:00 AM", task="Morning Review", done=True),
-            AIStudyPlanTask(time="10:00 AM", task="Attend Lectures", done=True),
-            AIStudyPlanTask(time="02:00 PM", task="Lab Practice", done=False),
-            AIStudyPlanTask(time="05:00 PM", task="Self Study", done=False),
-            AIStudyPlanTask(time="08:00 PM", task="Quiz Prep", done=False)
-        ]
-        
+            match = re.search(r'\{.*\}', resp, re.DOTALL)
+            if match:
+                data = json.loads(match.group())
+                return AIStudyPlanResponse(
+                    recommendation=AIStudyPlanRecommendation(**data.get("recommendation", {})),
+                    tasks=[AIStudyPlanTask(**t) for t in data.get("tasks", [])[:5]]
+                )
+        except Exception as e:
+            print(f"AI Plan Error: {e}")
+            
+        # Fallback
+        rec = AIStudyPlanRecommendation(title="Stay Focused", text="You have upcoming deadlines. Break your tasks into manageable slots.")
+        tasks = [AIStudyPlanTask(time="09:00 AM", task="Quick Review", done=False), AIStudyPlanTask(time="02:00 PM", task="Assignment Work", done=False)]
         return AIStudyPlanResponse(recommendation=rec, tasks=tasks)
 
     # ─── Mock Interviews ──────────────────────────────────────────────────────
@@ -1682,20 +1672,38 @@ class StudentService:
 
     def ai_chat(self, data: AIChatRequest, student: User, db: Session) -> AIChatResponse:
         _require_student(student)
-        msg = data.message.lower()
+        msg = data.message.strip()
+        if not msg:
+            raise HTTPException(status_code=400, detail="Message cannot be empty")
+
+        from Service.GroqService import groq_service
         
-        # Simple rule-based logic for Lucyna AI mentor
-        if "hello" in msg or "hi" in msg:
-            reply = f"Hello {student.full_name}! I am Lucyna, your personal academic mentor. How can I help you today?"
-        elif "schedule" in msg or "today" in msg:
-            reply = "You can check your 'Schedule' tab for your personal timetable and upcoming classes."
-        elif "pri" in msg or "placement" in msg:
-            reply = f"Your current Placement Readiness Index (PRI) is {student.placement_readiness.pri_score if student.placement_readiness else 0}. Keep practicing mocks to improve!"
-        elif "assignment" in msg:
-            reply = "You can view your pending tasks in the 'Assignments' section. Stay ahead of your deadlines!"
+        system_prompt = f"""You are Lucyna, an AI mentor for students.
+The student you are talking to is named {student.full_name}.
+You MUST ONLY answer questions related to academics, studies, coursework, assignments, placement readiness, and campus life.
+If the student asks about anything else outside of academics or their university journey, politely decline and steer them back to their studies.
+Be concise, helpful, and encouraging. Use markdown for your response.
+"""
+        
+        # If the frontend passes a history array, use it. Otherwise just use a single message.
+        history_list = data.messages or []
+        
+        if not history_list:
+            messages = [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": msg}
+            ]
         else:
-            reply = "I'm here to help with your academic journey. Feel free to ask about your courses, placements, or innovation projects."
-            
+            # Override the system prompt if frontend sent an Anthropic-style messages array
+            messages = [{"role": "system", "content": system_prompt}]
+            for m in history_list:
+                # Handle both 'role'/'content' and 'role'/'text' formats
+                role = "user" if m.get("role") == "user" else "assistant"
+                content = m.get("content", m.get("text", ""))
+                messages.append({"role": role, "content": content})
+        
+        reply = groq_service.generate_chat_response(messages)
+        
         return AIChatResponse(reply=reply)
 
 

@@ -46,6 +46,7 @@ const icons = {
   briefcase:  <><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></>,
   activity:   <><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></>,
   mail:       <><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></>,
+  user:<><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></>,
 };
 const I = ({ n, size = 16 }) => <Icon size={size} d={icons[n]} />;
 
@@ -79,7 +80,7 @@ function buildNav(navBadges = {}) {
       { id: "activity",  label: "Activity Log", icon: "activity", routePath: "auditlogs",   badge: null, badgeType: "rose" },
       { id: "mail",      label: "Mail System",  icon: "mail",     routePath: "mail",        badge: navBadges.mail || 0, badgeType: "teal" },
       { id: "security",  label: "Security",     icon: "shield",   routePath: "security",    badge: null },
-      { id: "settings",  label: "Settings",     icon: "settings", routePath: "settings",    badge: null },
+      { id: "settings",  label: "Profile",      icon: "user",     routePath: "settings",    badge: null },
     ]},
   ];
 }

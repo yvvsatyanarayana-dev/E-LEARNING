@@ -599,6 +599,17 @@ def delete_task(
     if not removed: _404("Task not found")
 
 
+@router.post("/ai/chat", summary="Placement AI Assistant Chat")
+def placement_ai_chat(
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    return svc.placement_ai_chat(db, current_user.id, payload)
+
+
 # ── Events ──
 
 @router.get("/dashboard/events", response_model=List[PlacementEventResponse],

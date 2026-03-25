@@ -500,6 +500,7 @@ class DashboardResponse(BaseModel):
 
 class AIChatRequest(BaseModel):
     message: str
+    messages: Optional[List[dict]] = []
 
 class AIChatResponse(BaseModel):
     reply: str

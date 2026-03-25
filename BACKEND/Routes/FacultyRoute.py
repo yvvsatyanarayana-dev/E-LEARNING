@@ -148,6 +148,13 @@ def upload_file(file: UploadFile = File(...), current_user: User = Depends(get_c
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
 
+@router.post("/ai/chat", summary="Faculty AI Assistant Chat")
+def faculty_ai_chat(payload: dict, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    if current_user.role not in ("faculty", "admin"):
+        raise HTTPException(status_code=403, detail="Insufficient permissions")
+    return faculty_service.faculty_ai_chat(db, current_user.id, payload)
+
+
 # ── QUESTION BANK ROUTES ──────────────────────────────────────────────
 
 @router.get("/questions", response_model=List[FacultyQuestionBankItem])

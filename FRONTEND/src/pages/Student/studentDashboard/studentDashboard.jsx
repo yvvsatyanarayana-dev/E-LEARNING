@@ -436,14 +436,23 @@ function LucynaPanel({open,onClose}){
     setMessages(m=>[...m,{role:"user",html:val}]);
     setInput("");setShowChips(false);setTyping(true);
     try {
-      const resp = await api.post("/student/ai/chat", { message: val });
+      const history = messages.map(m => ({
+        role: m.role === "user" ? "user" : "assistant",
+        content: m.html
+      }));
+      history.push({ role: "user", content: val });
+
+      const resp = await api.post("/student/ai/chat", { 
+        message: val,
+        messages: history
+      });
       setTyping(false);
       setMessages(m=>[...m,{role:"ai",html:resp.reply}]);
     } catch (err) {
       setTyping(false);
       setMessages(m=>[...m,{role:"ai",html: "I'm having trouble connecting to my brain right now. Please try again later!"}]);
     }
-  },[input]);
+  },[input, messages]);
 
   return(
     <div className={`lucyna-panel ${open?"open":""}`}>

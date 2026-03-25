@@ -95,7 +95,7 @@ function buildNav(navBadges = {}) {
       { id:"activity",  label:"Activity Log", icon:"activity", routePath:"auditlogs", badge:null, badgeType:"rose" },
       { id:"mail",      label:"Mail System",  icon:"mail",     routePath:"mail",      badge:navBadges.mail || 0, badgeType:"teal" },
       { id:"security",  label:"Security",     icon:"shield",   routePath:"security",  badge:null },
-      { id:"settings",  label:"Settings",     icon:"settings", routePath:"settings",  badge:null },
+      { id:"settings",  label:"Profile",      icon:"user",     routePath:"settings",  badge:null },
     ]},
   ];
 }

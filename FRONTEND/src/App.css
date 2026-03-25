@@ -51,9 +51,13 @@ html {
   color: var(--text);
   overflow-x: hidden;
   line-height: 1;
-  line-height: 1;
   /* Promote root to its own layer */
   isolation: isolate;
+  cursor: none !important;
+}
+
+.sc-root * {
+  cursor: none !important;
 }
 
 
