@@ -211,23 +211,6 @@ function addRipple(e, el) {
   r.addEventListener("animationend", () => r.remove());
 }
 
-function useCursor() {
-  useEffect(() => {
-    const cur = document.getElementById("fc-cursor");
-    const ring = document.getElementById("fc-cursor-ring");
-    if (!cur || !ring) return;
-    let mx = 0, my = 0, rx = 0, ry = 0, rafId;
-    const onMove = e => { mx = e.clientX; my = e.clientY; };
-    const tick = () => { cur.style.left = mx + "px"; cur.style.top = my + "px"; rx += (mx - rx) * .12; ry += (my - ry) * .12; ring.style.left = rx + "px"; ring.style.top = ry + "px"; rafId = requestAnimationFrame(tick); };
-    const onDown = () => document.body.classList.add("c-click");
-    const onUp = () => document.body.classList.remove("c-click");
-    document.addEventListener("mousemove", onMove);
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("mouseup", onUp);
-    rafId = requestAnimationFrame(tick);
-    return () => { document.removeEventListener("mousemove", onMove); document.removeEventListener("mousedown", onDown); document.removeEventListener("mouseup", onUp); cancelAnimationFrame(rafId); };
-  }, []);
-}
 
 function Hoverable({ children, className = "", style, ...rest }) {
   const enter = () => document.body.classList.add("c-hover");
@@ -537,7 +520,6 @@ export default function FacultyDashboard() {
     return () => clearInterval(interval);
   }, []);
 
-  useCursor();
 
   useEffect(() => {
     if (!page) { setActivePage(ROUTES.DASHBOARD); }
@@ -594,8 +576,6 @@ export default function FacultyDashboard() {
 
   return (
     <>
-      <div className="fc-cursor" id="fc-cursor" />
-      <div className="fc-cursor-ring" id="fc-cursor-ring" />
       <div className="sc-noise" />
       <AiFab onClick={() => setAiOpen(o => !o)} />
       <AiPanel open={aiOpen} onClose={() => setAiOpen(false)} insights={aiInsights} />

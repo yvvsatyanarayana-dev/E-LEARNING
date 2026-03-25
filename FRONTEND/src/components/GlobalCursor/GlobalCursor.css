@@ -1,0 +1,53 @@
+/* GlobalCursor.css */
+.sc-cursor {
+  position: fixed;
+  width: 8px;
+  height: 8px;
+  background: #7b6ffa; /* indigo-l */
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 99999;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s, height 0.3s, background 0.3s;
+  will-change: left, top;
+}
+
+.sc-cursor-ring {
+  position: fixed;
+  width: 32px;
+  height: 32px;
+  border: 1.5px solid #a89fff; /* indigo-ll */
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 99998;
+  transform: translate(-50%, -50%);
+  transition: width 0.3s, height 0.3s, border-color 0.3s;
+  will-change: left, top;
+}
+
+.sc-noise {
+  position: fixed;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: .025;
+  pointer-events: none;
+  z-index: 99997;
+  contain: strict;
+}
+
+body.c-hover .sc-cursor {
+  width: 16px;
+  height: 16px;
+  background: rgba(91, 78, 248, 0.4);
+}
+
+body.c-hover .sc-cursor-ring {
+  width: 44px;
+  height: 44px;
+}
+
+body.c-click .sc-cursor {
+  width: 4px;
+  height: 4px;
+  background: #fff;
+}

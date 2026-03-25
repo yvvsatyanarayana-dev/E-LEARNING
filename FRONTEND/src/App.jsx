@@ -32,7 +32,6 @@ export default function SmartCampus({ defaultModal }) {
   const [loginOpen, setLoginOpen] = useState(defaultModal === "login");
   const [signupOpen, setSignupOpen] = useState(defaultModal === "signup");
   const [forgotOpen, setForgotOpen] = useState(defaultModal === "forgot");
-  const [cursorState, setCursorState] = useState("");
 
   // Synchronize modal states with prop when route changes
   useEffect(() => {
@@ -40,51 +39,6 @@ export default function SmartCampus({ defaultModal }) {
     setSignupOpen(defaultModal === "signup");
     setForgotOpen(defaultModal === "forgot");
   }, [defaultModal]);
-
-  const mx = useRef(0), my = useRef(0);
-  const tx = useRef(0), ty = useRef(0);
-  const rafRef = useRef(null);
-  
-  // Refs to interact with the DOM elements directly to skip React updates:
-  const cursorRef = useRef(null);
-  const ringRef = useRef(null);
-
-  /* cursor animation */
-  useEffect(() => {
-    let moved = false;
-    const onMove = (e) => {
-      mx.current = e.clientX;
-      my.current = e.clientY;
-      if (cursorRef.current) {
-        if (!moved) { moved = true; cursorRef.current.style.opacity = "1"; if (ringRef.current) ringRef.current.style.opacity = "1"; }
-        cursorRef.current.style.left = `${e.clientX}px`;
-        cursorRef.current.style.top = `${e.clientY}px`;
-      }
-    };
-    const onDown = () => {
-      setCursorState("c-click");
-      setTimeout(() => setCursorState(""), 160);
-    };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mousedown", onDown);
-
-    const tick = () => {
-      tx.current += (mx.current - tx.current) * 0.11;
-      ty.current += (my.current - ty.current) * 0.11;
-      if (ringRef.current) {
-        ringRef.current.style.left = `${tx.current}px`;
-        ringRef.current.style.top = `${ty.current}px`;
-      }
-      rafRef.current = requestAnimationFrame(tick);
-    };
-    rafRef.current = requestAnimationFrame(tick);
-
-    return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mousedown", onDown);
-      cancelAnimationFrame(rafRef.current);
-    };
-  }, []);
 
   /* scroll reveal */
   useEffect(() => {
@@ -101,16 +55,13 @@ export default function SmartCampus({ defaultModal }) {
     document.body.style.overflow = loginOpen || signupOpen || forgotOpen ? "hidden" : "";
   }, [loginOpen, signupOpen, forgotOpen]);
 
-  const hoverOn = () => setCursorState((s) => s.includes("click") ? s : "c-hover");
-  const hoverOff = () => setCursorState((s) => s.includes("click") ? s : "");
-
   const openLogin = () => { navigate("/login"); };
   const openSignup = () => { navigate("/register"); };
   const openForgot = () => { navigate("/forgot-password"); };
   const closeModals = () => { navigate("/"); };
 
   return (
-    <div className={`sc-root ${cursorState}`} ref={rootRef}>
+    <div className="sc-root" ref={rootRef}>
       {/* ─── SHARED FLOATING IMAGE ─── */}
       <div style={{
         position: 'fixed',
@@ -142,10 +93,6 @@ export default function SmartCampus({ defaultModal }) {
           }}
         />
       </div>
-      {/* ─── CURSORS ─── */}
-      <div className="sc-cursor" ref={cursorRef} style={{ opacity: 0 }} />
-      <div className="sc-cursor-ring" ref={ringRef} style={{ opacity: 0 }} />
-      <div className="sc-noise" />
 
       {/* ─── MODALS ─── */}
       <LoginModal
@@ -176,8 +123,6 @@ export default function SmartCampus({ defaultModal }) {
             <li key={i}>
               <a
                 href={`#${["why", "tracking", "lucyna", "features"][i]}`}
-                onMouseEnter={hoverOn}
-                onMouseLeave={hoverOff}
               >
                 {item}
               </a>
@@ -188,16 +133,12 @@ export default function SmartCampus({ defaultModal }) {
           <button
             className="btn btn-ghost ripple-host"
             onClick={(e) => { addRipple(e); openLogin(); }}
-            onMouseEnter={hoverOn}
-            onMouseLeave={hoverOff}
           >
             Sign In
           </button>
           <button
             className="btn btn-solid ripple-host"
             onClick={(e) => { addRipple(e); openSignup(); }}
-            onMouseEnter={hoverOn}
-            onMouseLeave={hoverOff}
           >
             Create Account
           </button>
@@ -229,16 +170,12 @@ export default function SmartCampus({ defaultModal }) {
               <button
                 className="btn btn-solid btn-lg ripple-host"
                 onClick={(e) => { addRipple(e); openSignup(); }}
-                onMouseEnter={hoverOn}
-                onMouseLeave={hoverOff}
               >
                 Get Started
               </button>
               <button
                 className="btn btn-outline-lg ripple-host"
                 onClick={addRipple}
-                onMouseEnter={hoverOn}
-                onMouseLeave={hoverOff}
               >
                 Schedule a Demo
               </button>
@@ -365,7 +302,7 @@ export default function SmartCampus({ defaultModal }) {
                     icon: <svg width="15" height="15" fill="none" viewBox="0 0 24 24" stroke="var(--rose)" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-5.477-3.69M9 20H4v-2a4 4 0 015.477-3.69M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                   }
                 ].map((p, i) => (
-                  <div key={i} className="prob-card" onMouseEnter={hoverOn} onMouseLeave={hoverOff}>
+                  <div key={i} className="prob-card">
                     <div className="prob-ic" style={{ background: "var(--rose-d)" }}>{p.icon}</div>
                     <div>
                       <div className="prob-title">{p.title}</div>
@@ -387,7 +324,7 @@ export default function SmartCampus({ defaultModal }) {
                   { num: "03", title: "Placement Officers See the Truth", desc: "The Placement Readiness Index gives officers a ranked, evidence-based score per student — built from skill data, mock interview results, and academic performance.", delay: "d3" },
                   { num: "04", title: "Administrators Own the System", desc: "Institution-wide dashboards give admins real-time visibility across departments, course adoption rates, faculty effectiveness, and platform health.", delay: "d4" },
                 ].map((b, i) => (
-                  <div key={i} className={`ben-card reveal ${b.delay}`} onMouseEnter={hoverOn} onMouseLeave={hoverOff}>
+                  <div key={i} className={`ben-card reveal ${b.delay}`}>
                     <div className="ben-num">{b.num}</div>
                     <div>
                       <div className="ben-title">{b.title}</div>
@@ -417,7 +354,7 @@ export default function SmartCampus({ defaultModal }) {
                   { av: "SK", name: "Siddharth Kumar", dept: "Mechanical • Sem 3", score: 78, lbl: "PRI Score", bg: "var(--amber-d)", c: "var(--amber)", vc: "var(--amber)" },
                   { av: "ND", name: "Nandini Das", dept: "Computer Science • Sem 2", score: 54, lbl: "At Risk", bg: "var(--rose-d)", c: "var(--rose)", vc: "var(--rose)" },
                 ].map((s, i) => (
-                  <div key={i} className="sc-row" onMouseEnter={hoverOn} onMouseLeave={hoverOff}>
+                  <div key={i} className="sc-row">
                     <div className="sc-av" style={{ background: s.bg, color: s.c }}>{s.av}</div>
                     <div><div className="sc-name">{s.name}</div><div className="sc-dept">{s.dept}</div></div>
                     <div><div className="sc-score-val" style={{ color: s.vc }}>{s.score}</div><div className="sc-score-lbl">{s.lbl}</div></div>
@@ -469,7 +406,7 @@ export default function SmartCampus({ defaultModal }) {
                     icon: <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="var(--violet)" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-5.477-3.69M9 20H4v-2a4 4 0 015.477-3.69M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
                   }
                 ].map((t, i) => (
-                  <div key={i} className={`tf-item reveal ${t.delay}`} onMouseEnter={hoverOn} onMouseLeave={hoverOff}>
+                  <div key={i} className={`tf-item reveal ${t.delay}`}>
                     <div className="tf-ic" style={{ background: t.bg }}>{t.icon}</div>
                     <div>
                       <div className="tf-title">{t.title}</div>
@@ -505,7 +442,7 @@ export default function SmartCampus({ defaultModal }) {
                 { tag: "Academic", tagBg: "var(--indigo-d)", tagC: "var(--indigo-ll)", title: "Subject Assistant", desc: "Answers student doubts across any enrolled course, explains lab exercises, and clarifies assignment requirements — available at all times, every day of the semester.", delay: "" },
                 { tag: "Analytics", tagBg: "var(--teal-d)", tagC: "var(--teal)", title: "Weak-Topic Detection", desc: "Analyses quiz and assessment data to identify exactly which topics are dragging down individual and class-level performance, then surfaces targeted recommendations.", delay: "d1" },
               ].map((c, i) => (
-                <div key={i} className={`lc-card reveal ${c.delay}`} onMouseEnter={hoverOn} onMouseLeave={hoverOff}>
+                <div key={i} className={`lc-card reveal ${c.delay}`}>
                   <div className="lc-tag" style={{ background: c.tagBg, color: c.tagC }}>{c.tag}</div>
                   <div className="lc-ttl">{c.title}</div>
                   <div className="lc-desc">{c.desc}</div>
@@ -534,7 +471,7 @@ export default function SmartCampus({ defaultModal }) {
                 { tag: "Placement", tagBg: "var(--amber-d)", tagC: "var(--amber)", title: "Interview Simulator", desc: "Conducts full mock interviews, scores technical and communication responses, and generates detailed improvement reports linked to each student's PRI score.", delay: "d1" },
                 { tag: "Assessment", tagBg: "rgba(159,122,234,.1)", tagC: "var(--violet)", title: "Adaptive Quiz Engine", desc: "Generates AI-calibrated question papers that adjust difficulty based on class performance history, reducing manual paper-setting time for faculty significantly.", delay: "d2" },
               ].map((c, i) => (
-                <div key={i} className={`lc-card reveal ${c.delay}`} onMouseEnter={hoverOn} onMouseLeave={hoverOff}>
+                <div key={i} className={`lc-card reveal ${c.delay}`}>
                   <div className="lc-tag" style={{ background: c.tagBg, color: c.tagC }}>{c.tag}</div>
                   <div className="lc-ttl">{c.title}</div>
                   <div className="lc-desc">{c.desc}</div>
@@ -592,7 +529,7 @@ export default function SmartCampus({ defaultModal }) {
                 dots: [{ pip: "var(--indigo-ll)", label: "Multi-factor authentication" }, { pip: "var(--indigo-ll)", label: "Encrypted data at rest" }, { pip: "var(--indigo-ll)", label: "HTTPS + secure headers" }]
               },
             ].map((f, i) => (
-              <div key={i} className={`feat-tile ${f.cls} reveal ${f.delay}`} onMouseEnter={hoverOn} onMouseLeave={hoverOff}>
+              <div key={i} className={`feat-tile ${f.cls} reveal ${f.delay}`}>
                 <div className="ft-badge" style={{ background: f.badgeBg, color: f.badgeC }}>{f.badge}</div>
                 <div className="ft-title">{f.title}</div>
                 <div className="ft-desc">{f.desc}</div>
@@ -619,16 +556,12 @@ export default function SmartCampus({ defaultModal }) {
             <button
               className="btn btn-solid btn-lg ripple-host"
               onClick={(e) => { addRipple(e); openSignup(); }}
-              onMouseEnter={hoverOn}
-              onMouseLeave={hoverOff}
             >
               Create an Account
             </button>
             <button
               className="btn btn-outline-lg ripple-host"
               onClick={addRipple}
-              onMouseEnter={hoverOn}
-              onMouseLeave={hoverOff}
             >
               Contact Our Team
             </button>
@@ -654,7 +587,7 @@ export default function SmartCampus({ defaultModal }) {
         </div>
         <ul className="f-links">
           {["Platform", "Lucyna AI", "Security", "Documentation", "Contact"].map((l, i) => (
-            <li key={i}><a href="#" onMouseEnter={hoverOn} onMouseLeave={hoverOff}>{l}</a></li>
+            <li key={i}><a href="#">{l}</a></li>
           ))}
         </ul>
       </footer>

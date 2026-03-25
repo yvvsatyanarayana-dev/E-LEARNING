@@ -17,6 +17,7 @@ import PlacementReports from "../pages/placement/placementReports/placementRepor
 import PlacementMeeting from "../pages/placement/placementMeeting/placementMeeting";
 import StudentPlacementMeetings from "../pages/Student/studentPlacementMeetings/studentPlacementMeetings";
 import PlacementMail from "../pages/placement/placementMail/placementMail";
+import GlobalCursor from "../components/GlobalCursor/GlobalCursor";
 
 
 import FacultyQuickaction from "../pages/Faculty/facultyQuickaction/facultyQuickaction";
@@ -278,5 +279,10 @@ const router = createBrowserRouter([
 ]);
 
 export default function AppRouter() {
-  return <RouterProvider router={router} />;
+  return (
+    <>
+      <GlobalCursor />
+      <RouterProvider router={router} />
+    </>
+  );
 }

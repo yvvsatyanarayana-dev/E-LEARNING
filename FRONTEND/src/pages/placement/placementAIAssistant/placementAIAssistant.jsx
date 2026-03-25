@@ -105,6 +105,7 @@ export default function PlacementAIAssistant() {
   /* ── API data ── */
   const [contextLoading, setContextLoading] = useState(true);
   const [dashStats,      setDashStats]      = useState(null);
+  const [students,       setStudents]       = useState([]);
   const [drives,         setDrives]         = useState([]);
   const [officerName,    setOfficerName]    = useState("Placement Officer");
   const [mailUnread,     setMailUnread]     = useState(0);
@@ -116,36 +117,6 @@ export default function PlacementAIAssistant() {
 
   const messagesEndRef = useRef(null);
   const inputRef       = useRef(null);
-  const curRef         = useRef(null);
-  const ringRef        = useRef(null);
-  const mx = useRef(0), my = useRef(0), rx = useRef(0), ry = useRef(0);
-
-  /* ── Custom cursor ── */
-  useEffect(() => {
-    const onMove = e => {
-      mx.current = e.clientX; my.current = e.clientY;
-      if (curRef.current) { curRef.current.style.left = e.clientX + "px"; curRef.current.style.top = e.clientY + "px"; }
-    };
-    const onDown = () => document.body.classList.add("c-click");
-    const onUp   = () => document.body.classList.remove("c-click");
-    document.addEventListener("mousemove", onMove);
-    document.addEventListener("mousedown", onDown);
-    document.addEventListener("mouseup",   onUp);
-    let raf;
-    const loop = () => {
-      rx.current += (mx.current - rx.current) * 0.14;
-      ry.current += (my.current - ry.current) * 0.14;
-      if (ringRef.current) { ringRef.current.style.left = rx.current + "px"; ringRef.current.style.top = ry.current + "px"; }
-      raf = requestAnimationFrame(loop);
-    };
-    loop();
-    return () => {
-      document.removeEventListener("mousemove", onMove);
-      document.removeEventListener("mousedown", onDown);
-      document.removeEventListener("mouseup",   onUp);
-      cancelAnimationFrame(raf);
-    };
-  }, []);
 
   useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior:"smooth" }); }, [messages]);
 
@@ -156,7 +127,7 @@ export default function PlacementAIAssistant() {
     const fetchContext = async () => {
       setContextLoading(true);
       try {
-        const [meRes, statsRes, studentsRes, drivesRes] = await Promise.allSettled([
+        const [meRes, statsRes, studentsRes, drivesRes, mailRes] = await Promise.allSettled([
           api.get("/auth/me"),
           api.get("/placement/dashboard/stats"),
           api.get("/placement/dashboard/students?limit=50"),
@@ -184,8 +155,8 @@ export default function PlacementAIAssistant() {
           setDrives(raw.map(mapApiDrive));
         }
 
-        if (results[4]?.status === "fulfilled") {
-          setMailUnread(results[4].value.count || 0);
+        if (mailRes.status === "fulfilled") {
+          setMailUnread(mailRes.value.count || 0);
         }
 
         // Welcome message after context is loaded
@@ -304,10 +275,6 @@ Always be specific, data-driven, and actionable. When listing students, show the
   ══════════════════════════════════════════════ */
   return (
     <>
-      <div className="sc-cursor"      ref={curRef}  />
-      <div className="sc-cursor-ring" ref={ringRef} />
-      <div className="sc-noise" />
-
       <div className="app">
         {/* ══ SIDEBAR ══ */}
         <aside className="sidebar">

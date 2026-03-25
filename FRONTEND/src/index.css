@@ -1,11 +1,11 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Plus Jakarta Sans', system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
+  color-scheme: dark;
   color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  background-color: #020209;
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -22,18 +22,25 @@ a {
   font-weight: 500;
   color: #646cff;
   text-decoration: inherit;
+  cursor: none !important;
 }
 
 a:hover {
   color: #535bf2;
 }
 
-body {
+body, html {
   margin: 0;
   display: flex;
-  place-items: center;
+  flex-direction: column;
   min-width: 320px;
   min-height: 100vh;
+  /* Global cursor hide */
+  cursor: none !important;
+}
+
+body * {
+  cursor: none !important;
 }
 
 h1 {
@@ -49,7 +56,7 @@ button {
   font-weight: 500;
   font-family: inherit;
   background-color: #1a1a1a;
-  cursor: pointer;
+  cursor: none !important;
   transition: border-color 0.25s;
 }
 
@@ -62,79 +69,19 @@ button:focus-visible {
   outline: 4px auto -webkit-focus-ring-color;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-
-  a:hover {
-    color: #747bff;
-  }
-
-  button {
-    background-color: #f9f9f9;
-  }
-}
-
-/* ─── CUSTOM CURSOR (GLOBAL) ─── */
-.sc-cursor {
-  position: fixed;
-  width: 8px;
-  height: 8px;
-  background: var(--indigo-l, #5b4ef8);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 99999;
-  transform: translate(-50%, -50%);
-  transition: width 0.3s, height 0.3s, background 0.3s;
-}
-
-.sc-cursor-ring {
-  position: fixed;
-  width: 32px;
-  height: 32px;
-  border: 1.5px solid var(--indigo-ll, #9f7aea);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 99998;
-  transform: translate(-50%, -50%);
-  transition: width 0.3s, height 0.3s, border-color 0.3s;
-}
-
-body.c-hover .sc-cursor {
-  width: 16px;
-  height: 16px;
-  background: rgba(91, 78, 248, 0.4);
-}
-
-body.c-hover .sc-cursor-ring {
-  width: 44px;
-  height: 44px;
-}
-
-body.c-click .sc-cursor {
-  width: 4px;
-  height: 4px;
-  background: #fff;
-}
-
-.sc-noise {
-  position: fixed;
-  inset: 0;
-  background: url("https://grainy-gradients.vercel.app/noise.svg");
-  opacity: 0.03;
-  pointer-events: none;
-  z-index: 99997;
-}
-
-/* Base styles for meeting components to ensure cursor: none */
-.placement-meeting-container,
-.meeting-container {
+/* Ensure specific app containers also follow the rule */
+.sc-root,
+.student-dashboard-root,
+.faculty-dashboard-root,
+.placement-dashboard-root,
+.admin-dashboard-root {
   cursor: none !important;
 }
 
-.placement-meeting-container *,
-.meeting-container * {
+.sc-root *,
+.student-dashboard-root *,
+.faculty-dashboard-root *,
+.placement-dashboard-root *,
+.admin-dashboard-root * {
   cursor: none !important;
 }
