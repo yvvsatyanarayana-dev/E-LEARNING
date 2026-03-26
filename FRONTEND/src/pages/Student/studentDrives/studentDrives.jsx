@@ -1,6 +1,6 @@
-// studentInternships.jsx
+// studentDrives.jsx
 import { useState, useEffect } from "react";
-import "./studentInternships.css";
+import "./studentDrives.css";
 
 // ─── ICONS ───────────────────────────────────────────────────────
 const IcoBack    = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>;
@@ -105,11 +105,11 @@ function InternshipDrawer({ item, onClose, onApply }) {
           <button className="int-btn-ghost"><IcoMail /> Save for Later</button>
           {item.application_status ? (
             <button className="int-btn-solid" style={{ background: "var(--teal)", cursor: "default" }}>
-              <IcoCheck /> Applied ✓
+              <IcoCheck /> Registered ✓
             </button>
           ) : (
-            <button className="int-btn-solid" onClick={() => onApply(item.id, item.application_link)}>
-              <IcoArrow /> Apply Now <IcoExtern />
+            <button className="int-btn-solid" onClick={() => onApply(item.id)}>
+              <IcoArrow /> Register
             </button>
           )}
         </div>
@@ -119,7 +119,7 @@ function InternshipDrawer({ item, onClose, onApply }) {
 }
 
 // ─── MAIN COMPONENT ──────────────────────────────────────────────
-export default function StudentInternships({ onBack }) {
+export default function StudentDrives({ onBack }) {
   const [activeTab, setActiveTab]       = useState("browse");
   const [domainFilter, setDomainFilter] = useState("All");
   const [tagFilter, setTagFilter]       = useState("All");
@@ -127,31 +127,25 @@ export default function StudentInternships({ onBack }) {
   const [selected, setSelected]         = useState(null);
   const [data, setData]                 = useState(null);
   const [applying, setApplying]         = useState(false);
-  const [selfReporting, setSelfReporting] = useState(false);
-  const [reportedId, setReportedId]       = useState(null);
 
-  const fetchInternships = () => {
+  const fetchDrives = () => {
     import("../../../utils/api").then(({ default: api }) => {
-      api.get("/student/internships").then(res => setData(res)).catch(console.error);
+      api.get("/student/drives").then(res => setData(res)).catch(console.error);
     });
   };
 
   useEffect(() => {
-    fetchInternships();
+    fetchDrives();
   }, []);
 
-  const handleApply = (id, link) => {
+  const handleApply = (id) => {
     if (applying) return;
     setApplying(true);
 
-    if (link) {
-      openExternal(link);
-    }
-
     import("../../../utils/api").then(({ default: api }) => {
-      api.post(`/student/internships/${id}/apply`)
+      api.post(`/student/drives/${id}/register`)
         .then(() => {
-          fetchInternships();
+          fetchDrives();
           setSelected(null);
         })
         .catch(err => {
@@ -161,34 +155,14 @@ export default function StudentInternships({ onBack }) {
     });
   };
 
-  const openExternal = (url) => {
-    if (!url) return;
-    const normalized = url.startsWith("http") ? url : `https://${url}`;
-    window.open(normalized, "_blank", "noopener,noreferrer");
-  };
-
-  const handleSelfSelect = (applicationId) => {
-    if (selfReporting) return;
-    setSelfReporting(true);
-    import("../../../utils/api").then(({ default: api }) => {
-      api.patch(`/student/applications/${applicationId}/self-select`)
-        .then(() => {
-          setReportedId(applicationId);
-          fetchInternships();
-        })
-        .catch(err => console.error(err))
-        .finally(() => setSelfReporting(false));
-    });
-  };
-
-  if (!data) return <div className="int-root" style={{ padding: 40, textAlign: "center" }}>Loading Internships...</div>;
+  if (!data) return <div className="int-root" style={{ padding: 40, textAlign: "center" }}>Loading Drives...</div>;
   const { listings, applications, saved, funnel, timeline } = data;
 
   const tabs = [
-    { id: "browse",  label: "Browse Internships", icon: <IcoSearch /> },
-    { id: "applied", label: "My Applications",    icon: <IcoBrief />, badge: applications.length },
+    { id: "browse",  label: "Browse Drives", icon: <IcoSearch /> },
+    { id: "applied", label: "My Registrations",    icon: <IcoBrief />, badge: applications.length },
     { id: "saved",   label: "Saved",               icon: <IcoStar />,  badge: saved.length },
-    { id: "track",   label: "Application Tracker", icon: <IcoTrend /> },
+    { id: "track",   label: "Registration Tracker", icon: <IcoTrend /> },
   ];
 
   const filtered = listings.filter(i => {
@@ -207,9 +181,9 @@ export default function StudentInternships({ onBack }) {
         <div className="int-header-left">
           <button className="int-back" onClick={onBack}><IcoBack /> Back</button>
           <div>
-            <div className="int-breadcrumb">Career · Internships</div>
-            <h1 className="int-title">Internship <em>Board</em></h1>
-            <p className="int-subtitle">Curated opportunities matched to your profile — apply, track, and land your dream internship.</p>
+            <div className="int-breadcrumb">Career · Drives</div>
+            <h1 className="int-title">Placement <em>Drives</em></h1>
+            <p className="int-subtitle">Exclusive upcoming drives and recruitment events.</p>
           </div>
         </div>
         <div className="int-header-right">
@@ -274,7 +248,7 @@ export default function StudentInternships({ onBack }) {
 
           {/* Listing Grid */}
           <div className="int-results-count">
-            {filtered.length} internship{filtered.length !== 1 ? "s" : ""} found
+            {filtered.length} drive{filtered.length !== 1 ? "s" : ""} found
           </div>
           <div className="int-listing-grid">
             {filtered.map((item, i) => (
@@ -323,33 +297,34 @@ export default function StudentInternships({ onBack }) {
         </div>
       )}
 
-      {/* ══════ MY APPLICATIONS ══════ */}
+      {/* ══════ MY REGISTRATIONS ══════ */}
       {activeTab === "applied" && (
         <div className="int-applied-layout">
           {applications.length === 0 && (
-            <div className="int-empty"><div className="int-empty-icon">📋</div><div className="int-empty-ttl">No applications yet</div><div className="int-empty-sub">Apply to internships and track your progress here.</div></div>
+            <div className="int-empty"><div className="int-empty-icon">📋</div><div className="int-empty-ttl">No registrations yet</div><div className="int-empty-sub">Register for drives and track your status here.</div></div>
           )}
           {applications.map((app, i) => (
-            <div key={i} className="int-app-card" style={{ animationDelay: `${i * .07}s` }}>
+            <div key={i} className="int-app-card" style={{ animationDelay: `${i * .07}s`, borderColor: app.rawStatus === "selected" ? "rgba(39,201,176,.35)" : undefined }}>
               <div className="int-app-top">
                 <div className="int-app-logo" style={{ background: app.logoBg, color: app.logoColor }}>{app.logo}</div>
                 <div className="int-app-info">
                   <div className="int-app-company">{app.company_name || app.company}</div>
                   <div className="int-app-role">{app.role}</div>
-                  <div className="int-app-date">Applied {app.appliedOn}</div>
+                  <div className="int-app-date">Registered {app.appliedOn}</div>
                 </div>
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 6 }}>
                   <span className={`int-status-badge int-status-${app.statusColor}`}>{app.status}</span>
                   {app.rawStatus === "selected" && (
-                    <span style={{ fontSize: 10, fontWeight: 700, color: "var(--teal)", background: "rgba(39,201,176,.12)", border: "1px solid rgba(39,201,176,.25)", borderRadius: 20, padding: "2px 8px" }}>✓ Approved by TPO</span>
+                    <span style={{ fontSize: 11, fontWeight: 700, color: "var(--teal)", background: "rgba(39,201,176,.12)", border: "1.5px solid rgba(39,201,176,.35)", borderRadius: 20, padding: "3px 10px", letterSpacing: ".02em" }}>✓ Approved</span>
                   )}
                 </div>
               </div>
 
-              {/* Celebration banner for self-reported */}
-              {reportedId === app.id && app.rawStatus === "selected" && (
-                <div style={{ background: "rgba(39,201,176,.1)", border: "1px solid rgba(39,201,176,.25)", borderRadius: 8, padding: "8px 12px", fontSize: 12, color: "var(--teal)", fontWeight: 600, margin: "8px 0 0" }}>
-                  🎉 Congratulations! Your selection has been reported to the Placement Office.
+              {/* Approval celebration banner */}
+              {app.rawStatus === "selected" && (
+                <div style={{ background: "linear-gradient(135deg, rgba(39,201,176,.1), rgba(39,201,176,.05))", border: "1px solid rgba(39,201,176,.25)", borderRadius: 8, padding: "10px 14px", fontSize: 12, color: "var(--teal)", fontWeight: 600, margin: "10px 0 0", display: "flex", alignItems: "center", gap: 8 }}>
+                  <span style={{ fontSize: 16 }}>🎉</span>
+                  <span>Congratulations! The Placement Officer has selected you for this drive.</span>
                 </div>
               )}
 
@@ -378,33 +353,7 @@ export default function StudentInternships({ onBack }) {
                 {app.currentStep === 2 && (
                   <button className="int-btn-solid" style={{ padding: "7px 14px", fontSize: 11 }}><IcoCal /> Schedule Interview</button>
                 )}
-                {/* Self-report selection button — only show if not yet selected/rejected */}
-                {app.rawStatus !== "selected" && app.rawStatus !== "rejected" && (
-                  <button
-                    className="int-btn-solid"
-                    style={{ padding: "7px 14px", fontSize: 11, background: "linear-gradient(135deg, var(--teal), #1a9e7e)", opacity: selfReporting ? 0.6 : 1 }}
-                    onClick={() => {
-                      console.log("Self-selecting app:", app);
-                      const appId = app.id || app.app_id || app.application_id;
-                      if (!appId) {
-                        console.error("Could not find any ID for application:", app);
-                        alert("Error: Application ID not found. Please refresh and try again.");
-                        return;
-                      }
-                      handleSelfSelect(appId);
-                    }}
-                    disabled={selfReporting}
-                  >
-                    🎉 I Got Selected
-                  </button>
-                )}
-                <button
-                  className="int-btn-ghost"
-                  style={{ padding: "7px 14px", fontSize: 11 }}
-                  onClick={() => openExternal(app.application_link)}
-                >
-                  <IcoExtern /> View Portal
-                </button>
+                <button className="int-btn-ghost" style={{ padding: "7px 14px", fontSize: 11 }}><IcoExtern /> View Details</button>
               </div>
             </div>
           ))}
@@ -423,7 +372,7 @@ export default function StudentInternships({ onBack }) {
                 <div className="int-sc-meta">{s.stipend} · Closes {s.deadline}</div>
               </div>
               <div className="int-sc-actions">
-                <button className="int-btn-solid" style={{ padding: "7px 14px", fontSize: 11 }}><IcoArrow /> Apply</button>
+                <button className="int-btn-solid" style={{ padding: "7px 14px", fontSize: 11 }}><IcoArrow /> Register</button>
                 <button className="int-btn-ghost" style={{ padding: "7px 14px", fontSize: 11, color: "var(--rose)", borderColor: "rgba(242,68,92,.2)" }}><IcoClose width={10} height={10} /> Remove</button>
               </div>
             </div>
@@ -431,7 +380,7 @@ export default function StudentInternships({ onBack }) {
           {saved.length === 0 && (
             <div className="int-empty">
               <div className="int-empty-icon">📌</div>
-              <div className="int-empty-ttl">No saved internships</div>
+              <div className="int-empty-ttl">No saved drives</div>
               <div className="int-empty-sub">Bookmark roles while browsing and they'll appear here.</div>
             </div>
           )}
@@ -443,7 +392,7 @@ export default function StudentInternships({ onBack }) {
         <div className="int-track-layout">
           {/* Funnel */}
           <div className="int-funnel-card">
-            <div className="int-card-hd"><span className="int-card-ttl"><IcoTrend style={{ color: "var(--indigo-ll)" }} /> Application Funnel</span></div>
+            <div className="int-card-hd"><span className="int-card-ttl"><IcoTrend style={{ color: "var(--indigo-ll)" }} /> Registration Funnel</span></div>
             <div className="int-funnel-body">
               {funnel.map((f, i) => (
                 <div key={f.stage} className="int-funnel-row" style={{ animationDelay: `${i * .08}s` }}>

@@ -323,6 +323,10 @@ class InternshipApplicationDetailResponse(BaseModel):
 
 
 class InternshipApplicationResponse(BaseModel):
+    id: int
+    app_id: int
+    application_id: int
+    internship_id: int
     company: str
     role: str
     logo: Optional[str] = None
@@ -331,8 +335,10 @@ class InternshipApplicationResponse(BaseModel):
     appliedOn: str
     status: str
     statusColor: str
+    rawStatus: Optional[str] = None
     steps: List[str]
     currentStep: int
+    application_link: Optional[str] = None
 
 
 class InternshipFunnelItem(BaseModel):

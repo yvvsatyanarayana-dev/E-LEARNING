@@ -80,6 +80,7 @@ const router = createBrowserRouter([
   { path: "/studentdashboard/studentInnovationHub",      element: SD, errorElement: <ErrorBoundary /> },
   { path: "/studentdashboard/studentPlacementPrep",      element: SD, errorElement: <ErrorBoundary /> },
   { path: "/studentdashboard/studentInternships",        element: SD, errorElement: <ErrorBoundary /> },
+  { path: "/studentdashboard/studentDrives",             element: SD, errorElement: <ErrorBoundary /> },
   { path: "/studentdashboard/studentMockInterview",      element: SD, errorElement: <ErrorBoundary /> },
   { path: "/studentdashboard/studentSettings",           element: SD, errorElement: <ErrorBoundary /> },
   { path: "/studentdashboard/studentProfile",            element: SD, errorElement: <ErrorBoundary /> },

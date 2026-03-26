@@ -23,6 +23,7 @@ from Models.Placement import (
     ApplicationStatus,
     PlacementTask,
     PlacementEvent,
+    DriveAttendance,
 )
 from Core.MeetingState import ACTIVE_MEETINGS
 from Models.User import User, UserRole          # adjust import to your project layout
@@ -140,8 +141,8 @@ def get_dashboard_stats(db: Session) -> dict:
     drive_ready     = len([s for s in scores if s >= 70])
     applied_count   = db.query(func.count(InternshipApplication.id)).scalar() or 0
     offers_count    = placed_count
-    total_drives    = db.query(func.count(Internship.id)).scalar() or 0
-    upcoming_drives = db.query(func.count(Internship.id)).filter(Internship.status == "Upcoming").scalar() or 0
+    total_drives    = db.query(func.count(Internship.id)).filter(Internship.category == "drive").scalar() or 0
+    upcoming_drives = db.query(func.count(Internship.id)).filter(Internship.status == "Upcoming", Internship.category == "drive").scalar() or 0
     total_companies = db.query(func.count(distinct(Internship.company_name))).scalar() or 0
 
 
@@ -490,6 +491,7 @@ def create_internship(db: Session, officer_id: int, data: InternshipCreate) -> I
     intern = Internship(
         **data.model_dump(),
         added_by=officer_id,
+        category="internship"
     )
     db.add(intern)
     db.commit()
@@ -499,10 +501,71 @@ def create_internship(db: Session, officer_id: int, data: InternshipCreate) -> I
 
 def list_internships(db: Session, skip: int = 0, limit: int = 20,
                      domain: Optional[str] = None) -> List[Internship]:
-    q = db.query(Internship)
+    q = db.query(Internship).filter(Internship.category == "internship")
     if domain:
         q = q.filter(Internship.domain.ilike(f"%{domain}%"))
     return q.order_by(Internship.created_at.desc()).offset(skip).limit(limit).all()
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Drives & Attendance
+# ─────────────────────────────────────────────────────────────────────────────
+
+def create_drive(db: Session, officer_id: int, data: InternshipCreate) -> Internship:
+    drive = Internship(
+        **data.model_dump(),
+        added_by=officer_id,
+        category="drive"
+    )
+    db.add(drive)
+    db.commit()
+    db.refresh(drive)
+    return drive
+
+def list_drives(db: Session, skip: int = 0, limit: int = 20,
+                domain: Optional[str] = None) -> List[Internship]:
+    q = db.query(Internship).filter(Internship.category == "drive")
+    if domain:
+        q = q.filter(Internship.domain.ilike(f"%{domain}%"))
+    return q.order_by(Internship.created_at.desc()).offset(skip).limit(limit).all()
+
+def get_drive_attendance(db: Session, drive_id: int) -> List[dict]:
+    # Returns list of students who applied/registered and their attendance status
+    # We'll use InternshipApplication as the base for registration, and DriveAttendance for tracking
+    attendances = db.query(DriveAttendance).filter_by(drive_id=drive_id).all()
+    att_map = {a.student_id: a.status for a in attendances}
+    
+    apps = db.query(InternshipApplication, User).join(User, User.id == InternshipApplication.student_id).filter(InternshipApplication.internship_id == drive_id).all()
+    
+    res = []
+    for app, user in apps:
+        res.append({
+            "student_id": user.id,
+            "full_name": user.full_name,
+            "roll_number": user.roll_number,
+            "department": user.department,
+            "status": att_map.get(user.id, "Registered")
+        })
+    return res
+
+def mark_drive_attendance(db: Session, drive_id: int, student_id: int, status: str) -> bool:
+    att = db.query(DriveAttendance).filter_by(drive_id=drive_id, student_id=student_id).first()
+    if att:
+        att.status = status
+    else:
+        att = DriveAttendance(drive_id=drive_id, student_id=student_id, status=status)
+        db.add(att)
+
+    # Cascade: if TPO marks student as "Selected", update their InternshipApplication too
+    if status == "Selected":
+        app = db.query(InternshipApplication).filter_by(
+            internship_id=drive_id, student_id=student_id
+        ).first()
+        if app:
+            app.status = ApplicationStatus.selected
+            app.current_step = 4  # Full progress
+
+    db.commit()
+    return True
 
 
 def get_internship(db: Session, internship_id: int) -> Internship:

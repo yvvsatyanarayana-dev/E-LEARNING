@@ -34,8 +34,7 @@ function mapApiInternship(d) {
     role:       d.role          ?? "—",
     rollNo:     d.student_roll  ?? "",
     branch:     d.branches?.[0] ?? d.branch ?? "—",
-    stipend:    fmtStipend,
-    stipendRaw: stipendRaw,
+    applicationLink: d.application_link || "",
     duration:   d.duration      ?? "3 months",
     start:      d.deadline
       ? new Date(d.deadline).toLocaleDateString("en-IN",{month:"short",year:"numeric"})
@@ -44,6 +43,7 @@ function mapApiInternship(d) {
     ppo:        d.ppo           ?? false,
     mode:       d.mode          ?? "On-site",
     location:   d.location      ?? "",
+    targetGroup:d.target_group  ?? "All",
   };
 }
 
@@ -57,14 +57,6 @@ const DRIVE_TYPES= ["Full Time","Internship","Internship + PPO","Part Time","Con
 
 const statusMap = { "Ongoing":"badge-teal","Upcoming":"badge-indigo","Completed":"badge-amber" };
 
-const stipendColor = s => {
-  const n = parseInt(s) || 0;
-  if (n >= 60000) return "var(--teal)";
-  if (n >= 35000) return "var(--indigo-ll)";
-  return "var(--amber)";
-};
-const stipendPct = s => Math.min((parseInt(s)||0) / 100000 * 100, 100);
-const fmtStipend = s => { const n=parseInt(s)||0; return n>=1000?`₹${(n/1000).toFixed(0)}K/mo`:`₹${n}/mo`; };
 const initials   = n => (n||"ST").trim().split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2);
 
 /* ════════════════════════════════════════════
@@ -142,9 +134,9 @@ function Overlay({ onClose, children }) {
    ADD INTERNSHIP MODAL  — POST to /placement/internships
 ════════════════════════════════════════════ */
 const defaultForm = {
-  company:"", type:"Internship", role:"", branches:[], stipend:"",
+  company:"", type:"Internship", role:"", branches:[], applicationLink:"",
   duration:"3 months", date:"", location:"", description:"", status:"Upcoming",
-  ppo: false, mode:"On-site",
+  ppo: false, mode:"On-site", targetGroup:"All",
 };
 
 function AddInternshipModal({ onClose, onAdd }) {
@@ -154,6 +146,14 @@ function AddInternshipModal({ onClose, onAdd }) {
   const [saving,  setSaving]  = useState(false);
   const [success, setSuccess] = useState(false);
   const [apiErr,  setApiErr]  = useState(null);
+  const [groups,  setGroups]  = useState(["All"]);
+
+  useEffect(() => {
+    fetch("http://localhost:8000/api/v1/faculty/metadata")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => d?.groups && setGroups(["All", ...d.groups.filter(g => g !== "All")]))
+      .catch(() => {});
+  }, []);
 
   const handle = e => {
     const { name, value, type, checked } = e.target;
@@ -169,8 +169,7 @@ function AddInternshipModal({ onClose, onAdd }) {
       if (!form.role.trim())    e.role    = "Role is required";
     }
     if (step === 2) {
-      if (!form.stipend)        e.stipend  = "Stipend is required";
-      else if (isNaN(parseInt(form.stipend))) e.stipend = "Enter a valid number";
+      if (form.applicationLink && !form.applicationLink.startsWith("http")) e.applicationLink = "Must be a valid URL starting with http";
       if (!form.date)           e.date     = "Start date is required";
     }
     return e;
@@ -188,7 +187,7 @@ function AddInternshipModal({ onClose, onAdd }) {
         company_name:   form.company,
         role:           `${form.role} · ${form.type}`,
         deadline:       form.date || null,
-        stipend:        form.stipend ? String(parseInt(form.stipend)) : null,
+        application_link: form.applicationLink || null,
         duration:       form.duration,
         location:       form.location || null,
         description:    form.description || null,
@@ -196,6 +195,7 @@ function AddInternshipModal({ onClose, onAdd }) {
         ppo:            form.ppo,
         mode:           form.mode,
         branches:       form.branches,
+        target_group:   form.targetGroup,
       });
 
       const card = mapApiInternship(created);
@@ -208,7 +208,7 @@ function AddInternshipModal({ onClose, onAdd }) {
     }
   };
 
-  const STEP_LABELS = ["Company & Role","Stipend & Schedule","Status & Review"];
+  const STEP_LABELS = ["Company & Role","Details & Schedule","Status & Review"];
 
   return (
     <Overlay onClose={onClose}>
@@ -280,6 +280,9 @@ function AddInternshipModal({ onClose, onAdd }) {
                     </div>
                   </div>
                 </div>
+                <div className="af-field">
+                  <FSelect label="Target Group" name="targetGroup" value={form.targetGroup} onChange={handle} options={groups} />
+                </div>
                 {form.company && (
                   <div className="af-live-preview">
                     <div className="af-lp-label">Preview</div>
@@ -297,20 +300,15 @@ function AddInternshipModal({ onClose, onAdd }) {
               </div>
             )}
 
-            {/* STEP 2 — Stipend & Schedule */}
+            {/* STEP 2 — Details & Schedule */}
             {step === 2 && (
               <div>
-                <p className="af-section-desc">Set stipend, duration, and drive schedule.</p>
+                <p className="af-section-desc">Set application details, duration, and schedule.</p>
                 <div className="af-grid-2">
                   <div className="af-field">
-                    <label className="af-label">Monthly Stipend <span className="af-req">*</span> <span className="af-hint">in ₹</span></label>
-                    <input className="af-input" type="number" name="stipend" value={form.stipend} onChange={handle} placeholder="e.g. 60000" min="0" step="1000" />
-                    {errors.stipend && <div className="af-error-inline">{errors.stipend}</div>}
-                    {form.stipend && (
-                      <div className="af-micro-bar">
-                        <div className="af-micro-fill" style={{width:`${stipendPct(form.stipend)}%`, background:stipendColor(form.stipend)}} />
-                      </div>
-                    )}
+                    <label className="af-label">Application Link <span className="af-hint">(optional)</span></label>
+                    <input className="af-input" type="url" name="applicationLink" value={form.applicationLink} onChange={handle} placeholder="https://careers.google.com/..." />
+                    {errors.applicationLink && <div className="af-error-inline">{errors.applicationLink}</div>}
                   </div>
                   <FSelect label="Duration" name="duration" value={form.duration} onChange={handle} options={DURATIONS} />
                 </div>
@@ -327,7 +325,7 @@ function AddInternshipModal({ onClose, onAdd }) {
                   <textarea className="af-input" name="description" value={form.description} onChange={handle}
                     placeholder="Roles, responsibilities, requirements…" rows={3} style={{resize:"vertical",lineHeight:1.5}} />
                 </div>
-                {(form.company || form.stipend) && (
+                {(form.company || form.applicationLink) && (
                   <div className="af-live-preview">
                     <div className="af-lp-label">Offer Preview</div>
                     <div className="af-lp-row">
@@ -339,10 +337,10 @@ function AddInternshipModal({ onClose, onAdd }) {
                           <div style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{form.company}</div>
                         </div>
                       )}
-                      {form.stipend && (
-                        <div className="af-lp-stat" style={{borderColor:stipendColor(form.stipend)}}>
-                          <div className="af-lp-val" style={{color:stipendColor(form.stipend)}}>{fmtStipend(form.stipend)}</div>
-                          <div className="af-lp-lbl">Stipend</div>
+                      {form.applicationLink && (
+                        <div className="af-lp-stat" style={{borderColor:"var(--teal)"}}>
+                          <div className="af-lp-val" style={{color:"var(--teal)", fontSize: 11, maxWidth: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>{form.applicationLink}</div>
+                          <div className="af-lp-lbl">App Link</div>
                         </div>
                       )}
                       {form.duration && (
@@ -401,7 +399,8 @@ function AddInternshipModal({ onClose, onAdd }) {
                   </div>
                   <div className="af-summary-stats">
                     {[
-                      {val:form.stipend?fmtStipend(form.stipend):"—", color:form.stipend?stipendColor(form.stipend):"var(--text3)", lbl:"Stipend"},
+                      {val:form.applicationLink?"Available":"—", color:form.applicationLink?"var(--teal)":"var(--text3)", lbl:"Link"},
+                      {val:form.targetGroup||"—",  color:"var(--indigo-ll)",  lbl:"Target"},
                       {val:form.duration||"—", color:"var(--amber)",    lbl:"Duration"},
                       {val:form.date||"—",     color:"var(--indigo-ll)",lbl:"Date"},
                       {val:form.mode||"—",     color:"var(--text2)",    lbl:"Mode"},
@@ -590,9 +589,6 @@ export default function PlacementInternships() {
 
   const ongoingCount = internships.filter(i => i.status === "Ongoing").length;
   const ppoCount     = internships.filter(i => i.ppo).length;
-  const avgStipend   = internships.length
-    ? Math.round(internships.reduce((s,i) => s + (i.stipendRaw||0), 0) / internships.length)
-    : 0;
 
   const placementRate = dashStats?.placement_rate ?? 0;
   const initials_officer = officerName.trim().split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2) || "PO";
@@ -682,7 +678,7 @@ export default function PlacementInternships() {
 
               <h1 className="greet-title">Student <em>Internships</em></h1>
               <p className="greet-sub">
-                {loading ? "Loading internship data…" : `${ongoingCount} ongoing, ${ppoCount} PPO eligible, avg stipend ₹${Math.round(avgStipend/1000)}K/mo.`}
+                {loading ? "Loading internship data…" : `${ongoingCount} ongoing, ${ppoCount} PPO eligible`}
               </p>
             </div>
 
@@ -694,7 +690,6 @@ export default function PlacementInternships() {
                 {label:"Total Internships", val:internships.length,               color:"indigo", delta:"This academic year"},
                 {label:"Ongoing",            val:ongoingCount,                     color:"teal",   delta:"Currently active"},
                 {label:"PPO Eligible",       val:ppoCount,                         color:"amber",  delta:"Pre-Placement Offers"},
-                {label:"Avg Stipend",        val:`₹${Math.round(avgStipend/1000)}K`, color:"violet", delta:"Per month average"},
               ].map(s => (
                 <div key={s.label} className={`stat-card sc-${s.color}`}>
                   <div className="stat-val" style={s.color!=="indigo"?{color:`var(--${s.color})`}:{}}>{s.val}</div>
@@ -774,26 +769,21 @@ export default function PlacementInternships() {
                     {/* MINI STATS */}
                     <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:12}}>
                       {[
-                        {val:i.stipend,   color:stipendColor(i.stipendRaw), lbl:"Stipend", bar:true },
+                        {val:i.targetGroup, color:"var(--teal)",              lbl:"Target Group"},
                         {val:i.duration,  color:"var(--amber)",              lbl:"Duration"},
                         {val:i.start,     color:"var(--indigo-ll)",          lbl:"Start"},
                       ].map(s => (
                         <div key={s.lbl} style={{background:"var(--surface2)",borderRadius:8,padding:"8px 10px",textAlign:"center"}}>
                           <div style={{fontFamily:"'Fraunces',serif",fontSize:13,color:s.color}}>{s.val}</div>
                           <div style={{fontSize:9,color:"var(--text3)",marginTop:2}}>{s.lbl}</div>
-                          {s.bar && (
-                            <div className="stipend-bar">
-                              <div className="stipend-fill" style={{width:`${stipendPct(i.stipendRaw)}%`}} />
-                            </div>
-                          )}
                         </div>
                       ))}
                     </div>
 
                     {/* CARD FOOTER */}
                     <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingTop:10,borderTop:"1px solid var(--border)"}}>
-                      <div style={{fontSize:11,color:"var(--text3)"}}>
-                        {i.location && <span>📍 {i.location}</span>}
+                      <div style={{fontSize:11,color:"var(--text3)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap"}}>
+                        {i.applicationLink && <a href={i.applicationLink} target="_blank" rel="noreferrer" style={{color:"var(--indigo-ll)", textDecoration:"none", display:"flex", alignItems:"center", gap:4, fontWeight: 600}}>🔗 Application Link <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg></a>}
                       </div>
                       {i.mode && (
                         <span style={{fontSize:9,color:"var(--text3)",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:5,padding:"2px 7px"}}>

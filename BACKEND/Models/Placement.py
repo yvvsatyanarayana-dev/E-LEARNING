@@ -77,9 +77,14 @@ class Internship(Base):
     contact_email  = Column(String(150), nullable=True)
     contact_phone  = Column(String(20), nullable=True)
     min_cgpa       = Column(Float, default=0.0)
-    branches       = Column(JSON, nullable=True) # Reusing JSON or String based on preference, JSON better
+    branches       = Column(JSON, nullable=True) # JSON
     rounds         = Column(JSON, nullable=True) # List of round names
     pkg_lpa        = Column(Float, nullable=True) # Numeric package for analytics
+
+    # Fields for Drive/Internship Separation
+    category           = Column(String(50), default="internship") # "internship" or "drive"
+    application_link   = Column(String(500), nullable=True)
+    target_group       = Column(String(50), nullable=True, default="All")
 
     added_by     = Column(Integer, ForeignKey("users.id"), nullable=False)  # placement officer
     deadline     = Column(DateTime(timezone=True), nullable=True)
@@ -90,7 +95,25 @@ class Internship(Base):
     applications   = relationship("InternshipApplication", back_populates="internship")
 
     def __repr__(self):
-        return f"<Internship {self.role} @ {self.company_name}>"
+        return f"<{self.category.capitalize()} {self.role} @ {self.company_name}>"
+
+
+class DriveAttendance(Base):
+    __tablename__ = "drive_attendance"
+
+    id         = Column(Integer, primary_key=True, index=True)
+    drive_id   = Column(Integer, ForeignKey("internships.id"), nullable=False)
+    student_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    status     = Column(String(50), default="Registered") # Registered, Present, Absent
+    registered_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+    
+    # Relationships
+    drive      = relationship("Internship", backref="attendances")
+    student    = relationship("User", backref="drive_attendances")
+
+    def __repr__(self):
+        return f"<DriveAttendance student={self.student_id} drive={self.drive_id} status={self.status}>"
+
 
 
 class InternshipApplication(Base):

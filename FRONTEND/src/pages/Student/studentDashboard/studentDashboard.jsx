@@ -4,6 +4,7 @@ import StudentMockInterview from "../studentMockInterview/studentMockInterview";
 import StudentPlacementPrep from "../studentPlacementPrep/studentPlacementPrep";
 import StudentInnovationHub from "../studentInnovationHub/studentInnovationHub";
 import StudentSettings from "../studentSettings/studentSettings";
+import StudentDrives from "../studentDrives/studentDrives";
 import StudentProfile from "../studentProfile/studentProfile";
 import StudentResume from "../studentResume/studentResume";
 import NotificationPanel from "../studentNotificationPanel/NotificationPanel";
@@ -77,6 +78,7 @@ const ROUTES = {
   INNOVATION_HUB: "Innovation Hub",
   PLACEMENT_PREP: "Placement Prep",
   INTERNSHIPS:    "Internships",
+  DRIVES:         "Drives",
   MOCK_INTERVIEW: "Mock Interviews",
   SETTINGS:       "Settings",
   PROFILE:        "Profile",
@@ -97,6 +99,7 @@ const PAGE_PARAM_MAP = {
   "studentinnovationhub": "Innovation Hub",
   "studentplacementprep": "Placement Prep",
   "studentinternships":   "Internships",
+  "studentdrives":        "Drives",
   "studentmockinterview": "Mock Interviews",
   "studentsettings":      "Settings",
   "studentprofile":       "Profile",
@@ -221,6 +224,7 @@ function buildNavItems(hasActivePlacementMeeting, mailUnread) {
     { section:"Career", links:[
       {label:ROUTES.PLACEMENT_PREP,  icon:<IcoAward/>},
       {label:ROUTES.INTERNSHIPS,     icon:<IcoBrief/>},
+      {label:ROUTES.DRIVES,          icon:<IcoFile/>},
       {label:ROUTES.MOCK_INTERVIEW,  icon:<IcoPen/>},
       {label:ROUTES.PLACEMENT_MEETINGS, icon:<IcoVideo/>, badge: hasActivePlacementMeeting ? "LIVE" : undefined, badgeClass: hasActivePlacementMeeting ? "rose" : undefined},
     ]},
@@ -319,7 +323,7 @@ function Topbar({activePage,onHamburger,onNavigateProfile,onNavigateResume,notif
     [ROUTES.VIDEO_LECTURES]:"Video Lectures",[ROUTES.ASSIGNMENTS]:"Assignments",
     [ROUTES.QUIZZES]:"Quizzes",[ROUTES.STUDY_GROUPS]:"Study Groups",
     [ROUTES.SCHEDULE]:"Schedule",[ROUTES.PLACEMENT_PREP]:"Placement Prep",
-    [ROUTES.INTERNSHIPS]:"Internships",[ROUTES.MOCK_INTERVIEW]:"Mock Interviews",
+    [ROUTES.INTERNSHIPS]:"Internships",[ROUTES.DRIVES]:"Drives",[ROUTES.MOCK_INTERVIEW]:"Mock Interviews",
     [ROUTES.SETTINGS]:"Settings",[ROUTES.PROFILE]:"My Profile",[ROUTES.RESUME]:"Resume Builder",
   };
   const pageLabel=PAGE_LABELS[activePage]||"Dashboard";
@@ -786,6 +790,7 @@ export default function StudentDashboard() {
     [ROUTES.INNOVATION_HUB]:  "/studentdashboard/studentInnovationHub",
     [ROUTES.PLACEMENT_PREP]:  "/studentdashboard/studentPlacementPrep",
     [ROUTES.INTERNSHIPS]:     "/studentdashboard/studentInternships",
+    [ROUTES.DRIVES]:          "/studentdashboard/studentDrives",
     [ROUTES.MOCK_INTERVIEW]:  "/studentdashboard/studentMockInterview",
     [ROUTES.SETTINGS]:        "/studentdashboard/studentSettings",
     [ROUTES.PROFILE]:         "/studentdashboard/studentProfile",
@@ -865,6 +870,7 @@ export default function StudentDashboard() {
           {activePage === ROUTES.INNOVATION_HUB && <StudentInnovationHub onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
           {activePage === ROUTES.PLACEMENT_PREP && <StudentPlacementPrep onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
           {activePage === ROUTES.INTERNSHIPS    && <StudentInternships  onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
+          {activePage === ROUTES.DRIVES         && <StudentDrives       onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
           {activePage === ROUTES.MOCK_INTERVIEW && <StudentMockInterview onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
           {activePage === ROUTES.PLACEMENT_MEETINGS && <StudentPlacementMeetings onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
           {activePage === ROUTES.MAIL           && <MailSystem           onBack={()=>navigate(ROUTES.DASHBOARD)}/>}

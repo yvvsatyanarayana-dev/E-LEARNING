@@ -59,6 +59,7 @@ class InternshipCreate(BaseModel):
     pkg_lpa: Optional[float] = None
     deadline: Optional[datetime] = None
     status: Optional[str] = "Upcoming"
+    application_link: Optional[str] = None
 
 
 
@@ -77,6 +78,7 @@ class InternshipUpdate(BaseModel):
     pkg_lpa: Optional[float] = None
     deadline: Optional[datetime] = None
     status: Optional[str] = None
+    application_link: Optional[str] = None
 
 
 
@@ -98,6 +100,7 @@ class InternshipResponse(BaseModel):
     deadline: Optional[datetime]
     created_at: datetime
     status: Optional[str] = "Upcoming"
+    application_link: Optional[str] = None
 
 
     class Config:

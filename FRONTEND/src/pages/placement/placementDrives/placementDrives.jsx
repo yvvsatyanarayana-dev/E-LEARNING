@@ -1,167 +1,91 @@
-// placementDrives.jsx — SmartCampus Placement Drives
-// All mock data replaced with live API calls via the shared api.js utility
+/**
+ * placementDrives.jsx — SmartCampus Drives Page
+ * API calls wired using the shared api.js utility
+ *
+ * APIs used:
+ *   GET    /auth/me                          → officer name/avatar in sidebar
+ *   GET    /placement/dashboard/stats        → sidebar placement rate widget
+ *   GET    /placement/drives?limit=50        → list all drives
+ *   POST   /placement/drives                 → create new drive (Add modal)
+ *   DELETE /placement/drives/:id             → remove drive
+ *   POST   /placement/notifications/send     → optional: notify students
+ */
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import "./placementDrives.css";
 import { clearAuth } from "../../../utils/auth.js";
 import api from "../../../utils/api.js";
+import "./placementDrives.css";
 
-/* ═══════════════════════════════════════════════════
-   DATA MAPPERS  — API shape ↔ UI shape
-   The backend stores drives as "internships"
-   (InternshipCreate / InternshipResponse schema).
-═══════════════════════════════════════════════════ */
-
-/**
- * Maps one InternshipResponse record from the API into the
- * drive card shape this page expects.
- */
+/* ════════════════════════════════════════════
+   DATA MAPPER — API shape → UI card shape
+════════════════════════════════════════════ */
 function mapApiDrive(d) {
-  const name = d.company_name ?? d.name ?? "—";
-
-  // Rounds — stored as a JSON array on the backend if supported,
-  // or as a comma-separated string in the `role` description field.
-  const roundsRaw = d.rounds ?? d.interview_rounds ?? null;
-  const rounds = Array.isArray(roundsRaw)
-    ? roundsRaw
-    : typeof roundsRaw === "string"
-      ? roundsRaw.split(",").map(r => r.trim()).filter(Boolean)
-      : ["Online Test", "Technical", "HR"]; // sensible default
-
-  // status — "Ongoing" on API → "Ongoing" on this page (unchanged)
-  const status = d.status ?? "Upcoming";
-
-  // package
-  const pkgRaw = d.package ?? d.pkg ?? "";
-  const pkg = pkgRaw
-    ? pkgRaw.toString().includes("LPA") ? pkgRaw : `${pkgRaw} LPA`
-    : "—";
-
-  // drive date
-  const date = d.deadline ?? d.drive_date ?? d.date ?? "";
-
-  // logo letter + colour — stored in extra fields or derived
-  const logo  = d.logo  ?? (name.trim() ? name.trim()[0].toUpperCase() : "?");
-  const color = d.color ?? LOGO_COLORS[name.charCodeAt(0) % LOGO_COLORS.length];
+  const stipendRaw  = parseInt(d.stipend) || 0;
+  const fmtStipend  = stipendRaw >= 1000 ? `₹${Math.round(stipendRaw/1000)}K/mo` : stipendRaw ? `₹${stipendRaw}/mo` : d.stipend || "—";
+  const nameParts   = (d.role || "").split(" ");
+  const companyChar = (d.company_name?.[0] ?? "?").toUpperCase();
 
   return {
-    id:       d.id,
-    logo,
-    color,
-    name,
-    role:     d.role     ?? "",
-    pkg,
-    date,
-    applied:  d.applied_count ?? d.applied   ?? 0,
-    eligible: d.eligible_count?? d.eligible  ?? 0,
-    rounds,
-    branches: Array.isArray(d.branches) ? d.branches : [],
-    minCgpa:  d.min_cgpa ?? d.minCgpa ?? 0,
-    status,
-    desc:     d.description ?? d.desc ?? "",
+    id:         d.id,
+    init:       companyChar + (d.company_name?.[1] ?? "").toUpperCase(),
+    name:       d.student_name  ?? d.company_name ?? "—",  // internship record may carry student
+    company:    d.company_name  ?? "—",
+    role:       d.role          ?? "—",
+    rollNo:     d.student_roll  ?? "",
+    branch:     d.branches?.[0] ?? d.branch ?? "—",
+    stipend:    fmtStipend,
+    stipendRaw: stipendRaw,
+    duration:   d.duration      ?? "3 months",
+    start:      d.deadline
+      ? new Date(d.deadline).toLocaleDateString("en-IN",{month:"short",year:"numeric"})
+      : d.start ?? "—",
+    status:     d.status        ?? "Upcoming",
+    ppo:        d.ppo           ?? false,
+    mode:       d.mode          ?? "On-site",
+    location:   d.location      ?? "",
+    targetGroup:d.target_group  ?? "All",
+    applicationLink: d.application_link || "",
   };
 }
 
-/**
- * Converts the DriveModal form state into the InternshipCreate /
- * InternshipUpdate payload for POST and PATCH calls.
- */
-function formToApiPayload(form) {
-  return {
-    company_name:   form.name,
-    role:           form.role || `${form.name} Role`,
-    deadline:       form.date || null,
-    package:        form.pkg  ? (form.pkg.includes("LPA") ? form.pkg : `${form.pkg} LPA`) : null,
-    applied_count:  parseInt(form.applied)   || 0,
-    eligible_count: parseInt(form.eligible)  || 0,
-    min_cgpa:       parseFloat(form.minCgpa) || null,
-    description:    form.desc || null,
-    status:         form.status,
-    branches:       form.branches,
-    rounds:         form.rounds.filter(r => r.trim()),
-    // extra display fields — stored if backend schema supports them
-    logo:           form.logo.trim() || form.name[0]?.toUpperCase() || "?",
-    color:          form.color,
-  };
-}
+/* ════════════════════════════════════════════
+   HELPERS & CONSTANTS
+════════════════════════════════════════════ */
+const BRANCHES   = ["CSE","IT","ECE","EEE","MECH","CIVIL","BCA","MCA"];
+const STATUSES   = ["Ongoing","Upcoming","Completed"];
+const DURATIONS  = ["1 month","2 months","3 months","6 months","12 months"];
+const DRIVE_TYPES= ["Full Time","Internship","Internship + PPO","Part Time","Contract"];
 
-/* ═══════════════════════════════════════════════════
-   CONSTANTS
-═══════════════════════════════════════════════════ */
-const ALL_BRANCHES = ["CSE", "IT", "ECE", "MECH", "EEE", "CIVIL"];
-const LOGO_COLORS  = ["#a59fff", "#2dd4bf", "#fbbf24", "#8b5cf6", "#fb7185", "#4ade80"];
-const STATUSES     = ["Upcoming", "Ongoing", "Completed"];
+const statusMap = { "Ongoing":"badge-teal","Upcoming":"badge-indigo","Completed":"badge-amber" };
 
-const statusMap = {
-  Upcoming:  "badge-indigo",
-  Ongoing:   "badge-amber",
-  Completed: "badge-teal",
+const stipendColor = s => {
+  const n = parseInt(s) || 0;
+  if (n >= 60000) return "var(--teal)";
+  if (n >= 35000) return "var(--indigo-ll)";
+  return "var(--amber)";
 };
+const stipendPct = s => Math.min((parseInt(s)||0) / 100000 * 100, 100);
+const fmtStipend = s => { const n=parseInt(s)||0; return n>=1000?`₹${(n/1000).toFixed(0)}K/mo`:`₹${n}/mo`; };
+const initials   = n => (n||"ST").trim().split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2);
 
-const defaultDriveForm = {
-  name:"", role:"", pkg:"", date:"",
-  applied:"", eligible:"", minCgpa:"",
-  status:"Upcoming", desc:"",
-  branches:[], rounds:["", "", ""],
-  logo:"", color: LOGO_COLORS[0],
-};
+/* ════════════════════════════════════════════
+   ICONS
+════════════════════════════════════════════ */
+const CheckIco = () => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>;
+const ErrIco   = () => <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>;
+const XIco     = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
+const TrashIco = () => <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>;
 
-const defaultSettings = {
-  academicYear:"2024-25",
-  officerName:"Placement Officer",
-  officerDept:"Placement Officer",
-  showProgress:true,
-  compact:false,
-  driveReminders:true,
-  studentSms:false,
-  emailAlerts:true,
-  exportFormat:"CSV",
-};
+const stepIcos = [
+  <svg key="a" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>,
+  <svg key="b" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>,
+  <svg key="c" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>,
+];
 
-/* ═══════════════════════════════════════════════════
-   HELPERS
-═══════════════════════════════════════════════════ */
-const fmtDate = raw => {
-  if (!raw) return "—";
-  try { return new Date(raw).toLocaleDateString("en-IN", { day:"numeric", month:"short", year:"numeric" }); }
-  catch { return raw; }
-};
-
-/* ═══════════════════════════════════════════════════
-   LOADING SKELETON
-═══════════════════════════════════════════════════ */
-function Skeleton({ width = "100%", height = 14, style = {} }) {
-  return (
-    <div style={{
-      width, height,
-      background:"var(--surface3)", borderRadius:6,
-      animation:"pulse 1.5s ease-in-out infinite",
-      ...style,
-    }} />
-  );
-}
-
-/* ═══════════════════════════════════════════════════
-   TOAST
-═══════════════════════════════════════════════════ */
-function Toast({ icon, title, sub, onDone }) {
-  useEffect(() => { const t = setTimeout(onDone, 3500); return () => clearTimeout(t); }, []);
-  return (
-    <div className="pd-export-toast">
-      <div style={{ fontSize:20 }}>{icon}</div>
-      <div>
-        <div style={{ fontSize:12, fontWeight:700, color:"var(--text)" }}>{title}</div>
-        <div style={{ fontSize:10, color:"var(--text3)", marginTop:2 }}>{sub}</div>
-      </div>
-      <button onClick={onDone} style={{ background:"none", border:"none", color:"var(--text3)", cursor:"pointer", marginLeft:4, fontSize:16 }}>×</button>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════
-   SHARED UI ATOMS
-═══════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════
+   FORM ATOMS
+════════════════════════════════════════════ */
 const SbLink = ({ active, badge, badgeCls, icon, children, to }) => (
   <Link to={to || "#"} className={`sb-link${active ? " active" : ""}`}>
     {icon}{children}
@@ -175,10 +99,7 @@ const Badge = ({ cls, dot, children }) => (
 
 const FInput = ({ label, name, value, onChange, type="text", placeholder, required, hint }) => (
   <div className="af-field">
-    <label className="af-label">
-      {label}{required && <span className="af-req"> *</span>}
-      {hint && <span className="af-hint"> {hint}</span>}
-    </label>
+    <label className="af-label">{label}{required && <span className="af-req"> *</span>}{hint && <span className="af-hint"> {hint}</span>}</label>
     <input className="af-input" type={type} name={name} value={value} onChange={onChange} placeholder={placeholder} />
   </div>
 );
@@ -193,679 +114,513 @@ const FSelect = ({ label, name, value, onChange, options, required }) => (
 );
 
 const Toggle = ({ checked, onChange }) => (
-  <label className="pd-toggle" onMouseDown={e => e.stopPropagation()}>
+  <label className="pi-toggle" onMouseDown={e=>e.stopPropagation()}>
     <input type="checkbox" checked={checked} onChange={onChange} />
-    <span className="pd-toggle-track"><span className="pd-toggle-thumb" /></span>
+    <span className="pi-toggle-track"><span className="pi-toggle-thumb" /></span>
   </label>
 );
 
-/* ═══════════════════════════════════════════════════
+const Skeleton = ({ width = "100%", height = 14, style = {} }) => (
+  <div style={{ width, height, background:"var(--surface3)", borderRadius:6, animation:"pulse 1.5s ease-in-out infinite", ...style }} />
+);
+
+/* ════════════════════════════════════════════
    OVERLAY
-═══════════════════════════════════════════════════ */
+════════════════════════════════════════════ */
 function Overlay({ onClose, children }) {
   useEffect(() => {
-    const handler = e => { if (e.key === "Escape") onClose(); };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
+    const h = e => { if (e.key === "Escape") onClose(); };
+    window.addEventListener("keydown", h);
+    return () => window.removeEventListener("keydown", h);
   }, [onClose]);
-
   return (
-    <div className="pd-overlay" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="pi-overlay" onMouseDown={e => { if (e.target === e.currentTarget) onClose(); }}>
       <div onMouseDown={e => e.stopPropagation()}>{children}</div>
     </div>
   );
 }
 
-/* ═══════════════════════════════════════════════════
-   ADD / EDIT DRIVE MODAL
-   POST  /placement/internships        (add)
-   PATCH /placement/internships/{id}   (edit)
-═══════════════════════════════════════════════════ */
-function DriveModal({ initial, onClose, onSave }) {
-  const [form,    setForm]    = useState(() =>
-    initial
-      ? { ...initial, rounds:[...initial.rounds], branches:[...initial.branches] }
-      : { ...defaultDriveForm }
-  );
+/* ════════════════════════════════════════════
+   ADD INTERNSHIP MODAL  — POST to /placement/internships
+════════════════════════════════════════════ */
+const defaultForm = {
+  company:"", type:"Full Time", role:"", branches:[], stipend:"",
+  duration:"3 months", date:"", location:"", description:"", status:"Upcoming",
+  ppo: false, mode:"On-site", targetGroup:"All", applicationLink:"",
+};
+
+function AddDriveModal({ onClose, onAdd }) {
+  const [form,    setForm]    = useState(defaultForm);
+  const [step,    setStep]    = useState(1);
   const [errors,  setErrors]  = useState({});
   const [saving,  setSaving]  = useState(false);
   const [success, setSuccess] = useState(false);
   const [apiErr,  setApiErr]  = useState(null);
-  const isEdit = !!initial;
+  const [groups,  setGroups]  = useState(["All"]);
 
-  const handleChange = e => {
-    const { name, value } = e.target;
-    setForm(f => ({ ...f, [name]: value }));
-    if (errors[name]) setErrors(er => ({ ...er, [name]: null }));
+  useEffect(() => {
+    fetch("http://localhost:8000/api/v1/faculty/metadata")
+      .then(r => r.ok ? r.json() : null)
+      .then(d => d?.groups && setGroups(["All", ...d.groups.filter(g => g !== "All")]))
+      .catch(() => {});
+  }, []);
+
+  const handle = e => {
+    const { name, value, type, checked } = e.target;
+    setForm(f => ({ ...f, [name]: type==="checkbox" ? checked : value }));
+    if (errors[name]) setErrors(er => ({ ...er, [name]:null }));
+    setApiErr(null);
   };
-
-  const toggleBranch = b =>
-    setForm(f => ({
-      ...f,
-      branches: f.branches.includes(b) ? f.branches.filter(x => x !== b) : [...f.branches, b],
-    }));
-
-  const setRound = (i, v) =>
-    setForm(f => { const r = [...f.rounds]; r[i] = v; return { ...f, rounds: r }; });
 
   const validate = () => {
     const e = {};
-    if (!form.name.trim()) e.name = "Company name is required";
-    if (!form.role.trim()) e.role = "Role is required";
-    if (!form.pkg.trim())  e.pkg  = "Package is required";
-    if (!form.date)        e.date = "Drive date is required";
+    if (step === 1) {
+      if (!form.company.trim()) e.company = "Company name is required";
+      if (!form.role.trim())    e.role    = "Role is required";
+    }
+    if (step === 2) {
+      if (!form.stipend)        e.stipend  = "Stipend is required";
+      else if (isNaN(parseInt(form.stipend))) e.stipend = "Enter a valid number";
+      if (!form.date)           e.date     = "Start date is required";
+    }
     return e;
   };
 
-  const handleSubmit = async () => {
-    const errs = validate();
-    if (Object.keys(errs).length) { setErrors(errs); return; }
+  const next = () => { const e=validate(); if(Object.keys(e).length){setErrors(e);return;} setStep(s=>s+1); };
+  const prev = () => { setErrors({}); setStep(s=>s-1); };
 
+  const submit = async () => {
     setApiErr(null);
     setSaving(true);
     try {
-      const payload = formToApiPayload(form);
-      let result;
+      // POST to /placement/drives
+      const created = await api.post("/placement/drives", {
+        company_name:   form.company,
+        role:           `${form.role} · ${form.type}`,
+        deadline:       form.date || null,
+        stipend:        form.stipend ? String(parseInt(form.stipend)) : null,
+        duration:       form.duration,
+        location:       form.location || null,
+        description:    form.description || null,
+        status:         form.status,
+        ppo:            form.ppo,
+        mode:           form.mode,
+        branches:       form.branches,
+        target_group:   form.targetGroup,
+        application_link: form.applicationLink || null,
+      });
 
-      if (isEdit) {
-        // PATCH /placement/internships/{id}
-        result = await api.patch(`/placement/internships/${initial.id}`, payload);
-      } else {
-        // POST /placement/internships
-        result = await api.post("/placement/internships", payload);
-      }
-
-      const saved = mapApiDrive(result);
+      const card = mapApiDrive(created);
       setSuccess(true);
-      setTimeout(() => { onSave(saved); onClose(); }, 1400);
+      setTimeout(() => { onAdd(card); onClose(); }, 1500);
     } catch (err) {
-      setApiErr(err.message ?? `Failed to ${isEdit ? "update" : "add"} drive. Please try again.`);
+      setApiErr(err.message ?? "Failed to create drive. Please try again.");
     } finally {
       setSaving(false);
     }
   };
 
+  const STEP_LABELS = ["Company & Role","Details & Schedule","Status & Review"];
+
   return (
     <Overlay onClose={onClose}>
-      <div className="pd-panel">
-
+      <div className="pi-panel">
         {/* HEADER */}
-        <div className="pd-header">
-          <div className="pd-header-left">
-            <div className="pd-modal-icon">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+        <div className="pi-header">
+          <div className="pi-header-left">
+            <div className="pi-modal-icon">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>
             </div>
             <div>
-              <div className="pd-modal-title">{isEdit ? "Edit Drive" : "Add New Drive"}</div>
-              <div className="pd-modal-sub">{isEdit ? "Update drive details" : "Register a placement drive"}</div>
+              <div className="pi-modal-title">Add Drive</div>
+              <div className="pi-modal-sub">Register a new company drive</div>
             </div>
           </div>
-          <button className="pd-close" onClick={onClose}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
+          <button className="pi-close" onClick={onClose}><XIco /></button>
         </div>
 
-        {/* SUCCESS */}
+        {/* STEPS */}
+        <div className="pi-steps">
+          {STEP_LABELS.map((label, i) => {
+            const n=i+1; const done=step>n; const act=step===n;
+            return (
+              <div key={label} className="pi-step-item">
+                <div className={`pi-step-circle${act?" act":""}${done?" done":""}`}>{done?<CheckIco/>:stepIcos[i]}</div>
+                <span className={`pi-step-label${act?" act":""}${done?" done":""}`}>{label}</span>
+                {i<STEP_LABELS.length-1 && <div className={`pi-step-line${done?" done":""}`} />}
+              </div>
+            );
+          })}
+        </div>
+
+        {/* BODY */}
         {success ? (
-          <div className="pd-success">
-            <div className="pd-success-ring">
-              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            </div>
-            <div className="pd-success-title">{isEdit ? "Drive Updated!" : "Drive Added!"}</div>
-            <div className="pd-success-sub">{form.name} has been {isEdit ? "updated" : "registered"}.</div>
+          <div className="pi-success">
+            <div className="pi-success-ring"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg></div>
+            <div className="pi-success-title">Drive Added!</div>
+            <div className="pi-success-sub">{form.company} — {form.role} has been registered.</div>
           </div>
         ) : (
-          <>
-            <div className="pd-body">
-              {/* API error banner */}
-              {apiErr && (
-                <div className="pd-err" style={{ marginBottom:12 }}>
-                  <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-                  {apiErr}
-                </div>
-              )}
-
-              <p className="af-section-desc">Fill in drive details. Fields marked <span style={{ color:"var(--rose)" }}>*</span> are required.</p>
-
-              {/* Row 1 */}
-              <div className="af-grid-2">
-                <div className="af-field">
-                  <label className="af-label">Company Name <span className="af-req">*</span></label>
-                  <input className="af-input" name="name" value={form.name} onChange={handleChange} placeholder="e.g. Microsoft" autoFocus />
-                  {errors.name && <div className="af-error-inline">{errors.name}</div>}
-                </div>
-                <div className="af-field">
-                  <label className="af-label">Role / Position <span className="af-req">*</span></label>
-                  <input className="af-input" name="role" value={form.role} onChange={handleChange} placeholder="e.g. SDE-1 · Full Time" />
-                  {errors.role && <div className="af-error-inline">{errors.role}</div>}
-                </div>
+          <div className="pi-body">
+            {apiErr && (
+              <div className="af-error" style={{ marginBottom:12, padding:"8px 12px", background:"rgba(240,83,106,.08)", borderRadius:8, border:"1px solid rgba(240,83,106,.2)" }}>
+                <ErrIco /> {apiErr}
               </div>
+            )}
 
-              {/* Row 2 */}
-              <div className="af-grid-2">
-                <div className="af-field">
-                  <label className="af-label">Package <span className="af-req">*</span></label>
-                  <input className="af-input" name="pkg" value={form.pkg} onChange={handleChange} placeholder="e.g. 18 LPA" />
-                  {errors.pkg && <div className="af-error-inline">{errors.pkg}</div>}
+            {/* STEP 1 — Company & Role */}
+            {step === 1 && (
+              <div>
+                <p className="af-section-desc">Enter the company and role details for this drive.</p>
+                <div className="af-grid-2">
+                  <FInput label="Company Name" name="company" value={form.company} onChange={handle} placeholder="e.g. Google" required />
+                  <FSelect label="Drive Type"  name="type"    value={form.type}    onChange={handle} options={DRIVE_TYPES} />
+                </div>
+                {errors.company && <div className="af-error"><ErrIco />{errors.company}</div>}
+                <FInput label="Role / Job Title" name="role" value={form.role} onChange={handle} placeholder="e.g. Software Engineering Intern" required />
+                {errors.role && <div className="af-error"><ErrIco />{errors.role}</div>}
+                <div className="af-grid-2">
+                  <FInput label="Location" name="location" value={form.location} onChange={handle} placeholder="e.g. Bangalore / Remote" hint="(optional)" />
+                  <div className="af-field">
+                    <label className="af-label">Mode</label>
+                    <div className="af-radio-row">
+                      {["On-site","Remote","Hybrid"].map(v => (
+                        <label key={v} className={`af-radio-btn${form.mode===v?" active":""}`}>
+                          <input type="radio" name="mode" value={v} checked={form.mode===v} onChange={handle} style={{display:"none"}}/>{v}
+                        </label>
+                      ))}
+                    </div>
+                  </div>
                 </div>
                 <div className="af-field">
-                  <label className="af-label">Drive Date <span className="af-req">*</span></label>
-                  <input className="af-input" type="date" name="date" value={form.date} onChange={handleChange} />
-                  {errors.date && <div className="af-error-inline">{errors.date}</div>}
+                  <FSelect label="Target Group" name="targetGroup" value={form.targetGroup} onChange={handle} options={groups} />
                 </div>
+                {form.company && (
+                  <div className="af-live-preview">
+                    <div className="af-lp-label">Preview</div>
+                    <div className="af-lp-row">
+                      <div style={{width:38,height:38,borderRadius:"50%",background:"linear-gradient(135deg,rgba(91,78,248,.3),rgba(159,122,234,.2))",border:"1.5px solid rgba(91,78,248,.25)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:800,color:"var(--indigo-ll)",flexShrink:0}}>
+                        {form.company[0]?.toUpperCase()||"?"}
+                      </div>
+                      <div>
+                        <div style={{fontSize:13,fontWeight:700,color:"var(--text)"}}>{form.company}</div>
+                        <div style={{fontSize:10,color:"var(--text3)",marginTop:2}}>{form.role||"Role"} · {form.type}</div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
+            )}
 
-              {/* Row 3 */}
-              <div className="af-grid-2">
-                <FInput label="Applications Received" name="applied"  value={form.applied}  onChange={handleChange} type="number" placeholder="e.g. 45" hint="(optional)" />
-                <FInput label="Eligible Students"      name="eligible" value={form.eligible} onChange={handleChange} type="number" placeholder="e.g. 60" hint="(optional)" />
-              </div>
-
-              {/* Row 4 */}
-              <div className="af-grid-2">
-                <FInput  label="Min CGPA" name="minCgpa" value={form.minCgpa} onChange={handleChange} type="number" placeholder="e.g. 7.0" hint="(optional)" />
-                <FSelect label="Status"   name="status"  value={form.status}  onChange={handleChange} options={STATUSES} required />
-              </div>
-
-              {/* Status hint */}
-              <div className={`af-status-hint status-${form.status.toLowerCase()}`}>
-                <span className="af-status-hint-icon">
-                  {form.status === "Upcoming" ? "📅" : form.status === "Ongoing" ? "⏳" : "✅"}
-                </span>
-                <span>
-                  {form.status === "Upcoming"  && "Drive is scheduled. Students can apply."}
-                  {form.status === "Ongoing"   && "Drive is currently active. Selection in progress."}
-                  {form.status === "Completed" && "Drive concluded. Update offer details where applicable."}
-                </span>
-              </div>
-
-              {/* Logo */}
-              <div className="af-grid-2">
-                <FInput label="Logo Letter" name="logo" value={form.logo}
-                  onChange={e => handleChange({ target:{ name:"logo", value:e.target.value.toUpperCase().slice(0,2) } })}
-                  placeholder="Auto (first letter)" hint="(optional)" />
+            {/* STEP 2 — Stipend & Schedule */}
+            {step === 2 && (
+              <div>
+                <p className="af-section-desc">Set stipend, duration, and drive schedule.</p>
+                <div className="af-grid-2">
+                  <div className="af-field">
+                    <label className="af-label">Monthly Stipend <span className="af-req">*</span> <span className="af-hint">in ₹</span></label>
+                    <input className="af-input" type="number" name="stipend" value={form.stipend} onChange={handle} placeholder="e.g. 60000" min="0" step="1000" />
+                    {errors.stipend && <div className="af-error-inline">{errors.stipend}</div>}
+                    {form.stipend && (
+                      <div className="af-micro-bar">
+                        <div className="af-micro-fill" style={{width:`${stipendPct(form.stipend)}%`, background:stipendColor(form.stipend)}} />
+                      </div>
+                    )}
+                  </div>
+                  <FSelect label="Duration" name="duration" value={form.duration} onChange={handle} options={DURATIONS} />
+                </div>
+                <div className="af-grid-2">
+                  <div className="af-field">
+                    <label className="af-label">Application Link <span className="af-hint">(optional)</span></label>
+                    <input className="af-input" type="url" name="applicationLink" value={form.applicationLink} onChange={handle} placeholder="https://..." />
+                  </div>
+                  <div className="af-field">
+                    <label className="af-label">Start / Deadline Date <span className="af-req">*</span></label>
+                    <input className="af-input" type="date" name="date" value={form.date} onChange={handle} />
+                    {errors.date && <div className="af-error-inline">{errors.date}</div>}
+                  </div>
+                </div>
+                <div className="af-grid-2">
+                  <FSelect label="Status" name="status" value={form.status} onChange={handle} options={STATUSES} />
+                  <div className="af-field" />
+                </div>
                 <div className="af-field">
-                  <label className="af-label">Logo Colour</label>
-                  <div className="af-swatches">
-                    {LOGO_COLORS.map(c => (
-                      <button key={c} type="button"
-                        className={`af-swatch${form.color === c ? " active" : ""}`}
-                        style={{ background:c }}
-                        onClick={() => setForm(f => ({ ...f, color:c }))} />
+                  <label className="af-label">Description <span className="af-hint">(optional)</span></label>
+                  <textarea className="af-input" name="description" value={form.description} onChange={handle}
+                    placeholder="Roles, responsibilities, requirements…" rows={3} style={{resize:"vertical",lineHeight:1.5}} />
+                </div>
+                {(form.company || form.stipend) && (
+                  <div className="af-live-preview">
+                    <div className="af-lp-label">Offer Preview</div>
+                    <div className="af-lp-row">
+                      {form.company && (
+                        <div style={{display:"flex",alignItems:"center",gap:8}}>
+                          <div style={{width:28,height:28,borderRadius:6,background:"rgba(91,78,248,.1)",border:"1px solid rgba(91,78,248,.15)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:11,fontWeight:800,color:"var(--indigo-ll)"}}>
+                            {form.company[0]?.toUpperCase()||"?"}
+                          </div>
+                          <div style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>{form.company}</div>
+                        </div>
+                      )}
+                      {form.stipend && (
+                        <div className="af-lp-stat" style={{borderColor:stipendColor(form.stipend)}}>
+                          <div className="af-lp-val" style={{color:stipendColor(form.stipend)}}>{fmtStipend(form.stipend)}</div>
+                          <div className="af-lp-lbl">Stipend</div>
+                        </div>
+                      )}
+                      {form.duration && (
+                        <div className="af-lp-stat" style={{borderColor:"var(--amber)"}}>
+                          <div className="af-lp-val" style={{color:"var(--amber)",fontSize:13}}>{form.duration}</div>
+                          <div className="af-lp-lbl">Duration</div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* STEP 3 — Status & Review */}
+            {step === 3 && (
+              <div>
+                <p className="af-section-desc">Confirm details and set eligibility options.</p>
+                <FSelect label="Drive Status" name="status" value={form.status} onChange={handle} options={STATUSES} required />
+                <div className={`af-status-hint status-${form.status.toLowerCase()}`}>
+                  <span className="af-status-hint-icon">
+                    {form.status==="Ongoing"?"🟢":form.status==="Upcoming"?"📅":"✅"}
+                  </span>
+                  <span>
+                    {form.status==="Ongoing"   ? "Drive is currently active." :
+                     form.status==="Upcoming"  ? "Drive is scheduled to begin soon." :
+                     "Drive has been completed."}
+                  </span>
+                </div>
+
+                {/* PPO Toggle */}
+                <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"11px 14px",background:"var(--surface2)",border:"1px solid var(--border2)",borderRadius:10,marginBottom:14}}>
+                  <div>
+                    <div style={{fontSize:12,fontWeight:600,color:"var(--text)"}}>★ PPO Eligible</div>
+                    <div style={{fontSize:10,color:"var(--text3)",marginTop:2}}>Pre-Placement Offer — student may receive a full-time offer</div>
+                  </div>
+                  <Toggle checked={form.ppo} onChange={() => setForm(f => ({...f, ppo:!f.ppo}))} />
+                </div>
+
+                {/* Summary card */}
+                <div className="af-summary-card">
+                  <div className="af-summary-hd">Summary</div>
+                  <div className="af-summary-top">
+                    <div style={{width:38,height:38,borderRadius:10,background:"linear-gradient(135deg,rgba(91,78,248,.25),rgba(159,122,234,.2))",border:"1.5px solid rgba(91,78,248,.25)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:16,fontWeight:800,color:"var(--indigo-ll)",flexShrink:0}}>
+                      {form.company[0]?.toUpperCase()||"?"}
+                    </div>
+                    <div className="af-summary-info">
+                      <div className="af-summary-name">{form.company || "Company"}</div>
+                      <div className="af-summary-meta">{form.role || "Role"} · {form.type}</div>
+                      {form.location && <div className="af-summary-meta">📍 {form.location}</div>}
+                    </div>
+                    <div style={{display:"flex",flexDirection:"column",gap:4,alignItems:"flex-end"}}>
+                      <Badge cls={statusMap[form.status]} dot>{form.status}</Badge>
+                      {form.ppo && <span className="badge-ppo">★ PPO</span>}
+                    </div>
+                  </div>
+                  <div className="af-summary-stats">
+                    {[
+                      {val:form.stipend?fmtStipend(form.stipend):"—", color:form.stipend?stipendColor(form.stipend):"var(--text3)", lbl:"Stipend"},
+                      {val:form.duration||"—", color:"var(--amber)",    lbl:"Duration"},
+                      {val:form.date||"—",     color:"var(--indigo-ll)",lbl:"Date"},
+                      {val:form.mode||"—",     color:"var(--text2)",    lbl:"Mode"},
+                    ].map(m => (
+                      <div key={m.lbl} className="af-summary-stat">
+                        <div className="af-summary-stat-val" style={{color:m.color,fontSize:11}}>{m.val}</div>
+                        <div className="af-summary-stat-lbl">{m.lbl}</div>
+                      </div>
                     ))}
                   </div>
                 </div>
               </div>
+            )}
+          </div>
+        )}
 
-              {/* Branches */}
-              <div className="af-field">
-                <label className="af-label">Eligible Branches</label>
-                <div className="af-branches">
-                  {ALL_BRANCHES.map(b => (
-                    <button key={b} type="button"
-                      className={`af-branch-btn${form.branches.includes(b) ? " active" : ""}`}
-                      onClick={() => toggleBranch(b)}>{b}</button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Rounds */}
-              <div className="af-field">
-                <label className="af-label">Interview Rounds</label>
-                <div className="af-rounds">
-                  {form.rounds.map((r, i) => (
-                    <div key={i} className="af-round-row">
-                      <span className="af-round-num">{i + 1}</span>
-                      <input className="af-input" placeholder={`Round ${i + 1}`}
-                        value={r} onChange={e => setRound(i, e.target.value)} />
-                      {form.rounds.length > 1 && (
-                        <button type="button" className="af-round-del"
-                          onClick={() => setForm(f => ({ ...f, rounds:f.rounds.filter((_,j)=>j!==i) }))}>✕</button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-                <button type="button" className="af-add-round"
-                  onClick={() => setForm(f => ({ ...f, rounds:[...f.rounds, ""] }))}>+ Add Round</button>
-              </div>
-
-              {/* Description */}
-              <div className="af-field">
-                <label className="af-label">About Drive</label>
-                <textarea className="af-input af-textarea" name="desc" value={form.desc} onChange={handleChange}
-                  placeholder="Brief description about the drive, role, and expectations…" />
-              </div>
-
-              {/* Summary preview */}
-              <div className="af-summary-card">
-                <div className="af-summary-hd">Preview</div>
-                <div className="af-summary-top">
-                  <div className="af-summary-av" style={{ color:form.color }}>
-                    {form.logo.trim() || (form.name[0] || "?").toUpperCase()}
-                  </div>
-                  <div className="af-summary-info">
-                    <div className="af-summary-name">{form.name || "Company Name"}</div>
-                    <div className="af-summary-meta">{form.role || "Role"} · {form.date ? fmtDate(form.date) : "Date"}</div>
-                    <div className="af-summary-meta">{form.pkg || "Package"} · Min CGPA {form.minCgpa || "—"}</div>
-                  </div>
-                  <Badge cls={statusMap[form.status]} dot>{form.status}</Badge>
-                </div>
-                <div className="af-summary-stats">
-                  {[
-                    { val:form.pkg || "—",      color:"var(--teal)",      lbl:"Package" },
-                    { val:form.applied  || "0", color:"var(--indigo-ll)", lbl:"Applied" },
-                    { val:form.eligible || "0", color:"var(--amber)",     lbl:"Eligible" },
-                  ].map(m => (
-                    <div key={m.lbl} className="af-summary-stat">
-                      <div className="af-summary-stat-val" style={{ color:m.color }}>{m.val}</div>
-                      <div className="af-summary-stat-lbl">{m.lbl}</div>
-                    </div>
-                  ))}
-                </div>
-                {form.branches.length > 0 && (
-                  <div className="af-summary-chips">
-                    {form.branches.map(b => <span key={b} className="skill-chip">{b}</span>)}
-                  </div>
-                )}
-              </div>
-
+        {/* FOOTER */}
+        {!success && (
+          <div className="pi-footer">
+            <div className="pi-footer-left">
+              <div className="pi-dots">{[1,2,3].map(n=><div key={n} className={`pi-dot${step===n?" act":step>n?" done":""}`}/>)}</div>
+              <span className="pi-step-count">Step {step} of 3</span>
             </div>
-
-            {/* FOOTER */}
-            <div className="pd-footer">
-              <button className="btn btn-ghost" style={{ fontSize:11, padding:"9px 18px" }} onClick={onClose}>Cancel</button>
-              <button className="btn btn-teal"  style={{ fontSize:11, padding:"9px 22px" }} onClick={handleSubmit} disabled={saving}>
-                {saving ? (
-                  <><div className="pd-spinner" />&nbsp;{isEdit ? "Saving…" : "Adding…"}</>
-                ) : (
-                  <>
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-                    {isEdit ? "Save Changes" : "Add Drive"}
-                  </>
-                )}
-              </button>
+            <div className="pi-footer-right">
+              <button className="btn btn-ghost" style={{fontSize:11,padding:"9px 18px"}} onClick={step===1?onClose:prev}>{step===1?"Cancel":"← Back"}</button>
+              {step < 3
+                ? <button className="btn btn-solid" style={{fontSize:11,padding:"9px 22px"}} onClick={next}>Continue →</button>
+                : <button className="btn btn-teal"  style={{fontSize:11,padding:"9px 22px"}} onClick={submit} disabled={saving}>
+                    {saving ? <><div className="pd-spinner" />&nbsp;Saving…</> : <><CheckIco />Add Drive</>}
+                  </button>
+              }
             </div>
-          </>
+          </div>
         )}
       </div>
     </Overlay>
   );
 }
 
-/* ═══════════════════════════════════════════════════
-   NOTIFY MODAL
-   POST /placement/notifications/send
-   Eligible students fetched from:
-   GET  /placement/dashboard/students?limit=200
-═══════════════════════════════════════════════════ */
-function NotifyModal({ drive, onClose, onSent }) {
-  const [students,  setStudents]  = useState([]);
-  const [loadingSt, setLoadingSt] = useState(true);
-  const [selected,  setSelected]  = useState(new Set());
-  const [sending,   setSending]   = useState(false);
-  const [apiErr,    setApiErr]    = useState(null);
-  const [msg, setMsg] = useState(
-    `Dear Student,\n\nYou are eligible for the ${drive.name} placement drive on ${fmtDate(drive.date)}.\n\nRole: ${drive.role}\nPackage: ${drive.pkg}\nMin CGPA: ${drive.minCgpa}\n\nPlease register on the placement portal.\n\n— Placement Cell`
+/* ════════════════════════════════════════════
+   DELETE CONFIRM — DELETE /placement/internships/:id
+════════════════════════════════════════════ */
+function DeleteConfirm({ intern, onConfirm, onCancel, deleting }) {
+  return (
+    <Overlay onClose={onCancel}>
+      <div className="pi-panel pi-panel-delete">
+        <div className="pi-delete-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/></svg>
+        </div>
+        <div className="pi-delete-title">Remove Drive?</div>
+        <div className="pi-delete-sub">
+          This will permanently remove the <strong style={{color:"var(--text)"}}>{intern.company}</strong> — {intern.role} drive.
+        </div>
+        <div className="pi-delete-actions">
+          <button className="btn btn-ghost" style={{fontSize:11,padding:"9px 20px"}} onClick={onCancel}>Cancel</button>
+          <button className="btn" style={{fontSize:11,padding:"9px 20px",background:"rgba(240,83,106,.12)",color:"var(--rose)",border:"1px solid rgba(240,83,106,.25)"}} onClick={onConfirm} disabled={deleting}>
+            {deleting ? <><div className="pd-spinner" />&nbsp;Removing…</> : <><TrashIco/>&nbsp;Yes, Remove</>}
+          </button>
+        </div>
+      </div>
+    </Overlay>
   );
+}
 
-  /* Fetch eligible students on mount */
+/* ════════════════════════════════════════════
+   ATTENDANCE MODAL — GET /placement/drives/:id/attendance AND POST
+════════════════════════════════════════════ */
+function AttendanceModal({ drive, onClose }) {
+  const [loading, setLoading] = useState(true);
+  const [students, setStudents] = useState([]);
+  const [apiErr, setApiErr] = useState(null);
+
   useEffect(() => {
-    const fetchStudents = async () => {
-      setLoadingSt(true);
+    const fetchA = async () => {
       try {
-        const params = new URLSearchParams({ limit:"200" });
-        if (drive.minCgpa) params.set("min_cgpa", drive.minCgpa);
-        const data = await api.get(`/placement/dashboard/students?${params}`);
-        const list = Array.isArray(data) ? data : (data?.items ?? []);
-        // Filter client-side by minCgpa + status (not yet placed)
-        const eligible = list.filter(s => {
-          const cgpa    = s.settings?.cgpa ?? s.cgpa ?? 0;
-          const placed  = (s.placement_status ?? s.status ?? "") === "placed";
-          const qualifies = drive.minCgpa ? cgpa >= parseFloat(drive.minCgpa) : true;
-          return qualifies && !placed;
-        });
-        setStudents(eligible);
-        // Pre-select all eligible students
-        setSelected(new Set(eligible.map(s => s.id ?? s.user_id)));
+        const res = await api.get(`/placement/drives/${drive.id}/attendance`);
+        setStudents(res || []);
       } catch (err) {
-        console.error("Notify: student fetch error:", err);
+        setApiErr("Failed to load attendance list.");
       } finally {
-        setLoadingSt(false);
+        setLoading(false);
       }
     };
-    fetchStudents();
-  }, [drive]);
+    fetchA();
+  }, [drive.id]);
 
-  const toggleStudent = id =>
-    setSelected(prev => {
-      const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
-      return next;
-    });
-
-  const handleSend = async () => {
-    if (selected.size === 0) return;
-    setApiErr(null);
-    setSending(true);
+  const markStatus = async (studentId, st) => {
     try {
-      // POST /placement/notifications/send
-      await api.post("/placement/notifications/send", {
-        student_ids: [...selected],
-        subject:     `Placement Drive: ${drive.name} — ${drive.role}`,
-        message:     msg,
-        type:        "drive_notification",
-        drive_id:    drive.id,
-      });
-      onSent();
-      onClose();
+      await api.post(`/placement/drives/${drive.id}/attendance`, { student_id: studentId, status: st });
+      setStudents(prev => prev.map(s => s.student_id === studentId ? { ...s, status: st } : s));
     } catch (err) {
-      setApiErr(err.message ?? "Failed to send notifications. Please try again.");
-    } finally {
-      setSending(false);
+      alert("Failed to update status.");
     }
   };
 
   return (
     <Overlay onClose={onClose}>
-      <div className="pd-panel pd-panel-sm">
-        <div className="pd-header">
-          <div className="pd-header-left">
-            <div className="pd-modal-icon">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-            </div>
-            <div>
-              <div className="pd-modal-title">Notify Students</div>
-              <div className="pd-modal-sub">
-                {loadingSt
-                  ? <span>Loading eligible students…</span>
-                  : <><strong style={{ color:"var(--teal)" }}>{students.length} eligible</strong> for <strong>{drive.name}</strong> · {selected.size} selected</>
-                }
-              </div>
-            </div>
+      <div className="pi-panel" style={{ width: 500, maxWidth: "90vw", padding: 0 }}>
+        <div className="pi-header" style={{ padding: "20px 24px", borderBottom: "1px solid var(--border)" }}>
+          <div>
+            <div className="pi-modal-title">Attendance</div>
+            <div className="pi-modal-sub">{drive.company} — {drive.role}</div>
           </div>
-          <button className="pd-close" onClick={onClose}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
+          <button className="pi-close" onClick={onClose}><XIco /></button>
         </div>
-
-        <div className="pd-body">
-          {apiErr && (
-            <div className="pd-err" style={{ marginBottom:12 }}>
-              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-              {apiErr}
-            </div>
+        <div className="pi-body" style={{ padding: "16px 24px", maxHeight: "60vh", overflowY: "auto" }}>
+          {apiErr && <div className="af-error"><ErrIco />{apiErr}</div>}
+          {loading ? (
+             <div style={{ textAlign: "center", padding: "40px" }}><div className="pd-spinner" style={{ borderColor: "var(--indigo-ll)", borderTopColor: "transparent" }} /></div>
+          ) : students.length === 0 ? (
+             <div style={{ textAlign: "center", padding: "40px 20px", color: "var(--text3)", fontSize: 13 }}>No students have registered yet.</div>
+          ) : (
+             <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+               {students.map(s => (
+                 <div key={s.student_id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--surface)", border: "1px solid var(--border)", padding: "12px 16px", borderRadius: 10 }}>
+                   <div>
+                     <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text)" }}>{s.student_name || "Student"}</div>
+                     <div style={{ fontSize: 11, color: "var(--text3)", marginTop: 2 }}>{s.student_roll || "—"} · {s.department || "—"}</div>
+                   </div>
+                   <div style={{ display: "flex", gap: 6 }}>
+                     <button
+                       onClick={() => markStatus(s.student_id, "Present")}
+                       style={{ fontSize: 11, padding: "6px 12px", borderRadius: 6, border: "1px solid var(--border)", background: s.status === "Present" ? "var(--teal)" : "var(--surface2)", color: s.status === "Present" ? "#fff" : "var(--text2)", cursor: "pointer" }}
+                     >
+                       Present
+                     </button>
+                     <button
+                       onClick={() => markStatus(s.student_id, "Absent")}
+                       style={{ fontSize: 11, padding: "6px 12px", borderRadius: 6, border: "1px solid var(--border)", background: s.status === "Absent" ? "var(--rose)" : "var(--surface2)", color: s.status === "Absent" ? "#fff" : "var(--text2)", cursor: "pointer" }}
+                     >
+                       Absent
+                     </button>
+                   </div>
+                 </div>
+               ))}
+             </div>
           )}
-
-          <div className="pd-slist">
-            {loadingSt ? (
-              [1, 2, 3].map(i => (
-                <div key={i} className="pd-srow" style={{ gap:10 }}>
-                  <Skeleton width={32} height={32} style={{ borderRadius:"50%", flexShrink:0 }} />
-                  <div style={{ flex:1 }}>
-                    <Skeleton height={12} style={{ marginBottom:5 }} />
-                    <Skeleton height={9} width="50%" />
-                  </div>
-                </div>
-              ))
-            ) : students.length === 0 ? (
-              <div style={{ textAlign:"center", padding:"20px 0", fontSize:12, color:"var(--text3)" }}>
-                No eligible students found for this drive.
-              </div>
-            ) : (
-              students.map(s => {
-                const id    = s.id ?? s.user_id;
-                const name  = s.full_name ?? s.name ?? "—";
-                const roll  = s.roll_number ?? s.roll ?? s.username ?? "—";
-                const cgpa  = s.settings?.cgpa ?? s.cgpa ?? "—";
-                const chk   = selected.has(id);
-                return (
-                  <div key={id} className="pd-srow"
-                    style={{ cursor:"pointer", opacity: chk ? 1 : 0.5 }}
-                    onClick={() => toggleStudent(id)}>
-                    <div className="pd-savatar" style={{ background: chk ? "var(--teal)" : "var(--surface3)", color: chk ? "#fff" : "var(--text3)", transition:".2s" }}>
-                      {chk
-                        ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><polyline points="20 6 9 17 4 12"/></svg>
-                        : name[0]}
-                    </div>
-                    <div style={{ flex:1 }}>
-                      <div style={{ fontSize:12, fontWeight:600, color:"var(--text)" }}>{name}</div>
-                      <div style={{ fontSize:10, color:"var(--text3)" }}>{roll}</div>
-                    </div>
-                    <span className="skill-chip" style={{ color:"var(--teal)" }}>CGPA {cgpa}</span>
-                  </div>
-                );
-              })
-            )}
-          </div>
-
-          {/* Select all / none */}
-          {!loadingSt && students.length > 0 && (
-            <div style={{ display:"flex", gap:8, marginTop:8 }}>
-              <button className="btn btn-ghost" style={{ fontSize:10, padding:"5px 12px" }}
-                onClick={() => setSelected(new Set(students.map(s => s.id ?? s.user_id)))}>Select All</button>
-              <button className="btn btn-ghost" style={{ fontSize:10, padding:"5px 12px" }}
-                onClick={() => setSelected(new Set())}>Clear</button>
-            </div>
-          )}
-
-          <div className="af-field" style={{ marginTop:14 }}>
-            <label className="af-label">Message</label>
-            <textarea className="af-input af-textarea" style={{ minHeight:120 }} value={msg} onChange={e => setMsg(e.target.value)} />
-          </div>
-        </div>
-
-        <div className="pd-footer">
-          <button className="btn btn-ghost" style={{ fontSize:11, padding:"9px 18px" }} onClick={onClose}>Cancel</button>
-          <button className="btn btn-teal"  style={{ fontSize:11, padding:"9px 22px" }}
-            onClick={handleSend}
-            disabled={sending || selected.size === 0 || loadingSt}>
-            {sending ? (
-              <><div className="pd-spinner" />&nbsp;Sending…</>
-            ) : (
-              <>
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                Send to {selected.size} Student{selected.size !== 1 ? "s" : ""}
-              </>
-            )}
-          </button>
         </div>
       </div>
     </Overlay>
   );
 }
 
-/* ═══════════════════════════════════════════════════
-   DELETE CONFIRM — DELETE /placement/internships/{id}
-═══════════════════════════════════════════════════ */
-function DeleteConfirm({ drive, onConfirm, onCancel, deleting }) {
-  return (
-    <Overlay onClose={onCancel}>
-      <div className="pd-panel pd-panel-delete">
-        <div className="pd-delete-icon">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-        </div>
-        <div className="pd-delete-title">Remove Drive?</div>
-        <div className="pd-delete-sub">
-          This will permanently remove{" "}
-          <strong style={{ color:"var(--text)" }}>{drive.name}</strong> from the placement system.
-        </div>
-        <div className="pd-delete-actions">
-          <button className="btn btn-ghost" style={{ fontSize:11, padding:"9px 20px" }} onClick={onCancel}>Cancel</button>
-          <button className="btn"
-            style={{ fontSize:11, padding:"9px 20px", background:"rgba(240,83,106,.12)", color:"var(--rose)", border:"1px solid rgba(240,83,106,.25)" }}
-            onClick={onConfirm} disabled={deleting}>
-            {deleting ? <><div className="pd-spinner" />&nbsp;Removing…</> : "Yes, Remove"}
-          </button>
-        </div>
-      </div>
-    </Overlay>
-  );
-}
-
-/* ═══════════════════════════════════════════════════
-   SETTINGS PANEL (slide-over)
-═══════════════════════════════════════════════════ */
-function SettingsPanel({ settings, onSave, onClose }) {
-  const [tab,   setTab]   = useState("general");
-  const [local, setLocal] = useState({ ...settings });
-  const toggle = key => setLocal(s => ({ ...s, [key]: !s[key] }));
-  const setVal = (key, val) => setLocal(s => ({ ...s, [key]: val }));
-
-  return (
-    <>
-      <div className="pd-soverlay" onClick={onClose} />
-      <div className="pd-spanel">
-        <div className="pd-shead">
-          <span className="pd-stitle">Settings</span>
-          <button className="pd-close" onClick={onClose}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
-
-        <div className="pd-stabs">
-          {["general","display","notifications","data"].map(t => (
-            <button key={t} className={`pd-stab${tab === t ? " active" : ""}`} onClick={() => setTab(t)}>
-              {t.charAt(0).toUpperCase() + t.slice(1)}
-            </button>
-          ))}
-        </div>
-
-        <div className="pd-sbody">
-          {tab === "general" && (
-            <div>
-              <div className="pd-ssec-label">Academic</div>
-              <div className="pd-srow-item">
-                <div className="pd-srow-info"><div className="pd-srow-label">Academic Year</div><div className="pd-srow-desc">Shown in sidebar and reports</div></div>
-                <select className="pd-sselect" value={local.academicYear} onChange={e => setVal("academicYear", e.target.value)}>
-                  {["2022-23","2023-24","2024-25","2025-26"].map(y => <option key={y}>{y}</option>)}
-                </select>
-              </div>
-              <div className="pd-ssec-label" style={{ marginTop:18 }}>Officer Profile</div>
-              <div className="af-grid-2" style={{ marginBottom:0 }}>
-                <FInput label="Name" name="officerName" value={local.officerName} onChange={e => setVal("officerName", e.target.value)} placeholder="Officer name" />
-                <FInput label="Role" name="officerDept" value={local.officerDept} onChange={e => setVal("officerDept", e.target.value)} placeholder="e.g. Placement Officer" />
-              </div>
-            </div>
-          )}
-          {tab === "display" && (
-            <div>
-              <div className="pd-ssec-label">Cards &amp; Layout</div>
-              <div className="pd-srow-item"><div className="pd-srow-info"><div className="pd-srow-label">Show Progress Bar</div><div className="pd-srow-desc">Application fill rate on cards</div></div><Toggle checked={local.showProgress} onChange={() => toggle("showProgress")} /></div>
-              <div className="pd-srow-item"><div className="pd-srow-info"><div className="pd-srow-label">Compact View</div><div className="pd-srow-desc">Smaller card padding</div></div><Toggle checked={local.compact} onChange={() => toggle("compact")} /></div>
-            </div>
-          )}
-          {tab === "notifications" && (
-            <div>
-              <div className="pd-ssec-label">Alerts</div>
-              {[
-                { key:"driveReminders", label:"Drive Reminders",  desc:"Notify before upcoming drives" },
-                { key:"studentSms",     label:"Student SMS",      desc:"Send SMS to eligible students" },
-                { key:"emailAlerts",    label:"Email Alerts",     desc:"New drive notifications via email" },
-              ].map(r => (
-                <div key={r.key} className="pd-srow-item">
-                  <div className="pd-srow-info"><div className="pd-srow-label">{r.label}</div><div className="pd-srow-desc">{r.desc}</div></div>
-                  <Toggle checked={local[r.key]} onChange={() => toggle(r.key)} />
-                </div>
-              ))}
-            </div>
-          )}
-          {tab === "data" && (
-            <div>
-              <div className="pd-ssec-label">Export</div>
-              <div className="pd-srow-item">
-                <div className="pd-srow-info"><div className="pd-srow-label">Default Export Format</div><div className="pd-srow-desc">Used when downloading data</div></div>
-                <select className="pd-sselect" value={local.exportFormat} onChange={e => setVal("exportFormat", e.target.value)}>
-                  {["CSV","Excel","PDF"].map(v => <option key={v}>{v}</option>)}
-                </select>
-              </div>
-              <div className="pd-ssec-label" style={{ marginTop:18, color:"var(--rose)" }}>Danger Zone</div>
-              <div className="pd-srow-item">
-                <div className="pd-srow-info"><div className="pd-srow-label">Reset All Settings</div><div className="pd-srow-desc">Restore defaults</div></div>
-                <button className="btn" style={{ fontSize:11, padding:"7px 14px", background:"rgba(240,83,106,.1)", color:"var(--rose)", border:"1px solid rgba(240,83,106,.25)" }}
-                  onClick={() => setLocal({ ...defaultSettings })}>Reset</button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        <div className="pd-footer">
-          <button className="btn btn-ghost" style={{ fontSize:11, padding:"9px 18px" }} onClick={onClose}>Cancel</button>
-          <button className="btn btn-teal"  style={{ fontSize:11, padding:"9px 22px" }} onClick={() => { onSave(local); onClose(); }}>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            Save Settings
-          </button>
-        </div>
-      </div>
-    </>
-  );
-}
-
-/* ═══════════════════════════════════════════════════
-   MAIN PAGE
-═══════════════════════════════════════════════════ */
+/* ════════════════════════════════════════════
+   MAIN COMPONENT
+════════════════════════════════════════════ */
 export default function PlacementDrives() {
   const navigate = useNavigate();
 
-  // ── API data ────────────────────────────────────────
-  const [drives,       setDrives]       = useState([]);
-  const [loading,      setLoading]      = useState(true);
-  const [dashStats,    setDashStats]    = useState(null);
-  const [officerName,  setOfficerName]  = useState("");
-  const [deleting,     setDeleting]     = useState(false);
-  const [toast,        setToast]        = useState(null);
-  const [mailUnread,    setMailUnread]   = useState(0);
+  /* ── API data ── */
+  const [loading,      setLoading]     = useState(true);
+  const [drives,       setDrives]      = useState([]);
+  const [dashStats,    setDashStats]   = useState(null);
+  const [officerName,  setOfficerName] = useState("Placement Officer");
+  const [mailUnread,   setMailUnread]  = useState(0);
 
-  // ── UI state ────────────────────────────────────────
-  const [filter,       setFilter]       = useState("All");
-  const [search,       setSearch]       = useState("");
-  const [expanded,     setExpanded]     = useState(null);
-  const [showAdd,      setShowAdd]      = useState(false);
-  const [editTarget,   setEditTarget]   = useState(null);
-  const [notifyTarget, setNotifyTarget] = useState(null);
-  const [deleteTarget, setDeleteTarget] = useState(null);
-  const [showSettings, setShowSettings] = useState(false);
-  const [settings,     setSettings]     = useState(defaultSettings);
+  /* ── UI state ── */
+  const [filter,       setFilter]      = useState("All");
+  const [search,       setSearch]      = useState("");
+  const [showAdd,      setShowAdd]     = useState(false);
+  const [deleteTarget, setDeleteTarget]= useState(null);
+  const [deleting,     setDeleting]    = useState(false);
+  const [attendanceTarget, setAttendanceTarget] = useState(null);
 
-  // ── Custom cursor ───────────────────────────────────
-  // Body scroll lock
-  const anyModal = showAdd || !!editTarget || !!notifyTarget || !!deleteTarget || showSettings;
   useEffect(() => {
-    document.body.style.overflow = anyModal ? "hidden" : "";
+    document.body.style.overflow = (showAdd || !!deleteTarget || !!attendanceTarget) ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
-  }, [anyModal]);
+  },[showAdd, deleteTarget, attendanceTarget]);
 
-  /* ════════════════════════════════════════
-     INITIAL FETCH — parallel on mount
-     • GET /auth/me
-     • GET /placement/dashboard/stats
-     • GET /placement/internships?limit=100
-  ════════════════════════════════════════ */
+  /* ════════════════════════════════════════════
+     FETCH — on mount
+  ════════════════════════════════════════════ */
   useEffect(() => {
     const fetchAll = async () => {
       setLoading(true);
       try {
-        const [meRes, statsRes, drivesRes] = await Promise.allSettled([
+        const results = await Promise.allSettled([
           api.get("/auth/me"),
           api.get("/placement/dashboard/stats"),
-          api.get("/placement/internships?limit=100"),
+          api.get("/placement/drives?limit=50"),
           api.get("/mail/unread/count"),
         ]);
+        
+        const meRes = results[0];
+        const statsRes = results[1];
+        const internshipsRes = results[2];
 
         if (meRes.status === "fulfilled") {
-          const me   = meRes.value;
-          const name = me.full_name ?? me.email ?? "";
-          setOfficerName(name);
-          setSettings(s => ({ ...s, officerName: name }));
+          setOfficerName(meRes.value.full_name ?? meRes.value.email ?? "Placement Officer");
         }
 
         if (statsRes.status === "fulfilled") {
           setDashStats(statsRes.value);
         }
 
-        if (drivesRes.status === "fulfilled") {
-          const raw = Array.isArray(drivesRes.value)
-            ? drivesRes.value
-            : (drivesRes.value?.items ?? []);
+        if (internshipsRes.status === "fulfilled") {
+          const raw = Array.isArray(internshipsRes.value) ? internshipsRes.value : (internshipsRes.value?.items ?? []);
           setDrives(raw.map(mapApiDrive));
         }
 
@@ -873,7 +628,7 @@ export default function PlacementDrives() {
           setMailUnread(results[3].value.count || 0);
         }
       } catch (err) {
-        console.error("PlacementDrives: initial fetch error:", err);
+        console.error("Internships fetch error:", err);
       } finally {
         setLoading(false);
       }
@@ -890,384 +645,273 @@ export default function PlacementDrives() {
     return () => clearInterval(pollUnread);
   }, []);
 
-  /* ════════════════════════════════════════
-     DEBOUNCED SEARCH re-fetch
-  ════════════════════════════════════════ */
+  /* Re-fetch when search/filter changes */
   useEffect(() => {
-    if (!search) return;
     const timer = setTimeout(async () => {
       try {
-        const params = new URLSearchParams({ limit:"100", search });
-        const raw    = await api.get(`/placement/internships?${params}`);
-        const arr    = Array.isArray(raw) ? raw : (raw?.items ?? []);
+        const params = new URLSearchParams({ limit:"50" });
+        if (filter !== "All") params.set("status", filter);
+        const raw = await api.get(`/placement/drives?${params}`);
+        const arr = Array.isArray(raw) ? raw : (raw?.items ?? []);
         setDrives(arr.map(mapApiDrive));
       } catch (err) {
-        console.error("Drives search fetch error:", err);
+        console.error("Drives filter error:", err);
       }
     }, 350);
     return () => clearTimeout(timer);
-  }, [search]);
+  }, [filter]);
 
-  /* ════════════════════════════════════════
-     HANDLERS
-  ════════════════════════════════════════ */
-
-  // After POST — prepend new drive
-  const handleAdd = useCallback(drive => {
-    setDrives(prev => [drive, ...prev]);
-    setToast({ icon:"📋", title:"Drive Added!", sub:`${drive.name} drive has been registered.` });
+  /* ── HANDLERS ── */
+  const handleAdd = useCallback((card) => {
+    setDrives(prev => [card, ...prev]);
   }, []);
 
-  // After PATCH — replace in list
-  const handleSave = useCallback(drive => {
-    setDrives(prev => prev.map(x => x.id === drive.id ? drive : x));
-    setToast({ icon:"✏️", title:"Drive Updated", sub:`${drive.name} has been updated.` });
-  }, []);
-
-  // DELETE /placement/internships/{id}
-  const handleDeleteConfirm = useCallback(async () => {
+  const handleDelete = useCallback(async () => {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await api.delete(`/placement/internships/${deleteTarget.id}`);
-      setDrives(prev => prev.filter(d => d.id !== deleteTarget.id));
-      setExpanded(null);
-      setToast({ icon:"🗑️", title:"Drive Removed", sub:`${deleteTarget.name} has been removed.` });
+      await api.delete(`/placement/drives/${deleteTarget.id}`);
+      setDrives(prev => prev.filter(i => i.id !== deleteTarget.id));
     } catch (err) {
-      // On 404, still remove from local list (already deleted on backend)
-      if (err.status === 404) {
-        setDrives(prev => prev.filter(d => d.id !== deleteTarget.id));
-        setExpanded(null);
-      } else {
-        setToast({ icon:"❌", title:"Delete Failed", sub: err.message ?? "Please try again." });
-      }
+      console.error("Delete error:", err);
     } finally {
       setDeleting(false);
       setDeleteTarget(null);
     }
   }, [deleteTarget]);
 
-  const handleSignOut = () => { clearAuth(); navigate("/login", { replace: true }); };
-
-  /* ════════════════════════════════════════
-     CLIENT-SIDE FILTER
-  ════════════════════════════════════════ */
-  const filtered = drives.filter(d => {
-    const mf = filter === "All" || d.status === filter;
-    const ms = !search
-      || d.name.toLowerCase().includes(search.toLowerCase())
-      || d.role.toLowerCase().includes(search.toLowerCase());
-    return mf && ms;
+  /* ── COMPUTED ── */
+  const filtered = drives.filter(i => {
+    const mf = filter === "All" || i.status === filter;
+    const mq = !search ||
+      i.company.toLowerCase().includes(search.toLowerCase()) ||
+      i.role.toLowerCase().includes(search.toLowerCase()) ||
+      i.branch.toLowerCase().includes(search.toLowerCase());
+    return mf && mq;
   });
 
-  /* ════════════════════════════════════════
-     DERIVED VALUES
-  ════════════════════════════════════════ */
-  const upcoming    = drives.filter(d => d.status === "Upcoming").length;
-  const ongoing     = drives.filter(d => d.status === "Ongoing").length;
-  const totalApps   = drives.reduce((s, d) => s + (d.applied || 0), 0);
-  const placementRate = dashStats?.placement_rate != null
-    ? `${Math.round(dashStats.placement_rate)}%`
-    : "—";
+  const ongoingCount = drives.filter(i => i.status === "Ongoing").length;
+  const ppoCount     = drives.filter(i => i.ppo).length;
+  const avgStipend   = drives.length
+    ? Math.round(drives.reduce((s,i) => s + (i.stipendRaw||0), 0) / drives.length)
+    : 0;
 
-  const officerInitials = (officerName || settings.officerName)
-    .trim().split(" ").map(w => w[0]?.toUpperCase()).join("").slice(0, 2);
 
-  const nextUpcoming = drives.find(d => d.status === "Upcoming");
+  const placementRate = dashStats?.placement_rate ?? 0;
+  const initials_officer = officerName.trim().split(" ").map(w=>w[0]).join("").toUpperCase().slice(0,2) || "PO";
 
-  /* ════════════════════════════════════════
+  /* ══════════════════════════════════════════════
      RENDER
-  ════════════════════════════════════════ */
+  ══════════════════════════════════════════════ */
   return (
     <>
+
       <div className="sc-noise" />
 
-      {/* Modals */}
-      {showAdd && (
-        <DriveModal onClose={() => setShowAdd(false)} onSave={d => { handleAdd(d); setShowAdd(false); }} />
-      )}
-      {editTarget && (
-        <DriveModal initial={editTarget} onClose={() => setEditTarget(null)} onSave={d => { handleSave(d); setEditTarget(null); }} />
-      )}
-      {notifyTarget && (
-        <NotifyModal drive={notifyTarget} onClose={() => setNotifyTarget(null)}
-          onSent={() => setToast({ icon:"📬", title:"Notifications Sent!", sub:`Students notified about ${notifyTarget.name}.` })} />
-      )}
-      {deleteTarget && (
-        <DeleteConfirm drive={deleteTarget} onConfirm={handleDeleteConfirm} onCancel={() => setDeleteTarget(null)} deleting={deleting} />
-      )}
-      {showSettings && (
-        <SettingsPanel settings={settings} onSave={setSettings} onClose={() => setShowSettings(false)} />
-      )}
-
-      {toast && (
-        <Toast icon={toast.icon} title={toast.title} sub={toast.sub} onDone={() => setToast(null)} />
-      )}
+      {showAdd      && <AddDriveModal onClose={()=>setShowAdd(false)} onAdd={handleAdd} />}
+      {deleteTarget && <DeleteConfirm intern={deleteTarget} onConfirm={handleDelete} onCancel={()=>setDeleteTarget(null)} deleting={deleting} />}
+      {attendanceTarget && <AttendanceModal drive={attendanceTarget} onClose={()=>setAttendanceTarget(null)} />}
 
       <div className="app">
-        {/* ── SIDEBAR ── */}
+        {/* ══ SIDEBAR ══ */}
         <aside className="sidebar">
           <div className="sb-top">
-            <Link className="sb-brand" to="/placementdashboard">
+            <Link to="/placementdashboard" className="sb-brand">
               <div className="sb-mark">SC</div>
               <span className="sb-name">SmartCampus</span>
             </Link>
           </div>
-
-          <Link to="/placementdashboard/placementProfile" className="sb-user" style={{ textDecoration:"none" }}>
-            <div className="sb-avatar">{loading ? "…" : officerInitials}</div>
+          <Link to="/placementdashboard/placementProfile" className="sb-user" style={{textDecoration:"none"}}>
+            <div className="sb-avatar">{initials_officer}</div>
             <div>
-              <div className="sb-uname">{loading ? "Loading…" : (officerName || settings.officerName)}</div>
-              <div className="sb-urole">{settings.officerDept}</div>
+              <div className="sb-uname">{loading?"Loading…":officerName}</div>
+              <div className="sb-urole">Placement Officer</div>
             </div>
           </Link>
-
           <nav className="sb-nav">
             <div className="sb-sec-label">Overview</div>
-            <SbLink to="/placementdashboard" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>}>Dashboard</SbLink>
+            <SbLink to="/placementdashboard"                    icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>}>Dashboard</SbLink>
             <SbLink to="/placementdashboard/analytics" badge="New" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>}>Analytics</SbLink>
             <div className="sb-sec-label">Placement</div>
-            <SbLink to="/placementdashboard/students"
-              badge={loading ? "…" : String(dashStats?.total_students ?? "—")} badgeCls="teal"
-              icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>}>Students</SbLink>
-            <SbLink to="/placementdashboard/companies"
-              badge={loading ? "…" : String(dashStats?.total_companies ?? "—")} badgeCls="amber"
-              icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>}>Companies</SbLink>
+            <SbLink to="/placementdashboard/students"     badge={loading?"…":String(dashStats?.total_students??"")} badgeCls="teal"  icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>}>Students</SbLink>
+            <SbLink to="/placementdashboard/companies"    badge={loading?"…":String(dashStats?.total_companies??"")}  badgeCls="amber" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>}>Companies</SbLink>
+            <SbLink active to="/placementdashboard/drives"       badge={loading?"…":String(dashStats?.upcoming_drives??"")} badgeCls="rose" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>}>Drives</SbLink>
 
-            <SbLink active to="/placementdashboard/drives"
-              badge={loading ? "…" : String(dashStats?.upcoming_drives ?? upcoming)} badgeCls="rose"
-              icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>}>Drives</SbLink>
-
-            <SbLink to="/placementdashboard/offers-placed"
-              icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>}>Offers &amp; Placed</SbLink>
-            <SbLink to="/placementdashboard/internships"
-              icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>}>Internships</SbLink>
+            <SbLink to="/placementdashboard/offers-placed"              icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="8" r="6"/><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11"/></svg>}>Offers &amp; Placed</SbLink>
+            <SbLink to="/placementdashboard/internships"         icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>}>Internships</SbLink>
             <div className="sb-sec-label">Tools</div>
             <SbLink to="/placementdashboard/placementMail" badge={mailUnread > 0 ? mailUnread : null} badgeCls="teal" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>}>Mail System</SbLink>
-            <SbLink to="/placementdashboard/meetings"
-              icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>}>Virtual Meeting</SbLink>
-            <SbLink to="/placementdashboard/ai-assistant"
-              icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>}>AI Assistant</SbLink>
-            <SbLink to="/placementdashboard/reports"
-              icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>}>Reports</SbLink>
+            <SbLink to="/placementdashboard/meetings" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>}>Virtual Meeting</SbLink>
+            <SbLink to="/placementdashboard/ai-assistant"  icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>}>AI Assistant</SbLink>
+            <SbLink to="/placementdashboard/reports"       icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>}>Reports</SbLink>
           </nav>
-
           <div className="sb-bottom">
             <div className="sb-pri">
-              <div className="sb-pri-lbl">Placement Rate</div>
-              <div className="sb-pri-val">{loading ? "…" : placementRate}</div>
-              <div className="sb-pri-sub">AY {settings.academicYear}</div>
+              <div className="sb-pri-lbl">PPO Eligible</div>
+              <div className="sb-pri-val">{loading ? "…" : ppoCount}</div>
+              <div className="sb-pri-sub">AY {dashStats?.academic_year ?? "2024-25"} · {loading?"…":`${drives.length} total`}</div>
+
               <div className="sb-pri-bar">
-                <div className="sb-pri-fill"
-                  style={{ width: dashStats ? `${Math.min(dashStats.placement_rate ?? 0, 100)}%` : "0%", transition:"width 1s ease" }} />
+                <div className="sb-pri-fill" style={{ width: loading?"0%":`${drives.length ? Math.round(ppoCount/drives.length*100) : 0}%`, transition:"width 1s ease" }} />
               </div>
             </div>
-            <button className="sb-logout" onClick={handleSignOut}>
+            <button className="sb-logout" onClick={() => { clearAuth(); navigate("/login",{replace:true}); }}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
               Sign Out
             </button>
           </div>
         </aside>
 
-        {/* ── MAIN ── */}
+        {/* ══ MAIN ══ */}
         <div className="main">
           <header className="topbar">
-            <span className="tb-page">Placement Drives</span>
+            <span className="tb-page">Drives</span>
             <div className="tb-sep" />
             <div className="tb-search">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color:"var(--text3)", flexShrink:0 }}>
-                <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
-              </svg>
-              <input type="text" placeholder="Search drives…" value={search} onChange={e => setSearch(e.target.value)} />
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{color:"var(--text3)",flexShrink:0}}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              <input type="text" placeholder="Search company, role, branch…" value={search} onChange={e=>setSearch(e.target.value)} />
             </div>
             <div className="tb-right">
-              <span className="tb-date">Placement · AY {settings.academicYear}</span>
-              <button className="tb-icon-btn" onClick={() => setShowSettings(true)} title="Settings">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" style={{ color:"inherit" }}>
-                  <circle cx="12" cy="12" r="3"/>
-                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-                </svg>
-              </button>
-              <button className="btn btn-solid" style={{ fontSize:10, padding:"8px 14px" }} onClick={() => setShowAdd(true)}>
+              <span className="tb-date">{new Date().toLocaleDateString("en-IN",{weekday:"short",day:"numeric",month:"short"})}</span>
+              <button className="btn btn-solid" style={{fontSize:10,padding:"8px 14px"}} onClick={()=>setShowAdd(true)}>
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-                New Drive
+                Add Drive
               </button>
             </div>
           </header>
 
           <div className="content">
-            {/* PAGE HEADER */}
             <div className="greet-row">
-              <div className="greet-tag">
-                <div className="greet-pip" />
-                <span className="greet-pip-txt">
-                  {loading ? "Loading…" : `${dashStats?.total_drives ?? drives.length} Drives · ${dashStats?.upcoming_drives ?? upcoming} Upcoming`} · AY {settings.academicYear}
+              <div className="greet-tag"><div className="greet-pip"/><span className="greet-pip-txt">{loading?"Loading…":`${drives.length} Drives · AY ${dashStats?.academic_year ?? "2024-25"}`}</span></div>
 
-                </span>
-              </div>
               <h1 className="greet-title">Placement <em>Drives</em></h1>
               <p className="greet-sub">
-                {loading
-                  ? "Fetching drive data…"
-                  : ongoing > 0
-                    ? <><strong style={{ color:"var(--rose)" }}>{ongoing}</strong> drive{ongoing !== 1 ? "s" : ""} currently ongoing.</>
-                    : "All upcoming drives are listed below."
-                }
+                {loading ? "Loading drive data…" : `${ongoingCount} ongoing, ${ppoCount} PPO eligible, avg stipend ₹${Math.round(avgStipend/1000)}K/mo.`}
               </p>
             </div>
 
-            {/* STAT CARDS */}
-            <div className="stat-grid" style={{ marginBottom:18 }}>
-              {[
-                { label:"Total Drives",  val: loading ? "…" : (dashStats?.total_drives ?? drives.length),  color:"indigo", delta:"AY "+settings.academicYear, type:"neu" },
-                { label:"Upcoming",      val: loading ? "…" : (dashStats?.upcoming_drives ?? upcoming),        color:"violet",
-                  delta: loading ? "…" : (dashStats?.upcoming_drives ?? upcoming) > 0 && nextUpcoming
-                    ? `Next: ${fmtDate(nextUpcoming.date)}`
-                    : "None scheduled",
-                  type:"up" },
-                { label:"Applications",  val: loading ? "…" : (dashStats?.total_applications ?? totalApps),       color:"teal",   delta:"Across all drives",  type:"up" },
-                { label:"Ongoing",       val: loading ? "…" : (dashStats?.ongoing_drives ?? ongoing),          color:"rose",   delta:"Active now",         type: (dashStats?.ongoing_drives ?? ongoing) > 0 ? "up" : "neu" },
-
+            {/* STAT CARDS — from real API */}
+            <div className="stat-grid" style={{marginBottom:18}}>
+              {loading ? (
+                [1,2,3,4].map(i=><div key={i} className="stat-card sc-indigo"><Skeleton height={30} style={{marginBottom:6}}/><Skeleton height={12} width="60%"/></div>)
+              ) : [
+                {label:"Total Drives", val:drives.length,               color:"indigo", delta:"This academic year"},
+                {label:"Ongoing",            val:ongoingCount,                     color:"teal",   delta:"Currently active"},
+                {label:"PPO Eligible",       val:ppoCount,                         color:"amber",  delta:"Pre-Placement Offers"},
+                {label:"Avg Stipend",        val:`₹${Math.round(avgStipend/1000)}K`, color:"violet", delta:"Per month average"},
               ].map(s => (
                 <div key={s.label} className={`stat-card sc-${s.color}`}>
-                  <div className="stat-val" style={s.color !== "indigo" ? { color:`var(--${s.color})` } : {}}>{s.val}</div>
+                  <div className="stat-val" style={s.color!=="indigo"?{color:`var(--${s.color})`}:{}}>{s.val}</div>
                   <div className="stat-lbl">{s.label}</div>
-                  <span className={`stat-delta delta-${s.type}`}>{s.delta}</span>
+                  <span className="stat-delta delta-up">{s.delta}</span>
                 </div>
               ))}
             </div>
 
-            {/* FILTERS */}
-            <div style={{ display:"flex", gap:10, marginBottom:14, flexWrap:"wrap", alignItems:"center" }}>
-              <div className="filter-row">
-                {["All", "Upcoming", "Ongoing", "Completed"].map(f => (
-                  <button key={f} className={`filter-btn${filter === f ? " active" : ""}`} onClick={() => setFilter(f)}>{f}</button>
-                ))}
-              </div>
-              <span style={{ marginLeft:"auto", fontSize:11, color:"var(--text3)" }}>
-                {loading ? "Loading…" : `${filtered.length} drives`}
-              </span>
-            </div>
-
-            {/* DRIVE LIST */}
-            {loading ? (
-              // Skeleton drive cards
-              <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:16 }}>
-                {[1, 2, 3].map(i => (
-                  <div key={i} className="pd-card" style={{ padding:"16px 20px" }}>
-                    <div style={{ display:"flex", alignItems:"center", gap:16 }}>
-                      <Skeleton width={44} height={44} style={{ borderRadius:12, flexShrink:0 }} />
-                      <div style={{ flex:1 }}>
-                        <Skeleton height={14} style={{ marginBottom:6 }} width="40%" />
-                        <Skeleton height={10} width="60%" />
-                      </div>
-                      <div style={{ display:"flex", gap:16 }}>
-                        {[1,2,3].map(j => (
-                          <div key={j} style={{ textAlign:"center" }}>
-                            <Skeleton height={16} width={50} style={{ marginBottom:4 }} />
-                            <Skeleton height={9} width={40} />
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            ) : filtered.length === 0 ? (
-              <div className="pd-empty">
-                <div style={{ fontSize:36, opacity:.3 }}>📋</div>
-                <div className="pd-et">No drives found</div>
-                <div className="pd-es">{search ? `No results for "${search}"` : `No ${filter.toLowerCase()} drives yet.`}</div>
-                <button className="btn btn-solid" style={{ marginTop:12, fontSize:11, padding:"9px 18px" }} onClick={() => setShowAdd(true)}>+ Add a Drive</button>
-              </div>
-            ) : (
-              <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:16 }}>
-                {filtered.map((d, i) => {
-                  const pct    = d.eligible > 0 ? Math.round((d.applied / d.eligible) * 100) : 0;
-                  const isOpen = expanded === d.id;
-                  return (
-                    <div key={d.id} className={`pd-card${isOpen ? " open" : ""}`} style={{ animationDelay:i * 0.04 + "s" }}>
-
-                      {/* CARD ROW */}
-                      <div
-                        className={`pd-card-row${settings.compact ? " compact" : ""}`}
-                        onClick={() => setExpanded(isOpen ? null : d.id)}
-                        onMouseEnter={e => e.currentTarget.parentElement.style.borderColor = "rgba(91,78,248,.3)"}
-                        onMouseLeave={e => { if (!isOpen) e.currentTarget.parentElement.style.borderColor = ""; }}
-                      >
-                        <div className="pd-clogo" style={{ color:d.color }}>{d.logo}</div>
-                        <div className="pd-cinfo">
-                          <div className="pd-cname-row">
-                            <span className="pd-cname">{d.name}</span>
-                            <Badge cls={statusMap[d.status] ?? "badge-indigo"} dot>{d.status}</Badge>
-                          </div>
-                          <div className="pd-crole">{d.role}{d.date ? ` · ${fmtDate(d.date)}` : ""}</div>
-                        </div>
-                        <div className="pd-cmetrics">
-                          <div className="pd-metric"><div className="pd-mval" style={{ color:"var(--teal)" }}>{d.pkg}</div><div className="pd-mlbl">Package</div></div>
-                          <div className="pd-metric"><div className="pd-mval" style={{ color:"var(--indigo-ll)" }}>{d.applied}</div><div className="pd-mlbl">Applied</div></div>
-                          <div className="pd-metric"><div className="pd-mval" style={{ color:"var(--amber)" }}>{d.eligible}</div><div className="pd-mlbl">Eligible</div></div>
-                          {settings.showProgress && (
-                            <div className="pd-prog">
-                              <div className="pd-prog-top"><span>Fill</span><span>{pct}%</span></div>
-                              <div className="pd-pbar"><div className="pd-pfill" style={{ width:pct+"%", background:d.color }} /></div>
-                            </div>
-                          )}
-                          <span className={`pd-chev${isOpen ? " open" : ""}`}>▼</span>
-                        </div>
-                      </div>
-
-                      {/* EXPANDED DETAIL */}
-                      {isOpen && (
-                        <div className="pd-expanded" onClick={e => e.stopPropagation()}>
-                          <div>
-                            <div className="pd-etitle">Interview Rounds</div>
-                            {d.rounds.length > 0
-                              ? d.rounds.map((r, ri) => (
-                                  <div key={ri} className="pd-eround">
-                                    <span className="pd-rnum">{ri + 1}</span>
-                                    <span style={{ fontSize:12, color:"var(--text2)" }}>{r}</span>
-                                  </div>
-                                ))
-                              : <div style={{ fontSize:12, color:"var(--text3)" }}>—</div>
-                            }
-                          </div>
-                          <div>
-                            <div className="pd-etitle">Eligibility</div>
-                            <div className="pd-chips">
-                              {d.branches.length > 0
-                                ? d.branches.map(b => <span key={b} className="pd-chip">{b}</span>)
-                                : <span className="pd-chip">All Branches</span>}
-                            </div>
-                            <div className="pd-minc">Min CGPA: <strong style={{ color:"var(--amber)" }}>{d.minCgpa || "—"}</strong></div>
-                          </div>
-                          <div>
-                            <div className="pd-etitle">About</div>
-                            <p className="pd-edesc">{d.desc || "—"}</p>
-                            <div className="pd-eactions">
-                              <button className="btn btn-solid" style={{ fontSize:10, padding:"7px 13px" }} onClick={() => setNotifyTarget(d)}>
-                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                                Notify
-                              </button>
-                              <button className="btn btn-ghost" style={{ fontSize:10, padding:"7px 13px" }} onClick={() => setEditTarget(d)}>
-                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-                                Edit
-                              </button>
-                              <button className="btn"
-                                style={{ fontSize:10, padding:"7px 13px", background:"rgba(240,83,106,.1)", color:"var(--rose)", border:"1px solid rgba(240,83,106,.2)" }}
-                                onClick={() => setDeleteTarget(d)}>
-                                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/></svg>
-                                Delete
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+            {/* PPO BANNER */}
+            {!loading && ppoCount > 0 && (
+              <div className="ppo-banner">
+                <div className="ppo-banner-icon">⭐</div>
+                <div className="ppo-banner-info">
+                  <div className="ppo-banner-title">PPO Eligible Drives</div>
+                  <div className="ppo-banner-sub">These drives may result in Pre-Placement Offers upon completion.</div>
+                </div>
+                <div className="ppo-banner-count">{ppoCount}</div>
               </div>
             )}
+
+            {/* FILTERS */}
+            <div style={{display:"flex",gap:10,marginBottom:14,flexWrap:"wrap",alignItems:"center"}}>
+              <div className="filter-row">
+                {["All","Ongoing","Upcoming","Completed"].map(f => (
+                  <button key={f} className={`filter-btn${filter===f?" active":""}`} onClick={()=>setFilter(f)}>{f}</button>
+                ))}
+              </div>
+              <span style={{marginLeft:"auto",fontSize:11,color:"var(--text3)"}}>{filtered.length} drive{filtered.length!==1?"s":""}</span>
+            </div>
+
+            {/* CARDS GRID */}
+            <div style={{display:"grid",gridTemplateColumns:"repeat(2,1fr)",gap:12,marginBottom:16}}>
+              {loading ? (
+                [1,2,3,4].map(i => (
+                  <div key={i} className="panel" style={{margin:0,padding:"18px 20px"}}>
+                    <Skeleton height={40} style={{marginBottom:12}}/>
+                    <Skeleton height={12} width="60%" style={{marginBottom:8}}/>
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:12}}>
+                      {[1,2,3].map(j=><Skeleton key={j} height={48} style={{borderRadius:8}}/>)}
+                    </div>
+                  </div>
+                ))
+              ) : filtered.length === 0 ? (
+                <div style={{gridColumn:"1/-1",textAlign:"center",padding:"60px 20px",background:"var(--surface)",border:"1px solid var(--border)",borderRadius:14}}>
+                  <div style={{fontSize:32,marginBottom:12}}>🔍</div>
+                  <div style={{fontFamily:"'Fraunces',serif",fontSize:18,color:"var(--text2)",marginBottom:6}}>No drives found</div>
+                  <div style={{fontSize:12,color:"var(--text3)"}}>Try adjusting your search or filters, or add a new drive.</div>
+                  <button className="btn btn-solid" style={{marginTop:16,fontSize:11,padding:"10px 20px"}} onClick={()=>setShowAdd(true)}>+ Add Drive</button>
+                </div>
+              ) : filtered.map(i => (
+                <div key={i.id} className="panel" style={{margin:0,transition:"border-color .2s"}}
+                  onMouseEnter={e=>e.currentTarget.style.borderColor="rgba(91,78,248,.3)"}
+                  onMouseLeave={e=>e.currentTarget.style.borderColor=""}>
+                  <div style={{padding:"18px 20px"}}>
+                    {/* CARD TOP */}
+                    <div style={{display:"flex",alignItems:"flex-start",justifyContent:"space-between",marginBottom:14}}>
+                      <div style={{display:"flex",alignItems:"center",gap:12}}>
+                        <div style={{width:40,height:40,borderRadius:"50%",background:"linear-gradient(135deg,rgba(91,78,248,.25),rgba(159,122,234,.2))",border:"1.5px solid rgba(91,78,248,.2)",display:"flex",alignItems:"center",justifyContent:"center",fontSize:14,fontWeight:800,color:"var(--indigo-ll)",flexShrink:0}}>
+                          {i.company[0]?.toUpperCase()||"?"}
+                        </div>
+                        <div>
+                          <div style={{fontSize:13,fontWeight:700,color:"var(--text)"}}>{i.company}</div>
+                          <div style={{fontSize:10,color:"var(--text3)",marginTop:2}}>{i.role}</div>
+                          {i.branch && i.branch !== "—" && <div style={{fontSize:9,color:"var(--text3)",marginTop:1}}>{i.branch}</div>}
+                        </div>
+                      </div>
+                      <div style={{display:"flex",flexDirection:"column",alignItems:"flex-end",gap:5}}>
+                        <Badge cls={statusMap[i.status] ?? "badge-indigo"} dot>{i.status}</Badge>
+                        {i.ppo && <span className="badge-ppo">★ PPO</span>}
+                        <div style={{display:"flex",gap:8,marginTop:4}}>
+                          <button style={{fontSize:10,padding:"4px 8px",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:6,color:"var(--text2)",cursor:"pointer"}} onClick={() => setAttendanceTarget(i)}>Attendance</button>
+                          <button className="pi-card-del" onClick={()=>setDeleteTarget(i)} title="Remove">
+                            <TrashIco />
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* MINI STATS */}
+                    <div style={{display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:8,marginBottom:12}}>
+                      {[
+                        {val:i.stipend,   color:stipendColor(i.stipendRaw), lbl:"Stipend", bar:true },
+                        {val:i.duration,  color:"var(--amber)",              lbl:"Duration"},
+                        {val:i.start,     color:"var(--indigo-ll)",          lbl:"Start"},
+                      ].map(s => (
+                        <div key={s.lbl} style={{background:"var(--surface2)",borderRadius:8,padding:"8px 10px",textAlign:"center"}}>
+                          <div style={{fontFamily:"'Fraunces',serif",fontSize:13,color:s.color}}>{s.val}</div>
+                          <div style={{fontSize:9,color:"var(--text3)",marginTop:2}}>{s.lbl}</div>
+                          {s.bar && (
+                            <div className="stipend-bar">
+                              <div className="stipend-fill" style={{width:`${stipendPct(i.stipendRaw)}%`}} />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* CARD FOOTER */}
+                    <div style={{display:"flex",alignItems:"center",justifyContent:"space-between",paddingTop:10,borderTop:"1px solid var(--border)"}}>
+                      <div style={{fontSize:11,color:"var(--text3)"}}>
+                        {i.location && <span>📍 {i.location}</span>}
+                      </div>
+                      {i.mode && (
+                        <span style={{fontSize:9,color:"var(--text3)",background:"var(--surface2)",border:"1px solid var(--border)",borderRadius:5,padding:"2px 7px"}}>
+                          {i.mode==="Remote"?"🌐":i.mode==="Hybrid"?"⚡":"📍"} {i.mode}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       </div>

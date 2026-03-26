@@ -259,7 +259,7 @@ def delete_skill(
 # ─────────────────────────────────────────────────────────────────────────────
 
 @router.get("/internships", response_model=List[InternshipResponse],
-            summary="List internships / drives")
+            summary="List internships")
 def list_internships(
     domain: Optional[str] = Query(None),
     skip:   int           = Query(0,  ge=0),
@@ -268,6 +268,18 @@ def list_internships(
     _=Depends(get_current_user),
 ):
     return svc.list_internships(db, skip=skip, limit=limit, domain=domain)
+
+@router.get("/drives", response_model=List[InternshipResponse],
+            summary="List drives")
+def list_drives(
+    domain: Optional[str] = Query(None),
+    skip:   int           = Query(0,  ge=0),
+    limit:  int           = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user),
+):
+    return svc.list_drives(db, skip=skip, limit=limit, domain=domain)
+
 
 
 @router.get("/internships/{internship_id}", response_model=InternshipResponse,
@@ -282,7 +294,7 @@ def get_internship(
 
 @router.post("/internships", response_model=InternshipResponse,
              status_code=status.HTTP_201_CREATED,
-             summary="Create internship / drive (officer)")
+             summary="Create internship (officer)")
 def create_internship(
     payload: InternshipCreate,
     db: Session = Depends(get_db),
@@ -291,6 +303,39 @@ def create_internship(
     if current_user.role not in ("placement_officer", "admin"):
         _403()
     return svc.create_internship(db, current_user.id, payload)
+
+@router.post("/drives", response_model=InternshipResponse,
+             status_code=status.HTTP_201_CREATED,
+             summary="Create drive (officer)")
+def create_drive(
+    payload: InternshipCreate,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    return svc.create_drive(db, current_user.id, payload)
+
+@router.get("/drives/{drive_id}/attendance", summary="Get Drive Attendance")
+def get_drive_attendance(
+    drive_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    return svc.get_drive_attendance(db, drive_id)
+
+@router.post("/drives/{drive_id}/attendance", summary="Mark Drive Attendance")
+def mark_drive_attendance(
+    drive_id: int,
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    return svc.mark_drive_attendance(db, drive_id, payload.get("student_id"), payload.get("status"))
 
 
 @router.patch("/internships/{internship_id}", response_model=InternshipResponse,

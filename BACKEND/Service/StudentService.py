@@ -12,7 +12,7 @@ from Models.Course import Course, Enrollment
 from Models.Lesson import Lesson, WatchHistory
 from Models.Assignment import Assignment, AssignmentSubmission
 from Models.Quiz import Quiz, QuizAttempt, Question
-from Models.Placement import SkillScore, PlacementReadiness, Internship, InternshipApplication, MockInterview, PlacementTopic, ResumeCheck, MockInterviewRoundType, MockInterviewQuestion
+from Models.Placement import SkillScore, PlacementReadiness, Internship, InternshipApplication, MockInterview, PlacementTopic, ResumeCheck, MockInterviewRoundType, MockInterviewQuestion, ApplicationStatus, DriveAttendance
 from Models.Community import StudyGroup, StudyGroupMember, StudyGroupResource
 from Models.Schedule import Schedule
 from Models.Innovation import InnovationIdea, InnovationProject, InnovationHackathon
@@ -1155,27 +1155,22 @@ class StudentService:
 
     def get_placement(self, student: User, db: Session):
         _require_student(student)
-        pri_obj = db.query(PlacementReadiness).filter(
-            PlacementReadiness.student_id == student.id
-        ).first()
+        
+        # Placement Readiness Index Data
+        pri_obj = db.query(PlacementReadiness).filter(PlacementReadiness.student_id == student.id).first()
+        pri_resp = PlacementReadinessResponse(
+            pri_score=float(pri_obj.pri_score) if pri_obj else 0.0,
+            mock_interviews_done=pri_obj.mock_interviews_done if pri_obj else 0,
+            skills_completed=pri_obj.skills_completed if pri_obj else 0,
+            updated_at=pri_obj.updated_at if pri_obj else datetime.utcnow()
+        )
         
         # Skill Scores
         skill_scores = db.query(SkillScore).filter(SkillScore.student_id == student.id).all()
-        skill_scores_resp = [
-            SkillScoreResponse(id=s.id, skill_name=s.skill_name, score=s.score, updated_at=s.updated_at)
-            for s in skill_scores
-        ]
-        
-        # Placement Readiness
-        pri_resp = PlacementReadinessResponse(
-            pri_score=pri_obj.pri_score if pri_obj else 0.0,
-            mock_interviews_done=pri_obj.mock_interviews_done if pri_obj else 0,
-            skills_completed=pri_obj.skills_completed if pri_obj else 0,
-            updated_at=pri_obj.updated_at if pri_obj else datetime.now(timezone.utc),
-        )
+        skill_scores_resp = [SkillScoreResponse.from_orm(s) for s in skill_scores]
         
         # PRI Breakdown
-        coding_score = int(sum(s.score for s in skill_scores[:3]) / len(skill_scores[:3])) if skill_scores else 0
+        coding_score = int(pri_obj.coding_score) if pri_obj else 0
         pri_breakdown = [
             {"label": "Coding Skills", "score": coding_score, "max": 100, "color": "var(--teal)", "icon": "Code"},
             {"label": "Communication", "score": int(pri_obj.communication_score) if pri_obj else 0, "max": 100, "color": "var(--indigo-l)", "icon": "Mic"},
@@ -1184,7 +1179,7 @@ class StudentService:
             {"label": "Interview Readiness", "score": int(pri_obj.pri_score * 0.8) if pri_obj else 0, "max": 100, "color": "var(--rose)", "icon": "Mic"}
         ]
         
-        # Companies (from Internships table)
+        # Companies
         internships = db.query(Internship).limit(5).all()
         companies = [
             {
@@ -1198,74 +1193,45 @@ class StudentService:
                 "logoBg": i.logo_bg,
                 "logoColor": i.logo_color,
                 "deadline": i.deadline.strftime("%b %d") if i.deadline else "TBD",
-                "match": int(len(set(student.skills or []).intersection(set(i.skills or []))) / max(1, len(i.skills or [])) * 100) if i.skills else 0
+                "match": 0
             } for i in internships
         ]
         
-        # Mock Sessions (from MockInterview table)
+        # Mock Sessions
         mock_interviews = db.query(MockInterview).filter(MockInterview.student_id == student.id).order_by(MockInterview.created_at.desc()).limit(5).all()
         mock_sessions = [
             {
                 "company": m.company,
                 "type": m.type,
                 "date": m.date,
-                "time": m.time,
-                "interviewer": "AI Simulator",
                 "score": m.score,
-                "status": "done" if m.score is not None else "upcoming"
+                "id": m.id
             } for m in mock_interviews
         ]
         
-        # Dynamic Topics and Resume Checklist
-        topics_db = db.query(PlacementTopic).filter(PlacementTopic.student_id == student.id).all()
+        # Other fields
         topics = [
-            {"label": t.label, "done": t.done, "total": t.total, "color": t.color}
-            for t in topics_db
-        ] if topics_db else [
             {"label": "Arrays & Strings", "done": 0, "total": 40, "color": "var(--teal)"},
             {"label": "Trees & Graphs", "done": 0, "total": 35, "color": "var(--indigo-l)"},
-            {"label": "Dynamic Programming", "done": 0, "total": 30, "color": "var(--amber)"},
+            {"label": "Dynamic Programming", "done": 0, "total": 30, "color": "var(--amber)"}
         ]
-        
-        resume_db = db.query(ResumeCheck).filter(ResumeCheck.student_id == student.id).all()
-        resume_checklist = [
-            {"label": r.label, "done": r.done}
-            for r in resume_db
-        ] if resume_db else [
-            {"label": "Contact & Summary", "done": False},
-            {"label": "Education Details", "done": False},
-            {"label": "Technical Skills Section", "done": False},
-        ]
-        tips = [
-            {"icon": "Zap", "color": "var(--amber)", "text": "Practice more Mock Interviews to improve your PRI score."},
-        ]
-
-        # Difficulty Breakdown
+        resume_checklist = [{"label": "Contact & Summary", "done": False}]
+        tips = [{"icon": "Zap", "color": "var(--amber)", "text": "Improve your PRI score."}]
         difficulty_breakdown = []
-
-        # ATS Score & Issues
         ats_score = int(pri_obj.resume_score) if pri_obj else 0
         ats_issues = []
-
-        # Profile Strength
-        profile_strength = [
-            { "label": "Skills Listed", "pct": min(100, len(skill_scores)*15), "color": "var(--violet)" },
-        ]
+        profile_strength = [{"label": "Skills Listed", "pct": 0, "color": "var(--violet)"}]
 
         # Last Feedback
         last_feedback = None
         if mock_interviews and mock_interviews[0].score is not None:
             last = mock_interviews[0]
             last_feedback = {
-                "session": f"{last.company or 'Company'} · {last.type or 'Round'} · {last.date or 'Recently'}",
+                "session": f"{last.company or 'Company'} · {last.type or 'Round'}",
                 "score": last.score,
-                "metrics": [
-                    { "label": "Overall", "score": last.score, "color": "var(--teal)" },
-                ],
-                "strength": "Good problem solving.",
-                "improve": "Focus on communication."
+                "metrics": [{"label": "Communication", "score": 75, "max": 100, "color": "var(--indigo-l)"}]
             }
-
+        
         return {
             "placement_readiness": pri_resp,
             "skill_scores": skill_scores_resp,
@@ -1274,12 +1240,12 @@ class StudentService:
             "mock_sessions": mock_sessions,
             "topics": topics,
             "resume_checklist": resume_checklist,
+            "tips": tips,
             "difficulty_breakdown": difficulty_breakdown,
             "ats_score": ats_score,
             "ats_issues": ats_issues,
             "profile_strength": profile_strength,
             "last_feedback": last_feedback,
-            "tips": tips,
             "applications_count": db.query(InternshipApplication).filter(InternshipApplication.student_id == student.id).count(),
             "shortlisted_count": db.query(InternshipApplication).filter(
                 InternshipApplication.student_id == student.id,
@@ -1287,15 +1253,20 @@ class StudentService:
             ).count()
         }
 
-    # ─── Internships ──────────────────────────────────────────────────────────
-
     def get_internships(self, student: User, db: Session):
         _require_student(student)
         
-        internships = db.query(Internship).all()
-        applications = db.query(InternshipApplication).filter(InternshipApplication.student_id == student.id).all()
-        app_map = {a.internship_id: a for a in applications}
-
+        dept = student.department or ""
+        group = student.target_group or "All"
+        
+        internships = db.query(Internship).filter(
+            Internship.category == "internship",
+            (Internship.target_group == None) | (Internship.target_group == "All") | (Internship.target_group == group) | (Internship.target_group == dept)
+        ).all()
+        all_applications = db.query(InternshipApplication).filter(InternshipApplication.student_id == student.id).all()
+        applications = [app for app in all_applications if app.internship.category == "internship"]
+        app_map = {a.internship_id: a for a in all_applications}
+ 
         result_listings: List[InternshipResponse] = []
         for i in internships:
             app = app_map.get(i.id)
@@ -1320,10 +1291,15 @@ class StudentService:
                 created_at=i.created_at,
                 application_status=app.status_label if app else None
             ))
-
+ 
         result_applications: List[Dict[str, Any]] = []
         for app in applications:
             result_applications.append({
+                "id": app.id,
+                "app_id": app.id,
+                "application_id": app.id,
+                "internship_id": app.internship_id,
+                "company_name": app.internship.company_name,
                 "company": app.internship.company_name,
                 "role": app.internship.role,
                 "logo": app.internship.logo,
@@ -1332,10 +1308,12 @@ class StudentService:
                 "appliedOn": app.applied_at.strftime("%b %d"),
                 "status": app.status_label or "Under Review",
                 "statusColor": app.status_color or "amber",
+                "rawStatus": app.status.value if hasattr(app.status, 'value') else str(app.status),
                 "steps": ["Applied", "OA", "Interview", "Offer"],
-                "currentStep": app.current_step
+                "currentStep": app.current_step,
+                "application_link": app.internship.application_link
             })
-
+ 
         total_apps = len(applications)
         def get_pct(count): return int((count / max(1, total_apps)) * 100)
         
@@ -1347,6 +1325,25 @@ class StudentService:
         ]
         
         timeline: List[Dict[str, Any]] = []
+        for app in applications:
+            timeline.append({
+                "date": app.applied_at.strftime("%b %d"),
+                "event": f"Applied to {app.internship.company_name} · {app.internship.role}",
+                "type": "apply",
+                "color": "var(--indigo-l)"
+            })
+            if app.logs:
+                for log in app.logs:
+                    timeline.append(log)
+        
+        timeline.sort(key=lambda x: x.get("date", ""), reverse=True)
+        return {
+            "listings": result_listings,
+            "applications": result_applications,
+            "saved": [],
+            "funnel": funnel,
+            "timeline": list(islice(timeline, 10))
+        }
         for app in applications:
             timeline.append({
                 "date": app.applied_at.strftime("%b %d"),
@@ -1382,6 +1379,140 @@ class StudentService:
         db.add(app)
         db.commit()
         return {"message": "Applied successfully"}
+
+    def self_select_application(self, application_id: int, student: User, db: Session):
+        _require_student(student)
+        app = db.query(InternshipApplication).filter(
+            InternshipApplication.id == application_id,
+            InternshipApplication.student_id == student.id
+        ).first()
+        if not app:
+            raise HTTPException(status_code=404, detail="Application not found")
+        
+        app.status = ApplicationStatus.selected
+        app.current_step = 4  # Offer Received / Selected
+        
+        # Add a log
+        if not app.logs: app.logs = []
+        app.logs.append({
+            "date": datetime.now().strftime("%b %d"),
+            "event": "Self-reported Selection 🎉",
+            "type": "selection",
+            "color": "var(--teal)"
+        })
+        
+        db.commit()
+        return {"message": "Selection reported successfully", "status": "selected"}
+
+
+
+    def get_drives(self, student: User, db: Session):
+        _require_student(student)
+        
+        dept = student.department or ""
+        group = student.target_group or "All"
+        
+        drives = db.query(Internship).filter(
+            Internship.category == "drive",
+            (Internship.target_group == None) | (Internship.target_group == "All") | (Internship.target_group == group) | (Internship.target_group == dept)
+        ).all()
+        all_applications = db.query(InternshipApplication).filter(InternshipApplication.student_id == student.id).all()
+        applications = [app for app in all_applications if app.internship.category == "drive"]
+        app_map = {a.internship_id: a for a in all_applications}
+
+        result_listings: List[InternshipResponse] = []
+        for d in drives:
+            app = app_map.get(d.id)
+            result_listings.append(InternshipResponse(
+                id=d.id,
+                company_name=d.company_name,
+                role=d.role,
+                domain=d.domain,
+                location=d.location,
+                stipend=d.stipend,
+                duration=d.duration,
+                seats=d.seats,
+                skills=d.skills or [],
+                description=d.description,
+                difficulty=d.difficulty,
+                logo=d.logo,
+                logo_bg=d.logo_bg,
+                logo_color=d.logo_color,
+                tag=d.tag,
+                tag_color=d.tag_color,
+                deadline=d.deadline,
+                created_at=d.created_at,
+                application_status=app.status_label if app else None
+            ))
+
+        result_applications: List[Dict[str, Any]] = []
+        for app in applications:
+            result_applications.append({
+                "id": app.id,
+                "company": app.internship.company_name,
+                "role": app.internship.role,
+                "logo": app.internship.logo,
+                "logoBg": app.internship.logo_bg,
+                "logoColor": app.internship.logo_color,
+                "appliedOn": app.applied_at.strftime("%b %d"),
+                "status": app.status_label or "Under Review",
+                "statusColor": app.status_color or "amber",
+                "rawStatus": app.status.value if hasattr(app.status, 'value') else str(app.status),
+                "steps": ["Registered", "OA", "Interview", "Selected"],
+                "currentStep": app.current_step
+            })
+
+        total_apps = len(result_applications)
+        def get_pct(count): return int((count / max(1, total_apps)) * 100)
+        
+        funnel = [
+            {"stage": "Registered",       "count": total_apps,  "color": "var(--indigo-l)", "pct": 100 if total_apps else 0},
+            {"stage": "OA / Test",        "count": sum(1 for a in result_applications if a["currentStep"] >= 2),  "color": "var(--teal)",     "pct": get_pct(sum(1 for a in result_applications if a["currentStep"] >= 2))},
+            {"stage": "Interview",        "count": sum(1 for a in result_applications if a["currentStep"] >= 3),  "color": "var(--amber)",    "pct": get_pct(sum(1 for a in result_applications if a["currentStep"] >= 3))},
+            {"stage": "Selected",         "count": sum(1 for a in result_applications if a["currentStep"] >= 4),  "color": "var(--violet)",   "pct": get_pct(sum(1 for a in result_applications if a["currentStep"] >= 4))},
+        ]
+        
+        timeline: List[Dict[str, Any]] = []
+        for app in applications:
+            timeline.append({
+                "date": app.applied_at.strftime("%b %d"),
+                "event": f"Registered for Drive: {app.internship.company_name} · {app.internship.role}",
+                "type": "apply",
+                "color": "var(--indigo-l)"
+            })
+            if app.logs:
+                for log in app.logs:
+                    timeline.append(log)
+        
+        timeline.sort(key=lambda x: x.get("date", ""), reverse=True)
+        return {
+            "listings": result_listings,
+            "applications": result_applications,
+            "saved": [],
+            "funnel": funnel,
+            "timeline": list(islice(timeline, 10))
+        }
+
+    def register_drive(self, drive_id: int, student: User, db: Session):
+        _require_student(student)
+        drive = db.query(Internship).filter(Internship.id == drive_id, Internship.category == "drive").first()
+        if not drive:
+            raise HTTPException(status_code=404, detail="Drive not found")
+        existing = db.query(InternshipApplication).filter(
+            InternshipApplication.internship_id == drive_id,
+            InternshipApplication.student_id == student.id,
+        ).first()
+        if existing:
+            raise HTTPException(status_code=400, detail="Already registered for this drive")
+        app = InternshipApplication(internship_id=drive_id, student_id=student.id)
+        db.add(app)
+        db.commit()
+        from Models.Placement import DriveAttendance
+        att = DriveAttendance(drive_id=drive_id, student_id=student.id, status="Registered")
+        db.add(att)
+        db.commit()
+        return {"message": "Registered successfully"}
+
 
     # ─── Profile ──────────────────────────────────────────────────────────────
 

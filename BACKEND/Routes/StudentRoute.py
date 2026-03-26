@@ -229,7 +229,6 @@ def get_internships(
 ):
     return student_service.get_internships(current_user, db)
 
-
 @router.post("/internships/{internship_id}/apply")
 def apply_internship(
     internship_id: int,
@@ -237,6 +236,33 @@ def apply_internship(
     db: Session = Depends(get_db),
 ):
     return student_service.apply_internship(internship_id, current_user, db)
+
+@router.patch("/applications/{application_id}/self-select")
+def self_select_application(
+    application_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return student_service.self_select_application(application_id, current_user, db)
+
+
+# ─── Drives ──────────────────────────────────────────────────────────────────
+
+@router.get("/drives", response_model=InternshipsOverviewResponse)
+def get_drives(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return student_service.get_drives(current_user, db)
+
+
+@router.post("/drives/{drive_id}/register")
+def register_drive(
+    drive_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return student_service.register_drive(drive_id, current_user, db)
 
 
 # ─── Profile ─────────────────────────────────────────────────────────────────
