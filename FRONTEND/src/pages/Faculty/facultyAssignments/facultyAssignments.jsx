@@ -517,10 +517,24 @@ function DetailDrawer({ assignment, onClose, onEdit, onDuplicate, onDelete }) {
                           s.status === "pending" ? <><IcoClock width={10} height={10} /> Pending</> :
                             <><IcoAlert width={10} height={10} /> Missing</>}
                       </div>
-                      <button className="btn btn-solid" style={{ padding: "4px 12px", fontSize: 10, gap: 4 }}
-                        onClick={() => setActiveGrader(s)}>
-                        <IcoPen width={10} height={10} /> Grade
-                      </button>
+                      <div style={{ display: "flex", gap: 8 }}>
+                        {s.file_url && (
+                          <a
+                            href={s.file_url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="btn btn-ghost"
+                            style={{ padding: "4px 8px", fontSize: 10, gap: 4 }}
+                            onClick={e => e.stopPropagation()}
+                          >
+                            <IcoEye width={10} height={10} /> View
+                          </a>
+                        )}
+                        <button className="btn btn-solid" style={{ padding: "4px 12px", fontSize: 10, gap: 4 }}
+                          onClick={() => setActiveGrader(s)}>
+                          <IcoPen width={10} height={10} /> Grade
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

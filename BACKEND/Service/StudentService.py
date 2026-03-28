@@ -818,6 +818,8 @@ class StudentService:
                 created_at=lesson.created_at,
                 watched=wh is not None,
                 watch_time_seconds=wh.watch_time_seconds if wh else 0,
+                duration_seconds=lesson.duration_seconds,
+                watch_pct=( (wh.watch_time_seconds / lesson.duration_seconds * 100) if (wh and lesson.duration_seconds and lesson.duration_seconds > 0) else (100.0 if (wh and wh.completed) else 0.0) ),
                 completed=wh.completed if wh else False,
             ))
         return result

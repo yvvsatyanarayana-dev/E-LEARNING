@@ -16,8 +16,10 @@ from Schemas.FacultySchema import (
     FacultySettingsResponse, FacultySettingsUpdate,
     FacultyLessonCreate, FacultyAssignmentCreate, FacultyQuizCreate, FacultyCourseCreate,
     FacultyReportResponse, FacultyAssignmentUpdate, FacultyQuizUpdate, FacultyMetadataResponse,
-    FacultyQuestionBankItem, FacultyQuestionBankCreate, FacultyQuestionBankUpdate
+    FacultyQuestionBankItem, FacultyQuestionBankCreate, FacultyQuestionBankUpdate,
+    AttendanceRecordSubmit, AttendanceBulkSubmit, AttendanceRecordResponse, AttendanceHistoryGrid
 )
+from datetime import datetime, date
 
 router = APIRouter(prefix="/faculty", tags=["Faculty"])
 faculty_service = FacultyService()
@@ -130,23 +132,8 @@ def export_faculty_report(report_type: str, current_user: User = Depends(get_cur
     )
 
 @router.get("/metadata", response_model=FacultyMetadataResponse)
-def get_faculty_metadata(db: Session = Depends(get_db)):
-    return faculty_service.get_metadata(db)
-
-@router.post("/upload")
-def upload_file(file: UploadFile = File(...), current_user: User = Depends(get_current_user)):
-    try:
-        ext = file.filename.split('.')[-1] if '.' in file.filename else "bin"
-        filename = f"{uuid.uuid4()}.{ext}"
-        os.makedirs("uploads", exist_ok=True)
-        filepath = os.path.join("uploads", filename)
-        with open(filepath, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        
-        # Return properly formatted URL to be saved in DB
-        return {"url": f"http://127.0.0.1:8000/uploads/{filename}", "filename": file.filename}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"File upload failed: {str(e)}")
+def get_faculty_metadata(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return faculty_service.get_metadata(db, current_user)
 
 @router.post("/ai/chat", summary="Faculty AI Assistant Chat")
 def faculty_ai_chat(payload: dict, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -201,3 +188,24 @@ def end_meeting(body: dict, current_user: User = Depends(get_current_user)):
 def get_meeting_history(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     """Return past meeting history for the faculty."""
     return faculty_service.get_meeting_history(current_user, db)
+
+# ─── ATTENDANCE MANAGEMENT ──────────────────────────────────────────────
+
+@router.post("/attendance/bulk")
+def submit_bulk_attendance(data: AttendanceBulkSubmit, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Mark attendance for multiple students for a specific course and date."""
+    return faculty_service.submit_bulk_attendance(current_user, db, data)
+
+@router.get("/attendance/history/{course_id}", response_model=List[AttendanceHistoryGrid])
+def get_attendance_history(course_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Get summarized attendance history logs for a course."""
+    return faculty_service.get_attendance_history(current_user, db, course_id)
+
+@router.get("/attendance/day/{course_id}/{date_str}", response_model=List[AttendanceRecordResponse])
+def get_daily_attendance_records(course_id: int, date_str: str, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Get detailed attendance records for a specific day."""
+    try:
+        dt = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+    return faculty_service.get_daily_attendance(current_user, db, course_id, dt)

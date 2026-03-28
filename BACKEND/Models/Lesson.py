@@ -13,6 +13,7 @@ class Lesson(Base):
     video_url   = Column(String(500), nullable=True)
     pdf_url     = Column(String(500), nullable=True)
     duration    = Column(String(50), nullable=True) # e.g. "45m"
+    duration_seconds = Column(Integer, default=0, nullable=True) # e.g. 2700
     is_completed = Column(Boolean, default=False)
     target_group = Column(String(50), nullable=True, default="All")
     order       = Column(Integer, default=1)

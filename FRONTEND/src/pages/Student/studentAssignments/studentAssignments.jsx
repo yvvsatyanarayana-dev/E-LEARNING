@@ -3,13 +3,14 @@
 // Inherits CSS variables from StudentDashboard.css + StudentMyCourses.css
 
 import { useState, useEffect, useRef } from "react";
+import api from "../../../utils/api";
 import {
   ChevronLeft, ChevronRight, FileText, Clock, CheckCircle2,
   AlertTriangle, Upload, Download, Eye, Star, X, Search,
   Filter, List, LayoutGrid, Bot, Paperclip, Send, Calendar,
   BookOpen, TrendingUp, Award, BarChart2, ChevronDown,
   Circle, XCircle, RefreshCw, MessageSquare, Zap, Flag,
-  Lock, Edit3, MoreHorizontal, ArrowUpRight, Layers
+  Lock, Edit3, MoreHorizontal, ArrowUpRight, Layers, Loader2
 } from "lucide-react";
 
 // ─── DATA ─────────────────────────────────────────────────────────
@@ -307,16 +308,44 @@ function AssignmentRow({ asgmt, course, onOpen }) {
 }
 
 // ─── UPLOAD MODAL ─────────────────────────────────────────────────
-function UploadModal({ asgmt, course, onClose }) {
+function UploadModal({ asgmt, course, onClose, onRefresh }) {
   const [dragging, setDragging] = useState(false);
   const [files,    setFiles]    = useState([]);
   const [note,     setNote]     = useState("");
+  const [loading,   setLoading]   = useState(false);
+  const [error,     setError]     = useState(null);
   const [submitted,setSubmitted]= useState(false);
 
   const onDrop = e => {
     e.preventDefault(); setDragging(false);
     const f = [...e.dataTransfer.files];
     setFiles(prev=>[...prev,...f]);
+  };
+
+  const handleSubmit = async () => {
+    if (files.length === 0) return;
+    setLoading(true);
+    setError(null);
+    try {
+      // 1. Upload the first file using the dedicated upload method
+      const upRes = await api.upload("/auth/upload", files[0]);
+
+      if (!upRes.url) throw new Error("Upload failed to return a URL");
+
+      // 2. Submit assignment with the URL
+      await api.post(`/student/assignments/${asgmt.id}/submit`, {
+        file_url: upRes.url,
+        note: note
+      });
+
+      setSubmitted(true);
+      if (onRefresh) onRefresh();
+    } catch (err) {
+      console.error("Submission error:", err);
+      setError(err.message || "Failed to submit assignment. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (submitted) return (
@@ -453,15 +482,23 @@ function UploadModal({ asgmt, course, onClose }) {
               </div>
             </div>
           </div>
+
+          {/* Error display */}
+          {error && (
+            <div className="as-error-msg" style={{color:"var(--rose)",fontSize:11,margin:"10px 0 0",display:"flex",gap:6,alignItems:"center"}}>
+              <AlertTriangle size={12}/> {error}
+            </div>
+          )}
         </div>
 
         <div className="as-modal-footer">
-          <button className="as-modal-btn as-modal-btn--ghost" onClick={onClose}>Cancel</button>
+          <button className="as-modal-btn as-modal-btn--ghost" onClick={onClose} disabled={loading}>Cancel</button>
           <button className="as-modal-btn as-modal-btn--primary"
-            style={{background:course.color,opacity:files.length===0?.5:1}}
-            disabled={files.length===0}
-            onClick={()=>setSubmitted(true)}>
-            <Send size={13}/>Submit Assignment
+            style={{background:course.color,opacity:(files.length===0 || loading)?.5:1}}
+            disabled={files.length===0 || loading}
+            onClick={handleSubmit}>
+            {loading ? <Loader2 size={13} className="san-spin"/> : <Send size={13}/>}
+            {loading ? "Submitting..." : "Submit Assignment"}
           </button>
         </div>
       </div>
@@ -755,59 +792,63 @@ export default function StudentAssignments({ onBack }) {
   const [assignmentsState, setAssignmentsState] = useState([]);
   const [coursesState, setCoursesState]         = useState([]);
 
-  useEffect(() => {
-    import("../../../utils/api").then(({ default: api }) => {
+  const fetchData = async () => {
+    try {
       // 1. Fetch Courses
-      api.get("/student/courses").then(data => {
-        const colors = ["var(--indigo-l)", "var(--teal)", "var(--amber)", "var(--violet)", "var(--rose)"];
-        const rgbs = ["91,78,248", "20,184,166", "245,158,11", "139,92,246", "244,63,94"];
-        const mapped = data.map((c, i) => ({
-          id: c.course_id,
-          code: c.semester || "CS500",
-          name: c.title,
-          short: c.title.split(" ").map(w=>w[0]).join("").toUpperCase(),
-          faculty: c.faculty_name,
-          color: colors[i % colors.length],
-          rgb: rgbs[i % rgbs.length],
-        }));
-        setCoursesState(mapped);
-      });
+      const courseData = await api.get("/student/courses");
+      const colors = ["var(--indigo-l)", "var(--teal)", "var(--amber)", "var(--violet)", "var(--rose)"];
+      const rgbs = ["91,78,248", "20,184,166", "245,158,11", "139,92,246", "244,63,94"];
+      const mappedCourses = courseData.map((c, i) => ({
+        id: c.course_id,
+        code: c.semester || "CS500",
+        name: c.title,
+        short: c.title.split(" ").map(w => w[0]).join("").toUpperCase(),
+        faculty: c.faculty_name,
+        color: colors[i % colors.length],
+        rgb: rgbs[i % rgbs.length],
+      }));
+      setCoursesState(mappedCourses);
 
       // 2. Fetch Assignments
-      api.get("/student/assignments").then(data => {
-        const mapped = data.map(a => {
-          let st = STATUS.PENDING;
-          if (a.submission) st = STATUS.SUBMITTED;
-          if (a.submission && a.submission.grade) st = STATUS.GRADED;
-          else if (!a.submission && new Date(a.due_date) < new Date()) st = STATUS.LATE;
-          
-          return {
-            id: a.id,
-            courseId: a.course_id,
-            title: a.title,
-            type: a.type || TYPE.THEORY,
-            dueDate: a.due_date ? a.due_date.split("T")[0] : "TBD",
-            dueTime: "11:59 PM",
-            status: st,
-            marks: a.submission ? a.submission.grade : null,
-            maxMarks: a.max_marks || 100,
-            weight: a.weight || "10%",
-            desc: a.description,
-            tags: a.tags && a.tags.length ? a.tags : ["Assignment"],
-            attachments: a.attachments || [],
-            submissions: a.submission ? 1 : 0,
-            classAvg: null,
-            aiTip: a.ai_tip,
-            difficulty: a.difficulty || "Medium",
-            estimatedHours: a.estimated_hours || 4,
-            instructions: a.instructions && a.instructions.length ? a.instructions : [a.description],
-            rubric: a.rubric || [],
-            urgent: st === STATUS.PENDING && new Date(a.due_date) < new Date(Date.now() + 3*24*60*60*1000)
-          };
-        });
-        setAssignmentsState(mapped);
-      }).catch(console.error);
-    });
+      const assignmentData = await api.get("/student/assignments");
+      const mappedAssignments = assignmentData.map(a => {
+        let st = STATUS.PENDING;
+        if (a.submission) st = STATUS.SUBMITTED;
+        if (a.submission && a.submission.grade) st = STATUS.GRADED;
+        else if (!a.submission && new Date(a.due_date) < new Date()) st = STATUS.LATE;
+
+        return {
+          id: a.id,
+          courseId: a.course_id,
+          title: a.title,
+          type: a.type || TYPE.THEORY,
+          dueDate: a.due_date ? a.due_date.split("T")[0] : "TBD",
+          dueTime: "11:59 PM",
+          status: st,
+          marks: a.submission ? a.submission.grade : null,
+          maxMarks: a.max_marks || 100,
+          weight: a.weight || "10%",
+          desc: a.description,
+          tags: a.tags && a.tags.length ? a.tags : ["Assignment"],
+          attachments: a.attachments || [],
+          submissions: a.submission ? 1 : 0,
+          classAvg: null,
+          aiTip: a.ai_tip,
+          difficulty: a.difficulty || "Medium",
+          estimatedHours: a.estimated_hours || 4,
+          instructions: a.instructions && a.instructions.length ? a.instructions : [a.description],
+          rubric: a.rubric || [],
+          urgent: st === STATUS.PENDING && new Date(a.due_date) < new Date(Date.now() + 3 * 24 * 60 * 60 * 1000)
+        };
+      });
+      setAssignmentsState(mappedAssignments);
+    } catch (err) {
+      console.error("Fetch data error:", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
   }, []);
 
   // Close dropdowns on outside click
@@ -860,7 +901,7 @@ export default function StudentAssignments({ onBack }) {
       {/* Upload Modal */}
       {uploadAsgmt&&(()=>{
         const c=coursesState.find(x=>x.id===uploadAsgmt.courseId) || { color:"var(--indigo-l)", rgb:"91,78,248" };
-        return <UploadModal asgmt={uploadAsgmt} course={c} onClose={handleClose}/>;
+        return <UploadModal asgmt={uploadAsgmt} course={c} onClose={handleClose} onRefresh={fetchData}/>;
       })()}
 
       <div className="as-root">

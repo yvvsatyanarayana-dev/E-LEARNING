@@ -30,7 +30,7 @@ class Assignment(Base):
     # Relationships
     course      = relationship("Course", back_populates="assignments")
     faculty     = relationship("User", foreign_keys=[faculty_id])
-    submissions = relationship("AssignmentSubmission", back_populates="assignment")
+    submissions = relationship("AssignmentSubmission", back_populates="assignment", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Assignment {self.title}>"

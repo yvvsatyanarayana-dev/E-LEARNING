@@ -161,19 +161,59 @@ function LectureRow({ lecture, course, onPlay, index }) {
 function VideoPlayer({ lecture, course, onClose }) {
   const [playing,setPlaying]   = useState(false);
   const [muted,setMuted]       = useState(false);
-  const [progress,setProgress] = useState(lecture.watchPct||0);
   const [showCC,setShowCC]     = useState(false);
-  const iRef = useRef(null);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const vRef = useRef(null);
 
-  useEffect(()=>{
-    if(playing){ iRef.current=setInterval(()=>setProgress(p=>Math.min(p+0.4,100)),300); }
-    else clearInterval(iRef.current);
-    return ()=>clearInterval(iRef.current);
-  },[playing]);
+  // Sync state with video element
+  const onTimeUpdate = () => {
+    if (vRef.current) setCurrentTime(vRef.current.currentTime);
+  };
+  const onLoadedMetadata = () => {
+    if (vRef.current) {
+      setDuration(vRef.current.duration);
+      // Seek to saved progress once metadata is ready
+      if (lecture.watch_time_seconds) {
+        vRef.current.currentTime = Math.min(lecture.watch_time_seconds, vRef.current.duration);
+      }
+    }
+  };
 
-  const totalSec=(()=>{ const [m,s]=lecture.duration.split(":").map(Number); return m*60+s; })();
-  const elapsed=Math.round((progress/100)*totalSec);
-  const fmt=s=>`${String(Math.floor(s/60)).padStart(2,"0")}:${String(s%60).padStart(2,"0")}`;
+  // Auto-save logic
+  const saveProgress = async (time, isCompleted = false) => {
+    if (!time && time !== 0) return;
+    try {
+      const { default: api } = await import("../../../utils/api");
+      const lid = lecture.id.replace("l", "");
+      await api.post(`/student/lessons/${lid}/watch`, {
+        watch_time_seconds: Math.floor(time),
+        completed: isCompleted || (duration > 0 && time / duration > 0.95)
+      });
+    } catch (err) {
+      console.error("Failed to save progress", err);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      if (vRef.current) saveProgress(vRef.current.currentTime);
+    };
+  }, [lecture.id]);
+
+  const fmt = s => {
+    if (!s || isNaN(s)) return "00:00";
+    const mins = Math.floor(s / 60);
+    const secs = Math.floor(s % 60);
+    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  };
+
+  const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  
+  const courseName = course.name && !course.name.includes("sdfsdf") ? course.name : "Engineering Course";
+  const facultyName = course.faculty && !course.faculty.includes("facultyname") ? course.faculty : "Senior Faculty";
+  const lectureTitle = lecture.title && !lecture.title.includes("sdfsdf") ? lecture.title : "Untitled Lecture";
+
 
   return (
     <div className="vl-player-overlay" onClick={onClose}>
@@ -184,17 +224,19 @@ function VideoPlayer({ lecture, course, onClose }) {
           
           {lecture.video_url ? (
             <video 
+              ref={vRef}
               src={lecture.video_url} 
-              autoPlay 
-              controls 
-              style={{width: "100%", height: "100%", objectFit: "contain"}}
+              autoPlay={playing}
               onPlay={() => setPlaying(true)}
               onPause={() => setPlaying(false)}
+              onTimeUpdate={onTimeUpdate}
+              onLoadedMetadata={onLoadedMetadata}
+              style={{width: "100%", height: "100%", objectFit: "contain"}}
             />
           ) : (
             <>
               <div className="vl-player-visual">
-                <div className="vl-player-logo" style={{color:course.color}}>{course.short}</div>
+                <div className="vl-player-logo" style={{color:course.color}}>{course.short || course.name.charAt(0)}</div>
                 <div className="vl-player-title-overlay">{lecture.title}</div>
               </div>
               {showCC&&<div className="vl-player-cc">[Auto-generated subtitles] {lecture.description}</div>}
@@ -209,31 +251,38 @@ function VideoPlayer({ lecture, course, onClose }) {
         {/* Progress */}
         <div className="vl-player-prog-wrap">
           <div className="vl-player-prog-track"
-            onClick={e=>{ const r=e.currentTarget.getBoundingClientRect(); setProgress(Math.round(((e.clientX-r.left)/r.width)*100)); }}>
+            onClick={e=>{ 
+              const r=e.currentTarget.getBoundingClientRect(); 
+              const pct = (e.clientX-r.left)/r.width;
+              if (vRef.current) vRef.current.currentTime = pct * duration;
+            }}>
             <div className="vl-player-prog-fill" style={{width:`${progress}%`,background:course.color}}/>
             <div className="vl-player-prog-thumb" style={{left:`${progress}%`,background:course.color}}/>
           </div>
-          <div className="vl-player-time"><span>{fmt(elapsed)}</span><span>{lecture.duration}</span></div>
+          <div className="vl-player-time"><span>{fmt(currentTime)}</span><span>{fmt(duration)}</span></div>
         </div>
         {/* Controls */}
         <div className="vl-player-controls">
           <div className="vl-player-controls-left">
-            <button className="vl-ctrl-btn" onClick={()=>setProgress(p=>Math.max(p-5,0))}><SkipBack size={16}/></button>
+            <button className="vl-ctrl-btn" onClick={()=>{ if(vRef.current) vRef.current.currentTime -= 10; }}><SkipBack size={16}/></button>
             <button className="vl-ctrl-btn vl-ctrl-play" style={{background:course.color}} onClick={()=>setPlaying(p=>!p)}>
               {playing?<Pause size={18} fill="#fff"/>:<Play size={18} fill="#fff"/>}
             </button>
-            <button className="vl-ctrl-btn" onClick={()=>setProgress(p=>Math.min(p+5,100))}><SkipForward size={16}/></button>
-            <button className="vl-ctrl-btn" onClick={()=>setMuted(m=>!m)}>{muted?<VolumeX size={15}/>:<Volume2 size={15}/>}</button>
+            <button className="vl-ctrl-btn" onClick={()=>{ if(vRef.current) vRef.current.currentTime += 10; }}><SkipForward size={16}/></button>
+            <button className="vl-ctrl-btn" onClick={()=>{ 
+              if(vRef.current) vRef.current.muted = !muted;
+              setMuted(m=>!m); 
+            }}>{muted?<VolumeX size={15}/>:<Volume2 size={15}/>}</button>
           </div>
           <div className="vl-player-info-center">
-            <span className="vl-player-lec-title">{lecture.title}</span>
-            <span className="vl-player-lec-course" style={{color:course.color}}>{course.short} · {course.faculty}</span>
+            <span className="vl-player-lec-title">{lectureTitle}</span>
+            <span className="vl-player-lec-course" style={{color:course.color}}>{course.short || "CR"} · {facultyName}</span>
           </div>
           <div className="vl-player-controls-right">
             <button className={`vl-ctrl-btn${showCC?" active":""}`} onClick={()=>setShowCC(c=>!c)}
               style={showCC?{color:course.color}:{}}><Subtitles size={15}/></button>
             <button className="vl-ctrl-btn"><Settings size={15}/></button>
-            <button className="vl-ctrl-btn"><Maximize2 size={15}/></button>
+            <button className="vl-ctrl-btn" onClick={() => vRef.current?.requestFullscreen()}><Maximize2 size={15}/></button>
             <button className="vl-ctrl-btn vl-ctrl-ai"
               style={{background:`rgba(${course.colorRgb},.15)`,color:course.color}}>
               <Bot size={14}/>Ask AI
@@ -243,8 +292,8 @@ function VideoPlayer({ lecture, course, onClose }) {
         {/* Info strip */}
         <div className="vl-player-bottom">
           <div className="vl-player-bottom-info">
-            <div className="vl-player-bottom-title">{lecture.title}</div>
-            <div className="vl-player-bottom-desc">{lecture.description}</div>
+            <div className="vl-player-bottom-title">{lectureTitle}</div>
+            <div className="vl-player-bottom-desc">{lecture.description || "No description provided for this lesson."}</div>
             <div className="vl-player-bottom-tags">
               {lecture.tags.map(t=>(
                 <span key={t} className="vl-tag"
@@ -434,13 +483,15 @@ export default function StudentVideoLectures({ onBack }) {
           const cid = "cs" + l.course_id;
           if (!byCourse[cid]) byCourse[cid] = [];
           byCourse[cid].push({
-            id: "l" + l.id, unit: l.unit_number || 1, unitName: l.unit_name || "General",
-            title: l.title, duration: l.duration ? `${l.duration}:00` : "40:00",
-            views: parseInt(l.views || 0), likes: 0, watched: l.is_completed,
-            watchPct: l.is_completed ? 100 : 0, date: l.created_at ? (l.created_at.split("T")[0]) : "TBD",
+            id: "l" + l.id, unit: l.unit_number || 1, unitName: l.unit_name || "Lesson",
+            title: l.title, duration: l.duration || (l.duration_seconds ? `${Math.floor(l.duration_seconds/60)}:${String(l.duration_seconds%60).padStart(2,"0")}` : "00:00"),
+            views: parseInt(l.views || 0), likes: 0, watched: l.completed,
+            watchPct: l.watch_pct || 0, date: l.created_at ? (l.created_at.split("T")[0]) : "TBD",
             thumb: ["indigo", "teal", "amber", "violet", "rose"][byCourse[cid].length % 5], 
             description: l.description, tags: ["Lecture"],
-            locked: false, isNext: false, video_url: l.video_url
+            locked: false, isNext: false, video_url: l.video_url,
+            watch_time_seconds: l.watch_time_seconds || 0,
+            duration_seconds: l.duration_seconds || 0
           });
         });
         setLecturesState(byCourse);

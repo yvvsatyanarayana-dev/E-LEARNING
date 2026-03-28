@@ -19,7 +19,6 @@ function ProgressBar({ pct, color="var(--indigo-l)", height=4 }) {
     </div>
   );
 }
-
 export default function Attendance({ onBack }) {
   const [courses, setCourses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,6 +26,11 @@ export default function Attendance({ onBack }) {
   const [todayStatus, setTodayStatus] = useState({});
   const [saved, setSaved] = useState(false);
   const [tab, setTab] = useState("today");
+  const [history, setHistory] = useState([]);
+  const [loadingHistory, setLoadingHistory] = useState(false);
+
+  const c = courses[selectedCourseIdx];
+  const students = c ? (c.students || []) : [];
 
   useEffect(() => {
     const load = async () => {
@@ -35,16 +39,9 @@ export default function Attendance({ onBack }) {
         const data = Array.isArray(res) ? res : [];
         setCourses(data);
 
-        // Initialize today's status for all students
-        const init = {};
-        data.forEach(course => {
-          course.students.forEach(s => {
-            // Derive status from attendance percentage
-            const pct = course.total > 0 ? (s.present / course.total) * 100 : 0;
-            init[s.roll] = pct >= 75 ? "present" : pct >= 60 ? "late" : "absent";
-          });
-        });
-        setTodayStatus(init);
+        if (data.length > 0) {
+          fetchTodayAttendance(data[0].id, data[0].students);
+        }
       } catch (err) {
         console.error("Failed to load attendance:", err);
       } finally {
@@ -53,6 +50,42 @@ export default function Attendance({ onBack }) {
     };
     load();
   }, []);
+
+  const fetchTodayAttendance = async (courseId, studentList) => {
+    try {
+      const today = new Date().toISOString().split("T")[0];
+      const res = await api.get(`/faculty/attendance/day/${courseId.replace("cs","")}/${today}`);
+      if (res && res.length > 0) {
+        const map = {};
+        res.forEach(r => { map[r.student_roll] = r.status; });
+        setTodayStatus(map);
+      } else {
+        const init = {};
+        studentList.forEach(s => { init[s.roll] = "present"; });
+        setTodayStatus(init);
+      }
+    } catch (err) {
+      console.error("Failed to fetch today's attendance:", err);
+    }
+  };
+
+  const loadHistory = async (courseId) => {
+    setLoadingHistory(true);
+    try {
+      const res = await api.get(`/faculty/attendance/history/${courseId.replace("cs","")}`);
+      setHistory(res || []);
+    } catch (err) {
+      console.error("Failed to load history:", err);
+    } finally {
+      setLoadingHistory(false);
+    }
+  };
+
+  useEffect(() => {
+    if (c && tab === "history") {
+      loadHistory(c.id);
+    }
+  }, [selectedCourseIdx, tab]);
 
   if (loading) return <div className="loading-state">Loading attendance...</div>;
   if (courses.length === 0) return (
@@ -69,9 +102,6 @@ export default function Attendance({ onBack }) {
     </div>
   );
 
-  const c = courses[selectedCourseIdx];
-  const students = c ? (c.students || []) : [];
-
   const presentToday = students.filter(s => todayStatus[s.roll] === "present").length;
   const absentToday  = students.filter(s => todayStatus[s.roll] === "absent").length;
   const lateToday    = students.filter(s => todayStatus[s.roll] === "late").length;
@@ -85,13 +115,31 @@ export default function Attendance({ onBack }) {
   };
 
   const cycleStatus = (roll) => {
-    const cur = todayStatus[roll];
+    const cur = todayStatus[roll] || "present";
     const next = cur === "present" ? "absent" : cur === "absent" ? "late" : "present";
     setTodayStatus(p => ({...p, [roll]: next}));
     setSaved(false);
   };
 
-  const handleSave = () => { setSaved(true); setTimeout(()=>setSaved(false),2500); };
+  const handleSave = async () => {
+    if (!c) return;
+    try {
+      const payload = {
+        course_id: parseInt(c.id.replace("cs", "")),
+        date: new Date().toISOString().split("T")[0],
+        records: students.map(s => ({
+          student_id: s.id || 0,
+          status: todayStatus[s.roll] || "present"
+        }))
+      };
+      await api.post("/faculty/attendance/bulk", payload);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err) {
+      alert("Failed to save attendance.");
+      console.error(err);
+    }
+  };
 
   const STATUS_ICON = {
     present: <IcoCheck style={{width:10,height:10}}/>,
@@ -123,7 +171,6 @@ export default function Attendance({ onBack }) {
         </div>
       </div>
 
-      {/* Stat Strip */}
       <div className="att-stat-strip">
         {[
           { label:"Present Today", value:presentToday,    cls:"sc-teal"   },
@@ -139,13 +186,15 @@ export default function Attendance({ onBack }) {
         ))}
       </div>
 
-      {/* Course Tabs */}
       <div className="att-course-tabs">
         {courses.map((cm, idx) => (
           <button key={cm.id}
             className={`att-ctab ${selectedCourseIdx===idx?"att-ctab--active":""}`}
             style={selectedCourseIdx===idx?{borderColor:cm.border,color:cm.color,background:cm.bg}:{}}
-            onClick={()=>setSelectedCourseIdx(idx)}>
+            onClick={()=>{
+              setSelectedCourseIdx(idx);
+              fetchTodayAttendance(cm.id, cm.students);
+            }}>
             <span className="att-ctab-dot" style={{background:cm.color}}/>
             {cm.code}
             <span className="att-ctab-count">{cm.students.length}</span>
@@ -153,19 +202,17 @@ export default function Attendance({ onBack }) {
         ))}
       </div>
 
-      {/* View Tabs */}
       <div className="att-tabs">
-        {["today","history"].map(t => (
+        {["today","history","low"].map(t => (
           <button key={t} className={`att-tab ${tab===t?"active":""}`}
             style={tab===t?{color:c.color,borderBottomColor:c.color}:{}}
             onClick={()=>setTab(t)}>
-            {t === "today" ? <IcoCal style={{width:12,height:12}}/> : <IcoAlert style={{width:12,height:12}}/>}
-            {t === "today" ? "Today's Session" : "Low Attendance"}
+            {t === "today" ? <IcoCal style={{width:12,height:12}}/> : t === "history" ? <IcoSave style={{width:12,height:12}}/> : <IcoAlert style={{width:12,height:12}}/>}
+            {t === "today" ? "Today's Session" : t === "history" ? "History" : "Low Attendance"}
           </button>
         ))}
       </div>
 
-      {/* Today's Session */}
       {tab === "today" && (
         <>
           <div className="att-session-hd">
@@ -236,8 +283,39 @@ export default function Attendance({ onBack }) {
         </>
       )}
 
-      {/* Low Attendance */}
       {tab === "history" && (
+        <div className="att-history-section">
+           {loadingHistory ? (
+             <div className="att-empty">Loading history...</div>
+           ) : history.length === 0 ? (
+             <div className="att-empty">No attendance records found.</div>
+           ) : (
+             <div className="att-student-list">
+               {history.map((h) => (
+                 <div key={h.date} className="att-student-row" style={{cursor:"default"}}>
+                    <IcoCal style={{width:16,height:16,color:c.color,opacity:.7}}/>
+                    <div className="att-row-info">
+                       <div className="att-row-name" style={{fontSize:14}}>{new Date(h.date).toLocaleDateString("en-IN", {weekday:"long", day:"numeric", month:"long", year:"numeric"})}</div>
+                       <div className="att-row-roll">Summary for {c.code}</div>
+                    </div>
+                    <div className="att-session-prog" style={{width:200, marginBottom:0}}>
+                       <div className="att-prog-labels" style={{justifyContent:"flex-end"}}>
+                          <span style={{color:"var(--teal)"}}>{h.present_count} P</span>
+                          <span style={{color:"var(--rose)"}}>{h.absent_count} A</span>
+                       </div>
+                       <div className="att-prog-bar-multi">
+                          <div style={{width:`${(h.present_count/(h.present_count+h.absent_count))*100}%`,background:"var(--teal)",height:"100%"}}/>
+                          <div style={{width:`${(h.absent_count/(h.present_count+h.absent_count))*100}%`,background:"var(--rose)",height:"100%"}}/>
+                       </div>
+                    </div>
+                 </div>
+               ))}
+             </div>
+           )}
+        </div>
+      )}
+
+      {tab === "low" && (
         <div className="att-low-section">
           <div className="att-low-banner">
             <IcoAlert style={{width:14,height:14,color:"var(--rose)",flexShrink:0}}/>

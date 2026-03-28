@@ -4,7 +4,7 @@ import json, io, csv
 from typing import Optional, List, Dict, Any
 from Core.Database import get_db
 from Core.MeetingState import ACTIVE_MEETINGS
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, date
 from Models.User import User, UserRole
 from Models.Course import Course, Enrollment
 from Models.Quiz import Quiz, QuizAttempt, Question
@@ -25,8 +25,10 @@ from Schemas.FacultySchema import (
     FacultySettingsAccount, FacultySettingsAI,
     FacultyNotificationModel, FacultyRecentActivity,
     FacultyReportStats, FacultyReportCourseMetric, FacultyReportResponse,
-    FacultyAssignmentUpdate, FacultyQuizUpdate, FacultyMetadataResponse
+    FacultyAssignmentUpdate, FacultyQuizUpdate, FacultyMetadataResponse,
+    AttendanceBulkSubmit, AttendanceRecordResponse, AttendanceHistoryGrid
 )
+from Models.Attendance import DailyAttendance, AttendanceStatus
 from Models.Placement import PlacementReadiness, SkillScore
 from Models.Lesson import Lesson, WatchHistory
 from fastapi import HTTPException
@@ -420,13 +422,15 @@ class FacultyService:
                 unit=a.unit or "Unit I",
                 description=a.description or "",
                 rubric=json.loads(a.rubric) if a.rubric else [],
-                submissions=[
+                submissions=len(submissions),
+                submissions_list=[
                     FacultyAssignmentSubmission(
                         roll=s.student.roll_number or "N/A",
                         name=s.student.full_name,
                         score=s.grade,
                         trend="up",
                         submitted=s.submitted_at.strftime("%b %d") if s.submitted_at else None,
+                        file_url=s.file_url,
                         status="graded" if s.grade is not None else "pending"
                     ) for s in submissions
                 ]
@@ -477,7 +481,8 @@ class FacultyService:
             unit=new_assignment.unit or "Unit I",
             description=new_assignment.description or "",
             rubric=json.loads(new_assignment.rubric) if new_assignment.rubric else [],
-            submissions=[],
+            submissions=0,
+            submissions_list=[],
             target_group=new_assignment.target_group
         )
 
@@ -512,16 +517,8 @@ class FacultyService:
             due_label=assignment.due_date.strftime("%b %d") if assignment.due_date else "—",
             due_date=assignment.due_date.strftime("%b %d") if assignment.due_date else "—",
             marks=int(assignment.max_marks) if assignment.max_marks is not None else 100,
-            submissions_count=len(submissions),
-            avg_score=None,
-            highest=None,
-            lowest=None,
-            status="live",
-            week=f"W{int(assignment.id % 12) + 1}",
-            unit=f"Unit {['I','II','III','IV','V'][assignment.id % 5]}",
-            description=assignment.description or "",
-            rubric=data.rubric if data.rubric else [],
-            submissions=[],
+            submissions=len(submissions),
+            submissions_list=[],
             target_group=assignment.target_group
         )
 
@@ -567,6 +564,7 @@ class FacultyService:
                         marks=1
                     ) for que in q.questions
                 ],
+                attempts=len(attempts),
                 results=[
                     FacultyQuizResult(
                         roll=a.student.roll_number or "N/A",
@@ -635,7 +633,7 @@ class FacultyService:
             unit=new_quiz.unit or "Unit I",
             start_date=new_quiz.start_date or (new_quiz.created_at.strftime("%b %d %I:%M %p") if new_quiz.created_at else "—"),
             end_date=new_quiz.end_date or "TBD",
-            attempts_count=0,
+            attempts=0,
             avg_score=0.0,
             highest=0.0,
             lowest=0.0,
@@ -718,8 +716,8 @@ class FacultyService:
 
         courses = db.query(Course).filter(Course.faculty_id == faculty.id).all()
         course_ids = [c.id for c in courses]
-        # Generate generic code since course model doesn't have `code` field
-        course_map = {c.id: f"CS{500+c.id}" for c in courses}
+        # Use consistent lowercase keys for frontend mapping (e.g., cs1)
+        course_map = {c.id: f"cs{c.id}" for c in courses}
 
         if not course_ids:
             return []
@@ -796,7 +794,7 @@ class FacultyService:
                 student_roll=student.roll_number or f"ROLL-{student.id}",
                 assignment_id=assignment.id,
                 assignment_title=assignment.title,
-                course_code=f"CS{500+course.id}", 
+                course_code=f"cs{course.id}", 
                 submitted_on=sub.submitted_at.strftime("%b %d, %Y") if sub.submitted_at else "N/A",
                 status=status,
                 score=sub.grade,
@@ -1733,5 +1731,75 @@ Format your responses using beautiful markdown, highlight key metrics in bold.
         reply = groq_service.generate_chat_response(messages)
         
         return {"reply": reply}
+
+
+    # ─── ATTENDANCE MANAGEMENT ──────────────────────────────────────────────
+    
+    def submit_bulk_attendance(self, faculty: User, db: Session, data: AttendanceBulkSubmit):
+        if faculty.role != UserRole.faculty:
+             raise HTTPException(status_code=403, detail="Unauthorized")
+
+        # Check if attendance already exists for this date and course
+        existing = db.query(DailyAttendance).filter(
+            DailyAttendance.course_id == data.course_id,
+            DailyAttendance.date == data.date
+        ).all()
+        
+        # Simple approach: delete existing if any and re-add
+        if existing:
+            for e in existing:
+                db.delete(e)
+            db.commit()
+
+        for rec in data.records:
+            new_att = DailyAttendance(
+                student_id=rec.student_id,
+                course_id=data.course_id,
+                faculty_id=faculty.id,
+                date=data.date,
+                status=rec.status,
+                remarks=rec.remarks
+            )
+            db.add(new_att)
+        
+        db.commit()
+        return {"message": "Attendance submitted successfully", "count": len(data.records)}
+
+    def get_attendance_history(self, faculty: User, db: Session, course_id: int) -> List[AttendanceHistoryGrid]:
+        # Group by date and count presence/absence
+        results = db.query(
+            DailyAttendance.date,
+            func.count(DailyAttendance.id).filter(DailyAttendance.status == "present").label("present_count"),
+            func.count(DailyAttendance.id).filter(DailyAttendance.status == "absent").label("absent_count")
+        ).filter(DailyAttendance.course_id == course_id)\
+         .group_by(DailyAttendance.date)\
+         .order_by(DailyAttendance.date.desc()).all()
+
+        return [
+            AttendanceHistoryGrid(
+                date=r.date,
+                present_count=r.present_count,
+                absent_count=r.absent_count
+            ) for r in results
+        ]
+
+    def get_daily_attendance(self, faculty: User, db: Session, course_id: int, target_date: date) -> List[AttendanceRecordResponse]:
+        records = db.query(DailyAttendance).filter(
+            DailyAttendance.course_id == course_id,
+            DailyAttendance.date == target_date
+        ).all()
+        
+        res = []
+        for r in records:
+            res.append(AttendanceRecordResponse(
+                id=r.id,
+                student_id=r.student_id,
+                student_name=r.student.full_name,
+                student_roll=r.student.roll_number or f"ROLL-{r.student_id}",
+                status=r.status,
+                date=r.date,
+                remarks=r.remarks
+            ))
+        return res
 
 faculty_service = FacultyService()

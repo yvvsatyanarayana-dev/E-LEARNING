@@ -1,6 +1,7 @@
 from pydantic import BaseModel
-from typing import Optional, List, Dict, Any
-from datetime import datetime
+from typing import Optional, List, Dict, Any, Union
+from datetime import datetime, date
+import enum
 
 class FacultyStatsResponse(BaseModel):
     total_students: int
@@ -113,7 +114,8 @@ class FacultyAssignmentSubmission(BaseModel):
     score: Optional[float]
     trend: str
     submitted: Optional[str]
-    status: str
+    file_url: Optional[str] = None
+    status: str # "graded" | "pending" | "missing"
 
 class FacultyAssignmentDetail(BaseModel):
     id: int
@@ -133,7 +135,8 @@ class FacultyAssignmentDetail(BaseModel):
     unit: str
     description: str
     rubric: List[Dict[str, Any]]
-    submissions: List[FacultyAssignmentSubmission]
+    submissions: Optional[int] = 0
+    submissions_list: List[FacultyAssignmentSubmission]
     target_group: Optional[str] = "All"
 
 class FacultyQuizQuestion(BaseModel):
@@ -174,6 +177,7 @@ class FacultyQuizDetail(BaseModel):
     show_result: bool
     neg_mark: bool
     questions: List[FacultyQuizQuestion]
+    attempts: Optional[int] = 0
     results: List[FacultyQuizResult]
     target_group: Optional[str] = "All"
 
@@ -501,5 +505,33 @@ class AIChatRequest(BaseModel):
     message: str
     messages: Optional[List[dict]] = None
 
-class AIChatResponse(BaseModel):
-    reply: str
+
+# ─── Attendance ───
+class AttendanceStatus(str, enum.Enum):
+    present = "present"
+    absent  = "absent"
+    late    = "late"
+
+class AttendanceRecordSubmit(BaseModel):
+    student_id: int
+    status: str # "present" | "absent" | "late"
+    remarks: Optional[str] = None
+
+class AttendanceBulkSubmit(BaseModel):
+    course_id: int
+    date: date
+    records: List[AttendanceRecordSubmit]
+
+class AttendanceRecordResponse(BaseModel):
+    id: int
+    student_id: int
+    student_name: str
+    student_roll: str
+    status: str
+    date: date
+    remarks: Optional[str] = None
+
+class AttendanceHistoryGrid(BaseModel):
+    date: date
+    present_count: int
+    absent_count: int

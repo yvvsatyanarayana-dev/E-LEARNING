@@ -42,8 +42,8 @@ class Quiz(Base):
     # Relationships
     course    = relationship("Course", back_populates="quizzes")
     faculty   = relationship("User", foreign_keys=[faculty_id])
-    questions = relationship("Question", back_populates="quiz")
-    attempts  = relationship("QuizAttempt", back_populates="quiz")
+    questions = relationship("Question", back_populates="quiz", cascade="all, delete-orphan")
+    attempts  = relationship("QuizAttempt", back_populates="quiz", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<Quiz {self.title}>"

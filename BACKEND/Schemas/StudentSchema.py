@@ -110,6 +110,8 @@ class LessonResponse(BaseModel):
     created_at: datetime
     watched: bool
     watch_time_seconds: int
+    duration_seconds: Optional[int] = 0
+    watch_pct: Optional[float] = 0.0
     completed: bool
 
     class Config:
