@@ -697,6 +697,198 @@ function DeleteConfirm({ student, onConfirm, onCancel, deleting }) {
 /* ════════════════════════════════════════════
    MAIN PAGE
 ════════════════════════════════════════════ */
+/* ════════════════════════════════════════════
+   MOCK INTERVIEW MODAL
+   Allows TPO to schedule, conduct and view history
+════════════════════════════════════════════ */
+function MockInterviewModal({ student, onClose, onUpdate }) {
+  const [interviews, setInterviews] = useState([]);
+  const [loading,    setLoading]    = useState(true);
+  const [mode,       setMode]       = useState("list"); // list | schedule | conduct
+  const [activeInt,  setActiveInt]  = useState(null);
+  const [saving,    setSaving]     = useState(false);
+
+  // Forms
+  const [sched, setSched] = useState({ company: "Mock Corp", type: "Technical Round", date: new Date().toISOString().split('T')[0], time: "10:00 AM" });
+  const [fb, setFb] = useState({ 
+    score: 75, summary: "", duration: "45 min", questions: "0", solved: "0", tags: "",
+    feedback: { problemSolving: 75, technical: 75, communication: 75, culturalFit: 75 }
+  });
+
+  const fetchInterviews = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.get(`/placement/mock-interviews/student/${student.id}`);
+      setInterviews(Array.isArray(res) ? res : []);
+    } catch (err) { console.error(err); }
+    setLoading(false);
+  }, [student.id]);
+
+  useEffect(() => { fetchInterviews(); }, [fetchInterviews]);
+
+  const handleSchedule = async () => {
+    setSaving(true);
+    try {
+      const res = await api.post("/placement/mock-interviews", {
+        student_id: student.id,
+        ...sched
+      });
+      setInterviews([res, ...interviews]);
+      setMode("list");
+    } catch (err) { console.error(err); }
+    setSaving(false);
+  };
+
+  const handleFeedback = async () => {
+    setSaving(true);
+    try {
+      const res = await api.patch(`/placement/mock-interviews/${activeInt.id}/feedback`, {
+        ...fb,
+        questions: parseInt(fb.questions),
+        solved: parseInt(fb.solved),
+        tags: fb.tags.split(",").map(t => t.trim()).filter(Boolean)
+      });
+      setInterviews(prev => prev.map(i => i.id === res.id ? res : i));
+      setMode("list");
+      onUpdate && onUpdate(); 
+    } catch (err) { console.error(err); }
+    setSaving(false);
+  };
+
+  return (
+    <Overlay onClose={onClose}>
+      <div className="ps-panel mi-modal" style={{ width: 620, maxHeight: "85vh", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        
+        {/* Modal Header */}
+        <div className="ps-header">
+          <div className="ps-header-left">
+            <div className="ps-modal-icon" style={{ background: "var(--indigo-ll)", color: "#fff" }}>
+               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 19l-6-6M20 12h.01"/></svg>
+            </div>
+            <div>
+              <div className="ps-modal-title">Mock Interviews</div>
+              <div className="ps-modal-sub">Manage sessions for {student.name}</div>
+            </div>
+          </div>
+          <button className="ps-close" onClick={onClose}><XIco /></button>
+        </div>
+
+        {/* Modal Body */}
+        <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px" }} className="mi-modal-body">
+          
+          {mode === "list" && (
+            <div className="mi-list-mode">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                <h3 style={{ fontFamily: "'Fraunces',serif", fontSize: 18, margin: 0 }}>Interview History</h3>
+                <button className="btn btn-solid" style={{ fontSize: 10, padding: "8px 12px" }} onClick={() => setMode("schedule")}>
+                  Schedule New
+                </button>
+              </div>
+
+              {loading ? (
+                <div style={{ padding: "40px 0", textAlign: "center", color: "var(--text3)", fontSize: 12 }}>Loading records...</div>
+              ) : interviews.length === 0 ? (
+                <div className="mi-empty" style={{ textAlign: "center", padding: "40px 0" }}>
+                  <div style={{ fontSize: 24, marginBottom: 10 }}>📅</div>
+                  <div style={{ fontWeight: 600 }}>No interviews yet</div>
+                  <p style={{ fontSize: 11, color: "var(--text3)", maxWidth: 200, margin: "6px auto 0" }}>Schedule a mock interview to start tracking this student's readiness.</p>
+                </div>
+              ) : (
+                <div className="mi-rows">
+                  {interviews.map(i => (
+                    <div key={i.id} className="mi-item-row" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid var(--border2)", opacity: i.status === "Scheduled" ? 0.8 : 1 }}>
+                      <div className="mi-item-left">
+                        <div className="mi-item-title" style={{ fontWeight: 600, fontSize: 13 }}>{i.company} · {i.type}</div>
+                        <div className="mi-item-meta" style={{ fontSize: 11, color: "var(--text3)", marginTop: 2 }}>{i.date} · {i.time} {i.status === "Scheduled" && <Badge cls="badge-amber" dot style={{ marginLeft: 6 }}>Upcoming</Badge>}</div>
+                      </div>
+                      <div className="mi-item-right">
+                        {i.status === "Scheduled" ? (
+                          <button className="btn btn-outline" style={{ fontSize: 9, padding: "4px 10px" }} onClick={() => { setActiveInt(i); setMode("conduct"); }}>
+                            Conduct
+                          </button>
+                        ) : (
+                          <div className="mi-item-score" style={{ fontFamily: "'Fraunces',serif", fontSize: 18, color: priColor(i.score) }}>{i.score}<span style={{ fontSize: 10, color: "var(--text3)" }}>/100</span></div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {mode === "schedule" && (
+            <div className="mi-form-mode">
+              <h3 style={{ fontFamily: "'Fraunces',serif", fontSize: 18, marginBottom: 20 }}>Schedule Interview</h3>
+              <div className="af-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <FInput label="Company" value={sched.company} onChange={e => setSched({...sched, company: e.target.value})} />
+                <FSelect label="Round Type" value={sched.type} onChange={e => setSched({...sched, type: e.target.value})} options={["Technical Round", "Behavioral", "System Design", "HR Round", "Case Study"]} />
+                <FInput label="Date" type="date" value={sched.date} onChange={e => setSched({...sched, date: e.target.value})} />
+                <FInput label="Time" placeholder="e.g. 10:00 AM" value={sched.time} onChange={e => setSched({...sched, time: e.target.value})} />
+              </div>
+              <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
+                <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setMode("list")}>Cancel</button>
+                <button className="btn btn-solid" style={{ flex: 1 }} onClick={handleSchedule} disabled={saving}>{saving ? "Scheduling..." : "Confirm Schedule"}</button>
+              </div>
+            </div>
+          )}
+
+          {mode === "conduct" && (
+            <div className="mi-form-mode">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 20 }}>
+                <h3 style={{ fontFamily: "'Fraunces',serif", fontSize: 18, margin: 0 }}>Conduct Interview</h3>
+                <Badge cls="badge-indigo">{activeInt.type}</Badge>
+              </div>
+
+              <div className="af-grid" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                <div className="af-field" style={{ gridColumn: "1 / -1" }}>
+                   <label className="af-label">Overall Performance Score (0-100)</label>
+                   <div style={{ display: "flex", alignItems: "center", gap: 16, background: "rgba(255,255,255,.02)", padding: "12px 16px", borderRadius: 12, border: "1px solid var(--border)" }}>
+                      <input type="range" min="0" max="100" value={fb.score} onChange={e => setFb({...fb, score: e.target.value})} style={{ flex: 1 }} />
+                      <div style={{ width: 44, fontFamily: "'Fraunces',serif", fontSize: 24, color: priColor(fb.score), textAlign: "right" }}>{fb.score}</div>
+                   </div>
+                </div>
+                
+                <div className="af-field" style={{ gridColumn: "1 / -1" }}>
+                   <label className="af-label">Summary &amp; Feedback</label>
+                   <textarea className="af-input" style={{ height: 80, padding: 12, fontSize: 12, width: "100%", borderRadius: 12, border: "1px solid var(--border2)", background: "var(--surface)", resize: "none" }} placeholder="Provide key strengths and areas of improvement..." value={fb.summary} onChange={e => setFb({...fb, summary: e.target.value})} />
+                </div>
+
+                <div className="mi-conduct-stats-grid">
+                  <FInput label="Duration" placeholder="e.g. 45 min" value={fb.duration} onChange={e => setFb({...fb, duration: e.target.value})} />
+                  <FInput label="Questions" type="number" value={fb.questions} onChange={e => setFb({...fb, questions: e.target.value})} />
+                  <FInput label="Solved" type="number" value={fb.solved} onChange={e => setFb({...fb, solved: e.target.value})} />
+                  <FInput label="Tags" placeholder="React, DSA" value={fb.tags} onChange={e => setFb({...fb, tags: e.target.value})} />
+                </div>
+
+                <div style={{ gridColumn: "1 / -1", marginTop: 10 }}>
+                   <label className="af-label" style={{ marginBottom: 12 }}>Detailed Skill Scores</label>
+                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                      {Object.keys(fb.feedback).map(skill => (
+                        <div key={skill} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", background: "var(--surface2)", padding: "8px 12px", borderRadius: 8 }}>
+                           <span style={{ fontSize: 11, textTransform: "capitalize" }}>{skill.replace(/([A-Z])/g, ' $1')}</span>
+                           <input type="number" min="0" max="100" style={{ width: 45, background: "none", border: "none", textAlign: "right", fontFamily: "'Fraunces',serif", fontSize: 14, color: "var(--indigo-ll)" }} value={fb.feedback[skill]} onChange={e => setFb({...fb, feedback: {...fb.feedback, [skill]: parseInt(e.target.value) || 0}})} />
+                        </div>
+                      ))}
+                   </div>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: 10, marginTop: 24 }}>
+                <button className="btn btn-outline" style={{ flex: 1 }} onClick={() => setMode("list")}>Cancel</button>
+                <button className="btn btn-solid" style={{ flex: 1 }} onClick={handleFeedback} disabled={saving}>{saving ? "Saving Results..." : "Complete & Save"}</button>
+              </div>
+            </div>
+          )}
+
+        </div>
+      </div>
+    </Overlay>
+  );
+}
+
+
+
 export default function PlacementStudents() {
   const navigate = useNavigate();
 
@@ -858,6 +1050,17 @@ export default function PlacementStudents() {
     setDeleteTarget(null);
   }, [deleteTarget]);
 
+  // Interview Handler
+  const [activeInterviewStudent, setActiveInterviewStudent] = useState(null);
+  const handleRefreshStudent = useCallback(async (sid) => {
+    try {
+      const s_raw = await api.get(`/placement/dashboard/students`); // Simplified refresh or targeted if possible
+      // For now we just trigger a data re-fetch for the list to reflect PRI changes
+      const arr = Array.isArray(s_raw) ? s_raw : (s_raw?.items ?? []);
+      setStudents(arr.map(mapApiStudent));
+    } catch (err) { console.error(err); }
+  }, []);
+
   const handleSignOut = () => {
     clearAuth();
     navigate("/login", { replace: true });
@@ -901,6 +1104,13 @@ export default function PlacementStudents() {
           onConfirm={handleDeleteConfirm}
           onCancel={() => setDeleteTarget(null)}
           deleting={deleting}
+        />
+      )}
+      {activeInterviewStudent && (
+        <MockInterviewModal 
+          student={activeInterviewStudent} 
+          onClose={() => setActiveInterviewStudent(null)} 
+          onUpdate={() => handleRefreshStudent(activeInterviewStudent.id)} 
         />
       )}
       {toast && (
@@ -1163,14 +1373,19 @@ export default function PlacementStudents() {
 
                       {/* Footer */}
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", paddingTop: 10, borderTop: "1px solid var(--border)" }}>
-                        <span style={{ fontSize: 11, color: s.company !== "—" ? "var(--text2)" : "var(--text3)", fontWeight: s.company !== "—" ? 600 : 400 }}>
-                          {s.company !== "—" ? `📌 ${s.company}` : "Not placed"}
-                        </span>
-                        {s.pkg !== "—" && (
-                          <span style={{ fontFamily: "'Fraunces',serif", fontSize: 13, color: "var(--teal)", fontWeight: 600 }}>
-                            {s.pkg}
-                          </span>
-                        )}
+                        <div style={{ display: "flex", flexDirection: "column" }}>
+                           <span style={{ fontSize: 11, color: s.company !== "—" ? "var(--text2)" : "var(--text3)", fontWeight: s.company !== "—" ? 600 : 400 }}>
+                             {s.company !== "—" ? `📌 ${s.company}` : "Not placed"}
+                           </span>
+                           {s.pkg !== "—" && (
+                             <span style={{ fontFamily: "'Fraunces',serif", fontSize: 13, color: "var(--teal)", fontWeight: 600, marginTop: 2 }}>
+                               {s.pkg}
+                             </span>
+                           )}
+                        </div>
+                        <button className="btn btn-outline" style={{ fontSize: 10, padding: "6px 10px" }} onClick={() => setActiveInterviewStudent(s)}>
+                           Interviews
+                        </button>
                       </div>
                     </div>
                   </div>

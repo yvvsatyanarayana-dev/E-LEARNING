@@ -1172,7 +1172,9 @@ class StudentService:
         skill_scores_resp = [SkillScoreResponse.from_orm(s) for s in skill_scores]
         
         # PRI Breakdown
-        coding_score = int(pri_obj.coding_score) if pri_obj else 0
+        coding_skill = next((s for s in skill_scores if s.skill_name.lower() in ("coding", "dsa", "programming")), None)
+        coding_score = int(coding_skill.score) if coding_skill else 0
+        
         pri_breakdown = [
             {"label": "Coding Skills", "score": coding_score, "max": 100, "color": "var(--teal)", "icon": "Code"},
             {"label": "Communication", "score": int(pri_obj.communication_score) if pri_obj else 0, "max": 100, "color": "var(--indigo-l)", "icon": "Mic"},
@@ -1717,8 +1719,17 @@ class StudentService:
     def get_mock_interviews(self, student: User, db: Session) -> MockInterviewsFullResponse:
         _require_student(student)
         
-        # 1. Fetch History
-        history = db.query(MockInterview).filter(MockInterview.student_id == student.id).order_by(MockInterview.created_at.desc()).all()
+        # 1. Fetch History (Completed only)
+        history = db.query(MockInterview).filter(
+            MockInterview.student_id == student.id,
+            MockInterview.status == "Completed"
+        ).order_by(MockInterview.created_at.desc()).all()
+
+        # 1b. Fetch Upcoming (Scheduled only)
+        upcoming = db.query(MockInterview).filter(
+            MockInterview.student_id == student.id,
+            MockInterview.status == "Scheduled"
+        ).order_by(MockInterview.created_at.asc()).all()
         
         # 2. Calculate Stats
         total_sessions = len(history)
@@ -1731,8 +1742,26 @@ class StudentService:
             "class_rank": student.id % 20 + 1 # Dynamic-ish rank
         }
 
-        # 3. Round Types (Dynamic)
+        # 3. Round Types — from DB, with hardcoded fallback if table is empty
         round_types_db = db.query(MockInterviewRoundType).all()
+        
+        if not round_types_db:
+            # Seed defaults on the fly
+            defaults = [
+                MockInterviewRoundType(id="technical",    label="Technical Round",  icon="Code",   color="var(--indigo-l)",  desc="DSA problems, algorithm design, time & space complexity analysis.", duration="45 min", rounds=3),
+                MockInterviewRoundType(id="system_design",label="System Design",    icon="Layout", color="var(--teal)",      desc="Design scalable systems — APIs, databases, load balancing, caching.", duration="60 min", rounds=1),
+                MockInterviewRoundType(id="behavioral",   label="Behavioral",       icon="Mic",    color="var(--violet)",    desc="STAR-method questions on leadership, teamwork, and conflict resolution.", duration="30 min", rounds=3),
+                MockInterviewRoundType(id="aptitude",     label="Aptitude Test",    icon="Brain",  color="var(--amber)",     desc="Logical reasoning, quantitative, and verbal questions like placement tests.", duration="25 min", rounds=5),
+            ]
+            for d in defaults:
+                db.add(d)
+            try:
+                db.commit()
+                round_types_db = defaults
+            except Exception:
+                db.rollback()
+                round_types_db = defaults
+
         roundTypes = [
             MockInterviewRoundTypeSchema(
                 id=rt.id, label=rt.label, icon=rt.icon, color=rt.color,
@@ -1794,6 +1823,7 @@ class StudentService:
 
         return MockInterviewsFullResponse(
             session_history=history,
+            upcoming_sessions=upcoming,
             round_types=roundTypes,
             question_bank=bank,
             stats=stats,
@@ -1837,6 +1867,107 @@ Be concise, helpful, and encouraging. Use markdown for your response.
         
         reply = groq_service.generate_chat_response(messages)
         
+        return AIChatResponse(reply=reply)
+
+    # ─── Mock Interview AI Chat ────────────────────────────────────────────────
+
+    def mock_interview_chat(self, data: AIChatRequest, student: User, db: Session) -> AIChatResponse:
+        _require_student(student)
+        msg = data.message.strip()
+        if not msg:
+            raise HTTPException(status_code=400, detail="Message cannot be empty")
+
+        from Service.GroqService import groq_service
+
+        # Extract round type from the first system hint in messages (passed by frontend)
+        round_type = "Technical Round"
+        history_list = data.messages or []
+        if history_list and history_list[0].get("role") == "system":
+            round_type = history_list[0].get("content", round_type)
+            history_list = history_list[1:]  # strip it out before sending to Groq
+
+        # Build specialized system prompt based on round type
+        round_lower = round_type.lower()
+        if "dsa" in round_lower or "coding" in round_lower or "technical" in round_lower:
+            persona = f"""You are Alex, a Senior Software Engineer at a top tech company conducting a **{round_type}** mock interview for a student named {student.full_name}.
+
+Your job is to run a realistic technical interview. Follow this structure:
+1. Start by asking ONE clear DSA/coding problem (e.g., Two Sum, Merge Intervals, LRU Cache, etc.)
+2. Listen to the student's approach. Ask follow-up questions like:
+   - "What is the time and space complexity?"
+   - "Can you optimize it further?"
+   - "What are the edge cases?"
+   - "Walk me through your code line by line."
+3. After they answer well, move to the NEXT problem. Track progress (1/3, 2/3, 3/3).
+4. Be professional but encouraging. Give brief hints if they are completely stuck.
+5. At the end (after 3 problems), provide a short performance summary with scores in Problem Solving, Code Quality, and Communication out of 100.
+
+DO NOT give away solutions directly. Make them think. Keep responses concise and interview-like.
+Current student: {student.full_name} | Round: {round_type}"""
+
+        elif "system design" in round_lower:
+            persona = f"""You are Priya, a Staff Engineer conducting a **{round_type}** mock interview for {student.full_name}.
+
+Your job is to run a realistic system design interview. Follow this structure:
+1. Present ONE system design problem (e.g., "Design Twitter", "Design a URL Shortener", "Design Uber's ride matching", "Design Netflix").
+2. Guide them through: Requirements clarification → High-level design → Deep dives → Scalability.
+3. Ask probing questions like:
+   - "How would you handle 10 million users?"
+   - "How will you ensure data consistency?"
+   - "What kind of database would you choose and why?"
+   - "Walk me through your API design."
+4. After covering the design, wrap up with a performance summary covering System Thinking, Communication, Depth of Knowledge out of 100.
+
+Stay in character as an interviewer. Be professional. Keep responses focused and realistic.
+Current student: {student.full_name} | Round: {round_type}"""
+
+        elif "behavioral" in round_lower or "hr" in round_lower:
+            persona = f"""You are Sarah, an HR Manager and Behavioral Interview specialist conducting a **{round_type}** mock interview for {student.full_name}.
+
+Follow this structure:
+1. Ask 3 behavioral questions using the STAR method framework (Situation, Task, Action, Result).
+   Examples: "Tell me about a time you handled a conflict in a team", "Describe a project where you showed leadership", "Tell me about a failure and what you learned."
+2. After each answer, probe deeper with follow-up questions like:
+   - "What was the specific outcome?"
+   - "What would you do differently today?"
+   - "How did your team respond?"
+3. Be warm but evaluative. Note clarity, confidence, and use of STAR format.
+4. At the end, give a performance summary with Communication, Self-Awareness, and Leadership scores out of 100.
+
+Keep responses conversational and encouraging. Stay in interview mode.
+Current student: {student.full_name} | Round: {round_type}"""
+
+        elif "aptitude" in round_lower:
+            persona = f"""You are Raj, a placement aptitude test interviewer conducting a **{round_type}** round for {student.full_name}.
+
+Follow this structure:
+1. Ask 5 aptitude questions one at a time, covering topics like:
+   - Logical reasoning (Puzzles, patterns)
+   - Quantitative (Percentages, ratios, time-speed)
+   - Verbal reasoning (Fill in the blank, comprehension)
+2. After the student answers, tell them if they are correct or incorrect, explain the solution briefly, then ask the NEXT question.
+3. Track progress (Q1/5, Q2/5, etc.)
+4. At the end, give a score out of 100 based on accuracy and speed of reasoning.
+
+Keep response very short and snappy like a real aptitude test. 
+Current student: {student.full_name} | Round: {round_type}"""
+
+        else:
+            persona = f"""You are Alex, a Senior Interviewer conducting a **{round_type}** mock interview for {student.full_name}.
+Conduct a professional, structured interview relevant to the round type. Ask clear questions, evaluate answers, and provide constructive feedback. Keep responses concise.
+Current student: {student.full_name} | Round: {round_type}"""
+
+        # Build full messages list for Groq
+        messages = [{"role": "system", "content": persona}]
+        for m in history_list:
+            role = "user" if m.get("role") == "user" else "assistant"
+            content = m.get("content", m.get("text", ""))
+            if content:
+                messages.append({"role": role, "content": content})
+        # Add the latest user message
+        messages.append({"role": "user", "content": msg})
+
+        reply = groq_service.generate_chat_response(messages, model="llama-3.1-8b-instant", max_tokens=700)
         return AIChatResponse(reply=reply)
 
 

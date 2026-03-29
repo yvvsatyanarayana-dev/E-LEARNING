@@ -218,6 +218,48 @@ class PlacementTrendPoint(BaseModel):
     applied: int
     interviews: int
 
+
+# ─── Mock Interview ─────────────────────────────
+
+class MockInterviewCreate(BaseModel):
+    student_id: int
+    company: Optional[str] = "Mock Corp"
+    type: str              # Technical, HR, System Design
+    date: str              # "2024-03-30" or "Mar 30"
+    time: str              # "02:00 PM"
+    status: str = "Scheduled"
+
+class MockInterviewFeedback(BaseModel):
+    score: int             # 0-100
+    summary: str
+    duration: Optional[str] = "45 min"
+    questions: Optional[int] = 0
+    solved: Optional[int]    = 0
+    tags: List[str]          = []
+    feedback: dict           # { "problemSolving": 80, ... }
+
+class MockInterviewResponse(BaseModel):
+    id: int
+    student_id: int
+    officer_id: Optional[int]
+    company: Optional[str]
+    type: Optional[str]
+    date: Optional[str]
+    time: Optional[str]
+    status: str
+    score: Optional[int]
+    duration: Optional[str]
+    questions: Optional[int]
+    solved: Optional[int]
+    summary: Optional[str]
+    tags: Optional[List[str]] = []
+    feedback: Optional[dict] = {}
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class AIChatRequest(BaseModel):
     message: str
     messages: Optional[List[dict]] = None

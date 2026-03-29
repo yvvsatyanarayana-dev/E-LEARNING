@@ -142,10 +142,12 @@ class MockInterview(Base):
 
     id           = Column(Integer, primary_key=True, index=True)
     student_id   = Column(Integer, ForeignKey("users.id"), nullable=False)
+    officer_id   = Column(Integer, ForeignKey("users.id"), nullable=True) # The TPO
     company      = Column(String(200), nullable=True)
     type         = Column(String(100), nullable=True) # DSA Round, System Design, etc.
     date         = Column(String(50), nullable=True)  # Display string "Mar 14"
     time         = Column(String(50), nullable=True)  # Display string "10:00 AM"
+    status       = Column(String(50), default="Completed") # "Scheduled", "Completed"
     score        = Column(Integer, nullable=True)     # 0-100
     duration     = Column(String(50), nullable=True)  # "45 min"
     questions    = Column(Integer, nullable=True)
@@ -156,10 +158,11 @@ class MockInterview(Base):
     created_at   = Column(DateTime(timezone=True), default=datetime.utcnow)
 
     # Relationships
-    student = relationship("User", back_populates="mock_interviews")
+    student = relationship("User", foreign_keys=[student_id], back_populates="mock_interviews")
+    officer = relationship("User", foreign_keys=[officer_id], back_populates="interviews_conducted")
 
     def __repr__(self):
-        return f"<MockInterview student={self.student_id} company={self.company}>"
+        return f"<MockInterview student={self.student_id} company={self.company} status={self.status}>"
 
 
 class PlacementTopic(Base):
@@ -193,7 +196,7 @@ class MockInterviewRoundType(Base):
     label    = Column(String(100), nullable=False)
     icon     = Column(String(50), nullable=False)
     color    = Column(String(50), nullable=False)
-    desc     = Column(String(500), nullable=False)
+    desc     = Column("desc", String(500), nullable=False)   # quoted — reserved SQL keyword
     duration = Column(String(50), nullable=False)
     rounds   = Column(Integer, nullable=False)
 

@@ -37,6 +37,9 @@ from Schemas.PlacementSchema import (
     PlacementTaskUpdate,
     PlacementEventCreate,
     PlacementEventUpdate,
+    MockInterviewCreate,
+    MockInterviewFeedback,
+    MockInterviewResponse,
 )
 
 
@@ -688,8 +691,18 @@ def get_mock_interviews(db: Session, student_id: int) -> List[MockInterview]:
     )
 
 
+def get_upcoming_interviews(db: Session, student_id: int) -> List[MockInterview]:
+    return (
+        db.query(MockInterview)
+        .filter_by(student_id=student_id, status="Scheduled")
+        .order_by(MockInterview.created_at.asc())
+        .all()
+    )
+
+
 def create_mock_interview(db: Session, student_id: int, **kwargs) -> MockInterview:
-    mi = MockInterview(student_id=student_id, **kwargs)
+    """Legacy/Student-initiated (completed immediately)"""
+    mi = MockInterview(student_id=student_id, status="Completed", **kwargs)
     db.add(mi)
     db.commit()
     db.refresh(mi)
@@ -697,10 +710,44 @@ def create_mock_interview(db: Session, student_id: int, **kwargs) -> MockIntervi
     # Bump mock_interviews_done counter & recalc PRI
     done = (
         db.query(func.count(MockInterview.id))
-        .filter_by(student_id=student_id)
+        .filter_by(student_id=student_id, status="Completed")
         .scalar() or 0
     )
     update_readiness(db, student_id, mock_interviews_done=done)
+    return mi
+
+
+def schedule_mock_interview(db: Session, officer_id: int, data: MockInterviewCreate) -> MockInterview:
+    """TPO schedules an upcoming interview"""
+    mi = MockInterview(**data.model_dump(), officer_id=officer_id)
+    db.add(mi)
+    db.commit()
+    db.refresh(mi)
+    return mi
+
+
+def submit_mock_interview_feedback(db: Session, officer_id: int, interview_id: int, 
+                                   data: MockInterviewFeedback) -> MockInterview:
+    """TPO conducts & scores an interview"""
+    mi = db.query(MockInterview).filter_by(id=interview_id).first()
+    if not mi:
+        raise ValueError("Interview record not found")
+        
+    for k, v in data.model_dump().items():
+        setattr(mi, k, v)
+        
+    mi.status = "Completed"
+    mi.officer_id = officer_id
+    db.commit()
+    db.refresh(mi)
+
+    # Recalculate PRI (Only count COMPLETED interviews)
+    done = (
+        db.query(func.count(MockInterview.id))
+        .filter_by(student_id=mi.student_id, status="Completed")
+        .scalar() or 0
+    )
+    update_readiness(db, mi.student_id, mock_interviews_done=done)
     return mi
 
 
@@ -711,7 +758,7 @@ def delete_mock_interview(db: Session, student_id: int, interview_id: int) -> bo
     db.delete(mi)
     db.commit()
     # Recalculate
-    done = db.query(func.count(MockInterview.id)).filter_by(student_id=student_id).scalar() or 0
+    done = db.query(func.count(MockInterview.id)).filter_by(student_id=student_id, status="Completed").scalar() or 0
     update_readiness(db, student_id, mock_interviews_done=done)
     return True
 

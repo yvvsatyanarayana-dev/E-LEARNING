@@ -176,16 +176,18 @@ function SessionReview({ session, onClose }) {
 }
 
 // ─── SIMULATOR SCREEN ────────────────────────────────────────────
-function SimulatorScreen({ title, onBack }) {
-  const [messages, setMessages] = useState([
-    { role: "ai", text: `Hi! 👋 I'll be your interviewer today for the **${title}**. Ready to begin?` }
-  ]);
-  const [input, setInput]       = useState("");
-  const [typing, setTyping]     = useState(false);
-  const [timer, setTimer]       = useState(0);
-  const [running] = useState(true);
-  const msgRef    = useRef();
-  const timerRef  = useRef();
+function SimulatorScreen({ title, roundId, onBack }) {
+  const greeting = `Hi! 👋 I'm your AI interviewer for the **${title}** session. I'm ready when you are.\n\nType **"start"** to begin, or ask me anything about this round.`;
+  const [messages, setMessages] = useState([{ role: "ai", text: greeting, id: Date.now() }]);
+  const [input, setInput]     = useState("");
+  const isCodingRound = ["technical", "system_design"].includes(roundId);
+  const [code, setCode]       = useState(isCodingRound ? "# Write your solution here\n" : "");
+  const [typing, setTyping]   = useState(false);
+  const [timer, setTimer]     = useState(0);
+  const [qNum, setQNum]       = useState(1);
+  const [lang, setLang]       = useState("Python 3");
+  const msgRef  = useRef();
+  const timerRef = useRef();
 
   useEffect(() => {
     timerRef.current = setInterval(() => setTimer(t => t + 1), 1000);
@@ -199,26 +201,65 @@ function SimulatorScreen({ title, onBack }) {
   const mins = String(Math.floor(timer / 60)).padStart(2, "0");
   const secs = String(timer % 60).padStart(2, "0");
 
-  const AI_REPLIES = [
-    "Good thinking! Your approach is correct. Now, can you optimize this from O(n²) to O(n)? What data structure would help here?",
-    "Nice! That's the optimal solution. Time complexity is O(n), space is O(n). Well done. Let's move to problem 2.",
-    "Interesting approach. Walk me through the edge cases — what happens when the array is empty or has just one element?",
-    "That's correct. Your explanation was clear and structured. I'd note — always mention complexity before diving into code during real interviews.",
-  ];
+  const MAX_Q = roundId === "aptitude" ? 5 : 3;
 
-  const [replyIdx, setReplyIdx] = useState(0);
-
-  const send = useCallback(() => {
+  const send = useCallback(async () => {
     const val = input.trim();
-    if (!val) return;
-    setMessages(m => [...m, { role: "user", text: val }]);
-    setInput(""); setTyping(true);
-    setTimeout(() => {
+    if (!val || typing) return;
+
+    const userMsg = { role: "user", text: val, id: Date.now() };
+    const hist = [...messages, userMsg];
+    setMessages(hist);
+    setInput("");
+    setTyping(true);
+
+    try {
+      // Build history for backend: prepend a system hint with round type
+      const apiMessages = [
+        { role: "system", content: title }, // backend will parse this as round_type
+        ...hist.map(m => ({
+          role: m.role === "ai" ? "assistant" : "user",
+          text: m.text,
+          content: m.text,
+        }))
+      ];
+
+      const { default: api } = await import("../../../utils/api");
+      const res = await api.post("/student/mock-interview/chat", {
+        message: val,
+        messages: apiMessages,
+      });
+
+      const aiText = res.reply || "I didn't catch that. Could you elaborate?";
+
+      // Auto-increment question number when AI moves forward
+      if (/problem\s*[23]|next problem|move on|question\s*[2345]/i.test(aiText)) {
+        setQNum(q => Math.min(q + 1, MAX_Q));
+      }
+
+      setMessages(m => [...m, { role: "ai", text: aiText, id: Date.now() }]);
+    } catch (err) {
+      setMessages(m => [...m, {
+        role: "ai",
+        text: "⚠️ I encountered an error connecting to the AI. Please check your connection and try again.",
+        id: Date.now()
+      }]);
+    } finally {
       setTyping(false);
-      setMessages(m => [...m, { role: "ai", text: AI_REPLIES[replyIdx % AI_REPLIES.length] }]);
-      setReplyIdx(i => i + 1);
-    }, 1100);
-  }, [input, replyIdx]);
+    }
+  }, [input, typing, messages, title, MAX_Q]);
+
+  const renderBubbleText = (text) =>
+    text.split("\n").map((line, li, arr) => (
+      <span key={li}>
+        {line.split(/\*\*(.*?)\*\*/).map((part, pi) =>
+          pi % 2 === 1
+            ? <strong key={pi} style={{ color: "var(--indigo-ll)" }}>{part}</strong>
+            : <span key={pi}>{part}</span>
+        )}
+        {li < arr.length - 1 && <br />}
+      </span>
+    ));
 
   return (
     <div className="mi-simulator">
@@ -227,12 +268,14 @@ function SimulatorScreen({ title, onBack }) {
         <button className="mi-sim-exit" onClick={onBack}><IcoBack /> Exit</button>
         <div className="mi-sim-info">
           <span className="mi-sim-company">{title}</span>
-          <span className="mi-sim-live"><span className="mi-sim-pulse" /> Live Session</span>
+          <span className="mi-sim-live"><span className="mi-sim-pulse" /> Live · AI Interviewer</span>
         </div>
         <div className="mi-sim-timer">{mins}:{secs}</div>
         <div className="mi-sim-progress">
-          <span>Q 1/3</span>
-          <div className="mi-sim-prog-bar"><div className="mi-sim-prog-fill" style={{ width: "33%" }} /></div>
+          <span>Q {qNum}/{MAX_Q}</span>
+          <div className="mi-sim-prog-bar">
+            <div className="mi-sim-prog-fill" style={{ width: `${(qNum / MAX_Q) * 100}%` }} />
+          </div>
         </div>
       </div>
 
@@ -241,20 +284,13 @@ function SimulatorScreen({ title, onBack }) {
         {/* Left: conversation */}
         <div className="mi-sim-chat">
           <div className="mi-sim-messages" ref={msgRef}>
-            {messages.map((m, i) => (
-              <div key={i} className={`mi-sim-msg ${m.role}`}>
-                <div className={`mi-sim-av ${m.role === "ai" ? "ai" : "user"}`}>{m.role === "ai" ? "AI" : "AR"}</div>
+            {messages.map((m) => (
+              <div key={m.id} className={`mi-sim-msg ${m.role}`}>
+                <div className={`mi-sim-av ${m.role === "ai" ? "ai" : "user"}`}>
+                  {m.role === "ai" ? "AI" : "ME"}
+                </div>
                 <div className={`mi-sim-bubble ${m.role}`}>
-                  {m.text.split("\n").map((line, li) => (
-                    <span key={li}>
-                      {line.split(/\*\*(.*?)\*\*/).map((part, pi) =>
-                        pi % 2 === 1
-                          ? <strong key={pi} style={{ color: "var(--indigo-ll)" }}>{part}</strong>
-                          : <span key={pi}>{part}</span>
-                      )}
-                      {li < m.text.split("\n").length - 1 && <br />}
-                    </span>
-                  ))}
+                  {renderBubbleText(m.text)}
                 </div>
               </div>
             ))}
@@ -271,49 +307,112 @@ function SimulatorScreen({ title, onBack }) {
             <textarea
               className="mi-sim-input"
               value={input}
-              placeholder="Type your answer, explain your approach, or paste code…"
+              placeholder="Type your answer, explain your approach…"
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); } }}
               rows={3}
+              disabled={typing}
             />
-            <button className="mi-sim-send" onClick={send}><IcoSend /></button>
+            <button className="mi-sim-send" onClick={send} disabled={typing || !input.trim()}>
+              <IcoSend />
+            </button>
           </div>
         </div>
 
-        {/* Right: code editor (mock) */}
+        {/* Right: code editor or response scratchpad */}
         <div className="mi-sim-editor">
-          <div className="mi-editor-topbar">
-            <span className="mi-editor-lang">Python 3</span>
-            <div style={{ display: "flex", gap: 6 }}>
-              {["JavaScript", "C++", "Java"].map(l => (
-                <button key={l} className="mi-lang-btn">{l}</button>
-              ))}
+          {isCodingRound ? (
+            <div className="mi-editor-topbar">
+              <div style={{ display: "flex", gap: 6 }}>
+                {["Python 3", "JavaScript", "C++", "Java"].map(l => (
+                  <button
+                    key={l}
+                    className={`mi-lang-btn ${lang === l ? "active" : ""}`}
+                    onClick={() => {
+                      setLang(l);
+                      // Insert language comment when switching
+                      const comments = { "Python 3": "# ", "JavaScript": "// ", "C++": "// ", "Java": "// " };
+                      setCode(`${comments[l]}Write your ${l} solution here\n\n`);
+                    }}
+                  >{l}</button>
+                ))}
+              </div>
+              <button className="mi-run-btn" onClick={() => {
+                if (!code.trim() || code.trim() === "# Write your Python 3 solution here") return;
+                setInput(prev => (prev ? prev + "\n" : "") + `\`\`\`${lang}\n${code}\n\`\`\``);
+              }}><IcoPlay /> Send to Chat</button>
             </div>
-            <button className="mi-run-btn"><IcoPlay /> Run Code</button>
-          </div>
+          ) : (
+            <div className="mi-editor-topbar">
+              <span className="mi-editor-lang" style={{ color: "var(--text3)", background: "transparent", borderColor: "transparent" }}>
+                Response Scratchpad
+              </span>
+              <button className="mi-run-btn" style={{ background: "var(--indigo)" }} onClick={() => {
+                if (!code.trim()) return;
+                setInput(prev => (prev ? prev + "\n\n" : "") + code.trim());
+              }}><IcoPlay /> Send to Chat</button>
+            </div>
+          )}
+
           <div className="mi-editor-area">
-            <div className="mi-code-lines">
-              {[
-                <><span className="k">def</span> <span className="fn">two_sum</span>(nums, target):</>,
-                <>&nbsp;&nbsp;&nbsp;&nbsp;<span className="c"># Your solution here</span></>,
-                <>&nbsp;&nbsp;&nbsp;&nbsp;<span className="k">seen</span> = {"{}"}</>,
-                <>&nbsp;&nbsp;&nbsp;&nbsp;<span className="k">for</span> i, num <span className="k">in</span> <span className="fn">enumerate</span>(nums):</>,
-                <>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;complement = target - num</>,
-                <>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="k">if</span> complement <span className="k">in</span> seen:</>,
-                <>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;<span className="k">return</span> [seen[complement], i]</>,
-                <>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;seen[num] = i</>,
-                <>&nbsp;&nbsp;&nbsp;&nbsp;<span className="k">return</span> []</>,
-              ].map((line, i) => (
-                <div key={i} className="mi-code-line">
-                  <span className="mi-code-lnum">{i + 1}</span>
-                  <span className="mi-code-text">{line}</span>
-                </div>
-              ))}
-            </div>
+            <textarea
+              className={isCodingRound ? "mi-code-editor-real" : "mi-code-editor-real not-code"}
+              value={code}
+              onChange={e => setCode(e.target.value)}
+              onKeyDown={e => {
+                if (!isCodingRound) return; // Smart indent only for code
+
+                const s = e.target.selectionStart;
+                const en = e.target.selectionEnd;
+                const val = code;
+                
+                const indentSpace = ["JavaScript", "C++", "Java"].includes(lang) ? "  " : "    ";
+                const indentLen = indentSpace.length;
+
+                if (e.key === "Tab") {
+                  e.preventDefault();
+                  setCode(val.substring(0, s) + indentSpace + val.substring(en));
+                  requestAnimationFrame(() => e.target.selectionStart = e.target.selectionEnd = s + indentLen);
+                }
+                
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  const beforeCursor = val.substring(0, s);
+                  const lastLineMatch = beforeCursor.match(/(?:^|\n)([^\n]*)$/);
+                  const lastLine = lastLineMatch ? lastLineMatch[1] : "";
+                  
+                  const leadingSpacesMatch = lastLine.match(/^(\s*)/);
+                  let currentIndent = leadingSpacesMatch ? leadingSpacesMatch[1] : "";
+                  
+                  let extraIndent = false;
+                  if (lang === "Python 3" && lastLine.trim().endsWith(":")) {
+                    extraIndent = true;
+                  } else if (["JavaScript", "C++", "Java"].includes(lang) && lastLine.trim().endsWith("{")) {
+                    extraIndent = true;
+                  }
+                  
+                  const newIndent = currentIndent + (extraIndent ? indentSpace : "");
+                  
+                  setCode(beforeCursor + "\n" + newIndent + val.substring(en));
+                  requestAnimationFrame(() => {
+                    e.target.selectionStart = e.target.selectionEnd = s + 1 + newIndent.length;
+                  });
+                }
+              }}
+              spellCheck={!isCodingRound}
+              autoCorrect={isCodingRound ? "off" : "on"}
+              autoCapitalize={isCodingRound ? "off" : "on"}
+              placeholder={isCodingRound ? "# Write your solution here... (Tab = indent)" : "Draft your response or list key points here before sending to the chat..."}
+            />
           </div>
           <div className="mi-editor-output">
-            <div className="mi-output-label">Output</div>
-            <div className="mi-output-text" style={{ color: "var(--teal)" }}>✓ Test cases: 3/3 passed · Runtime: 52ms · Memory: 14.2 MB</div>
+            <div className="mi-output-label">Tip</div>
+            <div className="mi-output-text" style={{ color: "var(--text3)", fontSize: 11 }}>
+              {isCodingRound 
+                ? "Paste your code above, then explain your approach in the chat. The AI will review it with you."
+                : "Use this area to outline your STAR response (Situation, Task, Action, Result) before submitting it to the interviewer."
+              }
+            </div>
           </div>
         </div>
       </div>
@@ -343,7 +442,7 @@ export default function StudentMockInterviews({ onBack }) {
   }, []);
 
   if (!data) return <div className="mi-root" style={{ padding: 40, textAlign: "center" }}>Loading Interview Data...</div>;
-  const { session_history, round_types, question_bank, stats, insights } = data;
+  const { session_history, upcoming_sessions, round_types, question_bank, stats, insights } = data;
 
   const tabs = [
     { id: "home",     label: "Start Interview",  icon: <IcoPlay /> },
@@ -354,7 +453,7 @@ export default function StudentMockInterviews({ onBack }) {
 
   if (simActive) {
     const round = round_types.find(r => r.id === simType);
-    return <SimulatorScreen title={round?.label || "AI Round"} onBack={() => setSimActive(false)} />;
+    return <SimulatorScreen title={round?.label || "AI Round"} roundId={simType} onBack={() => setSimActive(false)} />;
   }
 
   return (
@@ -399,6 +498,30 @@ export default function StudentMockInterviews({ onBack }) {
       {/* ══════ HOME — START ══════ */}
       {activeTab === "home" && (
         <div className="mi-home-layout">
+          {upcoming_sessions?.length > 0 && (
+            <div className="mi-upcoming-section">
+              <h3 className="mi-section-title" style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 16 }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--amber)", boxShadow: "0 0 8px var(--amber)" }}></span>
+                Upcoming Official Interviews
+              </h3>
+              <div className="mi-upcoming-grid">
+                {upcoming_sessions.map(us => (
+                  <div key={us.id} className="mi-upcoming-card">
+                    <div className="mi-uc-left">
+                      <div className="mi-uc-icon"><IcoCal /></div>
+                      <div>
+                        <div className="mi-uc-title">{us.company} · {us.type}</div>
+                        <div className="mi-uc-time">{us.date} at {us.time}</div>
+                      </div>
+                    </div>
+                    <div className="mi-uc-status">Scheduled by TPO</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <h3 className="mi-section-title" style={{ marginBottom: 16, marginTop: upcoming_sessions?.length ? 32 : 0 }}>Practice Rounds</h3>
           <div className="mi-round-grid">
             {round_types.map((rt, i) => (
               <div

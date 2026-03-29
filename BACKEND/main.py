@@ -11,7 +11,12 @@ from Core.Database import engine, Base
 # MODELS
 from Models.User import User, UserRole
 from Models.Assignment import Assignment, AssignmentSubmission
-from Models.Placement import ApplicationStatus, SkillScore, PlacementReadiness, Internship, InternshipApplication
+from Models.Placement import (
+    ApplicationStatus, SkillScore, PlacementReadiness, Internship, 
+    InternshipApplication, MockInterview, MockInterviewRoundType, 
+    MockInterviewQuestion, PlacementTopic, ResumeCheck, DriveAttendance,
+    PlacementTask, PlacementEvent
+)
 from Models.Course import Course, Enrollment
 from Models.Lesson import Lesson, WatchHistory
 from Models.Quiz import Quiz, Question, QuizAttempt, QuestionType, DifficultyLevel

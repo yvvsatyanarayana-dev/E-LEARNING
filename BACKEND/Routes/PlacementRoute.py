@@ -36,6 +36,9 @@ from Schemas.PlacementSchema import (
     PlacementEventResponse,
     PlacementDashboardStats,
     PlacementTrendPoint,
+    MockInterviewCreate,
+    MockInterviewFeedback,
+    MockInterviewResponse,
 )
 
 
@@ -457,29 +460,20 @@ def withdraw(
 # Mock Interviews
 # ─────────────────────────────────────────────────────────────────────────────
 
-@router.get("/mock-interviews/me", summary="My mock interview history")
+@router.get("/mock-interviews/me", summary="My mock interview history", response_model=List[MockInterviewResponse])
 def my_mock_interviews(
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user),
 ):
-    rows = svc.get_mock_interviews(db, current_user.id)
-    return [
-        {
-            "id":        mi.id,
-            "company":   mi.company,
-            "type":      mi.type,
-            "date":      mi.date,
-            "time":      mi.time,
-            "score":     mi.score,
-            "duration":  mi.duration,
-            "questions": mi.questions,
-            "solved":    mi.solved,
-            "summary":   mi.summary,
-            "tags":      mi.tags or [],
-            "feedback":  mi.feedback or {},
-        }
-        for mi in rows
-    ]
+    return svc.get_mock_interviews(db, current_user.id)
+
+
+@router.get("/mock-interviews/upcoming", summary="My upcoming official interviews", response_model=List[MockInterviewResponse])
+def my_upcoming_interviews(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    return svc.get_upcoming_interviews(db, current_user.id)
 
 
 @router.post("/mock-interviews/me", status_code=status.HTTP_201_CREATED,
@@ -538,6 +532,45 @@ def question_bank(
     rows = svc.get_mock_interview_questions(db, topic=topic, difficulty=difficulty)
     return [{"id": q.id, "topic": q.topic, "difficulty": q.difficulty,
              "title": q.title, "asked": q.asked, "times": q.times} for q in rows]
+
+
+# ── TPO Specific Mock Interview Controls ──
+
+@router.post("/mock-interviews", response_model=MockInterviewResponse, 
+             summary="TPO schedules a mock interview")
+def schedule_mock_interview(
+    payload: MockInterviewCreate,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    return svc.schedule_mock_interview(db, current_user.id, payload)
+
+
+@router.patch("/mock-interviews/{interview_id}/feedback", response_model=MockInterviewResponse,
+              summary="TPO submits feedback for a mock interview")
+def submit_interview_feedback(
+    interview_id: int,
+    payload: MockInterviewFeedback,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    return _safe(svc.submit_mock_interview_feedback, db, current_user.id, interview_id, payload)
+
+
+@router.get("/mock-interviews/student/{student_id}", response_model=List[MockInterviewResponse],
+            summary="TPO views a student's interview history")
+def get_student_interview_history(
+    student_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    return svc.get_mock_interviews(db, student_id)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

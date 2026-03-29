@@ -368,3 +368,99 @@
   .ps-panel { border-radius:14px; max-height:95vh; }
   .af-summary-stats { grid-template-columns:repeat(2,1fr); }
 }
+/* 
+   MOCK INTERVIEW DASHBOARD SPECIFIC
+ */
+.mi-modal {
+  border: 1px solid rgba(91, 78, 248, 0.2);
+  box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.9);
+}
+
+.mi-modal-body::-webkit-scrollbar {
+  width: 5px;
+}
+
+.mi-modal-body::-webkit-scrollbar-thumb {
+  background: var(--border2);
+  border-radius: 10px;
+}
+
+.mi-empty {
+  background: var(--surface2);
+  border: 1.5px dashed var(--border2);
+  border-radius: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  margin: 20px 0;
+}
+
+.mi-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mi-item-row {
+  transition: transform 0.2s, background 0.2s;
+  border-radius: 10px;
+  padding: 12px 14px !important;
+  margin: 0 -8px;
+}
+
+.mi-item-row:hover {
+  background: var(--surface2);
+  transform: translateX(4px);
+}
+
+.mi-item-score {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.mi-form-mode {
+  animation: mi-slide-in 0.3s ease-out;
+}
+
+/* 4-column grid for dense numeric stats in the Feedback Form */
+.mi-conduct-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  grid-column: 1 / -1;
+}
+
+@keyframes mi-slide-in {
+  from { opacity: 0; transform: translateX(10px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Performance Range Input */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  background: var(--surface3);
+  border-radius: 10px;
+  cursor: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--indigo-ll);
+  box-shadow: 0 0 10px rgba(91, 78, 248, 0.4);
+  cursor: none;
+  border: 2px solid #fff;
+}
+
+.mi-section-title {
+  color: var(--text);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}

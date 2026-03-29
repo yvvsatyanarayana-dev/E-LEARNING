@@ -48,7 +48,8 @@ class User(Base):
     forum_posts            = relationship("ForumPost", back_populates="posted_by_user")
     study_group_members    = relationship("StudyGroupMember", back_populates="student")
     schedules              = relationship("Schedule", back_populates="student")
-    mock_interviews        = relationship("MockInterview", back_populates="student")
+    mock_interviews        = relationship("MockInterview", back_populates="student", foreign_keys="MockInterview.student_id")
+    interviews_conducted   = relationship("MockInterview", back_populates="officer", foreign_keys="MockInterview.officer_id")
     innovation_ideas       = relationship("InnovationIdea", back_populates="author")
     innovation_projects    = relationship("InnovationProject", back_populates="student")
 

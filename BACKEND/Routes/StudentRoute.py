@@ -303,6 +303,14 @@ def get_mock_interviews(
     return student_service.get_mock_interviews(current_user, db)
 
 
+@router.post("/mock-interview/chat", response_model=AIChatResponse)
+def mock_interview_chat(
+    data: AIChatRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return student_service.mock_interview_chat(data, current_user, db)
+
 # ─── Resume ──────────────────────────────────────────────────────────────────
 
 @router.get("/resume", response_model=ResumeFullResponse)

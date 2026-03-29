@@ -378,8 +378,8 @@ class MockInterviewResponse(BaseModel):
     questions: Optional[int] = None
     solved: Optional[int] = None
     summary: Optional[str] = None
-    tags: List[str] = []
-    feedback: dict = {}
+    tags: Optional[List[str]] = []
+    feedback: Optional[dict] = {}
 
     class Config:
         from_attributes = True
@@ -420,6 +420,7 @@ class MockInterviewInsights(BaseModel):
 
 class MockInterviewsFullResponse(BaseModel):
     session_history: List[MockInterviewResponse]
+    upcoming_sessions: List[MockInterviewResponse] = []
     round_types: List[MockInterviewRoundType]
     question_bank: List[MockInterviewQuestionBankItem]
     stats: Optional[dict] = None
