@@ -71,8 +71,8 @@ UPLOADS_DIR = os.path.join(BASE_DIR, "uploads")
 os.makedirs(UPLOADS_DIR, exist_ok=True)
 app.mount("/uploads", StaticFiles(directory=UPLOADS_DIR), name="uploads")
 
-# Mount socket.io
-app.mount("/", socket_app)
+# Mount socket.io - at /socket.io instead of root to avoid intercepting HTTP requests
+app.mount("/socket.io", socket_app)
 
 @app.get("/")
 async def root():

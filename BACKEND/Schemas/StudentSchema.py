@@ -701,3 +701,11 @@ class ResumeFullResponse(BaseModel):
     ats_score: int = 0
     ats_tier: str = "Good"
     personal: dict
+
+
+class GenerateResumeRequest(BaseModel):
+    prompt: str
+
+
+class ImproveResumeRequest(BaseModel):
+    resumeData: dict

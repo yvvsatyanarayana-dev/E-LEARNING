@@ -32,6 +32,7 @@ export default function SmartCampus({ defaultModal }) {
   const [loginOpen, setLoginOpen] = useState(defaultModal === "login");
   const [signupOpen, setSignupOpen] = useState(defaultModal === "signup");
   const [forgotOpen, setForgotOpen] = useState(defaultModal === "forgot");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Synchronize modal states with prop when route changes
   useEffect(() => {
@@ -143,6 +144,35 @@ export default function SmartCampus({ defaultModal }) {
             Create Account
           </button>
         </div>
+
+        {/* Hamburger Menu Button */}
+        <button
+          className="hamburger-btn"
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          aria-label="Toggle menu"
+        >
+          <svg width="24" height="24" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+
+        {/* Mobile Menu */}
+        {mobileMenuOpen && (
+          <div className="mobile-menu">
+            <button
+              className="btn btn-ghost mobile-btn ripple-host"
+              onClick={(e) => { addRipple(e); openLogin(); setMobileMenuOpen(false); }}
+            >
+              Sign In
+            </button>
+            <button
+              className="btn btn-solid mobile-btn ripple-host"
+              onClick={(e) => { addRipple(e); openSignup(); setMobileMenuOpen(false); }}
+            >
+              Create Account
+            </button>
+          </div>
+        )}
       </nav>
 
       {/* ─── HERO SECTION ─── */}
@@ -203,12 +233,6 @@ export default function SmartCampus({ defaultModal }) {
           <div className="hero-right">
             <div className="mockup-wrap">
               <div className="mockup-inner">
-                <div className="m-bar">
-                  <div className="m-dot" style={{ background: "#ff5f57" }} />
-                  <div className="m-dot" style={{ background: "#febc2e" }} />
-                  <div className="m-dot" style={{ background: "#28c840" }} />
-                  <div className="m-url">smart-campus.edu &nbsp;/&nbsp; admin / dashboard</div>
-                </div>
                 <div className="m-body">
                   <div className="m-stats">
                     <div className="m-stat ms1">

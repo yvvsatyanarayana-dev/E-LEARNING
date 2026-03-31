@@ -1652,6 +1652,74 @@ class StudentService:
             personal=res["personal"]
         )
 
+    def generate_resume_with_ai(self, prompt: str, student: User, db: Session) -> dict:
+        """Generate resume content with AI based on user prompt"""
+        _require_student(student)
+        
+        if not prompt.strip():
+            raise HTTPException(status_code=400, detail="Prompt cannot be empty")
+        
+        from Service.GroqService import groq_service
+        import json
+        
+        messages = [
+            {
+                "role": "user",
+                "content": f"""Generate a realistic student resume JSON based on this description: "{prompt}"
+
+Return ONLY a JSON object (no markdown) with this exact shape:
+{{
+  "personal": {{ "fullName": "", "email": "", "phone": "", "linkedin": "", "github": "", "location": "", "summary": "" }},
+  "education": {{ "degree": "", "institution": "", "duration": "", "cgpa": "", "location": "" }},
+  "experiences": [{{ "id": 1, "role": "", "company": "", "duration": "", "desc": "" }}],
+  "projects": [{{ "id": 1, "name": "", "tech": "", "desc": "" }}],
+  "skills": ["skill1","skill2"],
+  "certs": []
+}}"""
+            }
+        ]
+        
+        try:
+            response_text = groq_service.generate_chat_response(messages, max_tokens=2000)
+            # Clean markdown formatting if present
+            clean_text = response_text.replace("```json", "").replace("```", "").strip()
+            resume_data = json.loads(clean_text)
+            return resume_data
+        except json.JSONDecodeError as e:
+            raise HTTPException(status_code=500, detail=f"Failed to parse AI response: {str(e)}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"AI generation failed: {str(e)}")
+
+    def improve_resume_with_ai(self, resume_data: dict, student: User, db: Session) -> list:
+        """Generate improvement suggestions for resume"""
+        _require_student(student)
+        
+        from Service.GroqService import groq_service
+        import json
+        
+        messages = [
+            {
+                "role": "user",
+                "content": f"""You are a professional resume coach. Analyze this resume data and return ONLY a JSON array (no markdown, no backticks) of improvement suggestions. Each suggestion must have: field (string, e.g. "summary", "experience_desc", "skills"), current (string, current text), improved (string, improved version), reason (string, why it's better).
+
+Resume data:
+{json.dumps(resume_data, indent=2)}
+
+Return max 5 suggestions as a JSON array only."""
+            }
+        ]
+        
+        try:
+            response_text = groq_service.generate_chat_response(messages, max_tokens=2000)
+            # Clean markdown formatting if present
+            clean_text = response_text.replace("```json", "").replace("```", "").strip()
+            suggestions = json.loads(clean_text)
+            return suggestions if isinstance(suggestions, list) else []
+        except json.JSONDecodeError as e:
+            raise HTTPException(status_code=500, detail=f"Failed to parse AI response: {str(e)}")
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"AI improvement failed: {str(e)}")
+
     def get_courses_ai_suggestions(self, student: User, db: Session) -> List[AICourseSuggestionResponse]:
         _require_student(student)
         enrollments = db.query(Enrollment).filter(Enrollment.student_id == student.id).all()

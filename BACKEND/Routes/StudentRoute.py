@@ -18,6 +18,7 @@ from Schemas.StudentSchema import (
     AICourseSuggestionResponse, # New
     AIStudyPlanResponse, # New
     ResumeFullResponse, # New
+    GenerateResumeRequest, ImproveResumeRequest, # New
     InnovationHubResponse, InternshipsOverviewResponse,
     CourseDetailResponse, AIChatRequest, AIChatResponse
 )
@@ -319,3 +320,21 @@ def get_resume(
     db: Session = Depends(get_db),
 ):
     return student_service.get_resume_full(current_user, db)
+
+
+@router.post("/resume/generate-with-ai")
+def generate_resume_with_ai(
+    data: GenerateResumeRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return student_service.generate_resume_with_ai(data.prompt, current_user, db)
+
+
+@router.post("/resume/improve-with-ai")
+def improve_resume_with_ai(
+    data: ImproveResumeRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return student_service.improve_resume_with_ai(data.resumeData, current_user, db)

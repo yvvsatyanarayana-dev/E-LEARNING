@@ -78,7 +78,6 @@
 .modal-close:hover {
   background: var(--surface3);
   color: var(--text);
-  transform: rotate(90deg);
 }
 
 /* Modal Body */
@@ -265,4 +264,38 @@ textarea:disabled {
   background: rgba(91, 78, 248, 0.1);
   border: 1px solid rgba(91, 78, 248, 0.3);
   color: var(--indigo-ll);
+}
+
+/* Password Input Wrapper */
+.password-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrapper .form-input {
+  padding-right: 40px;
+}
+
+.password-toggle-btn {
+  position: absolute;
+  right: 10px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0;
+  padding: 4px 6px;
+  color: var(--text3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+}
+
+.password-toggle-btn:hover {
+  color: var(--text);
+}
+
+.password-toggle-btn svg {
+  display: block;
 }
