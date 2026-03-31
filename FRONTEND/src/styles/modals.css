@@ -140,9 +140,14 @@
 }
 
 .form-input:focus {
-  outline: none;
-  border-color: rgba(91, 78, 248, 0.5);
-  background: rgba(91, 78, 248, 0.02);
+  border-color: rgba(91,78,248,.35);
+  box-shadow: 0 0 0 3px rgba(91,78,248,.1);
+}
+
+select.form-input option {
+  background-color: var(--surface2);
+  color: var(--text);
+  padding: 8px;
 }
 
 .form-input:disabled {

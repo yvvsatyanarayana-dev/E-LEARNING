@@ -34,12 +34,12 @@ export default function RegisterModal({ open, onClose, onGoLogin }) {
     if (open) {
       const fetchMeta = async () => {
         try {
-          const res = await fetch("http://localhost:8000/api/v1/faculty/metadata");
+          const res = await fetch("http://localhost:8000/api/v1/auth/metadata");
           if (res.ok) {
             const data = await res.json();
             setMetadata(data);
-            if (data.departments.length > 0) setDept(data.departments[0]);
-            if (data.groups.length > 0) setTargetGroup(data.groups[0]);
+            if (data.departments?.length > 0) setDept(data.departments[0]);
+            if (data.groups?.length > 0) setTargetGroup(data.groups[0]);
           }
         } catch (err) {
           console.error("Failed to fetch metadata:", err);

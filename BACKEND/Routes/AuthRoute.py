@@ -73,6 +73,17 @@ def change_password(
     """
     return auth_service.change_password(data, current_user, db)
 
+@router.get("/metadata")
+def get_public_metadata():
+    """
+    Public metadata for registration form dropdowns.
+    """
+    return {
+        "departments": ["Computer Science", "Information Technology", "Electronics"],
+        "groups": ["BCA", "MCA", "B.Tech", "B.Sc", "AI", "All"]
+    }
+
+
 
 @router.get("/sessions", response_model=list[UserSessionResponse])
 def get_sessions(

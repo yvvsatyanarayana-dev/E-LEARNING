@@ -1844,6 +1844,12 @@ html {
   box-shadow: 0 0 0 3px rgba(91, 78, 248, .1);
 }
 
+select.form-input option {
+  background-color: var(--surface);
+  color: var(--text);
+  padding: 8px;
+}
+
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
