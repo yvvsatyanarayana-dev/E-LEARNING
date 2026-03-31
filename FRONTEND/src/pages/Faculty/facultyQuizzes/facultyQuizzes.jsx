@@ -41,7 +41,9 @@ const COLORS = [
   { color: "var(--amber)", rgb: "244,165,53", bg: "rgba(244,165,53,.1)", border: "rgba(244,165,53,.2)" },
 ];
 
-function getCourseMeta(courseId, courseCode) {
+function getCourseMeta(courseId, courseCode, metadata = {}) {
+  const meta = (metadata.courses_meta || {})[courseId];
+  if (meta) return { ...meta, id: courseId, total: 100 };
   const idx = String(courseId).length % COLORS.length;
   return {
     ...COLORS[idx],
@@ -117,8 +119,8 @@ function CourseChip({ quiz }) {
 }
 
 // ─── QUIZ CARD ────────────────────────────────────────────────────
-function QuizCard({ quiz, onClick }) {
-  const c = getCourseMeta(quiz.courseId, quiz.course_code);
+function QuizCard({ quiz, onSelect, metadata = {} }) {
+  const c = getCourseMeta(quiz.courseId, quiz.course_code, metadata);
   const isLive = quiz.status === "live";
   const isDraft = quiz.status === "draft";
   const isEnded = quiz.status === "ended";
@@ -127,13 +129,13 @@ function QuizCard({ quiz, onClick }) {
   return (
     <div
       className={`qz-card ${isLive ? "qz-card--live" : ""} ${isDraft ? "qz-card--draft" : ""}`}
-      onClick={onClick}
+      onClick={() => onSelect(quiz)}
     >
       <div className="qz-card-accent" style={{ background: `rgba(${c.rgb},.55)` }} />
 
       <div className="qz-card-hd">
         <div className="qz-card-badges">
-          <CourseChip quiz={quiz} />
+          <CourseChip quiz={quiz} metadata={metadata} />
           <span className="qz-week-chip">W{quiz.week?.replace("W", "")}</span>
         </div>
         <StatusBadge status={quiz.status} />
@@ -194,8 +196,8 @@ function QuizCard({ quiz, onClick }) {
 }
 
 // ─── QUIZ ROW (list view) ─────────────────────────────────────────
-function QuizRow({ quiz, idx, onClick }) {
-  const c = getCourseMeta(quiz.courseId, quiz.course_code);
+function QuizRow({ quiz, idx, onClick, metadata }) {
+  const c = getCourseMeta(quiz.courseId, quiz.course_code, metadata);
   const subPct = quiz.attempts > 0 ? Math.round((quiz.attempts / c.total) * 100) : 0;
   return (
     <div className="qz-row" onClick={onClick}>
@@ -203,7 +205,7 @@ function QuizRow({ quiz, idx, onClick }) {
       <div className="qz-row-info">
         <div className="qz-row-title">{quiz.title}</div>
         <div className="qz-row-meta">
-          <CourseChip quiz={quiz} />
+          <CourseChip quiz={quiz} metadata={metadata} />
           <span className="qz-week-chip">{quiz.week}</span>
           <span>{quiz.unit}</span>
         </div>
@@ -545,9 +547,9 @@ function CreateCourseModal({ onClose, onCreated }) {
 }
 
 // ─── DETAIL DRAWER ────────────────────────────────────────────────
-function DetailDrawer({ quiz, onClose, onEdit, onDuplicate, onDelete }) {
+function DetailDrawer({ quiz, onClose, onEdit, onDuplicate, onDelete, metadata }) {
   const [tab, setTab] = useState("overview");
-  const c = getCourseMeta(quiz.courseId, quiz.course_code);
+  const c = getCourseMeta(quiz.courseId, quiz.course_code, metadata);
 
   return (
     <div className="qz-overlay qz-overlay--drawer" onClick={e => e.target === e.currentTarget && onClose()}>
@@ -821,6 +823,7 @@ export default function FacultyQuizzes({ onBack }) {
         onEdit={handleEditQuiz}
         onDuplicate={handleDuplicateQuiz}
         onDelete={handleDeleteQuiz}
+        metadata={metadata}
       />}
       {toast && <div className="qz-toast">{toast}</div>}
 
@@ -851,7 +854,7 @@ export default function FacultyQuizzes({ onBack }) {
       </div>
 
       <div className="qz-grid">
-        {filtered.map(q => <QuizCard key={q.id} quiz={q} onClick={() => setSelected(q)} />)}
+        {filtered.map(q => <QuizCard key={q.id} quiz={q} onSelect={setSelected} metadata={metadata} />)}
       </div>
     </div>
   );

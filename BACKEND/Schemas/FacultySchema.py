@@ -211,6 +211,16 @@ class FacultyLessonCreate(BaseModel):
     duration: Optional[str] = None
     target_group: Optional[str] = "All"
 
+class FacultyLectureUpdate(BaseModel):
+    title: Optional[str] = None
+    course_id: Optional[int] = None
+    video_url: Optional[str] = None
+    pdf_url: Optional[str] = None
+    duration: Optional[str] = None
+    target_group: Optional[str] = None
+    week: Optional[str] = None
+    unit: Optional[str] = None
+
 class FacultyAssignmentCreate(BaseModel):
     title: str
     course_id: int

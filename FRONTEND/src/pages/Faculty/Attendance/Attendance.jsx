@@ -54,7 +54,7 @@ export default function Attendance({ onBack }) {
   const fetchTodayAttendance = async (courseId, studentList) => {
     try {
       const today = new Date().toISOString().split("T")[0];
-      const res = await api.get(`/faculty/attendance/day/${courseId.replace("cs","")}/${today}`);
+      const res = await api.get(`/faculty/attendance/day/${courseId}/${today}`);
       if (res && res.length > 0) {
         const map = {};
         res.forEach(r => { map[r.student_roll] = r.status; });
@@ -72,7 +72,7 @@ export default function Attendance({ onBack }) {
   const loadHistory = async (courseId) => {
     setLoadingHistory(true);
     try {
-      const res = await api.get(`/faculty/attendance/history/${courseId.replace("cs","")}`);
+      const res = await api.get(`/faculty/attendance/history/${courseId}`);
       setHistory(res || []);
     } catch (err) {
       console.error("Failed to load history:", err);
@@ -125,7 +125,7 @@ export default function Attendance({ onBack }) {
     if (!c) return;
     try {
       const payload = {
-        course_id: parseInt(c.id.replace("cs", "")),
+        course_id: parseInt(c.id),
         date: new Date().toISOString().split("T")[0],
         records: students.map(s => ({
           student_id: s.id || 0,

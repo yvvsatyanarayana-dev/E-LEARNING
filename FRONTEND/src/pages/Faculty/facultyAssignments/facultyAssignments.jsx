@@ -44,12 +44,15 @@ const COLORS = [
   { color: "var(--amber)", rgb: "244,165,53", bg: "rgba(244,165,53,.1)", border: "rgba(244,165,53,.2)" },
 ];
 
-function getCourseMeta(courseId, courseCode) {
+function getCourseMeta(courseId, courseCode, metadata = {}) {
+  const meta = (metadata.courses_meta || {})[courseId];
+  if (meta) return { ...meta, id: courseId, total: 100 };
+  
   const idx = String(courseId).length % COLORS.length;
   return {
     ...COLORS[idx],
     code: courseCode || `C${courseId}`,
-    total: 100 // Estimate total if missing
+    total: 100 
   };
 }
 
@@ -595,8 +598,8 @@ function DetailDrawer({ assignment, onClose, onEdit, onDuplicate, onDelete }) {
 }
 
 // ─── GRID CARD ────────────────────────────────────────────────────
-function AssignmentCard({ assignment, onSelect }) {
-  const cm = getCourseMeta(assignment.courseId, assignment.course_code);
+function AssignmentCard({ assignment, onSelect, metadata = {} }) {
+  const cm = getCourseMeta(assignment.courseId, assignment.course_code, metadata);
   const tm = TYPE_META[assignment.type] || TYPE_META.Theory;
   const sm = STATUS_META[assignment.status];
   const subPct = cm ? Math.round((assignment.submissions / cm.total) * 100) : 0;
@@ -956,7 +959,7 @@ export default function FacultyAssignments({ onBack }) {
         </button>
         {Array.from(new Set(safeAssig.map(a => a.courseId))).map((cid) => {
           const a = safeAssig.find(x => x.courseId === cid);
-          const cm = getCourseMeta(cid, a?.course_code);
+          const cm = getCourseMeta(cid, a?.course_code, metadata);
           return (
             <button key={`ctab-${cid || 'none'}`}
               className={`as-ctab ${activeCourse === cid ? "as-ctab--active" : ""}`}
@@ -993,7 +996,7 @@ export default function FacultyAssignments({ onBack }) {
 
       {viewMode === "grid" && (
         <div className="as-grid">
-          {filtered.map(a => <AssignmentCard key={a.id} assignment={a} onSelect={setSelected} />)}
+          {filtered.map(a => <AssignmentCard key={a.id} assignment={a} onSelect={setSelected} metadata={metadata} />)}
         </div>
       )}
 

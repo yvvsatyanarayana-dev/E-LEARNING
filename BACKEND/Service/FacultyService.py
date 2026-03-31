@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from sqlalchemy import func, select
-import json, io, csv
+import json, io, csv, random, string
+from collections import Counter
 from typing import Optional, List, Dict, Any
 from Core.Database import get_db
 from Core.MeetingState import ACTIVE_MEETINGS
@@ -26,7 +27,8 @@ from Schemas.FacultySchema import (
     FacultyNotificationModel, FacultyRecentActivity,
     FacultyReportStats, FacultyReportCourseMetric, FacultyReportResponse,
     FacultyAssignmentUpdate, FacultyQuizUpdate, FacultyMetadataResponse,
-    AttendanceBulkSubmit, AttendanceRecordResponse, AttendanceHistoryGrid
+    AttendanceBulkSubmit, AttendanceRecordResponse, AttendanceHistoryGrid,
+    FacultyLectureUpdate
 )
 from Models.Attendance import DailyAttendance, AttendanceStatus
 from Models.Placement import PlacementReadiness, SkillScore
@@ -96,16 +98,36 @@ class FacultyService:
                 .join(Assignment)\
                 .filter(Assignment.course_id == c.id, AssignmentSubmission.grade == None).scalar() or 0
             
+            # Real attendance for this course (Manual)
+            daily_att = db.query(DailyAttendance).filter(DailyAttendance.course_id == c.id).all()
+            if daily_att:
+                p_count = sum(1 for a in daily_att if a.status == AttendanceStatus.present)
+                c_avg_att = round((p_count / len(daily_att)) * 100, 1)
+            else:
+                c_avg_att = 0.0
+
+            # Real avg score for this course
+            c_scores = []
+            c_subs = db.query(AssignmentSubmission).join(Assignment)\
+                .filter(Assignment.course_id == c.id, AssignmentSubmission.grade != None).all()
+            for s in c_subs: 
+                c_scores.append((s.grade / (s.assignment.max_marks or 100)) * 100)
+            c_quizzes = db.query(QuizAttempt).join(Quiz)\
+                .filter(Quiz.course_id == c.id, QuizAttempt.score != None).all()
+            for qa in c_quizzes: 
+                c_scores.append((qa.score / (len(qa.quiz.questions) or 1)) * 100)
+            c_avg_score = round(sum(c_scores)/len(c_scores), 1) if c_scores else 0.0
+
             course_summaries.append(FacultyCourseSummary(
                 id=c.id,
                 name=c.title,
-                code=f"CS{500+c.id}", # Mock code
+                code=f"CRS-{c.id:03d}", 
                 semester=c.semester or "Sem 5",
                 student_count=student_count,
-                lectures_done=len(c.lessons) // 2, # Mock progress
-                lectures_total=len(c.lessons),
-                avg_attendance=80.0 + (c.id % 10),
-                avg_score=70.0 + (c.id % 15),
+                lectures_done=db.query(Lesson).filter(Lesson.course_id == c.id).count(),
+                lectures_total=db.query(Lesson).filter(Lesson.course_id == c.id).count() + 2, 
+                avg_attendance=c_avg_att,
+                avg_score=c_avg_score,
                 pending_grades=pending_grades,
                 color=palette[i % len(palette)],
                 section="A",
@@ -388,6 +410,52 @@ class FacultyService:
             desc=new_lesson.title,
             target_group=new_lesson.target_group
         )
+
+    def update_lesson(self, faculty: User, db: Session, lesson_id: int, data: FacultyLectureUpdate) -> FacultyLectureDetail:
+        from Models.Lesson import Lesson
+        lesson = db.query(Lesson).filter(Lesson.id == lesson_id).first()
+        if not lesson:
+            raise HTTPException(status_code=404, detail="Lesson not found")
+        
+        if data.title is not None: lesson.title = data.title
+        if data.course_id is not None: lesson.course_id = data.course_id
+        if data.video_url is not None: lesson.video_url = data.video_url
+        if data.pdf_url is not None: lesson.pdf_url = data.pdf_url
+        if data.duration is not None: lesson.duration = data.duration
+        if data.target_group is not None: lesson.target_group = data.target_group
+        
+        db.commit()
+        db.refresh(lesson)
+        
+        course = db.query(Course).get(lesson.course_id)
+        course_code_str = f"cs50{course.id}" if course else "cs501"
+        
+        return FacultyLectureDetail(
+            id=lesson.id,
+            courseId=course_code_str,
+            title=lesson.title,
+            week=data.week or f"W{min(15, lesson.order or 1)}",
+            unit=data.unit or f"Unit {'I' * ((lesson.order or 1) % 5 + 1)}",
+            dur=lesson.duration or "45m",
+            views=0,
+            watchPct=0,
+            rating=0.0,
+            tags=["Lecture"],
+            status="live" if lesson.video_url else "pending",
+            date=lesson.created_at.strftime("%b %d") if lesson.created_at else None,
+            desc=lesson.title,
+            target_group=lesson.target_group
+        )
+
+    def delete_lesson(self, faculty: User, db: Session, lesson_id: int) -> Dict[str, str]:
+        from Models.Lesson import Lesson
+        lesson = db.query(Lesson).filter(Lesson.id == lesson_id).first()
+        if not lesson:
+            raise HTTPException(status_code=404, detail="Lesson not found")
+        
+        db.delete(lesson)
+        db.commit()
+        return {"message": "Lesson deleted successfully"}
 
     def get_assignments(self, faculty: User, db: Session) -> List[FacultyAssignmentDetail]:
         assignments = db.query(Assignment).filter(Assignment.faculty_id == faculty.id).all()
@@ -859,7 +927,6 @@ class FacultyService:
             course = next((c for c in courses if c.id == e.course_id), None)
             if not course: continue
             total_l = len(course.lessons) or 1
-            from Models.Lesson import WatchHistory, Lesson
             watched = db.query(func.count(WatchHistory.id)).filter(
                 WatchHistory.student_id == e.student_id,
                 WatchHistory.lesson_id.in_(db.query(Lesson.id).filter(Lesson.course_id == course.id).subquery())
@@ -868,34 +935,57 @@ class FacultyService:
             
         avg_attendance = sum(attendances) / len(attendances) if attendances else 0.0
         
-        # 4. Engagement & Weak Topic Trend (Mocking by Week as we don't have many records)
-        # We'll use the last 5 weeks
-        from datetime import timedelta
+        # 4. Engagement & Trend calculations (Last 8 weeks)
+        now = datetime.now(timezone.utc)
         engagement_resp = []
         weak_topic_resp = []
         
-        for i in range(5, 0, -1):
-            week_num = 10 - i # e.g. W5 to W9
-            week_label = f"W{week_num}"
+        for i in range(7, -1, -1):
+            start_date = (now - timedelta(weeks=i+1)).date()
+            end_date = (now - timedelta(weeks=i)).date()
+            week_label = f"W{8-i}"
             
-            # For real implementation, we would filter by date. 
-            # Since data might be sparse, we'll return some realistic (derived) values if real data is missing.
-            from Models.Lesson import WatchHistory
-            views = db.query(func.count(WatchHistory.id)).filter(
-                WatchHistory.watched_at >= datetime.now(timezone.utc) - timedelta(weeks=i),
-                WatchHistory.watched_at < datetime.now(timezone.utc) - timedelta(weeks=i-1)
-            ).scalar() or (1000 + week_num * 100) # Fallback to something dynamic but fake if DB is empty
+            # Watch activity in this week
+            views = db.query(func.count(WatchHistory.id)).join(Lesson).filter(
+                WatchHistory.watched_at >= datetime.combine(start_date, datetime.min.time()),
+                WatchHistory.watched_at < datetime.combine(end_date, datetime.min.time()),
+                Lesson.course_id.in_(course_ids)
+            ).scalar() or 0
             
+            # Participation (Submissions in this week)
+            subs_count = db.query(func.count(AssignmentSubmission.id)).join(Assignment)\
+                .filter(Assignment.course_id.in_(course_ids), 
+                        AssignmentSubmission.submitted_at >= datetime.combine(start_date, datetime.min.time()),
+                        AssignmentSubmission.submitted_at < datetime.combine(end_date, datetime.min.time())).scalar() or 0
+            
+            # Quiz completions in this week
+            quiz_count = db.query(func.count(QuizAttempt.id)).join(Quiz)\
+                .filter(Quiz.course_id.in_(course_ids),
+                        QuizAttempt.attempted_at >= datetime.combine(start_date, datetime.min.time()),
+                        QuizAttempt.attempted_at < datetime.combine(end_date, datetime.min.time())).scalar() or 0
+
             engagement_resp.append(FacultyEngagementMetric(
                 week=week_label, 
                 views=views, 
-                participation=75 + (week_num % 10), 
-                completion=60 + (week_num % 15)
+                participation=subs_count * 5, # Scaled for visibility
+                completion=quiz_count * 10
             ))
+            
+            # Score trend (Average score of submissions in this week)
+            week_scores = []
+            week_subs = db.query(AssignmentSubmission).join(Assignment)\
+                .filter(Assignment.course_id.in_(course_ids),
+                        AssignmentSubmission.grade != None,
+                        AssignmentSubmission.submitted_at >= datetime.combine(start_date, datetime.min.time()),
+                        AssignmentSubmission.submitted_at < datetime.combine(end_date, datetime.min.time())).all()
+            for s in week_subs: 
+                week_scores.append((s.grade / (s.assignment.max_marks or 100)) * 100)
+            
+            avg_w_score = sum(week_scores)/len(week_scores) if week_scores else (avg_score if i > 0 else 0)
             
             weak_topic_resp.append(FacultyWeakTopicTrend(
                 week=week_label,
-                score=int(avg_score * 0.8) + (week_num % 5)
+                score=int(avg_w_score)
             ))
         
         return FacultyAnalyticsData(
@@ -967,35 +1057,38 @@ class FacultyService:
             enrollments = db.query(Enrollment).filter(Enrollment.course_id == c.id).all()
             color, bg, border = palette[idx % len(palette)]
 
+            # Total sessions conducted for this course (unique dates in DailyAttendance)
+            total_sessions = db.query(func.count(func.distinct(DailyAttendance.date)))\
+                .filter(DailyAttendance.course_id == c.id).scalar() or 0
+            
+            # If no manual attendance yet, fallback to at least 1 to avoid div by zero in UI if needed, 
+            # but usually it's fine.
+            display_total = max(total_sessions, 1) 
+
             students_data = []
-            total_lessons = len(c.lessons) if c.lessons else 1
-
             for e in enrollments:
-                from Models.Lesson import Lesson
-                from Models.Lesson import WatchHistory
-
-                watched = db.query(func.count(WatchHistory.id)).filter(
-                    WatchHistory.student_id == e.student_id,
-                    WatchHistory.lesson_id.in_(
-                        db.query(Lesson.id).filter(Lesson.course_id == c.id).subquery()
-                    )
+                present_count = db.query(func.count(DailyAttendance.id)).filter(
+                    DailyAttendance.student_id == e.student_id,
+                    DailyAttendance.course_id == c.id,
+                    DailyAttendance.status == AttendanceStatus.present
                 ).scalar() or 0
 
                 students_data.append(FacultyAttendanceStudent(
-                    roll=e.student.roll_number or f"ROLL-{e.student_id}",
+                    id=e.student_id, 
+                    roll=e.student.roll_number or f"22CS{e.student_id:03d}",
                     name=e.student.full_name,
-                    present=watched,
-                    total=total_lessons
+                    present=present_count,
+                    total=display_total
                 ))
 
             result.append(FacultyAttendanceCourse(
-                id=f"cs{c.id}",
-                code=f"CS{500+c.id}",
+                id=str(c.id),
+                code=f"CRS-{c.id:03d}",
                 name=c.title,
                 color=color,
                 bg=bg,
                 border=border,
-                total=len(students_data),
+                total=display_total,
                 students=students_data
             ))
 
@@ -1201,8 +1294,12 @@ class FacultyService:
         return {"message": "Quiz deleted successfully"}
 
     def get_metadata(self, db: Session, faculty: User = None) -> FacultyMetadataResponse:
-        departments = ["Computer Science", "Information Technology", "Electronics"]
-        groups = ["BCA", "MCA", "B.Tech", "B.Sc", "AI", "All"]
+        # Fetch real departments and groups from students
+        departments = [d[0] for d in db.query(func.distinct(User.department)).filter(User.role == UserRole.student, User.department != None).all()]
+        if not departments: departments = ["Computer Science", "Information Technology", "Electronics"]
+        
+        groups = [g[0] for g in db.query(func.distinct(User.target_group)).filter(User.role == UserRole.student, User.target_group != None).all()]
+        if "All" not in groups: groups.append("All")
 
         courses_meta = {}
         if faculty:
@@ -1215,8 +1312,8 @@ class FacultyService:
             ]
             for idx, c in enumerate(courses):
                 color, bg, border = palette[idx % len(palette)]
-                courses_meta[f"cs{c.id}"] = {
-                    "code": f"CS{500+c.id}",
+                courses_meta[str(c.id)] = {
+                    "code": f"CRS-{c.id:03d}",
                     "name": c.title,
                     "color": color,
                     "bg": bg,
@@ -1224,9 +1321,7 @@ class FacultyService:
                 }
         else:
             courses_meta = {
-                "cs501": {"code": "CS501", "name": "Data Structures", "color": "var(--indigo-l)", "bg": "rgba(91,78,248,.1)", "border": "rgba(91,78,248,.3)"},
-                "cs502": {"code": "CS502", "name": "Dist Systems", "color": "var(--teal)", "bg": "rgba(39,201,176,.1)", "border": "rgba(39,201,176,.3)"},
-                "cs503": {"code": "CS503", "name": "Networks", "color": "var(--violet)", "bg": "rgba(159,122,234,.1)", "border": "rgba(159,122,234,.3)"}
+                "cs1": {"code": "CRS-001", "name": "Advanced Algorithms", "color": "var(--indigo-l)", "bg": "rgba(91,78,248,.1)", "border": "rgba(91,78,248,.3)"}
             }
 
         status_meta = {
@@ -1419,7 +1514,6 @@ class FacultyService:
             })
 
         # 3. Lectures
-        from Models.Lesson import Lesson
         lessons = db.query(Lesson).filter(Lesson.course_id == course_id).all()
         lectures_data = []
         for i, l in enumerate(lessons):
@@ -1435,7 +1529,6 @@ class FacultyService:
 
         # 4. Students
         total_students = db.query(func.count(Enrollment.id)).filter(Enrollment.course_id == course_id).scalar() or 0
-        from Models.Placement import PlacementReadiness
         enrollments = db.query(Enrollment).filter(Enrollment.course_id == course_id).all()
         students_data = []
         for e in enrollments:
@@ -1482,7 +1575,6 @@ class FacultyService:
             Quiz.course_id == course_id, QuizAttempt.score < 5
         ).all()
         if low_attempts:
-            from collections import Counter
             counts = Counter([a.quiz_id for a in low_attempts])
             for qid, count in counts.most_common(2):
                 qobj = next((q for q in quizzes if q.id == qid), None)
@@ -1620,8 +1712,6 @@ class FacultyService:
 
     def start_meeting(self, faculty: User, db: Session, course_id: int):
         """Generate a unique room code for a department meeting (course_id used as group index)."""
-        import random, string
-
         groups = self.get_meeting_groups(faculty, db)
         # course_id here is actually the group sequential id (1-based index)
         group = next((g for g in groups if g["id"] == course_id), None)
@@ -1635,7 +1725,6 @@ class FacultyService:
 
         # Generate a Google Meet-style room code
         # Generate a mock meeting link that won't throw a DNS error
-        import random, string
         room_code = "-".join(
             "".join(random.choices(string.ascii_lowercase, k=3))
             for _ in range(3)
@@ -1669,7 +1758,6 @@ class FacultyService:
 
     def get_meeting_history(self, faculty: User, db: Session):
         """Return simulated meeting history per student program/department."""
-        import random
         groups = self.get_meeting_groups(faculty, db)
         history = []
         for g in groups[:5]:

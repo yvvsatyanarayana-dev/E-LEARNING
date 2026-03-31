@@ -17,12 +17,37 @@ from Schemas.FacultySchema import (
     FacultyLessonCreate, FacultyAssignmentCreate, FacultyQuizCreate, FacultyCourseCreate,
     FacultyReportResponse, FacultyAssignmentUpdate, FacultyQuizUpdate, FacultyMetadataResponse,
     FacultyQuestionBankItem, FacultyQuestionBankCreate, FacultyQuestionBankUpdate,
-    AttendanceRecordSubmit, AttendanceBulkSubmit, AttendanceRecordResponse, AttendanceHistoryGrid
+    AttendanceRecordSubmit, AttendanceBulkSubmit, AttendanceRecordResponse, AttendanceHistoryGrid,
+    FacultyLectureUpdate
 )
 from datetime import datetime, date
 
 router = APIRouter(prefix="/faculty", tags=["Faculty"])
 faculty_service = FacultyService()
+
+@router.post("/upload")
+async def faculty_upload(file: UploadFile = File(...)):
+    """Handle general file uploads for faculty (videos, PDFs, etc.)."""
+    upload_dir = "uploads/faculty"
+    os.makedirs(upload_dir, exist_ok=True)
+    
+    file_ext = os.path.splitext(file.filename)[1]
+    unique_filename = f"{uuid.uuid4()}{file_ext}"
+    file_path = os.path.join(upload_dir, unique_filename)
+    
+    with open(file_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    # Return absolute URL or path expected by frontend
+    # In a real app, this would be served via a static mount
+    return {"url": f"/api/v1/faculty/download/{unique_filename}", "filename": file.filename}
+
+@router.get("/download/{filename}")
+def download_faculty_file(filename: str):
+    file_path = os.path.join("uploads/faculty", filename)
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+    return StreamingResponse(open(file_path, "rb"), media_type="application/octet-stream")
 
 @router.get("/settings", response_model=FacultySettingsResponse)
 def get_faculty_settings(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
@@ -64,6 +89,14 @@ def get_faculty_lectures(current_user: User = Depends(get_current_user), db: Ses
 @router.post("/lectures", response_model=FacultyLectureDetail)
 def create_faculty_lecture(data: FacultyLessonCreate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return faculty_service.create_lesson(current_user, db, data)
+
+@router.put("/lectures/{lecture_id}", response_model=FacultyLectureDetail)
+def update_faculty_lecture(lecture_id: int, data: FacultyLectureUpdate, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return faculty_service.update_lesson(current_user, db, lecture_id, data)
+
+@router.delete("/lectures/{lecture_id}")
+def delete_faculty_lecture(lecture_id: int, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return faculty_service.delete_lesson(current_user, db, lecture_id)
 
 @router.get("/assignments", response_model=List[FacultyAssignmentDetail])
 def get_faculty_assignments(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):

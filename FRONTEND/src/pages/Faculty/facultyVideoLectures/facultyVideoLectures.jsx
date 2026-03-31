@@ -460,8 +460,100 @@ function CreateCourseModal({ onClose, onCreated }) {
   );
 }
 
+// ─── EDIT MODAL ───────────────────────────────────────────────────
+function EditModal({ lecture, onClose, onUpdate, courses = [], groups = [] }) {
+  const [form, setForm] = useState({
+    title: lecture.title,
+    course_id: lecture.course_id_int || lecture.courseId.replace("cs50", ""),
+    week: lecture.week,
+    unit: lecture.unit,
+    desc: lecture.desc || "",
+    tags: (lecture.tags || []).join(", "),
+    target_group: lecture.target_group || "All",
+    video_url: lecture.video_url || ""
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleSave = async () => {
+    if (!form.title.trim()) return alert("Title is required");
+    setLoading(true);
+    try {
+      await onUpdate(lecture.id, form);
+      onClose();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const set = (k) => (e) => setForm(f => ({ ...f, [k]: e.target.value }));
+
+  return (
+    <div className="vl-overlay" onClick={onClose}>
+      <div className="vl-modal" onClick={e => e.stopPropagation()}>
+        <div className="vl-modal-hd">
+          <div className="vl-modal-ico" style={{ background: "var(--indigo-l)" }}>
+            <IcoPen width={14} height={14} style={{ color: "#fff" }} />
+          </div>
+          <span className="vl-modal-title">Edit Lecture</span>
+          <button className="lp-close" onClick={onClose}><IcoClose width={15} height={15} /></button>
+        </div>
+        <div className="vl-modal-body">
+          <div className="vl-form">
+            <div className="vl-field">
+              <div className="vl-field-lbl">Lecture Title *</div>
+              <input className="vl-input" value={form.title} onChange={set("title")} />
+            </div>
+            <div className="vl-2col">
+              <div className="vl-field">
+                <div className="vl-field-lbl">Course *</div>
+                <select className="vl-input" value={form.course_id} onChange={set("course_id")}>
+                  {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                </select>
+              </div>
+              <div className="vl-field">
+                <div className="vl-field-lbl">Week</div>
+                <select className="vl-input" value={form.week} onChange={set("week")}>
+                  {Array.from({ length: 15 }, (_, i) => `W${i + 1}`).map(w => <option key={w}>{w}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="vl-2col">
+              <div className="vl-field">
+                <div className="vl-field-lbl">Unit</div>
+                <input className="vl-input" value={form.unit} onChange={set("unit")} />
+              </div>
+              <div className="vl-field">
+                <div className="vl-field-lbl">Target Group</div>
+                <select className="vl-input" value={form.target_group} onChange={set("target_group")}>
+                  {groups.map(g => <option key={g} value={g}>{g}</option>)}
+                </select>
+              </div>
+            </div>
+            <div className="vl-field">
+              <div className="vl-field-lbl">Description</div>
+              <textarea className="vl-input vl-textarea" rows={3} value={form.desc} onChange={set("desc")} />
+            </div>
+            <div className="vl-field">
+              <div className="vl-field-lbl">Tags (comma separated)</div>
+              <input className="vl-input" value={form.tags} onChange={set("tags")} />
+            </div>
+          </div>
+          <div className="vl-modal-foot">
+            <button className="btn btn-ghost" onClick={onClose} disabled={loading}>Cancel</button>
+            <button className="btn btn-solid" onClick={handleSave} disabled={loading}>
+              {loading ? "Saving..." : "Update Lecture"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── DETAIL DRAWER ────────────────────────────────────────────────
-function Drawer({ lecture, onClose }) {
+function Drawer({ lecture, onClose, onEdit, onDelete, onCopy }) {
   if (!lecture) return null;
   const course = getCourseMeta(lecture.courseId, lecture.course_code);
   const live = lecture.status === "live";
@@ -510,18 +602,17 @@ function Drawer({ lecture, onClose }) {
 
               {/* Actions */}
               <div className="vl-drawer-actions">
-                <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center", gap: 5, fontSize: 11 }}>
+                <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center", gap: 5, fontSize: 11 }}
+                  onClick={() => onEdit(lecture)}>
                   <IcoPen width={11} height={11} /> Edit
                 </button>
-                <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center", gap: 5, fontSize: 11 }}>
-                  <IcoDownload width={11} height={11} /> Download
-                </button>
-                <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center", gap: 5, fontSize: 11 }}>
+                <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center", gap: 5, fontSize: 11 }}
+                  onClick={() => onCopy(lecture)}>
                   <IcoLink width={11} height={11} /> Copy Link
                 </button>
               </div>
 
-              <button className="vl-danger-btn">
+              <button className="vl-danger-btn" onClick={() => onDelete(lecture)}>
                 <IcoTrash width={11} height={11} /> Delete Lecture
               </button>
             </>
@@ -573,7 +664,7 @@ function Card({ lecture, onSelect }) {
 }
 
 // ─── LIST ROW ─────────────────────────────────────────────────────
-function Row({ lecture, idx, onSelect }) {
+function Row({ lecture, idx, onSelect, onEdit }) {
   const course = getCourseMeta(lecture.courseId, lecture.course_code);
   const pending = lecture.status === "pending";
   return (
@@ -605,8 +696,9 @@ function Row({ lecture, idx, onSelect }) {
           </div>
           <div className="vl-row-rating"><Stars rating={lecture.rating} /></div>
           <div className="vl-row-acts" onClick={e => e.stopPropagation()}>
-            <button className="vl-icon-btn" title="Edit"><IcoPen width={11} height={11} /></button>
-            <button className="vl-icon-btn" title="Download"><IcoDownload width={11} height={11} /></button>
+            <button className="vl-icon-btn" title="Edit" onClick={() => onEdit(lecture)}>
+              <IcoPen width={11} height={11} />
+            </button>
           </div>
         </>
         : <div className="vl-row-pending-cell" style={{ gridColumn: "span 5" }}>
@@ -631,6 +723,7 @@ export default function FacultyVideoLectures({ onBack }) {
   const [filterUnit, setFilterUnit] = useState("all");
   const [showUpload, setShowUpload] = useState(false);
   const [selected, setSelected] = useState(null);
+  const [isEditing, setIsEditing] = useState(null);
 
   const [lectures, setLectures] = useState([]);
   const [courses, setCourses] = useState([]);
@@ -720,7 +813,7 @@ export default function FacultyVideoLectures({ onBack }) {
 
       const payload = {
         title: formData.title,
-        course_id: cId, // Real ID from API
+        course_id: cId,
         video_url: formData.video_url || "",
         duration: "45m",
         target_group: formData.target_group
@@ -728,11 +821,51 @@ export default function FacultyVideoLectures({ onBack }) {
 
       const res = await api.post("/faculty/lectures", payload);
       setLectures(prev => [...prev, res]);
-      setShowUpload(false); // Close after success
+      setShowUpload(false);
     } catch (err) {
       console.error("Failed to publish lecture:", err);
-      alert("Failed to publish lecture. Please try again.");
+      alert("Failed to publish lecture.");
     }
+  };
+
+  const handleUpdateLecture = async (lectureId, formData) => {
+    try {
+      const payload = {
+        title: formData.title,
+        course_id: parseInt(formData.course_id),
+        video_url: formData.video_url,
+        week: formData.week,
+        unit: formData.unit,
+        target_group: formData.target_group,
+        desc: formData.desc
+      };
+      const res = await api.put(`/faculty/lectures/${lectureId}`, payload);
+      setLectures(prev => prev.map(l => l.id === lectureId ? res : l));
+      if (selected?.id === lectureId) setSelected(res);
+      setIsEditing(null);
+    } catch (err) {
+      console.error("Failed to update:", err);
+      alert("Failed to update lecture.");
+    }
+  };
+
+  const handleDeleteLecture = async (lecture) => {
+    if (!window.confirm(`Are you sure you want to delete "${lecture.title}"?`)) return;
+    try {
+      await api.delete(`/faculty/lectures/${lecture.id}`);
+      setLectures(prev => prev.filter(l => l.id !== lecture.id));
+      setSelected(null);
+    } catch (err) {
+      console.error("Failed to delete:", err);
+      alert("Failed to delete lecture.");
+    }
+  };
+
+  const handleCopyLink = (lecture) => {
+    const url = lecture.video_url || window.location.href;
+    navigator.clipboard.writeText(url).then(() => {
+      alert("Link copied to clipboard!");
+    });
   };
 
   const handleExport = () => {
@@ -796,16 +929,32 @@ export default function FacultyVideoLectures({ onBack }) {
   return (
     <div className="vl-root">
       {showUpload && <UploadModal onClose={() => setShowUpload(false)} onPublish={handlePublishLecture} courses={courses} groups={metadata.groups} />}
+      {isEditing && (
+        <EditModal
+          lecture={isEditing}
+          onClose={() => setIsEditing(null)}
+          onUpdate={handleUpdateLecture}
+          courses={courses}
+          groups={metadata.groups}
+        />
+      )}
       {showCreateCourse && (
         <CreateCourseModal
           onClose={() => setShowCreateCourse(false)}
           onCreated={(newCourse) => {
             setCourses(prev => [...prev, { id: newCourse.id, name: `${newCourse.code} – ${newCourse.name}` }]);
-            // You can optionally auto-select the new course here if needed
           }}
         />
       )}
-      {selected && <Drawer lecture={selected} onClose={() => setSelected(null)} />}
+      {selected && (
+        <Drawer
+          lecture={selected}
+          onClose={() => setSelected(null)}
+          onEdit={setIsEditing}
+          onDelete={handleDeleteLecture}
+          onCopy={handleCopyLink}
+        />
+      )}
 
       {/* ── PAGE HEADER ── */}
       <div className="vl-page-hd">
@@ -978,7 +1127,7 @@ export default function FacultyVideoLectures({ onBack }) {
             <span></span>
           </div>
           {filtered.map((l, i) => (
-            <Row key={l.id} lecture={l} idx={i} onSelect={setSelected} />
+            <Row key={l.id} lecture={l} idx={i} onSelect={setSelected} onEdit={setIsEditing} />
           ))}
         </div>
       )}
