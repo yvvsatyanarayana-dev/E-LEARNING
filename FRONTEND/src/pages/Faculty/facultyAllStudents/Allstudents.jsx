@@ -153,8 +153,8 @@ export default function AllStudents({ onBack }) {
           api.get("/faculty/metadata")
         ]);
         setStudents(stuRes);
-        setCoursesMeta(metaRes.data.courses_meta || {});
-        setStatusMeta(metaRes.data.status_meta || {});
+        setCoursesMeta(metaRes?.courses_meta || {});
+        setStatusMeta(metaRes?.status_meta || {});
       } catch (err) {
         console.error("Failed to fetch student data:", err);
       } finally {

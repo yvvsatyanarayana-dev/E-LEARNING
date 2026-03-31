@@ -192,7 +192,7 @@ export default function FacultySettings({ onBack }) {
     setUploading(true);
     try {
       // Pass the file object directly to api.upload
-      const res = await api.upload("/faculty/upload", file);
+      const res = await api.upload("/auth/upload", file);
       if (res && res.url) {
         setAccount(prev => ({ ...prev, avatar: res.url }));
         // Automatically save the new avatar to the backend

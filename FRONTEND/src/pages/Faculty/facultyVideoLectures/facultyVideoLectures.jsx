@@ -150,7 +150,7 @@ function UploadModal({ onClose, onPublish, courses = [], groups = [] }) {
     }, 200);
 
     try {
-      const res = await api.upload("/faculty/upload", file);
+      const res = await api.upload("/auth/upload", file);
       clearInterval(iv);
       setProgress(100);
       setDone(true);
