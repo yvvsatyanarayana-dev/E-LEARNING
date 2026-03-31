@@ -68,11 +68,11 @@ export default function facultyGradeBook({ onBack }) {
           api.get("/faculty/gradebook")
         ]);
         
-        const fetchedMeta = metaRes.data.courses_meta || {};
+        const fetchedMeta = metaRes?.courses_meta || {};
         setCoursesMeta(fetchedMeta);
 
-        const studentList = studentsRes.data || [];
-        const gradeList = gradeRes.data || [];
+        const studentList = Array.isArray(studentsRes) ? studentsRes : (studentsRes?.data || []);
+        const gradeList = Array.isArray(gradeRes) ? gradeRes : (gradeRes?.data || []);
         
         const newGradeData = {};
         

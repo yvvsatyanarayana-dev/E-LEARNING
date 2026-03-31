@@ -1802,4 +1802,23 @@ Format your responses using beautiful markdown, highlight key metrics in bold.
             ))
         return res
 
+    def get_all_students(self, faculty: User, db: Session) -> List[FacultyStudentDetail]:
+        """Fetch all registered students (used by All Students dashboard)."""
+        students = db.query(User).filter(User.role == UserRole.student).all()
+        res = []
+        for s in students:
+            res.append(FacultyStudentDetail(
+                roll=s.roll_number or f"SC-{s.id}",
+                name=s.full_name,
+                course=s.department or "CS501",
+                sem="1",
+                batch=s.target_group or "Unknown",
+                cgpa=8.0,
+                attendance=85,
+                score=75,
+                status="good",
+                email=s.email
+            ))
+        return res
+
 faculty_service = FacultyService()
