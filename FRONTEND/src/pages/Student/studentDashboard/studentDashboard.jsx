@@ -7,6 +7,7 @@ import StudentSettings from "../studentSettings/studentSettings";
 import StudentDrives from "../studentDrives/studentDrives";
 import StudentProfile from "../studentProfile/studentProfile";
 import StudentResume from "../studentResume/studentResume";
+import StudentVersantAssessment from "../studentVersantAssessment/StudentVersantAssessment";
 import NotificationPanel from "../studentNotificationPanel/NotificationPanel";
 import StudentMeetings from "../studentMeetings/studentMeetings";
 import StudentPlacementMeetings from "../studentPlacementMeetings/studentPlacementMeetings";
@@ -85,6 +86,7 @@ const ROUTES = {
   RESUME:         "Resume",
   PLACEMENT_MEETINGS: "Placement Meetings",
   MAIL:            "Mail",
+  VERSANT:         "Versant Assessment",
 };
 
 const PAGE_PARAM_MAP = {
@@ -106,6 +108,7 @@ const PAGE_PARAM_MAP = {
   "studentresume":        "Resume",
   "studentplacementmeetings": "Placement Meetings",
   "studentmail":          "Mail",
+  "studentversant":       "Versant Assessment",
 };
 
 const ROUTABLE = new Set(Object.values(ROUTES));
@@ -227,6 +230,7 @@ function buildNavItems(hasActivePlacementMeeting, mailUnread) {
       {label:ROUTES.DRIVES,          icon:<IcoFile/>},
       {label:ROUTES.MOCK_INTERVIEW,  icon:<IcoPen/>},
       {label:ROUTES.PLACEMENT_MEETINGS, icon:<IcoVideo/>, badge: hasActivePlacementMeeting ? "LIVE" : undefined, badgeClass: hasActivePlacementMeeting ? "rose" : undefined},
+      {label:ROUTES.VERSANT,         icon:<IcoAward/>},
     ]},
     { section:"Others", links:[
        {label:ROUTES.MAIL, icon:<IcoBell/>, badge: mailUnread > 0 ? mailUnread : null, badgeClass: "teal"},
@@ -325,6 +329,7 @@ function Topbar({activePage,onHamburger,onNavigateProfile,onNavigateResume,notif
     [ROUTES.SCHEDULE]:"Schedule",[ROUTES.PLACEMENT_PREP]:"Placement Prep",
     [ROUTES.INTERNSHIPS]:"Internships",[ROUTES.DRIVES]:"Drives",[ROUTES.MOCK_INTERVIEW]:"Mock Interviews",
     [ROUTES.SETTINGS]:"Settings",[ROUTES.PROFILE]:"My Profile",[ROUTES.RESUME]:"Resume Builder",
+    [ROUTES.VERSANT]:"Versant English Test",
   };
   const pageLabel=PAGE_LABELS[activePage]||"Dashboard";
 
@@ -462,7 +467,7 @@ function LucynaFab({onClick}){
 }
 
 // ─── DASHBOARD CONTENT ──────────────────────────────────────────
-function DashboardContent({ stats, courses, schedule, quizzes, skills, activeMeeting, activePlacementMeeting, onNavigateToAnalytics, onNavigateToMyCourses, onNavigateToVideoLectures, onNavigateToAssignments, onNavigateToQuizzes, onNavigateToPlacementMeetings, userName, onEnroll }) {
+function DashboardContent({ stats, courses, schedule, quizzes, skills, activeMeeting, activePlacementMeeting, onNavigateToAnalytics, onNavigateToMyCourses, onNavigateToVideoLectures, onNavigateToAssignments, onNavigateToQuizzes, onNavigateToPlacementMeetings, onNavigateToVersant, userName, onEnroll }) {
   const enrolledCount = courses.filter(c => c.enrollment_id > 0).length;
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
@@ -516,6 +521,32 @@ function DashboardContent({ stats, courses, schedule, quizzes, skills, activeMee
             border: "none", fontWeight: "600", fontSize: "14px", transition: "all 0.2s", cursor: "pointer"
           }}>
             Join Session
+          </button>
+        </div>
+      )}
+
+      {/* Versant Assessment Prompt */}
+      {stats.pri_score < 85 && (
+        <div style={{
+          background: "linear-gradient(135deg, rgba(91,78,248,0.1) 0%, rgba(39,201,176,0.05) 100%)",
+          border: "1px solid var(--surface-border)",
+          padding: "20px 24px", borderRadius: "16px", marginBottom: "24px",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          boxShadow: "0 4px 20px rgba(0,0,0,0.1)"
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "20px" }}>
+            <div style={{ width: 48, height: 48, background: "var(--indigo)", borderRadius: "12px", display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>
+               <IcoAward size={24} />
+            </div>
+            <div>
+              <h3 style={{ fontSize: "16px", margin: "0 0 4px 0", color: "var(--text)" }}>Boost Your Placement Readiness</h3>
+              <p style={{ margin: 0, fontSize: "12px", color: "var(--text3)" }}>
+                Take the <strong style={{color:"var(--indigo-ll)"}}>Versant English Test</strong> to improve your communication score and PRI.
+              </p>
+            </div>
+          </div>
+          <button onClick={() => onNavigateToVersant()} className="btn-solid" style={{ padding: "8px 20px", fontSize: "12px" }}>
+            Take Test
           </button>
         </div>
       )}
@@ -797,6 +828,7 @@ export default function StudentDashboard() {
     [ROUTES.RESUME]:          "/studentdashboard/studentResume",
     [ROUTES.PLACEMENT_MEETINGS]: "/studentdashboard/studentPlacementMeetings",
     [ROUTES.MAIL]:            "/studentdashboard/studentMail",
+    [ROUTES.VERSANT]:         "/studentdashboard/studentversant",
   };
 
   const navigate = (targetPage) => {
@@ -855,6 +887,7 @@ export default function StudentDashboard() {
               onNavigateToAssignments={()=>navigate(ROUTES.ASSIGNMENTS)}
               onNavigateToQuizzes={()=>navigate(ROUTES.QUIZZES)}
               onNavigateToPlacementMeetings={()=>navigate(ROUTES.PLACEMENT_MEETINGS)}
+              onNavigateToVersant={()=>navigate(ROUTES.VERSANT)}
               userName={userName}
               onEnroll={handleEnroll}
             />
@@ -874,6 +907,7 @@ export default function StudentDashboard() {
           {activePage === ROUTES.MOCK_INTERVIEW && <StudentMockInterview onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
           {activePage === ROUTES.PLACEMENT_MEETINGS && <StudentPlacementMeetings onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
           {activePage === ROUTES.MAIL           && <MailSystem           onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
+          {activePage === ROUTES.VERSANT        && <StudentVersantAssessment onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
 
           {/* ── NEW PAGES ── */}
           {activePage === ROUTES.SETTINGS && (

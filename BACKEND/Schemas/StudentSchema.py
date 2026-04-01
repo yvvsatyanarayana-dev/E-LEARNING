@@ -283,6 +283,38 @@ class PlacementFullResponse(BaseModel):
     shortlisted_count: int = 0
 
 
+# ─── Versant Assessment ───────────────────────────────────────────────────────
+
+class VersantScore(BaseModel):
+    sentence_mastery: float
+    vocabulary: float
+    fluency: float
+    pronunciation: float
+    overall_score: float
+
+class VersantAttemptCreate(BaseModel):
+    sentence_mastery: float
+    vocabulary: float
+    fluency: float
+    pronunciation: float
+    overall_score: float
+    feedback: Optional[str] = None
+
+class VersantAttemptResponse(BaseModel):
+    id: int
+    student_id: int
+    sentence_mastery: float
+    vocabulary: float
+    fluency: float
+    pronunciation: float
+    overall_score: float
+    feedback: Optional[str]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 # ─── Internship ───────────────────────────────────────────────────────────────
 
 class InternshipResponse(BaseModel):

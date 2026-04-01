@@ -40,6 +40,7 @@ from Schemas.PlacementSchema import (
     MockInterviewFeedback,
     MockInterviewResponse,
 )
+from Schemas.StudentSchema import VersantAttemptResponse
 
 
 
@@ -191,6 +192,18 @@ def student_readiness(
     if current_user.role not in ("placement_officer", "admin"):
         _403()
     return svc.get_readiness(db, student_id)
+
+
+@router.get("/students/{student_id}/versant", response_model=List[VersantAttemptResponse],
+            summary="Student Versant history (officer view)")
+def student_versant_history(
+    student_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    return svc.get_student_versant_history(db, student_id)
 
 
 @router.patch("/readiness/me", response_model=PlacementReadinessResponse,

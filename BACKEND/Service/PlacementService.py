@@ -24,6 +24,7 @@ from Models.Placement import (
     PlacementTask,
     PlacementEvent,
     DriveAttendance,
+    VersantAttempt,
 )
 from Core.MeetingState import ACTIVE_MEETINGS
 from Models.User import User, UserRole          # adjust import to your project layout
@@ -41,6 +42,7 @@ from Schemas.PlacementSchema import (
     MockInterviewFeedback,
     MockInterviewResponse,
 )
+from Schemas.StudentSchema import VersantAttemptCreate
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -282,7 +284,7 @@ def get_student_placement_list(db: Session, branch: Optional[str] = None,
     for user, pr in rows:
         # Latest placed application (if any)
         placed_app = (
-            db.query(InternshipApplication, Internship.pkg_lpa)
+            db.query(InternshipApplication, Internship.company_name, Internship.pkg_lpa)
             .join(Internship, Internship.id == InternshipApplication.internship_id)
             .filter(
                 InternshipApplication.student_id == user.id,
@@ -292,64 +294,67 @@ def get_student_placement_list(db: Session, branch: Optional[str] = None,
             .first()
         )
 
-
         in_process_app = (
-            db.query(InternshipApplication)
+            db.query(InternshipApplication, Internship.company_name)
+            .join(Internship, Internship.id == InternshipApplication.internship_id)
             .filter(
                 InternshipApplication.student_id == user.id,
                 InternshipApplication.status == ApplicationStatus.applied,
             )
+            .order_by(InternshipApplication.applied_at.desc())
             .first()
         )
 
+        # Latest Versant Score
+        latest_versant = (
+            db.query(VersantAttempt.overall_score)
+            .filter(VersantAttempt.student_id == user.id)
+            .order_by(VersantAttempt.created_at.desc())
+            .first()
+        )
+
+        # Resolve placement status
+        placement_status = "Not Ready"
+        company = "—"
         pkg = "—"
+
         if placed_app:
             placement_status = "Placed"
-            company = (
-                db.query(Internship.company_name)
-                .filter(Internship.id == placed_app[0].internship_id)
-                .scalar() or "—"
-            )
-            pkg = f"₹{placed_app[1]}L" if placed_app[1] else "—"
+            company = placed_app[1]
+            pkg = f"₹{placed_app[2]}L" if placed_app[2] else "—"
         elif in_process_app:
             placement_status = "In Process"
-            company = (
-                db.query(Internship.company_name)
-                .filter(Internship.id == in_process_app.internship_id)
-                .scalar() or "—"
-            )
-        else:
-            placement_status = "Not Ready" if (pr and pr.pri_score < 55) else "Applied"
-            company = "—"
-
+            company = in_process_app[1]
+        elif pr and pr.pri_score >= 55:
+            placement_status = "Applied"
 
         # Filter by status after resolving it
         if status and status != "All" and placement_status != status:
             continue
 
-        pri_score = pr.pri_score if pr else 0.0
-        skills    = user.skills if user.skills else []
-        interviews = (
+        initials = "".join(w[0].upper() for w in (user.full_name or "?").split()[:2])
+        
+        # Skill count and interview count
+        skills_list = user.skills if user.skills else []
+        interviews_done = (
             db.query(func.count(MockInterview.id))
             .filter(MockInterview.student_id == user.id)
             .scalar() or 0
         )
-        initials = "".join(w[0].upper() for w in (user.full_name or "?").split()[:2])
 
         result.append({
-            "id":       user.id,
-            "name":     user.full_name,
-            "init":     initials,
-            "branch":   user.department or "—",
-            "roll":     user.roll_number or "—",
-            "cgpa":     user.settings.get("cgpa", 0.0) if user.settings else 0.0,
-            "pri":      round(float(pri_score), 1),
-            "skills":   list(skills)[:3],
-            "interviews": interviews,
-            "company":  company,
-            "pkg":      pkg,
-
-            "status":   placement_status,
+            "id":          user.id,
+            "full_name":   user.full_name,
+            "name":        user.full_name,
+            "branch":      user.department,
+            "roll_number": user.roll_number,
+            "pri":         pr.pri_score if pr else 0,
+            "skills":      skills_list,
+            "interviews":  interviews_done,
+            "versant":     latest_versant[0] if latest_versant else None,
+            "company":     company,
+            "pkg":         pkg,
+            "status":      placement_status,
         })
 
     return result
@@ -797,6 +802,36 @@ def update_placement_topic(db: Session, student_id: int, topic_id: int,
 
 def get_resume_checks(db: Session, student_id: int) -> List[ResumeCheck]:
     return db.query(ResumeCheck).filter_by(student_id=student_id).all()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Versant Assessment
+# ─────────────────────────────────────────────────────────────────────────────
+
+def submit_versant_test(db: Session, student_id: int, data: VersantAttemptCreate) -> VersantAttempt:
+    # Save the attempt
+    attempt = VersantAttempt(
+        student_id=student_id,
+        **data.model_dump()
+    )
+    db.add(attempt)
+    db.commit()
+    db.refresh(attempt)
+
+    # Update communication_score in PlacementReadiness
+    # We take the latest overall_score as the current communication_score
+    update_readiness(db, student_id, communication_score=data.overall_score)
+
+    return attempt
+
+
+def get_student_versant_history(db: Session, student_id: int) -> List[VersantAttempt]:
+    return (
+        db.query(VersantAttempt)
+        .filter_by(student_id=student_id)
+        .order_by(VersantAttempt.created_at.desc())
+        .all()
+    )
 
 
 def toggle_resume_check(db: Session, student_id: int, check_id: int) -> ResumeCheck:

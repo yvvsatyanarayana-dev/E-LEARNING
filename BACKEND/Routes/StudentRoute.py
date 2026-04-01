@@ -20,7 +20,8 @@ from Schemas.StudentSchema import (
     ResumeFullResponse, # New
     GenerateResumeRequest, ImproveResumeRequest, # New
     InnovationHubResponse, InternshipsOverviewResponse,
-    CourseDetailResponse, AIChatRequest, AIChatResponse
+    CourseDetailResponse, AIChatRequest, AIChatResponse,
+    VersantAttemptCreate, VersantAttemptResponse
 )
 
 router = APIRouter(prefix="/student", tags=["Student"])
@@ -311,6 +312,27 @@ def mock_interview_chat(
     db: Session = Depends(get_db),
 ):
     return student_service.mock_interview_chat(data, current_user, db)
+
+
+# ─── Versant Assessment ───────────────────────────────────────────────────────
+
+@router.post("/versant/submit", response_model=VersantAttemptResponse)
+def submit_versant_attempt(
+    data: VersantAttemptCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from Service.PlacementService import submit_versant_test
+    return submit_versant_test(db, current_user.id, data)
+
+
+@router.get("/versant/history", response_model=List[VersantAttemptResponse])
+def get_versant_history(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from Service.PlacementService import get_student_versant_history
+    return get_student_versant_history(db, current_user.id)
 
 # ─── Resume ──────────────────────────────────────────────────────────────────
 

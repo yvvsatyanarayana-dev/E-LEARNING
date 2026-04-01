@@ -52,6 +52,7 @@ class User(Base):
     interviews_conducted   = relationship("MockInterview", back_populates="officer", foreign_keys="MockInterview.officer_id")
     innovation_ideas       = relationship("InnovationIdea", back_populates="author")
     innovation_projects    = relationship("InnovationProject", back_populates="student")
+    versant_attempts       = relationship("VersantAttempt", back_populates="student")
 
     def __repr__(self):
         return f"<User {self.email} | {self.role}>"

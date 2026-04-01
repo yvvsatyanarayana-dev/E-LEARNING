@@ -31,6 +31,7 @@ function mapApiStudent(s) {
     pri:        Math.round(s.pri_score ?? s.pri ?? 0),
     skills:     (s.skills ?? s.skill_list ?? []).slice(0, 3),
     interviews: s.mock_interview_count ?? s.interviews ?? 0,
+    versant:    s.versant ?? s.versant_score ?? null,
     company:    s.company ?? "—",
     pkg:        s.pkg ?? s.package ?? "—",
     status:     s.placement_status ?? s.status ?? "Not Ready",
@@ -888,6 +889,102 @@ function MockInterviewModal({ student, onClose, onUpdate }) {
 }
 
 
+function VersantHistoryModal({ student, onClose }) {
+  const [history, setHistory] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState(null);
+
+  const fetchHistory = useCallback(async () => {
+    setLoading(true);
+    try {
+      const res = await api.get(`/placement/students/${student.id}/versant`);
+      setHistory(Array.isArray(res) ? res : []);
+    } catch (err) { console.error(err); }
+    setLoading(false);
+  }, [student.id]);
+
+  useEffect(() => { fetchHistory(); }, [fetchHistory]);
+
+  return (
+    <Overlay onClose={onClose}>
+      <div className="ps-panel mi-modal" style={{ width: 620, maxHeight: "85vh", overflow: "hidden", display: "flex", flexDirection: "column" }}>
+        <div className="ps-header">
+          <div className="ps-header-left">
+            <div className="ps-modal-icon" style={{ background: "var(--violet)", color: "#fff" }}>
+               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path d="M12 20v-6M9 20v-10M15 20v-2M6 20v-4M18 20V4"/></svg>
+            </div>
+            <div>
+              <div className="ps-modal-title">Versant English Assessment</div>
+              <div className="ps-modal-sub">History for {student.name}</div>
+            </div>
+          </div>
+          <button className="ps-close" onClick={onClose}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        </div>
+
+        <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px" }}>
+          {selected ? (
+            <div className="v-results" style={{ padding: 0 }}>
+               <button className="btn-ghost" style={{ marginBottom: 20, padding: 0, fontSize: 11, background: "none", border: "none", color: "var(--indigo-ll)", cursor: "pointer" }} onClick={() => setSelected(null)}>← Back to List</button>
+               <div className="v-overall-score" style={{ marginBottom: 24, textAlign: "center" }}>
+                  <div className="v-overall-val" style={{ fontSize: 48, fontWeight: 700, color: "var(--violet)" }}>{Math.round(selected.overall_score)}</div>
+                  <div className="v-overall-lbl" style={{ fontSize: 12, color: "var(--text3)", textTransform: "uppercase" }}>Overall Proficiency</div>
+               </div>
+               <div className="v-result-scores" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+                  {[
+                    { label: "Sentence Mastery", val: selected.sentence_mastery, color: "var(--indigo)" },
+                    { label: "Vocabulary", val: selected.vocabulary, color: "var(--teal)" },
+                    { label: "Fluency", val: selected.fluency, color: "var(--amber)" },
+                    { label: "Pronunciation", val: selected.pronunciation, color: "var(--rose)" },
+                  ].map(s => (
+                    <div key={s.label} className="v-score-card" style={{ padding: 12, background: "var(--surface2)", borderRadius: 12, border: "1px solid var(--border)" }}>
+                      <div className="v-sc-label" style={{ fontSize: 10, color: "var(--text3)", marginBottom: 4 }}>{s.label}</div>
+                      <div className="v-sc-val" style={{ fontSize: 18, fontFamily: "'Fraunces',serif", color: s.color }}>{Math.round(s.val)}<span style={{ fontSize: 10, color: "var(--text3)" }}>/100</span></div>
+                      <div className="v-score-bar" style={{ height: 4, background: "var(--surface3)", borderRadius: 2, marginTop: 8 }}><div className="v-score-fill" style={{ width: `${s.val}%`, background: s.color, height: "100%", borderRadius: 2 }} /></div>
+                    </div>
+                  ))}
+               </div>
+               {selected.feedback && (
+                 <div className="v-feedback-card" style={{ marginTop: 24, padding: 16, background: "rgba(159,122,234,.05)", borderRadius: 12, border: "1px solid rgba(159,122,234,.1)" }}>
+                    <div style={{ fontWeight: "700", marginBottom: 8, fontSize: 11, display: "flex", alignItems: "center", gap: 6 }}>💡 AI Feedback &amp; Analysis</div>
+                    <p style={{ margin: 0, fontSize: 11, lineHeight: "1.5", color: "var(--text2)" }}>{selected.feedback}</p>
+                 </div>
+               )}
+            </div>
+          ) : (
+            <div className="v-history-list">
+              {loading ? (
+                <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text3)", fontSize: 12 }}>Loading history...</div>
+              ) : history.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "40px 0" }}>
+                  <div style={{ fontSize: 24, marginBottom: 12 }}>🎙️</div>
+                  <div style={{ fontWeight: 600 }}>No Versant tests taken</div>
+                  <p style={{ fontSize: 11, color: "var(--text3)", marginTop: 4 }}>This student hasn't completed any English assessments yet.</p>
+                </div>
+              ) : (
+                history.map(h => (
+                  <div key={h.id} className="v-history-item" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 0", borderBottom: "1px solid var(--border2)" }}>
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: 13 }}>English Assessment</div>
+                      <div style={{ fontSize: 10, color: "var(--text3)", marginTop: 2 }}>{new Date(h.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
+                      <div style={{ textAlign: "right" }}>
+                        <div style={{ fontFamily: "'Fraunces',serif", fontSize: 18, color: "var(--violet)" }}>{Math.round(h.overall_score)}</div>
+                        <div style={{ fontSize: 8, color: "var(--text3)", fontWeight: 600 }}>OVERALL</div>
+                      </div>
+                      <button className="btn btn-ghost" style={{ fontSize: 10, padding: "6px 12px", background: "none", border: "none", color: "var(--indigo-ll)", cursor: "pointer" }} onClick={() => setSelected(h)}>View Report</button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </Overlay>
+  );
+}
+
 
 export default function PlacementStudents() {
   const navigate = useNavigate();
@@ -1052,6 +1149,7 @@ export default function PlacementStudents() {
 
   // Interview Handler
   const [activeInterviewStudent, setActiveInterviewStudent] = useState(null);
+  const [activeVersantStudent, setActiveVersantStudent] = useState(null);
   const handleRefreshStudent = useCallback(async (sid) => {
     try {
       const s_raw = await api.get(`/placement/dashboard/students`); // Simplified refresh or targeted if possible
@@ -1111,6 +1209,12 @@ export default function PlacementStudents() {
           student={activeInterviewStudent} 
           onClose={() => setActiveInterviewStudent(null)} 
           onUpdate={() => handleRefreshStudent(activeInterviewStudent.id)} 
+        />
+      )}
+      {activeVersantStudent && (
+        <VersantHistoryModal 
+          student={activeVersantStudent} 
+          onClose={() => setActiveVersantStudent(null)} 
         />
       )}
       {toast && (
@@ -1351,15 +1455,16 @@ export default function PlacementStudents() {
                       </div>
 
                       {/* Stats Grid */}
-                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 12 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 6, marginBottom: 12 }}>
                         {[
                           { val: s.cgpa,       color: settings.colorCgpa ? cgpaColor(s.cgpa) : "var(--text)", lbl: "CGPA" },
                           { val: s.pri,        color: settings.colorCgpa ? priColor(s.pri)   : "var(--text)", lbl: "PRI" },
-                          { val: s.interviews, color: "var(--indigo-ll)",                                      lbl: "Interviews" },
+                          { val: s.interviews, color: "var(--indigo-ll)",                                      lbl: "Intvw" },
+                          { val: s.versant ?? "—", color: "var(--violet)",                                     lbl: "Versant" },
                         ].map(m => (
-                          <div key={m.lbl} style={{ background: "var(--surface2)", borderRadius: 8, padding: "8px 10px", textAlign: "center" }}>
-                            <div style={{ fontFamily: "'Fraunces',serif", fontSize: 16, color: m.color }}>{m.val}</div>
-                            <div style={{ fontSize: 9, color: "var(--text3)", marginTop: 2 }}>{m.lbl}</div>
+                          <div key={m.lbl} style={{ background: "var(--surface2)", borderRadius: 8, padding: "8px 4px", textAlign: "center" }}>
+                            <div style={{ fontFamily: "'Fraunces',serif", fontSize: 15, color: m.color }}>{m.val}</div>
+                            <div style={{ fontSize: 8, color: "var(--text3)", marginTop: 2, fontWeight: 600, textTransform: "uppercase" }}>{m.lbl}</div>
                           </div>
                         ))}
                       </div>
@@ -1383,9 +1488,14 @@ export default function PlacementStudents() {
                              </span>
                            )}
                         </div>
-                        <button className="btn btn-outline" style={{ fontSize: 10, padding: "6px 10px" }} onClick={() => setActiveInterviewStudent(s)}>
-                           Interviews
-                        </button>
+                        <div style={{ display: "flex", gap: 6 }}>
+                          <button className="btn btn-outline" style={{ fontSize: 10, padding: "6px 8px", background: "none", borderColor: "var(--violet-ll)", color: "var(--violet-ll)" }} onClick={() => setActiveVersantStudent(s)}>
+                             Versant
+                          </button>
+                          <button className="btn btn-outline" style={{ fontSize: 10, padding: "6px 10px" }} onClick={() => setActiveInterviewStudent(s)}>
+                             Interviews
+                          </button>
+                        </div>
                       </div>
                     </div>
                   </div>

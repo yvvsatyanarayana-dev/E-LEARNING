@@ -88,6 +88,7 @@ const router = createBrowserRouter([
   { path: "/studentdashboard/studentMeetings",           element: SD, errorElement: <ErrorBoundary /> },
   { path: "/studentdashboard/studentPlacementMeetings",  element: SD, errorElement: <ErrorBoundary /> },
   { path: "/studentdashboard/studentMail",               element: SD, errorElement: <ErrorBoundary /> },
+  { path: "/studentdashboard/studentversant",            element: SD, errorElement: <ErrorBoundary /> },
 
   // ──────── FACULTY DASHBOARD ROUTES ────────
   {

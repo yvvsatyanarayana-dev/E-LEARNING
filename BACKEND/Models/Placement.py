@@ -239,3 +239,23 @@ class PlacementEvent(Base):
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
 
     officer    = relationship("User")
+
+
+class VersantAttempt(Base):
+    __tablename__ = "versant_attempts"
+
+    id               = Column(Integer, primary_key=True, index=True)
+    student_id       = Column(Integer, ForeignKey("users.id"), nullable=False)
+    sentence_mastery = Column(Float, default=0.0)
+    vocabulary       = Column(Float, default=0.0)
+    fluency          = Column(Float, default=0.0)
+    pronunciation    = Column(Float, default=0.0)
+    overall_score    = Column(Float, default=0.0)
+    feedback         = Column(String(1000), nullable=True)
+    created_at       = Column(DateTime(timezone=True), default=datetime.utcnow)
+
+    # Relationships
+    student = relationship("User", back_populates="versant_attempts")
+
+    def __repr__(self):
+        return f"<VersantAttempt student={self.student_id} overall={self.overall_score}>"

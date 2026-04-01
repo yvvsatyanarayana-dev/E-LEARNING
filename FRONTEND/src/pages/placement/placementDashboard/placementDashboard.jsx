@@ -67,6 +67,7 @@ function mapApiStudent(s, i) {
     pri:        Math.round(s.pri_score ?? s.pri ?? 0),
     skills:     (s.skills ?? s.skill_list ?? []).slice(0, 3),
     interviews: s.mock_interview_count ?? s.interviews ?? 0,
+    versant:    s.versant ?? s.versant_score ?? null,
     company,
     pkg,
     status: placementStatus,
