@@ -36,6 +36,8 @@ from Sockets.MeetingSockets import app as socket_app  # Import SocketIO app
 from Routes.PlacementRoute import router as placement_router
 from Routes.AdminRoute import router as admin_router
 from Routes.MailRoute import router as mail_router
+from Routes.NotificationRoute import router as notification_router
+
 app = FastAPI(
     title=settings.APP_NAME,
     description="A comprehensive smart-campus platform API built with FastAPI and SQLAlchemy.",
@@ -65,6 +67,7 @@ app.include_router(faculty_router, prefix=PREFIX)
 app.include_router(placement_router, prefix=PREFIX)
 app.include_router(admin_router, prefix=PREFIX)
 app.include_router(mail_router, prefix=PREFIX)
+app.include_router(notification_router, prefix=PREFIX)
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 UPLOADS_DIR = os.path.join(BASE_DIR, "uploads")

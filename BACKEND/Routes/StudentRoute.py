@@ -21,7 +21,8 @@ from Schemas.StudentSchema import (
     GenerateResumeRequest, ImproveResumeRequest, # New
     InnovationHubResponse, InternshipsOverviewResponse,
     CourseDetailResponse, AIChatRequest, AIChatResponse,
-    VersantAttemptCreate, VersantAttemptResponse
+    VersantAttemptCreate, VersantAttemptResponse,
+    VersantTestPartResponse
 )
 
 router = APIRouter(prefix="/student", tags=["Student"])
@@ -295,6 +296,23 @@ def get_notifications(
     return student_service.get_notifications(current_user, db)
 
 
+@router.post("/notifications/mark-all-read")
+def mark_all_notifications_read(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return student_service.mark_all_notifications_read(current_user, db)
+
+
+@router.post("/notifications/{notif_id}/read")
+def mark_notification_read(
+    notif_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    return student_service.mark_notification_read(notif_id, current_user, db)
+
+
 # ─── Mock Interviews ─────────────────────────────────────────────────────────
 
 @router.get("/mock-interviews", response_model=MockInterviewsFullResponse)
@@ -315,6 +333,15 @@ def mock_interview_chat(
 
 
 # ─── Versant Assessment ───────────────────────────────────────────────────────
+
+@router.get("/versant/questions", response_model=List[VersantTestPartResponse])
+def get_versant_test_questions(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    from Service.PlacementService import get_versant_questions
+    return get_versant_questions(db)
+
 
 @router.post("/versant/submit", response_model=VersantAttemptResponse)
 def submit_versant_attempt(

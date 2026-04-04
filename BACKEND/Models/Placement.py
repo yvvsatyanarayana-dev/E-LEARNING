@@ -259,3 +259,29 @@ class VersantAttempt(Base):
 
     def __repr__(self):
         return f"<VersantAttempt student={self.student_id} overall={self.overall_score}>"
+
+
+class VersantTestPart(Base):
+    __tablename__ = "versant_test_parts"
+
+    id = Column(String(50), primary_key=True, index=True) # e.g. "partA", "partB"
+    title = Column(String(200), nullable=False)
+    desc = Column(String(500), nullable=False)
+    type = Column(String(50), nullable=False) # "speak", "type"
+
+    def __repr__(self):
+        return f"<VersantTestPart id={self.id} title={self.title}>"
+
+
+class VersantQuestion(Base):
+    __tablename__ = "versant_questions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    part_id = Column(String(50), ForeignKey("versant_test_parts.id"), nullable=False)
+    # The question may be a simple string, or a structured JSON
+    content = Column(JSON, nullable=False) # e.g. {"q": "Is a cow an animal...", "a": "animal"} or just "Traffic is heavy..."
+    
+    part = relationship("VersantTestPart", backref="questions")
+
+    def __repr__(self):
+        return f"<VersantQuestion id={self.id} part_id={self.part_id}>"

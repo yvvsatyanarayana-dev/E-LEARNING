@@ -545,3 +545,13 @@ class AttendanceHistoryGrid(BaseModel):
     date: date
     present_count: int
     absent_count: int
+
+# ─── GradeBook Save ───
+class GradeBookChange(BaseModel):
+    roll: str
+    column: str
+    value: float
+
+class GradeBookSaveRequest(BaseModel):
+    course: str
+    changes: List[GradeBookChange]

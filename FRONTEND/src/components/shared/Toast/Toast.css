@@ -1,0 +1,87 @@
+.sc-toast-container {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.sc-toast {
+    width: 320px;
+    background: rgba(15, 12, 41, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px);
+    cursor: pointer;
+    animation: toast-slide-in 0.5s ease forwards;
+    position: relative;
+    overflow: hidden;
+}
+
+.sc-toast-icon {
+    font-size: 20px;
+    background: rgba(91, 78, 248, 0.2);
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.sc-toast-content {
+    flex: 1;
+}
+
+.sc-toast-title {
+    color: #fff;
+    font-weight: 600;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.sc-toast-message {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.sc-toast-close {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 20px;
+    cursor: pointer;
+}
+
+.sc-toast-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #5b4ef8, #27c9b0);
+    animation: toast-progress 5s linear forwards;
+}
+
+@keyframes toast-slide-in {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes toast-progress {
+    from { width: 100%; }
+    to { width: 0%; }
+}
+
+/* Specialized colors */
+.sc-toast.assignment_due { border-left: 4px solid #f4a535; }
+.sc-toast.quiz_available { border-left: 4px solid #27c9b0; }
+.sc-toast.grade_posted { border-left: 4px solid #5b4ef8; }
+.sc-toast.system_alert { border-left: 4px solid #ff4b2b; }

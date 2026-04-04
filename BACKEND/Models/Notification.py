@@ -14,7 +14,8 @@ class Notification(Base):
     is_read = Column(Boolean, default=False)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow)
     
-    # Optional metadata (e.g., entity_id like course_id, assignment_id)
+    # Optional metadata
+    link = Column(String(500), nullable=True) # UI link e.g. /studentdashboard/studentAssignments
     metadata_json = Column(JSON, nullable=True)
 
     # Relationships

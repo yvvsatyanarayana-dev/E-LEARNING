@@ -292,13 +292,32 @@ class VersantScore(BaseModel):
     pronunciation: float
     overall_score: float
 
+class VersantAnswer(BaseModel):
+    part: str
+    questionIdx: int
+    text: str
+
 class VersantAttemptCreate(BaseModel):
-    sentence_mastery: float
-    vocabulary: float
-    fluency: float
-    pronunciation: float
-    overall_score: float
-    feedback: Optional[str] = None
+    answers: List[VersantAnswer]
+
+class VersantTestQuestionResponse(BaseModel):
+    id: int
+    part_id: str
+    content: dict | str | list # allowing generic JSON content
+
+    class Config:
+        from_attributes = True
+
+class VersantTestPartResponse(BaseModel):
+    id: str
+    title: str
+    desc: str
+    type: str # 'speak' or 'type'
+    questions: List[VersantTestQuestionResponse] = []
+
+    class Config:
+        from_attributes = True
+
 
 class VersantAttemptResponse(BaseModel):
     id: int

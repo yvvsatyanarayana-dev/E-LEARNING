@@ -10,6 +10,8 @@ from Models.Placement import PlacementReadiness, Internship, InternshipApplicati
 from Models.Quiz import Quiz, QuizAttempt
 from Models.PlatformAdmin import PlatformReport, PlatformSetting
 from datetime import datetime, timedelta
+from Service.NotificationService import notification_service
+import asyncio
 
 class AdminService:
     @staticmethod
@@ -300,16 +302,24 @@ class AdminService:
         
         target_users = query.all()
 
-        # 2. Create System Notification
-        # For simplicity, we create one broadcast record (user_id=None) 
-        # or targeted ones if we want them to show up for specific users.
-        # Here we do a global one if "all", or targeted ones.
+        # 2. Create System Notification & Socket Emission
         if target == "all":
-            new_notif = Notification(type=data.get("type", "system"), title=title, message=msg, user_id=None)
-            db.add(new_notif)
+            asyncio.create_task(notification_service.create_notification(
+                db=db,
+                user_id=None,
+                type=data.get("type", "system"),
+                title=title,
+                message=msg
+            ))
         else:
             for u in target_users:
-                db.add(Notification(type=data.get("type", "system"), title=title, message=msg, user_id=u.id))
+                asyncio.create_task(notification_service.create_notification(
+                    db=db,
+                    user_id=u.id,
+                    type=data.get("type", "system"),
+                    title=title,
+                    message=msg
+                ))
 
         # 3. Handle Email also
         if send_email:

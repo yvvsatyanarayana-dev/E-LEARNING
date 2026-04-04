@@ -34,6 +34,8 @@ from Models.Attendance import DailyAttendance, AttendanceStatus
 from Models.Placement import PlacementReadiness, SkillScore
 from Models.Lesson import Lesson, WatchHistory
 from fastapi import HTTPException
+from Service.NotificationService import notification_service
+import asyncio # For running async notifications in background
 
 class FacultyService:
     def get_dashboard(self, faculty: User, db: Session) -> FacultyDashboardResponse:
@@ -530,6 +532,19 @@ class FacultyService:
         db.add(new_assignment)
         db.commit()
         db.refresh(new_assignment)
+
+        # ─── Notify Students ───
+        # Find all students enrolled in this course
+        enrollments = db.query(Enrollment).filter(Enrollment.course_id == data.course_id).all()
+        for en in enrollments:
+            asyncio.create_task(notification_service.create_notification(
+                db=db,
+                user_id=en.student_id,
+                type="assignment_due",
+                title=f"New Assignment: {new_assignment.title}",
+                message=f"A new assignment has been posted in {course.title}. Due on {new_assignment.due_date.strftime('%b %d') if new_assignment.due_date else 'TBD'}.",
+                link="/studentdashboard/studentAssignments"
+            ))
         
         return FacultyAssignmentDetail(
             id=new_assignment.id,
@@ -686,6 +701,19 @@ class FacultyService:
         
         db.commit()
         db.refresh(new_quiz)
+
+        # ─── Notify Students ───
+        # Use course object already fetched
+        enrollments = db.query(Enrollment).filter(Enrollment.course_id == data.course_id).all()
+        for en in enrollments:
+            asyncio.create_task(notification_service.create_notification(
+                db=db,
+                user_id=en.student_id,
+                type="quiz_available",
+                title=f"New Quiz: {new_quiz.title}",
+                message=f"A new quiz is available in {course.title}. Start now!",
+                link="/studentdashboard/studentQuizzes"
+            ))
 
         return FacultyQuizDetail(
             id=new_quiz.id,
@@ -870,6 +898,83 @@ class FacultyService:
             ))
 
         return entries
+
+    def save_gradebook(self, faculty: User, db: Session, data: dict) -> dict:
+        if faculty.role != UserRole.faculty:
+            raise HTTPException(status_code=403, detail="Only faculty can perform this action")
+
+        # Parse course ID from "csXXX"
+        course_id_str = data.course.replace("cs", "") if data.course else "0"
+        try:
+            course_id = int(course_id_str)
+        except ValueError:
+            course_id = 0
+
+        from Models.Notification import NotificationType
+        from Service.NotificationService import NotificationService
+        notif_service = NotificationService()
+
+        # Iterate over changes: {roll: "str", column: "a1", value: 95}
+        for change in data.changes:
+            student = db.query(User).filter(User.roll_number == change.roll, User.role == UserRole.student).first()
+            if not student:
+                continue
+
+            # Need to find the relevant assignment or quiz for this column.
+            # a1, a2, q1, q2, mid, end.
+            # We'll fetch assignments by title to match the column mapped in frontend.
+            title_match = ""
+            if change.column == "a1": title_match = "1"
+            elif change.column == "a2": title_match = "2"
+            elif change.column == "q1": title_match = "quiz 1"
+            elif change.column == "q2": title_match = "quiz 2"
+            elif change.column == "mid": title_match = "mid"
+            elif change.column == "end": title_match = "end"
+            
+            # Submissions vs Quizzes
+            if "q" in change.column:
+                quiz = db.query(Quiz).filter(Quiz.course_id == course_id, func.lower(Quiz.title).like(f"%{title_match}%")).first()
+                if quiz:
+                    attempt = db.query(QuizAttempt).filter(QuizAttempt.quiz_id == quiz.id, QuizAttempt.student_id == student.id).first()
+                    if attempt:
+                        attempt.score = change.value
+                    else:
+                        attempt = QuizAttempt(quiz_id=quiz.id, student_id=student.id, score=change.value, attempted_at=datetime.utcnow())
+                        db.add(attempt)
+                    
+                    notif_service.create_notification(
+                        db=db,
+                        user_id=student.id,
+                        type=NotificationType.ACADEMIC,
+                        title=f"{course_id_str} Quiz Graded",
+                        message=f"{faculty.full_name} graded your quiz: {quiz.title}. You scored {change.value}."
+                    )
+            else:
+                target_title = "Assignment"
+                if change.column == "a1": target_title = "1"
+                elif change.column == "a2": target_title = "2"
+                elif change.column == "mid": target_title = "mid"
+                elif change.column == "end": target_title = "end"
+                
+                assignment = db.query(Assignment).filter(Assignment.course_id == course_id, func.lower(Assignment.title).like(f"%{target_title}%")).first()
+                if assignment:
+                    sub = db.query(AssignmentSubmission).filter(AssignmentSubmission.assignment_id == assignment.id, AssignmentSubmission.student_id == student.id).first()
+                    if sub:
+                        sub.grade = change.value
+                    else:
+                        sub = AssignmentSubmission(assignment_id=assignment.id, student_id=student.id, grade=change.value, submitted_at=datetime.utcnow())
+                        db.add(sub)
+                    
+                    notif_service.create_notification(
+                        db=db,
+                        user_id=student.id,
+                        type=NotificationType.ACADEMIC,
+                        title=f"{course_id_str} Assignment Graded",
+                        message=f"{faculty.full_name} graded your assignment: {assignment.title}. You scored {change.value}."
+                    )
+        
+        db.commit()
+        return {"message": "Grades saved successfully"}
 
     def get_analytics(self, faculty: User, db: Session) -> FacultyAnalyticsData:
         if faculty.role != UserRole.faculty:

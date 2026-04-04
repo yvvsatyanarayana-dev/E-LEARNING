@@ -18,7 +18,7 @@ from Schemas.FacultySchema import (
     FacultyReportResponse, FacultyAssignmentUpdate, FacultyQuizUpdate, FacultyMetadataResponse,
     FacultyQuestionBankItem, FacultyQuestionBankCreate, FacultyQuestionBankUpdate,
     AttendanceRecordSubmit, AttendanceBulkSubmit, AttendanceRecordResponse, AttendanceHistoryGrid,
-    FacultyLectureUpdate
+    FacultyLectureUpdate, GradeBookSaveRequest
 )
 from datetime import datetime, date
 
@@ -137,6 +137,10 @@ def get_faculty_all_students(current_user: User = Depends(get_current_user), db:
 @router.get("/gradebook", response_model=List[FacultyGradeBookEntry])
 def get_faculty_gradebook(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     return faculty_service.get_gradebook(current_user, db)
+
+@router.post("/gradebook/save")
+def save_faculty_gradebook(data: GradeBookSaveRequest, current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):
+    return faculty_service.save_gradebook(current_user, db, data)
 
 @router.get("/analytics", response_model=FacultyAnalyticsData)
 def get_faculty_analytics(current_user: User = Depends(get_current_user), db: Session = Depends(get_db)):

@@ -38,6 +38,7 @@ from Schemas.StudentSchema import (
     ResumeFullResponse
 )
 from Core.MeetingState import ACTIVE_MEETINGS
+from Service.NotificationService import notification_service
 
 
 def _require_student(user: User):
@@ -1536,74 +1537,31 @@ class StudentService:
     # ─── Notifications ────────────────────────────────────────────────────────
 
     def get_notifications(self, student: User, db: Session) -> List[NotificationResponse]:
+        """Fetches persistent notifications from the database."""
         _require_student(student)
-        now = datetime.now(timezone.utc)
-        notifications = []
-
-        # Assignment due soon (within 3 days, not submitted)
-        enrolled_ids = [
-            en.course_id for en in
-            db.query(Enrollment).filter(Enrollment.student_id == student.id).all()
+        db_notifs = notification_service.get_user_notifications(db, student.id)
+        
+        # Convert to response schema
+        return [
+            NotificationResponse(
+                id=n.id,
+                type=n.type,
+                title=n.title,
+                message=n.message,
+                created_at=n.created_at,
+                is_read=n.is_read,
+                link=n.link,
+                metadata=n.metadata_json
+            ) for n in db_notifs
         ]
-        submitted_ids = {
-            s.assignment_id for s in
-            db.query(AssignmentSubmission).filter(AssignmentSubmission.student_id == student.id).all()
-        }
-        upcoming_assignments = db.query(Assignment).filter(
-            Assignment.course_id.in_(enrolled_ids),
-            Assignment.due_date >= now,
-        ).all() if enrolled_ids else []
 
-        for a in upcoming_assignments:
-            if a.id not in submitted_ids:
-                diff = (a.due_date - now).days if a.due_date else 99
-                notifications.append(NotificationResponse(
-                    id=f"asgn_{a.id}",
-                    type="assignment_due",
-                    title=f"Assignment due: {a.title}",
-                    message=f"Due on {a.due_date.strftime('%b %d') if a.due_date else 'TBD'} — {a.course.title if a.course else ''}",
-                    created_at=now,
-                    is_read=False,
-                ))
+    def mark_notification_read(self, notif_id: int, student: User, db: Session):
+        _require_student(student)
+        return notification_service.mark_as_read(db, notif_id)
 
-        # Grades posted (submissions with grade)
-        graded = db.query(AssignmentSubmission).filter(
-            AssignmentSubmission.student_id == student.id,
-            AssignmentSubmission.grade != None,
-        ).all()
-        for sub in graded:
-            notifications.append(NotificationResponse(
-                id=f"grade_{sub.id}",
-                type="grade_posted",
-                title=f"Grade posted: {sub.assignment.title if sub.assignment else 'Assignment'}",
-                message=f"You scored {sub.grade:.1f}. {sub.feedback or ''}",
-                created_at=sub.submitted_at,
-                is_read=False,
-            ))
-
-        # New quizzes
-        attempted_ids = {
-            qa.quiz_id for qa in
-            db.query(QuizAttempt).filter(QuizAttempt.student_id == student.id).all()
-        }
-        new_quizzes = db.query(Quiz).filter(
-            Quiz.course_id.in_(enrolled_ids),
-            ~Quiz.id.in_(attempted_ids) if attempted_ids else True,
-        ).all() if enrolled_ids else []
-
-        for q in new_quizzes:
-            notifications.append(NotificationResponse(
-                id=f"quiz_{q.id}",
-                type="quiz_available",
-                title=f"Quiz available: {q.title}",
-                message=f"New quiz in {q.course.title if q.course else ''} — take it now!",
-                created_at=q.created_at,
-                is_read=False,
-            ))
-
-        # Sort by created_at desc
-        notifications.sort(key=lambda n: n.created_at, reverse=True)
-        return list(islice(notifications, 20))
+    def mark_all_notifications_read(self, student: User, db: Session):
+        _require_student(student)
+        return notification_service.mark_all_read(db, student.id)
 
     # ─── Resume Builder ───────────────────────────────────────────────────────
     

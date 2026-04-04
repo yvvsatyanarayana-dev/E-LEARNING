@@ -23,3 +23,24 @@ class PlatformSetting(Base):
     value = Column(String(1000))
     category = Column(String(50)) # General, SMTP, Security, etc.
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class SystemServiceStatus(Base):
+    __tablename__ = "system_service_status"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String(100), nullable=False)
+    icon = Column(String(50), nullable=True)
+    status = Column(String(50), default="up") # "up", "warn", "down"
+    latency = Column(String(20), nullable=True)
+    cpu = Column(String(20), nullable=True)
+    mem = Column(String(20), nullable=True)
+    color = Column(String(50), nullable=True)
+    text_color = Column(String(50), nullable=True)
+    
+class SystemQuickAction(Base):
+    __tablename__ = "system_quick_actions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    label = Column(String(100), nullable=False)
+    icon = Column(String(50), nullable=True)
+    color = Column(String(50), nullable=True)

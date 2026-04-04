@@ -18,6 +18,7 @@ import PlacementMeeting from "../pages/placement/placementMeeting/placementMeeti
 import StudentPlacementMeetings from "../pages/Student/studentPlacementMeetings/studentPlacementMeetings";
 import PlacementMail from "../pages/placement/placementMail/placementMail";
 import GlobalCursor from "../components/GlobalCursor/GlobalCursor";
+import ToastContainer from "../components/shared/Toast/ToastContainer";
 
 
 import FacultyQuickaction from "../pages/Faculty/facultyQuickaction/facultyQuickaction";
@@ -284,6 +285,7 @@ export default function AppRouter() {
   return (
     <>
       <GlobalCursor />
+      <ToastContainer />
       <RouterProvider router={router} />
     </>
   );

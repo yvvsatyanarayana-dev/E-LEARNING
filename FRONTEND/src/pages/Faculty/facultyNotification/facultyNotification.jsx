@@ -1,5 +1,5 @@
-// NotificationsPopup.jsx
 import { useState, useEffect, useRef } from "react";
+import { useNotifications } from "../../../utils/useNotifications";
 import "./NotificationsPopup.css";
 
 // ─── ICONS (react-icons) ───────────────────────────────────────
@@ -12,13 +12,10 @@ const IcoCheckAll = (p) => <svg {...p} width="13" height="13" viewBox="0 0 24 24
 const TABS = ["All", "Unread", "Urgent"];
 
 // ─── COMPONENT ───────────────────────────────────────────────────
-export default function NotificationsPopup({ open, onClose, anchorRef, onBack, isPage, notifications = [] }) {
-  const [notifs, setNotifs] = useState(notifications);
+export default function NotificationsPopup({ open, onClose, anchorRef, onBack, isPage }) {
+  const { notifications: notifs, unreadCount, markAsRead, markAllAsRead } = useNotifications();
   const [activeTab, setActiveTab] = useState("All");
 
-  useEffect(() => {
-    setNotifs(notifications);
-  }, [notifications]);
   const popupRef = useRef();
 
   // Close on outside click (only for popup mode)
@@ -46,11 +43,7 @@ export default function NotificationsPopup({ open, onClose, anchorRef, onBack, i
     return () => document.removeEventListener("keydown", h);
   }, [open, onClose, isPage, onBack]);
 
-  const markRead = (id) => setNotifs(n => n.map(x => x.id === id ? { ...x, unread: false } : x));
-  const markAllRead = () => setNotifs(n => n.map(x => ({ ...x, unread: false })));
-  const dismiss = (id) => setNotifs(n => n.filter(x => x.id !== id));
-
-  const unreadCount = notifs.filter(n => n.unread).length;
+  const dismiss = (id) => markAsRead((id)); // Simple reuse for dismissal
 
   const filtered = notifs.filter(n => {
     if (activeTab === "Unread") return n.unread;
@@ -112,7 +105,7 @@ export default function NotificationsPopup({ open, onClose, anchorRef, onBack, i
             <div
               key={n.id}
               className={`np-item ${n.unread ? "unread" : ""}`}
-              onClick={() => markRead(n.id)}
+              onClick={() => markAsRead(n.id)}
               style={{ position: 'relative' }}
             >
               <div className="np-item-ic" style={{ background: n.bg, color: n.color, position: 'relative' }}>
@@ -139,7 +132,7 @@ export default function NotificationsPopup({ open, onClose, anchorRef, onBack, i
               </div>
               <div className="np-item-actions">
                 {n.unread && (
-                  <button className="np-item-btn" title="Mark as read" onClick={(e) => { e.stopPropagation(); markRead(n.id); }}>
+                  <button className="np-item-btn" title="Mark as read" onClick={(e) => { e.stopPropagation(); markAsRead(n.id); }}>
                     <IcoCheck />
                   </button>
                 )}

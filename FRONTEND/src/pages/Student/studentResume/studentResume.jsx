@@ -1,5 +1,6 @@
 // studentResume.jsx — fully updated with working features
 import { useState, useEffect, useRef } from "react";
+import api from "../../../utils/api";
 import "./studentResume.css";
 
 const IcoBack    = (p) => <svg {...p} width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>;
@@ -303,29 +304,13 @@ function AIImproveModal({ resumeData, onClose, onApply }) {
   useEffect(() => {
     (async () => {
       try {
-        const response = await fetch("http://localhost:8000/api/v1/students/resume/improve-with-ai", {
-          method: "POST",
-          headers: { 
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${localStorage.getItem("token")}`
-          },
-          body: JSON.stringify({ resumeData })
-        });
-        
-        if(!response.ok) {
-          const errData = await response.json();
-          setError(errData.detail || "Failed to get suggestions");
-          setLoading(false);
-          return;
-        }
-        
-        const suggestions = await response.json();
+        const suggestions = await api.post("/student/resume/improve-with-ai", { resumeData });
         setSuggestions(Array.isArray(suggestions) ? suggestions : []);
         const sel = {};
         suggestions.forEach((_,i)=>{ sel[i]=true; });
         setSelected(sel);
       } catch(err) {
-        setError("Failed to get AI suggestions. Please try again.");
+        setError(err.message || "Failed to get AI suggestions. Please try again.");
       }
       setLoading(false);
     })();
@@ -387,26 +372,11 @@ function MakeWithAIModal({ onClose, onResult }) {
     if(!prompt.trim()) return;
     setLoading(true); setError(null);
     try {
-      const response = await fetch("http://localhost:8000/api/v1/students/resume/generate-with-ai", {
-        method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${localStorage.getItem("token")}`
-        },
-        body: JSON.stringify({ prompt })
-      });
-      
-      if(!response.ok) {
-        const errData = await response.json();
-        setError(errData.detail || "Failed to generate resume");
-        return;
-      }
-      
-      const parsed = await response.json();
+      const parsed = await api.post("/student/resume/generate-with-ai", { prompt });
       onResult(parsed);
       onClose();
     } catch(err) {
-      setError("Failed to generate. Please try again.");
+      setError(err.message || "Failed to generate. Please try again.");
     }
     setLoading(false);
   };
@@ -550,12 +520,24 @@ export default function StudentResume({ onBack }) {
 
   const handleDownload = () => {
     const html = getResumeHTML();
-    const blob = new Blob([html], {type:"text/html"});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = `${personal?.fullName||"resume"}_resume.html`;
-    a.click(); URL.revokeObjectURL(url);
-    setToast("Resume downloaded!");
+    const opt = {
+      margin:       10,
+      filename:     `${personal?.fullName || "resume"}_resume.pdf`,
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2 },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+
+    const element = document.createElement("div");
+    element.innerHTML = html;
+    
+    // Use the global html2pdf from the CDN
+    if (window.html2pdf) {
+      window.html2pdf().set(opt).from(element).save();
+      setToast("Resume downloaded as PDF!");
+    } else {
+      setToast("PDF library not loaded. Please refresh.");
+    }
   };
 
   const handleUpdate = () => {

@@ -13,6 +13,15 @@ async def connect(sid, environ):
     logging.info(f"Socket connected: {sid}")
 
 @sio.event
+async def authenticate(sid, data):
+    """Associates a socket ID with a specific user ID for targeted notifications."""
+    user_id = data.get("user_id")
+    if user_id:
+        room_name = f"user_{user_id}"
+        await sio.enter_room(sid, room_name)
+        logging.info(f"User {user_id} authenticated on socket {sid} (room: {room_name})")
+
+@sio.event
 async def disconnect(sid):
     logging.info(f"Socket disconnected: {sid}")
     # Remove from any rooms
