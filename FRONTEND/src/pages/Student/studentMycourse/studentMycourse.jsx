@@ -499,7 +499,7 @@ export default function StudentMyCourses({ onBack }) {
           credits: 4,
           progress: c.progress,
           attendance: c.attendance || 0,
-          score: Math.floor(c.progress * 0.9 + 5),
+          score: c.avg_score || 0,
           rating: 4.5,
           totalLectures: c.lesson_count,
           watchedLectures: Math.floor(c.lesson_count * (c.progress / 100)),

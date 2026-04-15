@@ -141,6 +141,8 @@ const stepIcos = [
   <svg key="c" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>,
 ];
 
+const IcoQuiz = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>;
+
 /* ════════════════════════════════════════════
    BADGE
 ════════════════════════════════════════════ */
@@ -696,6 +698,149 @@ function DeleteConfirm({ student, onConfirm, onCancel, deleting }) {
 }
 
 /* ════════════════════════════════════════════
+   STUDENT QUIZ HISTORY MODAL
+   Shows attempt list and detailed review
+════════════════════════════════════════════ */
+function StudentQuizHistoryModal({ student, onClose }) {
+  const [attempts, setAttempts] = useState([]);
+  const [loading,  setLoading]  = useState(true);
+  const [detail,   setDetail]   = useState(null); // Full breakdown data
+
+  useEffect(() => {
+    const fetchHistory = async () => {
+      try {
+        const res = await api.get(`/placement/students/${student.id}/quiz-attempts`);
+        setAttempts(res || []);
+      } catch (err) { console.error("History fetch error:", err); }
+      finally { setLoading(false); }
+    };
+    fetchHistory();
+  }, [student.id]);
+
+  const viewDetail = async (aid) => {
+    try {
+      const res = await api.get(`/placement/ai/quiz/attempts/${aid}`);
+      setDetail(res);
+    } catch (err) { alert("Failed to load details: " + err.message); }
+  };
+
+  if (detail) {
+    return (
+      <Overlay onClose={() => setDetail(null)}>
+        <div className="ps-panel quiz-review-panel" style={{ width: 700, maxHeight: "85vh", display: "flex", flexDirection: "column", padding: 0 }}>
+          <div className="ps-header" style={{ padding: "16px 24px" }}>
+            <div className="ps-header-left">
+              <div className="ps-modal-icon" style={{ background: "var(--teal)", color: "#fff" }}><IcoQuiz/></div>
+              <div>
+                <div className="ps-modal-title">Quiz Details: {detail.quiz_title}</div>
+                <div className="ps-modal-sub">{student.name}'s Scored Performance</div>
+              </div>
+            </div>
+            <button className="ps-close" onClick={() => setDetail(null)}><XIco/></button>
+          </div>
+          
+          <div className="quiz-review-body" style={{ flex: 1, overflowY: "auto", padding: "20px 24px" }}>
+             <div className="quiz-review-stats" style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+                <div className="qr-stat"><strong>Score:</strong> {detail.score}%</div>
+                <div className="qr-stat"><strong>Correct:</strong> {detail.correct_q}/{detail.total_q}</div>
+                <div className="qr-stat"><strong>Time:</strong> {Math.floor(detail.time_taken/60)}m {detail.time_taken%60}s</div>
+             </div>
+
+             <div className="qr-list" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
+                {detail.questions.map((q, idx) => (
+                  <div key={idx} className="qr-q-card" style={{ padding: 16, borderRadius: 12, border: "1px solid var(--border)", background: "var(--surface2)" }}>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: "var(--indigo-l)", marginBottom: 8 }}>QUESTION {idx + 1}</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: "var(--text)", marginBottom: 12 }}>{q.question_text}</div>
+                    <div className="qr-opts" style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                       {q.options.map((opt, oi) => {
+                          const isCorrect = opt === q.correct_answer;
+                          const isUser    = opt === q.student_answer;
+                          let bg = "var(--surface3)"; 
+                          let border = "var(--border)";
+                          if (isCorrect) { bg = "rgba(0,210,130,0.1)"; border = "var(--teal)"; }
+                          else if (isUser) { bg = "rgba(239,68,68,0.1)"; border = "var(--rose)"; }
+
+                          return (
+                            <div key={oi} style={{ display: "flex", alignItems: "center", gap: 10, padding: 10, borderRadius: 8, border: `1px solid ${border}`, background: bg }}>
+                                <div style={{ width: 22, height: 22, borderRadius: "50%", background: isCorrect ? "var(--teal)" : isUser ? "var(--rose)" : "var(--border2)", color: "#fff", display: "flex", alignItems: "center", justifyCenter: "center", fontSize: 10, fontWeight: 800 }}>
+                                   {["A","B","C","D"][oi]}
+                                </div>
+                                <span style={{ fontSize: 13, color: isCorrect ? "var(--teal)" : isUser ? "var(--rose)" : "var(--text2)" }}>{opt}</span>
+                                {isCorrect && <span style={{ marginLeft: "auto", fontSize: 9, fontWeight: 700, color: "var(--teal)" }}>CORRECT</span>}
+                                {isUser && !isCorrect && <span style={{ marginLeft: "auto", fontSize: 9, fontWeight: 700, color: "var(--rose)" }}>WRONG CHOICE</span>}
+                            </div>
+                          );
+                       })}
+                    </div>
+                    {q.explanation && (
+                      <div style={{ marginTop: 12, padding: 10, borderRadius: 8, background: "rgba(91,78,248,0.05)", borderLeft: "3px solid var(--indigo-l)", fontSize: 11, color: "var(--text3)" }}>
+                        <strong>Explanation:</strong> {q.explanation}
+                      </div>
+                    )}
+                  </div>
+                ))}
+             </div>
+          </div>
+          <div className="ps-footer" style={{ padding: "16px 24px" }}>
+             <button className="btn btn-ghost" onClick={() => setDetail(null)}>Back to Attempts</button>
+          </div>
+        </div>
+      </Overlay>
+    );
+  }
+
+  return (
+    <Overlay onClose={onClose}>
+      <div className="ps-panel" style={{ width: 550, maxHeight: "80vh", display: "flex", flexDirection: "column" }}>
+        <div className="ps-header">
+           <div className="ps-header-left">
+              <div className="ps-modal-icon" style={{ background: "var(--indigo-l)", color: "#fff" }}><IcoQuiz/></div>
+              <div>
+                <div className="ps-modal-title">Quiz History</div>
+                <div className="ps-modal-sub">AI Quiz attempts for {student.name}</div>
+              </div>
+           </div>
+           <button className="ps-close" onClick={onClose}><XIco/></button>
+        </div>
+
+        <div style={{ flex: 1, overflowY: "auto", padding: "20px 24px" }}>
+          {loading ? (
+            <div style={{ textAlign: "center", padding: "40px 0", color: "var(--text3)" }}>Loading history...</div>
+          ) : attempts.length === 0 ? (
+            <div style={{ textAlign: "center", padding: "40px 0" }}>
+               <div style={{ fontSize: 32, marginBottom: 12 }}>📋</div>
+               <div style={{ fontWeight: 600 }}>No attempts yet</div>
+               <p style={{ fontSize: 11, color: "var(--text3)", marginTop: 5 }}>This student has not taken any AI quizzes yet.</p>
+            </div>
+          ) : (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+               {attempts.map(a => (
+                 <div key={a.id} className="quiz-attempt-row" style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: 14, borderRadius: 12, background: "var(--surface2)", border: "1px solid var(--border)" }}>
+                    <div>
+                       <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)" }}>{a.quiz_title}</div>
+                       <div style={{ fontSize: 10, color: "var(--text3)", marginTop: 2 }}>{new Date(a.attempted_at).toLocaleDateString()} · {(a.time_taken/60).toFixed(1)}m</div>
+                    </div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+                       <div style={{ textAlign: "right" }}>
+                          <div style={{ fontSize: 15, fontWeight: 800, color: a.score >= 70 ? "var(--teal)" : a.score >= 50 ? "var(--amber)" : "var(--rose)" }}>{a.score}%</div>
+                          <div style={{ fontSize: 9, color: "var(--text3)" }}>{a.correct_q}/{a.total_q} Correct</div>
+                       </div>
+                       <button className="btn btn-outline" style={{ fontSize: 10, padding: "6px 10px" }} onClick={() => viewDetail(a.id)}>View Details</button>
+                    </div>
+                 </div>
+               ))}
+            </div>
+          )}
+        </div>
+        <div className="ps-footer">
+           <button className="btn btn-solid" style={{ width: "100%" }} onClick={onClose}>Done</button>
+        </div>
+      </div>
+    </Overlay>
+  );
+}
+
+/* ════════════════════════════════════════════
    MAIN PAGE
 ════════════════════════════════════════════ */
 /* ════════════════════════════════════════════
@@ -1149,7 +1294,8 @@ export default function PlacementStudents() {
 
   // Interview Handler
   const [activeInterviewStudent, setActiveInterviewStudent] = useState(null);
-  const [activeVersantStudent, setActiveVersantStudent] = useState(null);
+  const [activeVersantStudent,   setActiveVersantStudent]   = useState(null);
+  const [activeQuizStudent,      setActiveQuizStudent]      = useState(null);
   const handleRefreshStudent = useCallback(async (sid) => {
     try {
       const s_raw = await api.get(`/placement/dashboard/students`); // Simplified refresh or targeted if possible
@@ -1217,6 +1363,12 @@ export default function PlacementStudents() {
           onClose={() => setActiveVersantStudent(null)} 
         />
       )}
+      {activeQuizStudent && (
+        <StudentQuizHistoryModal
+          student={activeQuizStudent}
+          onClose={() => setActiveQuizStudent(null)}
+        />
+      )}
       {toast && (
         <Toast icon={toast.icon} title={toast.title} sub={toast.sub} onDone={() => setToast(null)} />
       )}
@@ -1269,6 +1421,9 @@ export default function PlacementStudents() {
             <SbLink to="/placementdashboard/internships"
               icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>}>
               Internships
+            </SbLink>
+            <SbLink to="/placementdashboard/ai-quiz" icon={<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>} badge="AI" badgeCls="teal">
+              AI Quiz System
             </SbLink>
 
             <div className="sb-sec-label">Tools</div>
@@ -1489,6 +1644,9 @@ export default function PlacementStudents() {
                            )}
                         </div>
                         <div style={{ display: "flex", gap: 6 }}>
+                          <button className="btn btn-outline" style={{ fontSize: 10, padding: "6px 8px", background: "none", borderColor: "var(--indigo-l)", color: "var(--indigo-l)" }} onClick={() => setActiveQuizStudent(s)}>
+                             Quizzes
+                          </button>
                           <button className="btn btn-outline" style={{ fontSize: 10, padding: "6px 8px", background: "none", borderColor: "var(--violet-ll)", color: "var(--violet-ll)" }} onClick={() => setActiveVersantStudent(s)}>
                              Versant
                           </button>

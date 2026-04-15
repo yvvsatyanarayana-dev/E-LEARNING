@@ -871,15 +871,6 @@ export default function FacultyVideoLectures({ onBack }) {
   const handleExport = () => {
     let dataToExport = lectures;
 
-    // Add fallback data if the user has no lectures yet so the download still works!
-    if (!dataToExport || dataToExport.length === 0) {
-      dataToExport = [
-        { title: "Introduction to Operating Systems", course_code: "CS501", status: "live", duration: "45m", views: 120, rating: 4.8, uploadDate: "2026-03-20" },
-        { title: "Process Scheduling Algorithms", course_code: "CS501", status: "live", duration: "50m", views: 95, rating: 4.5, uploadDate: "2026-03-22" },
-        { title: "Memory Management Introduction", course_code: "CS501", status: "pending", duration: "—", views: 0, rating: 0, uploadDate: "—" },
-      ];
-    }
-
     try {
       const headers = ["Title", "Course Code", "Status", "Duration", "Views", "Rating", "Upload Date"];
       const rows = dataToExport.map(l => [

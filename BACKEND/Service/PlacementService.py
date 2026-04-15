@@ -29,6 +29,9 @@ from Models.Placement import (
     VersantAttempt,
     VersantTestPart,
     VersantQuestion,
+    PlacementQuiz,
+    PlacementQuizQuestion,
+    PlacementQuizAttempt,
 )
 from Core.MeetingState import ACTIVE_MEETINGS
 from Models.User import User, UserRole          # adjust import to your project layout
@@ -873,39 +876,22 @@ def get_versant_questions(db: Session):
     return db.query(VersantTestPart).all()
 
 def submit_versant_test(db: Session, student_id: int, data: VersantAttemptCreate) -> VersantAttempt:
-    # Heuristic string length and random generation based mock evaluation of answers
-    # since actual NLP scoring isn't available
-    import random
+    ans = data.answers if hasattr(data, "answers") else getattr(data, "details", [])
     
-    ans = data.answers
-    base_score = 65 + len(ans) * 2  # up to 80~
-    
-    # Randomly vary the scores slightly
-    sentence_mastery = min(100.0, base_score + random.uniform(0, 15))
-    vocabulary = min(100.0, base_score + random.uniform(0, 15))
-    fluency = min(100.0, base_score + random.uniform(-10, 15))
-    pronunciation = min(100.0, base_score + random.uniform(-5, 10))
-    overall_score = (sentence_mastery + vocabulary + fluency + pronunciation) / 4.0
-    
-    feedback = "Analysis complete. Good vocabulary demonstrated. Continue to practice fluency and timing."
-    
-    # Save the attempt
+    # Save the attempt as pending (scores = 0)
     attempt = VersantAttempt(
         student_id=student_id,
-        sentence_mastery=sentence_mastery,
-        vocabulary=vocabulary,
-        fluency=fluency,
-        pronunciation=pronunciation,
-        overall_score=overall_score,
-        feedback=feedback
+        sentence_mastery=0.0,
+        vocabulary=0.0,
+        fluency=0.0,
+        pronunciation=0.0,
+        overall_score=0.0,
+        feedback="Pending placement evaluation.",
+        details=[a.model_dump() if hasattr(a, "model_dump") else a for a in ans] if type(ans) is list else ans
     )
     db.add(attempt)
     db.commit()
     db.refresh(attempt)
-
-    # Update communication_score in PlacementReadiness
-    # We take the latest overall_score as the current communication_score
-    update_readiness(db, student_id, communication_score=overall_score)
 
     return attempt
 
@@ -917,6 +903,41 @@ def get_student_versant_history(db: Session, student_id: int) -> List[VersantAtt
         .order_by(VersantAttempt.created_at.desc())
         .all()
     )
+
+def get_pending_versant_evaluations(db: Session):
+    attempts = db.query(VersantAttempt, User).join(User, VersantAttempt.student_id == User.id).filter(
+        VersantAttempt.overall_score == 0.0
+    ).all()
+    
+    res = []
+    for att, user in attempts:
+        res.append({
+            "id": att.id,
+            "student_name": user.full_name,
+            "student_id": user.roll_number,
+            "created_at": att.created_at,
+            "status": "pending_evaluation",
+            "details": att.details or []
+        })
+    return res
+
+def grade_versant_attempt(db: Session, attempt_id: int, payload: dict):
+    attempt = db.query(VersantAttempt).filter_by(id=attempt_id).first()
+    if not attempt:
+        raise ValueError("Attempt not found")
+        
+    attempt.sentence_mastery = float(payload.get("sentence_mastery", 0))
+    attempt.vocabulary = float(payload.get("vocabulary", 0))
+    attempt.fluency = float(payload.get("fluency", 0))
+    attempt.pronunciation = float(payload.get("pronunciation", 0))
+    attempt.overall_score = float(payload.get("overall_score", 0))
+    attempt.feedback = payload.get("feedback", "Evaluation complete.")
+    db.commit()
+    db.refresh(attempt)
+    
+    # Update communication score for placement readiness based on evaluation
+    update_readiness(db, attempt.student_id, communication_score=attempt.overall_score)
+    return attempt
 
 
 def toggle_resume_check(db: Session, student_id: int, check_id: int) -> ResumeCheck:
@@ -1149,3 +1170,326 @@ Format your responses using beautiful markdown, highlight key metrics in bold.
     reply = groq_service.generate_chat_response(messages)
     
     return {"reply": reply}
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AI PLACEMENT QUIZ
+# ─────────────────────────────────────────────────────────────────────────────
+
+from Models.Placement import PlacementQuiz, PlacementQuizQuestion, PlacementQuizAttempt
+import json, re
+
+
+def generate_ai_placement_quiz(payload: dict) -> dict:
+    """
+    Call Groq to generate a placement quiz from a TPO prompt.
+    Returns the generated questions as a list (NOT saved to DB yet).
+    """
+    topic    = payload.get("topic", "").strip()
+    category = payload.get("category", "General Placement")
+    count    = min(int(payload.get("count", 10)), 20)
+    diff     = payload.get("difficulty", "Medium")
+
+    if not topic:
+        raise ValueError("topic is required")
+
+    from Service.GroqService import groq_service
+
+    system_prompt = f"""You are an elite placement preparation coach.
+Generate EXACTLY {count} MCQ questions for the category: {category}.
+The questions must be highly professional and suitable for campus placements.
+
+Instructions:
+1. Since the category is '{category}', ensure all questions strictly align with this domain.
+2. If the category is 'Communication', focus on verbal ability, grammar, and soft skills.
+3. If the category is 'Technical', focus on programming, algorithms, and technical concepts.
+4. Output ONLY a valid JSON array of objects with no extra text.
+
+Each question object must have:
+  "question": string,
+  "options": array of 4 strings,
+  "answer": string (must exactly match one of the options),
+  "explanation": string (1-2 sentences)
+"""
+
+    user_prompt = (
+        f"Topic: {topic}\n"
+        f"Difficulty: {diff}\n"
+        f"Number of questions: {count}\n"
+        f"Category: {category}"
+    )
+
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user",   "content": user_prompt},
+    ]
+
+    raw = groq_service.generate_chat_response(messages, max_tokens=4000)
+
+    # Extract JSON array even if model wraps it in markdown fences
+    match = re.search(r'\[.*\]', raw, re.DOTALL)
+    if not match:
+        raise ValueError("AI did not return a valid JSON array")
+
+    questions = json.loads(match.group())
+    return {"topic": topic, "difficulty": diff, "questions": questions}
+
+
+def publish_ai_placement_quiz(payload: dict, officer_id: int, db: Session) -> dict:
+    """
+    Save a generated quiz + its questions to the DB.
+    """
+    title    = payload.get("title", payload.get("topic", "AI Quiz"))
+    topic    = payload.get("topic", "")
+    diff     = payload.get("difficulty", "Medium")
+    duration = int(payload.get("duration", 15))
+    group    = payload.get("target_group", "All")
+    qs       = payload.get("questions", [])
+
+    if not qs:
+        raise ValueError("questions are required")
+
+    quiz = PlacementQuiz(
+        officer_id   = officer_id,
+        title        = title,
+        topic_prompt = topic,
+        difficulty   = diff,
+        duration     = duration,
+        target_group = group,
+        is_active    = True,
+    )
+    db.add(quiz)
+    db.flush()   # get quiz.id
+
+    for q in qs:
+        db.add(PlacementQuizQuestion(
+            quiz_id        = quiz.id,
+            question_text  = q.get("question", ""),
+            options        = q.get("options", []),
+            correct_answer = q.get("answer", ""),
+            explanation    = q.get("explanation", ""),
+        ))
+
+    db.commit()
+    db.refresh(quiz)
+    return _serialize_placement_quiz(quiz, officer_view=True)
+
+
+def get_placement_quizzes_officer(db: Session) -> list:
+    """Return all quizzes for the placement officer view (with attempt counts)."""
+    quizzes = db.query(PlacementQuiz).order_by(PlacementQuiz.created_at.desc()).all()
+    return [_serialize_placement_quiz(q, officer_view=True) for q in quizzes]
+
+
+def get_placement_quizzes_student(student_id: int, db: Session) -> list:
+    """Return active quizzes for students, with attempted flag."""
+    quizzes = db.query(PlacementQuiz).filter(PlacementQuiz.is_active == True).order_by(PlacementQuiz.created_at.desc()).all()
+    attempted_ids = {
+        a.quiz_id for a in
+        db.query(PlacementQuizAttempt.quiz_id)
+          .filter(PlacementQuizAttempt.student_id == student_id)
+          .all()
+    }
+    result = []
+    for q in quizzes:
+        data = _serialize_placement_quiz(q, officer_view=False)
+        data["attempted"] = q.id in attempted_ids
+        if q.id in attempted_ids:
+            attempt = db.query(PlacementQuizAttempt).filter(
+                PlacementQuizAttempt.quiz_id    == q.id,
+                PlacementQuizAttempt.student_id == student_id,
+            ).first()
+            if attempt:
+                data["my_score"]   = attempt.score
+                data["attempt_id"] = attempt.id
+                data["answers"]    = attempt.answers
+            else:
+                data["my_score"]   = None
+                data["attempt_id"] = None
+        result.append(data)
+    return result
+
+
+def submit_placement_quiz(quiz_id: int, student_id: int, payload: dict, db: Session) -> dict:
+    """Grade a student's quiz submission and update their aptitude score."""
+    quiz = db.query(PlacementQuiz).filter(PlacementQuiz.id == quiz_id).first()
+    if not quiz:
+        raise ValueError("Quiz not found")
+
+    # Prevent re-attempt
+    existing = db.query(PlacementQuizAttempt).filter(
+        PlacementQuizAttempt.quiz_id    == quiz_id,
+        PlacementQuizAttempt.student_id == student_id,
+    ).first()
+    if existing:
+        raise ValueError("Already attempted this quiz")
+
+    answers     = payload.get("answers", {})   # {str(q_id): selected_option}
+    time_taken  = payload.get("time_taken", 0)
+    total_q     = len(quiz.questions)
+    correct_q   = 0
+
+    for q in quiz.questions:
+        selected = answers.get(str(q.id), "")
+        if selected == q.correct_answer:
+            correct_q += 1
+
+    score_pct = round((correct_q / total_q) * 100, 1) if total_q > 0 else 0.0
+
+    attempt = PlacementQuizAttempt(
+        quiz_id    = quiz_id,
+        student_id = student_id,
+        score      = score_pct,
+        total_q    = total_q,
+        correct_q  = correct_q,
+        answers    = answers,
+        time_taken = time_taken,
+    )
+    db.add(attempt)
+
+    # Update aptitude_score in PlacementReadiness
+    pr = db.query(PlacementReadiness).filter(PlacementReadiness.student_id == student_id).first()
+    if pr:
+        # Weighted moving average: 70% existing + 30% new score
+        pr.aptitude_score = round(pr.aptitude_score * 0.7 + score_pct * 0.3, 1)
+        pr.pri_score      = _recalc_pri(pr)
+        db.add(pr)
+
+    db.commit()
+    db.refresh(attempt)
+
+    return {
+        "score":      score_pct,
+        "correct":    correct_q,
+        "total":      total_q,
+        "time_taken": time_taken,
+        "message":    f"You scored {score_pct}% ({correct_q}/{total_q} correct)",
+    }
+
+
+def get_student_quiz_attempts(db: Session, student_id: int) -> list:
+    """Officer: Get all quiz attempts for a specific student."""
+    from Models.Placement import PlacementQuizAttempt, PlacementQuiz
+    attempts = db.query(PlacementQuizAttempt).join(PlacementQuiz).filter(
+        PlacementQuizAttempt.student_id == student_id
+    ).order_by(PlacementQuizAttempt.attempted_at.desc()).all()
+
+    return [
+        {
+            "id":           a.id,
+            "quiz_id":      a.quiz_id,
+            "quiz_title":   a.quiz.title,
+            "score":        a.score,
+            "correct_q":    a.correct_q,
+            "total_q":      a.total_q,
+            "time_taken":   a.time_taken,
+            "attempted_at": a.attempted_at.isoformat() if a.attempted_at else None,
+        }
+        for a in attempts
+    ]
+
+
+def get_quiz_attempts_officer(db: Session, quiz_id: int) -> list:
+    """Officer: Get all student attempts for a specific quiz."""
+    
+    # Fetch the quiz first to use its 'attempts' relationship
+    quiz = db.query(PlacementQuiz).filter(PlacementQuiz.id == quiz_id).first()
+    if not quiz:
+        return []
+
+    result = []
+    # Using 'quiz.attempts' relationship which is proven to work in the list view
+    for a in quiz.attempts:
+        student_name = a.student.full_name if a.student else "Unknown Student"
+        student_roll = a.student.roll_number if a.student else "N/A"
+        
+        result.append({
+            "id":           a.id,
+            "student_id":   a.student_id,
+            "student_name": student_name,
+            "student_roll": student_roll,
+            "score":        a.score,
+            "correct_q":    a.correct_q,
+            "total_q":      a.total_q,
+            "time_taken":   a.time_taken,
+            "attempted_at": a.attempted_at.isoformat() if a.attempted_at else None,
+        })
+    
+    # Sort by attempted_at descending manually as relationship might be unsorted
+    result.sort(key=lambda x: x["attempted_at"] or "", reverse=True)
+    return result
+
+
+def get_quiz_attempt_details(db: Session, attempt_id: int) -> dict:
+    """Get detailed breakdown of a specific attempt (questions + student answers)."""
+    from Models.Placement import PlacementQuizAttempt, PlacementQuizQuestion
+    attempt = db.query(PlacementQuizAttempt).filter(PlacementQuizAttempt.id == attempt_id).first()
+    if not attempt:
+        raise ValueError("Attempt not found")
+
+    quiz = attempt.quiz
+    student_answers = attempt.answers or {} # { "q_id": "selected_option" }
+
+    # Group questions with the student's response
+    detailed_questions = []
+    for q in quiz.questions:
+        detailed_questions.append({
+            "id":             q.id,
+            "question_text":  q.question_text,
+            "options":        q.options,
+            "correct_answer": q.correct_answer,
+            "explanation":    q.explanation,
+            "student_answer": student_answers.get(str(q.id)),
+        })
+
+    return {
+        "id":           attempt.id,
+        "quiz_title":   quiz.title,
+        "score":        attempt.score,
+        "correct_q":    attempt.correct_q,
+        "total_q":      attempt.total_q,
+        "time_taken":   attempt.time_taken,
+        "attempted_at": attempt.attempted_at.isoformat() if attempt.attempted_at else None,
+        "questions":    detailed_questions,
+    }
+
+
+def delete_placement_quiz(quiz_id: int, officer_id: int, db: Session) -> dict:
+    """Soft-delete (deactivate) a quiz."""
+    quiz = db.query(PlacementQuiz).filter(PlacementQuiz.id == quiz_id).first()
+    if not quiz:
+        raise ValueError("Quiz not found")
+    quiz.is_active = False
+    db.commit()
+    return {"message": "Quiz deactivated"}
+
+
+def _serialize_placement_quiz(quiz: PlacementQuiz, officer_view: bool = False) -> dict:
+    data = {
+        "id":           quiz.id,
+        "title":        quiz.title,
+        "topic_prompt": quiz.topic_prompt,
+        "difficulty":   quiz.difficulty,
+        "duration":     quiz.duration,
+        "target_group": quiz.target_group,
+        "is_active":    quiz.is_active,
+        "created_at":   quiz.created_at.isoformat() if quiz.created_at else None,
+        "question_count": len(quiz.questions),
+        "questions": [
+            {
+                "id":             q.id,
+                "question_text":  q.question_text,
+                "options":        q.options,
+                # Only reveal correct answer in officer view or after submission
+                **({"correct_answer": q.correct_answer, "explanation": q.explanation} if officer_view else {}),
+            }
+            for q in quiz.questions
+        ],
+    }
+    if officer_view:
+        data["attempt_count"] = len(quiz.attempts)
+        if quiz.attempts:
+            data["avg_score"] = round(sum(a.score or 0 for a in quiz.attempts) / len(quiz.attempts), 1)
+        else:
+            data["avg_score"] = None
+    return data

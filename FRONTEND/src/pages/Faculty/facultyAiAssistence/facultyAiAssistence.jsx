@@ -14,7 +14,7 @@ let replyIdx = 0;
 
 export default function AiAssistant({ onBack }) {
   const [messages, setMessages] = useState([
-    { role:"ai", html:"Hello Dr. Prakash! 👋 I'm <strong style='color:var(--indigo-ll)'>Lucyna</strong>, your AI teaching assistant.<br/><br/>I can help you analyze student performance, generate quizzes and question papers, track attendance trends, identify at-risk students, and much more.<br/><br/>What would you like to work on today?" },
+    { role:"ai", html: "Hello Professor! 👋 I'm <strong style='color:var(--indigo-ll)'>Lucyna</strong>, your AI teaching assistant.<br/><br/>I can help you analyze student performance, generate quizzes and question papers, track attendance trends, identify at-risk students, and much more.<br/><br/>What would you like to work on today?" },
   ]);
   const [input, setInput]   = useState("");
   const [typing, setTyping] = useState(false);
@@ -74,7 +74,7 @@ export default function AiAssistant({ onBack }) {
     }
   }, [input, messages]);
 
-  const clearChat = () => { setMessages([{ role:"ai", html:"Chat cleared. How can I help you, Dr. Prakash?" }]); replyIdx = 0; };
+  const clearChat = () => { setMessages([{ role:"ai", html: "Chat cleared. How can I help you, Professor?" }]); replyIdx = 0; };
 
   return (
     <div className="ai-root">

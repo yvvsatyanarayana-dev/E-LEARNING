@@ -829,8 +829,8 @@ export default function FacultyAnalytics({ onBack }) {
         setCourseSummary(mappedCourses);
 
         const mappedTop = sData.filter(s => (s.score || 0) > 80).map((s, i) => ({
-          name: s.name, roll: s.roll, os: (s.score||0) + 1, dbms: (s.score||0) - 1, ca: (s.score||0), avg: s.score||0, trend: "up"
-        })).slice(0, 5);
+          name: s.name, roll: s.roll, os: (s.score||0), dbms: (s.score||0), ca: (s.score||0), avg: s.score||0, trend: "up"
+        })).slice(0, 10);
         setTopPerformers(mappedTop);
 
         const mappedAtRisk = sData.filter(s => s.status === "at-risk").map(s => ({
@@ -880,12 +880,6 @@ export default function FacultyAnalytics({ onBack }) {
   const handleExport = () => {
     try {
       let dataToExport = courseSummary;
-      if (!dataToExport || dataToExport.length === 0) {
-        dataToExport = [
-          { code: "CS501", name: "Advanced Algorithms", enrolled: 45, avgScore: 82, avgAttend: 88, completion: 90 },
-          { code: "CS502", name: "Machine Learning", enrolled: 60, avgScore: 78, avgAttend: 85, completion: 80 }
-        ];
-      }
       const headers = "Course Code,Course Name,Enrolled,Avg Score,Avg Attendance,Completion %\n";
       const rows = dataToExport.map(c => `"${c.code||""}","${c.name||""}",${c.enrolled||0},${c.avgScore||0},${c.avgAttend||0},${c.completion||0}`).join("\n");
       const blob = new Blob([headers + rows], { type: "text/csv;charset=utf-8;" });

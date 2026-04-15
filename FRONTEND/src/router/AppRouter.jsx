@@ -17,6 +17,9 @@ import PlacementReports from "../pages/placement/placementReports/placementRepor
 import PlacementMeeting from "../pages/placement/placementMeeting/placementMeeting";
 import StudentPlacementMeetings from "../pages/Student/studentPlacementMeetings/studentPlacementMeetings";
 import PlacementMail from "../pages/placement/placementMail/placementMail";
+import PlacementVersantEvaluation from "../pages/placement/placementVersantEvaluation/PlacementVersantEvaluation";
+import PlacementAiQuiz from "../pages/placement/placementAiQuiz/PlacementAiQuiz";
+import StudentPlacementQuizzes from "../pages/Student/studentPlacementQuizzes/StudentPlacementQuizzes";
 import GlobalCursor from "../components/GlobalCursor/GlobalCursor";
 import ToastContainer from "../components/shared/Toast/ToastContainer";
 
@@ -90,6 +93,7 @@ const router = createBrowserRouter([
   { path: "/studentdashboard/studentPlacementMeetings",  element: SD, errorElement: <ErrorBoundary /> },
   { path: "/studentdashboard/studentMail",               element: SD, errorElement: <ErrorBoundary /> },
   { path: "/studentdashboard/studentversant",            element: SD, errorElement: <ErrorBoundary /> },
+  { path: "/studentdashboard/placementQuizzes",          element: SD, errorElement: <ErrorBoundary /> },
 
   // ──────── FACULTY DASHBOARD ROUTES ────────
   {
@@ -224,6 +228,14 @@ const router = createBrowserRouter([
     path: "/placementdashboard/placementMail",
     element: <RoleRoute allowedRoles={["placement_officer","admin"]}><PlacementMail /></RoleRoute>,
     errorElement: <ErrorBoundary />,
+  },
+  {
+    path: "/placementdashboard/versant-evaluation",
+    element: <RoleRoute allowedRoles={["placement_officer","admin"]}><PlacementVersantEvaluation /></RoleRoute>,
+  },
+  {
+    path: "/placementdashboard/ai-quiz",
+    element: <RoleRoute allowedRoles={["placement_officer","admin"]}><PlacementAiQuiz /></RoleRoute>,
   },
 
 

@@ -383,7 +383,7 @@ function StatsStrip({ lecturesByCourse }) {
 }
 
 // ─── FEATURED STRIP ───────────────────────────────────────────────
-function FeaturedStrip({ courses, lecturesByCourse, onPlay }) {
+function FeaturedStrip({ courses, lecturesByCourse, featuredState, onPlay }) {
   return (
     <div className="vl-featured-strip">
       <div className="panel-ttl" style={{marginBottom:12}}>
@@ -391,7 +391,7 @@ function FeaturedStrip({ courses, lecturesByCourse, onPlay }) {
         Featured Lectures <span>Highly rated this week</span>
       </div>
       <div className="vl-featured-list">
-        {FEATURED_IDS.map(({courseId,lectureId})=>{
+        {featuredState.map(({courseId,lectureId})=>{
           const course=(courses || []).find(c=>c.id===courseId);
           const lecture=(lecturesByCourse[courseId]||[]).find(l=>l.id===lectureId);
           if(!course||!lecture) return null;
@@ -458,6 +458,7 @@ export default function StudentVideoLectures({ onBack }) {
   const [playingLecture, setPlayingLecture] = useState(null);
   const [playingCourse,  setPlayingCourse]  = useState(null);
   
+  const [featuredState, setFeaturedState]   = useState([]);
   const [coursesState, setCoursesState]     = useState(COURSES);
   const [lecturesState, setLecturesState]   = useState(LECTURES_BY_COURSE);
 
@@ -495,6 +496,11 @@ export default function StudentVideoLectures({ onBack }) {
           });
         });
         setLecturesState(byCourse);
+
+        // Derive featured from top 4 viewed lessons
+        const sortedAll = [...lessonsData].sort((a,b) => (b.views||0) - (a.views||0)).slice(0, 4);
+        setFeaturedState(sortedAll.map(l => ({ courseId: "cs"+l.course_id, lectureId: "l"+l.id })));
+
       }).catch(console.error);
     });
   }, []);
@@ -586,7 +592,7 @@ export default function StudentVideoLectures({ onBack }) {
         {/* Featured */}
         {!activeCourseId&&filterTab==="All"&&!search&&(
           <div className="panel" style={{marginBottom:20}}>
-            <div className="panel-body"><FeaturedStrip courses={coursesState} lecturesByCourse={lecturesState} onPlay={(l,c)=>{setPlayingLecture(l);setPlayingCourse(c);}}/></div>
+            <div className="panel-body"><FeaturedStrip courses={coursesState} lecturesByCourse={lecturesState} featuredState={featuredState} onPlay={(l,c)=>{setPlayingLecture(l);setPlayingCourse(c);}}/></div>
           </div>
         )}
 

@@ -5,39 +5,66 @@ import "./StudentVersantAssessment.css";
 const IcoAward = (p) => <svg {...p} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="8" r="6" /><path d="M15.477 12.89L17 22l-5-3-5 3 1.523-9.11" /></svg>;
 const IcoClock = (p) => <svg {...p} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><polyline points="12 6 12 12 16 14" /></svg>;
 const IcoChevR = (p) => <svg {...p} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6" /></svg>;
-const IcoRefresh = (p) => <svg {...p} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 4v6h-6M1 20v-6h6M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" /></svg>;
+const IcoMic = (p) => <svg {...p} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>;
+const IcoX = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
 
 const TEST_PARTS = [
-  { id: "partA", title: "Part A: Reading", desc: "Read the sentences as they appear on the screen.", type: "speak" },
-  { id: "partB", title: "Part B: Repeat", desc: "Repeat the sentence you hear.", type: "speak" },
-  { id: "partC", title: "Part C: Questions", desc: "Give a short answer to the question using your voice.", type: "speak" },
-  { id: "partD", title: "Part D: Sentence Builds", desc: "Rearrange the word groups into a correct sentence aloud.", type: "speak" },
-  { id: "partE", title: "Part E: Story Retelling", desc: "Listen to a short story and summarize it in your own words.", type: "speak" },
-  { id: "partF", title: "Part F: Open Questions", desc: "Speak for 45 seconds about the given topic.", type: "speak" },
-  { id: "partG", title: "Part G: Dictation", desc: "Listen carefully and type the sentence exactly as you hear it.", type: "type" },
-  { id: "partH", title: "Part H: Passage Reconstruction", desc: "Read the passage for 30s, then type it from memory.", type: "type" }
+  { id: "partA", title: "Part A: Reading", desc: "Read the sentences as they appear on the screen.", type: "speak", count: 8 },
+  { id: "partB", title: "Part B: Repeat", desc: "Listen carefully and repeat the sentence exactly.", type: "speak", count: 16 },
+  { id: "partC", title: "Part C: Short Answer Questions", desc: "Answer the question with a single word or short phrase.", type: "speak", count: 8 },
+  { id: "partD", title: "Part D: Sentence Builds", desc: "Rearrange the spoken phrases into a complete sentence.", type: "speak", count: 8 },
+  { id: "partE", title: "Part E: Story Retelling", desc: "Listen to the story and retell it with as much detail as possible.", type: "speak", count: 2 },
+  { id: "partF", title: "Part F: Open Questions", desc: "Express your opinion on the topic for 40 seconds.", type: "speak", count: 2 }
 ];
 
 const QUESTIONS = {
   partA: [
     "Traffic is heavy in the city during rush hour.",
     "The new software update will be released tomorrow morning.",
-    "Agricultural technology is essential for sustainable food production."
+    "Agricultural technology is essential for sustainable food production.",
+    "Please wait for the signal before starting your response.",
+    "Global economies are becoming increasingly interconnected.",
+    "Innovative solutions are required for urban development.",
+    "Scientific research contributes to medical breakthroughs.",
+    "The conference has been rescheduled for next month."
   ],
   partB: [
     "Please leave your contact details at the reception desk.",
     "The presentation has been rescheduled for next Tuesday.",
-    "Would you like to join us for a brief meeting after lunch?"
+    "Would you like to join us for a brief meeting after lunch?",
+    "Can you help me find the nearest exit?",
+    "The report must be submitted by the end of the day.",
+    "It is important to follow all safety guidelines.",
+    "We appreciate your feedback on the new project.",
+    "Information technology is a rapidly growing field.",
+    "The train is expected to arrive on platform four.",
+    "Students should check their emails regularly for updates.",
+    "Our team is working hard to meet the deadline.",
+    "Environmental protection is a global responsibility.",
+    "The library remains open until eight o'clock in the evening.",
+    "Please ensure your microphone is working correctly.",
+    "Customer satisfaction is our top priority.",
+    "The workshop will provide hands-on experience for everyone."
   ],
   partC: [
     { q: "Is a cow an animal or a machine?", a: "animal" },
     { q: "Do you wear a hat on your head or your feet?", a: "head" },
-    { q: "Which is longer: a minute or an hour?", a: "hour" }
+    { q: "Which is longer: a minute or an hour?", a: "hour" },
+    { q: "Is ice hot or cold?", a: "cold" },
+    { q: "Do you read a book or eat it?", a: "read" },
+    { q: "If you are hungry, do you want food or sleep?", a: "food" },
+    { q: "Is a circle round or square?", a: "round" },
+    { q: "Which is bigger: an ant or an elephant?", a: "elephant" }
   ],
   partD: [
     { words: ["was", "the meeting", "very productive"], correct: "the meeting was very productive" },
     { words: ["he", "to the office", "is going"], correct: "he is going to the office" },
-    { words: ["we", "your feedback", "appreciate"], correct: "we appreciate your feedback" }
+    { words: ["we", "your feedback", "appreciate"], correct: "we appreciate your feedback" },
+    { words: ["at the station", "the train", "arrived"], correct: "the train arrived at the station" },
+    { words: ["lunch", "we", "had together"], correct: "we had lunch together" },
+    { words: ["the report", "finished", "she"], correct: "she finished the report" },
+    { words: ["is", "the weather", "sunny"], correct: "the weather is sunny" },
+    { words: ["learning", "everyone", "is"], correct: "everyone is learning" }
   ],
   partE: [
     "John wanted to go hiking, but it started raining. He decided to read a book instead. Later, the sun came out and he went for a short walk.",
@@ -46,19 +73,11 @@ const QUESTIONS = {
   partF: [
     "Do you prefer working in a team or independently? Why?",
     "Describe a challenging project you've worked on and how you handled it."
-  ],
-  partG: [
-    "The financial report must be submitted by Friday afternoon.",
-    "Global temperatures have been rising steadily over the past decade.",
-    "Innovative solutions are required to solve complex urban issues."
-  ],
-  partH: [
-    "Modern cities face numerous challenges, from traffic congestion to environmental pollution. To build a sustainable future, urban planners must prioritize green spaces and efficient public transportation. This approach not only reduces carbon footprints but also improves the overall quality of life for residents."
   ]
 };
 
 export default function StudentVersantAssessment() {
-  const [view, setView] = useState("start"); // start, permissions, testing, results, history
+  const [view, setView] = useState("start"); // start, permissions, testing, submitted, history, results
   const [currentPart, setCurrentPart] = useState(0);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState([]);
@@ -66,9 +85,11 @@ export default function StudentVersantAssessment() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
-  const [inputText, setInputText] = useState("");
+  const [partTimer, setPartTimer] = useState(0); 
+  const [replayCount, setReplayCount] = useState(0);
+  const [playCount, setPlayCount] = useState(0);
+  const [showReport, setShowReport] = useState(null);
   
-  // Hardware & Listening State
   const [stream, setStream] = useState(null);
   const [micActive, setMicActive] = useState(false);
   const [camActive, setCamActive] = useState(false);
@@ -80,20 +101,56 @@ export default function StudentVersantAssessment() {
   const canvasRef = useRef();
   const analyzerRef = useRef();
   const recognitionRef = useRef();
+  const animationFrameRef = useRef();
 
   useEffect(() => {
     fetchHistory();
     return () => {
        if (stream) stream.getTracks().forEach(t => t.stop());
+       if (intervalRef.current) clearInterval(intervalRef.current);
+       if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
     };
   }, []);
+
+  // Sync Video stream whenever view or stream changes
+  useEffect(() => {
+    if (stream && videoRef.current) {
+      videoRef.current.srcObject = stream;
+    }
+  }, [view, stream]);
+
+  useEffect(() => {
+    let partInterval;
+    if (view === "testing" && TEST_PARTS[currentPart].id === "partF") {
+      setPartTimer(40);
+      partInterval = setInterval(() => {
+        setPartTimer(prev => {
+          if (prev <= 1) {
+            clearInterval(partInterval);
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      setPartTimer(0);
+    }
+    return () => clearInterval(partInterval);
+  }, [currentPart, currentQuestion, view]);
+
+  // Auto-advance for timed questions (Part F)
+  useEffect(() => {
+    if (view === "testing" && TEST_PARTS[currentPart].id === "partF" && partTimer === 0 && timer > 0) {
+      nextQuestion();
+    }
+  }, [partTimer]);
 
   const fetchHistory = async () => {
     try {
       const resp = await api.get("/student/versant/history");
       setHistory(resp);
     } catch (err) {
-      console.error("Failed to fetch Versant history:", err);
+      console.error("Failed to fetch history:", err);
     }
   };
 
@@ -106,47 +163,70 @@ export default function StudentVersantAssessment() {
       if (videoRef.current) videoRef.current.srcObject = s;
       setupVisualizer(s);
     } catch (err) {
-      console.error("Hardware access denied:", err);
-      alert("Camera and Microphone access are required for the real Versant assessment.");
+      console.error("Access denied:", err);
+      alert("Microphone and Camera access are required.");
     }
   };
 
   const setupVisualizer = (s) => {
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const source = audioCtx.createMediaStreamSource(s);
-    const analyzer = audioCtx.createAnalyser();
-    analyzer.fftSize = 256;
-    source.connect(analyzer);
-    analyzerRef.current = analyzer;
-    draw();
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const source = audioCtx.createMediaStreamSource(s);
+      const analyzer = audioCtx.createAnalyser();
+      analyzer.fftSize = 64;
+      source.connect(analyzer);
+      analyzerRef.current = analyzer;
+      draw();
+    } catch (e) {
+      console.error("Visualizer failed:", e);
+    }
   };
 
   const draw = () => {
     if (!canvasRef.current || !analyzerRef.current) return;
-    const ctx = canvasRef.current.getContext("2d");
-    const bufferLength = analyzerRef.current.frequencyBinCount;
+    const analyzer = analyzerRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+    const bufferLength = analyzer.frequencyBinCount;
     const dataArray = new Uint8Array(bufferLength);
     
     const renderFrame = () => {
-      if (!analyzerRef.current) return;
-      requestAnimationFrame(renderFrame);
-      analyzerRef.current.getByteFrequencyData(dataArray);
-      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
+      if (!canvasRef.current || !analyzerRef.current) {
+        if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
+        return;
+      }
       
-      const barWidth = (canvasRef.current.width / bufferLength) * 2.5;
+      animationFrameRef.current = requestAnimationFrame(renderFrame);
+      analyzer.getByteFrequencyData(dataArray);
+      
+      const width = canvas.width;
+      const height = canvas.height;
+      
+      ctx.clearRect(0, 0, width, height);
+      
+      const barWidth = (width / bufferLength) * 2;
       let x = 0;
+
       for (let i = 0; i < bufferLength; i++) {
-        const barHeight = dataArray[i] / 2;
-        ctx.fillStyle = `rgb(91, 78, 248)`;
-        ctx.fillRect(x, canvasRef.current.height - barHeight, barWidth, barHeight);
-        x += barWidth + 1;
+        const barHeight = (dataArray[i] / 255) * height;
+        ctx.fillStyle = `rgba(91, 78, 248, ${0.4 + (barHeight / height)})`;
+        ctx.fillRect(x, height - barHeight, barWidth - 1, barHeight);
+        x += barWidth;
       }
     };
     renderFrame();
   };
 
-  const startTest = () => {
-    setView("permissions");
+  const startTest = () => setView("permissions");
+
+  const beginActualTest = () => {
+    setView("testing");
+    setCurrentPart(0);
+    setCurrentQuestion(0);
+    setAnswers([]);
+    setTimer(0);
+    setTranscription("");
+    intervalRef.current = setInterval(() => setTimer(t => t + 1), 1000);
   };
 
   const stopHardware = () => {
@@ -156,79 +236,86 @@ export default function StudentVersantAssessment() {
     }
     setCamActive(false);
     setMicActive(false);
+    if (animationFrameRef.current) cancelAnimationFrame(animationFrameRef.current);
   };
 
-  const speakPrompt = (text) => {
+  const stopAssessment = () => {
+    if (window.confirm("Are you sure you want to stop the assessment? All current progress will be lost.")) {
+       stopHardware();
+       if (intervalRef.current) clearInterval(intervalRef.current);
+       setTimer(0);
+       setView("start");
+    }
+  };
+
+  const speakPrompt = (text, onEnd) => {
+    window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = "en-US";
-    utterance.rate = 0.9;
+    utterance.rate = 1.0;
+    if (onEnd) utterance.onend = onEnd;
     window.speechSynthesis.speak(utterance);
+  };
+
+  const handleManualPlayback = () => {
+    const part = TEST_PARTS[currentPart];
+    const q = QUESTIONS[part.id][currentQuestion];
+    const text = typeof q === "string" ? q : q.q || q.words.join(", ");
+
+    if (part.id === "partE") {
+      setReplayCount(1);
+      setPlayCount(prev => prev + 1);
+      speakPrompt(text, () => {
+        setTimeout(() => {
+          speakPrompt(text, () => setReplayCount(0));
+        }, 1500);
+      });
+    } else {
+      if (playCount >= 2) return;
+      setPlayCount(prev => prev + 1);
+      speakPrompt(text);
+    }
   };
 
   const startListening = () => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SpeechRecognition) {
-      alert("Speech Recognition not supported in this browser.");
-      return;
-    }
+    if (!SpeechRecognition) return alert("Speech recognition not supported.");
     
-    const recognition = new SpeechRecognition();
-    recognition.lang = "en-US";
-    recognition.continuous = true;
-    recognition.interimResults = true;
+    const rec = new SpeechRecognition();
+    rec.lang = "en-US";
+    rec.continuous = true;
+    rec.interimResults = true;
     
-    recognition.onstart = () => setIsListening(true);
-    recognition.onend = () => setIsListening(false);
-    recognition.onresult = (event) => {
-      let interim = "";
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          setTranscription(prev => (prev + " " + event.results[i][0].transcript).trim());
-        } else {
-          interim += event.results[i][0].transcript;
-        }
+    rec.onstart = () => setIsListening(true);
+    rec.onend = () => setIsListening(false);
+    rec.onresult = (e) => {
+      let finalStr = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) finalStr += e.results[i][0].transcript + " ";
       }
+      if (finalStr) setTranscription(prev => (prev + " " + finalStr).trim());
     };
     
-    recognitionRef.current = recognition;
-    recognition.start();
+    recognitionRef.current = rec;
+    rec.start();
   };
 
   const stopListening = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-    }
+    if (recognitionRef.current) recognitionRef.current.stop();
   };
-
-  const beginActualTest = () => {
-    setView("testing");
-    setCurrentPart(0);
-    setCurrentQuestion(0);
-    setAnswers([]);
-    setTimer(0);
-    setInputText("");
-    setTranscription("");
-    intervalRef.current = setInterval(() => {
-      setTimer(t => t + 1);
-    }, 1000);
-  };
-
-  const [showPassage, setShowPassage] = useState(true);
 
   const nextQuestion = () => {
-    const partKey = TEST_PARTS[currentPart].id;
-    const questions = QUESTIONS[partKey];
-    
-    // Stop recording if active
+    const questions = QUESTIONS[TEST_PARTS[currentPart].id];
     stopListening();
     
-    // Save current answer
-    const currentAnswer = TEST_PARTS[currentPart].type === "speak" ? transcription : inputText;
-    setAnswers([...answers, { part: partKey, questionIdx: currentQuestion, text: currentAnswer }]);
+    setAnswers([...answers, { 
+      part: TEST_PARTS[currentPart].id, 
+      qIdx: currentQuestion, 
+      resp: transcription 
+    }]);
     
-    setInputText("");
     setTranscription("");
-    setShowPassage(true);
+    setPlayCount(0);
 
     if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
@@ -242,59 +329,61 @@ export default function StudentVersantAssessment() {
 
   const finishTest = async () => {
     stopHardware();
-    clearInterval(intervalRef.current);
+    if (intervalRef.current) clearInterval(intervalRef.current);
     setLoading(true);
     
-    const mockScores = {
-      sentence_mastery: 75 + Math.random() * 20,
-      vocabulary: 80 + Math.random() * 15,
-      fluency: 70 + Math.random() * 20,
-      pronunciation: 72 + Math.random() * 18,
+    const payload = {
       overall_score: 0,
-      feedback: "Complete assessment analyzed via voice and text. Your vocabulary is strong, but focus on pronunciation in Part B."
+      status: "pending_evaluation",
+      details: answers,
+      duration: timer
     };
-    mockScores.overall_score = (mockScores.sentence_mastery + mockScores.vocabulary + mockScores.fluency + mockScores.pronunciation) / 4;
 
     try {
-      const resp = await api.post("/student/versant/submit", mockScores);
-      setResult(resp);
-      setView("results");
+      await api.post("/student/versant/submit", payload);
+      setView("submitted");
       fetchHistory();
     } catch (err) {
-      console.error("Failed to submit Versant test:", err);
+      console.error(err);
+      setView("submitted");
     } finally {
       setLoading(false);
     }
   };
 
   const formatTime = (s) => {
-    const m = Math.floor(s / 60);
-    const sec = s % 60;
-    return `${m}:${sec.toString().padStart(2, "0")}`;
+    const mins = Math.floor(s / 60);
+    const secs = s % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
+
+  // --- RENDERING ---
 
   if (view === "start") {
     return (
-      <div className="versant-container">
-        <div className="versant-card" style={{ padding: "80px", alignItems: "center", textAlign: "center" }}>
-          <div style={{ width: "80px", height: "80px", background: "rgba(91, 78, 248, 0.1)", borderRadius: "50%", display: "flex", alignItems: "center", justifyContent: "center", color: "var(--indigo)", marginBottom: "32px", fontSize: "32px" }}>
-            <IcoAward size={32} />
+      <div className="versant-wrapper">
+        <div className="v-card v-start-card">
+          <div className="v-card-header">
+            <div className="v-icon-box"><IcoAward size={32} /></div>
+            <h1>Versant English Placement Test</h1>
+            <p>This automated assessment evaluates your English speaking and listening skills. Your results will be sent to the Training & Placement Officer for evaluation.</p>
           </div>
-          <h1>Versant Assessment</h1>
-          <p style={{ color: "var(--text3)", maxWidth: "600px", marginBottom: "40px" }}>
-            Measure your speaking, listening, reading, and writing skills. This assessment requires <strong>Camera</strong> and <strong>Microphone</strong> access for monitoring.
-          </p>
-          
-          <div className="v-parts-list">
-             {TEST_PARTS.map(p => (
-               <div key={p.id} className="v-part-card">
-                  <div className="v-part-ttl">{p.title}</div>
-                  <div className="v-part-desc">{p.type === "speak" ? "🔊 Speaking/Voice" : "⌨️ Writing/Typing"}</div>
-               </div>
+
+          <div className="v-rounds-list">
+             {TEST_PARTS.map((p, i) => (
+                <div key={p.id} className="v-round-item">
+                   <div className="v-round-num">{String.fromCharCode(65 + i)}</div>
+                   <div className="v-round-info">
+                      <h3>{p.title}</h3>
+                      <p>{p.count} items • {p.desc}</p>
+                   </div>
+                </div>
              ))}
           </div>
 
-          <button className="v-btn-next" onClick={startTest}>Get Started</button>
+          <div className="v-card-footer">
+            <button className="v-btn v-btn-primary" onClick={startTest}>Get Started</button>
+          </div>
         </div>
       </div>
     );
@@ -302,31 +391,32 @@ export default function StudentVersantAssessment() {
 
   if (view === "permissions") {
     return (
-      <div className="versant-container">
-        <div className="versant-card" style={{ textAlign: "center", padding: "60px" }}>
-           <h1>Technical Check</h1>
-           <p style={{ color: "var(--text3)", marginBottom: "40px" }}>Please allow camera and mic permissions to continue.</p>
+      <div className="versant-wrapper">
+        <div className="v-card v-centered-card">
+           <h2>Hardware Check</h2>
+           <p>Please allow access to your camera and microphone to begin the proctored test.</p>
            
-           <div style={{ display: "flex", gap: "40px", justifyContent: "center", marginBottom: "40px" }}>
-              <div className={`v-hw-check ${camActive ? "ok" : ""}`}>
-                 <div className="v-hw-icon">📹</div>
-                 <div>Camera</div>
+           <div className="v-preview-container">
+              <div className="v-video-box">
+                 <video ref={videoRef} autoPlay muted playsInline />
+                 {!camActive && <div className="v-video-placeholder">Camera Offline</div>}
               </div>
-              <div className={`v-hw-check ${micActive ? "ok" : ""}`}>
-                 <div className="v-hw-icon">🎤</div>
-                 <div>Microphone</div>
+              <div className="v-audio-bar">
+                 <canvas ref={canvasRef} width="300" height="40" />
+                 <div className="v-mic-status">
+                    <IcoMic className={micActive ? "active" : ""} />
+                    <span>{micActive ? "Microphone Ready" : "Microphone Offline"}</span>
+                 </div>
               </div>
            </div>
 
-           <div className="v-hw-preview">
-              <video ref={videoRef} autoPlay muted playsInline />
-              <canvas ref={canvasRef} width="400" height="100" />
-           </div>
-
-           <div style={{ display: "flex", gap: "16px", justifyContent: "center" }}>
-              {!camActive && <button className="v-btn-next" onClick={handlePermissions}>Allow Hardware</button>}
-              {camActive && <button className="v-btn-next" onClick={beginActualTest}>Start Test Now</button>}
-              <button className="btn-ghost" onClick={() => setView("start")}>Cancel</button>
+           <div className="v-btn-group">
+              {!camActive ? (
+                <button className="v-btn v-btn-primary" onClick={handlePermissions}>Grant Access</button>
+              ) : (
+                <button className="v-btn v-btn-primary" onClick={beginActualTest}>Begin Test</button>
+              )}
+              <button className="v-btn v-btn-outline" onClick={() => setView("start")}>Cancel</button>
            </div>
         </div>
       </div>
@@ -338,197 +428,206 @@ export default function StudentVersantAssessment() {
     const questions = QUESTIONS[part.id];
     const q = questions[currentQuestion];
 
-    // Auto-hiding passage logic for Part H
-    if (part.id === "partH" && showPassage) {
-      setTimeout(() => setShowPassage(false), 30000); // 30 seconds
-    }
-
-    // Voice synthesize for certain parts
-    const handleVoicePrompt = () => {
-       if (part.id === "partB" || part.id === "partC" || part.id === "partD" || part.id === "partE" || part.id === "partG") {
-         speakPrompt(typeof q === "string" ? q : q.q || q.words.join(", "));
-       }
+    const playPrompt = () => {
+      if (part.id === "partA" || part.id === "partF") return;
+      speakPrompt(typeof q === "string" ? q : q.q || q.words.join(", "));
     };
 
     return (
-      <div className="versant-container">
-        {/* PROCTORING PIP */}
+      <div className="versant-wrapper v-testing-mode">
         <div className="v-proctor-pip">
            <video ref={videoRef} autoPlay muted playsInline />
-           <div className="v-rec-dot" />
+           <div className="v-pip-label">REC • LIVE</div>
         </div>
 
-        <div className="versant-card">
-          <div className="versant-header">
-            <div className="v-header-left">
-              <h1>{part.title} {part.type === "speak" ? "🔊" : "⌨️"}</h1>
-              <p>Section {currentPart + 1} · Question {currentQuestion + 1} of {questions.length}</p>
-            </div>
-            <div className="v-timer"><IcoClock /> {formatTime(timer)}</div>
+        <div className="v-card v-test-card">
+          <div className="v-test-header">
+             <div className="v-part-info">
+                <span className="v-badge">{part.title}</span>
+                <span className="v-q-count">Item {currentQuestion + 1} of {questions.length}</span>
+             </div>
+             <div className="v-header-right">
+                {part.id === "partF" && partTimer > 0 && (
+                   <div className="v-countdown-badge">
+                      <IcoClock /> {partTimer}s remaining
+                   </div>
+                )}
+                <div className="v-timer"><IcoClock /> Session: {formatTime(timer)}</div>
+                <button className="v-btn-stop" onClick={stopAssessment} title="Stop Assessment">Exit</button>
+             </div>
           </div>
-          
-          <div className="versant-steps">
-            {TEST_PARTS.map((p, idx) => (
-              <div key={p.id} className={`v-step ${idx === currentPart ? "active" : idx < currentPart ? "complete" : ""}`} />
-            ))}
+
+          <div className="v-progress-bar">
+             <div className="v-progress-fill" style={{ width: `${((currentPart) / TEST_PARTS.length) * 100}%` }} />
           </div>
 
-          <div className="versant-content">
-            <div className="v-instruction">{part.desc}</div>
-            
-            <div className="v-test-area">
-              {/* Part A: Reading */}
-              {part.id === "partA" && <div className="v-sentence-large">"{q}"</div>}
+          <div className="v-test-content">
+             <p className="v-inst">{part.desc}</p>
+             
+             <div className="v-question-area">
+                {part.id === "partA" && <h2 className="v-read-text">{q}</h2>}
+                
+                {part.id === "partB" && (
+                   <div className="v-listen-area">
+                       <button className="v-btn-play" onClick={handleManualPlayback} disabled={playCount >= 2}>
+                          {playCount >= 2 ? "❌ Plays Exhausted" : "▶ Play Audio"}
+                       </button>
+                   </div>
+                )}
 
-              {/* Part B/C/D/E: Voice/Listening */}
-              {(part.id === "partB" || part.id === "partC" || part.id === "partD" || part.id === "partE") && (
-                <div style={{ textAlign: "center" }}>
-                   <button className="v-btn-play" onClick={handleVoicePrompt}>🔊 Play Audio</button>
-                   <p style={{ marginTop: "20px", color: "var(--text3)" }}>Listen carefully and respond using your voice.</p>
-                   {part.id === "partD" && <div className="v-word-chips">{q.words.map((w, i) => <span key={i} className="v-chip">{w}</span>)}</div>}
-                   {transcription && <div className="v-transcription-live">Live: {transcription}</div>}
+                {part.id === "partC" && (
+                   <div className="v-listen-area">
+                       <button className="v-btn-play" onClick={handleManualPlayback} disabled={playCount >= 2}>
+                          {playCount >= 2 ? "❌ Plays Exhausted" : "▶ Play Question"}
+                       </button>
+                   </div>
+                )}
+
+                {part.id === "partD" && (
+                   <div className="v-listen-area">
+                       <button className="v-btn-play" onClick={handleManualPlayback} disabled={playCount >= 2}>
+                          {playCount >= 2 ? "❌ Plays Exhausted" : "▶ Play Phrases"}
+                       </button>
+                      <div className="v-word-chips">
+                         {q.words.map((w, i) => <span key={i} className="v-chip">{w}</span>)}
+                      </div>
+                   </div>
+                )}
+
+                {part.id === "partE" && (
+                   <div className="v-listen-area">
+                       <button className="v-btn-play" onClick={handleManualPlayback} disabled={playCount >= 1 || replayCount > 0}>
+                          {playCount >= 1 ? "❌ Content Played" : "▶ Read Story Twice"}
+                       </button>
+                   </div>
+                )}
+
+                {part.id === "partF" && <h2 className="v-opinion-text">{q}</h2>}
+             </div>
+
+             <div className="v-response-area">
+                {isListening && <canvas ref={canvasRef} className="v-visualizer-canvas" width="200" height="30" />}
+                <div className="v-recording-hud">
+                   <div className={`v-rec-dot ${isListening ? "active" : ""}`} />
+                   <span>{isListening ? "Listening..." : "Microphone Idle"}</span>
                 </div>
-              )}
-
-              {/* Part F: Open Question */}
-              {part.id === "partF" && (
-                 <div style={{ textAlign: "center" }}>
-                    <div className="v-sentence-large">"{q}"</div>
-                    <p style={{ marginTop: "24px", color: "var(--indigo-ll)" }}>Recording for 45 seconds...</p>
-                 </div>
-              )}
-
-              {/* Part G: Dictation */}
-              {part.id === "partG" && (
-                <div style={{ textAlign: "center" }}>
-                   <button className="v-btn-play" onClick={handleVoicePrompt}>🔊 Play Sentence</button>
-                   <textarea className="v-text-input" rows="3" placeholder="Type what you heard..." value={inputText} onChange={e => setInputText(e.target.value)} />
-                </div>
-              )}
-
-              {/* Part H: Passage Reconstruction */}
-              {part.id === "partH" && (
-                <div>
-                   {showPassage ? (
-                     <div className="v-passage">"{q}"</div>
-                   ) : (
-                     <div className="v-passage-hidden">The passage is now hidden. Reconstruction in progress.</div>
-                   )}
-                   {!showPassage && <textarea className="v-text-input" rows="6" placeholder="Reconstruct the passage from memory..." value={inputText} onChange={e => setInputText(e.target.value)} />}
-                </div>
-              )}
-
-              {/* RECORDING CONTROLS FOR SPEAK PARTS */}
-              {part.type === "speak" && (
-                <div className="v-recording-ctrl">
-                   <canvas ref={canvasRef} className="v-mini-visualizer" />
+                {transcription && <div className="v-transcript">"{transcription}..."</div>}
+                <div className="v-controls">
                    {!isListening ? (
-                     <button className="v-rec-btn" onClick={startListening}>🎤 Respond Aloud</button>
+                     <button className="v-btn v-btn-mic" onClick={startListening}><IcoMic /> Start Speaking</button>
                    ) : (
-                     <button className="v-rec-btn recording" onClick={stopListening}>⏹ Stop & Review</button>
+                     <button className="v-btn v-btn-mic active" onClick={stopListening}><IcoMic /> Stop Speaking</button>
                    )}
                 </div>
-              )}
-            </div>
+             </div>
           </div>
 
-          <div className="v-controls">
-            <div className="v-hints">
-               {isListening && <span className="v-status-listening">Recording active...</span>}
-            </div>
-            <button className="v-btn-next" onClick={nextQuestion}>
-              {currentPart === TEST_PARTS.length - 1 && currentQuestion === questions.length - 1 ? "Finish Test" : "Next Task"}
-              <IcoChevR />
-            </button>
+          <div className="v-card-footer">
+             <button className="v-btn v-btn-primary" onClick={nextQuestion}>
+                {currentPart === TEST_PARTS.length - 1 && currentQuestion === questions.length - 1 ? "Finish Test" : "Next Item"}
+                <IcoChevR />
+             </button>
           </div>
         </div>
       </div>
     );
   }
 
-  if (view === "results") {
-    if (loading) return (
-      <div className="versant-container">
-        <div className="versant-card" style={{ display: "flex", alignItems: "center", justifyContent: "center" }}>
-           <div style={{ animation: "pulse 1.5s infinite", fontSize: "20px", color: "var(--text3)" }}>Lucyna AI is analyzing your performance...</div>
-        </div>
-      </div>
-    );
-
+  if (view === "submitted") {
     return (
-      <div className="versant-container">
-        <div className="versant-card" style={{ padding: "48px" }}>
-          <div style={{ marginBottom: "32px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h1 style={{ margin: 0 }}>Performance Report</h1>
-            <button className="btn-ghost" onClick={() => setView("start")}><IcoRefresh /> Retake Test</button>
-          </div>
-
-          <div className="v-results">
-            <div className="v-overall-score">
-              <div className="v-overall-val">{Math.round(result.overall_score)}</div>
-              <div className="v-overall-lbl">Overall Score</div>
+      <div className="versant-wrapper">
+         <div className="v-card v-centered-card v-success-card">
+            <div className="v-success-icon">✓</div>
+            <h2>Assessment Submitted</h2>
+            <p>Your placement test has been successfully uploaded.</p>
+            <div className="v-notice">
+               Your recording and metadata have been forwarded to the <strong>Training & Placement Officer (TPO)</strong>. They will evaluate your performance and publish your marks soon.
             </div>
-
-            <div className="v-result-scores">
-               {[
-                 { label: "Sentence Mastery", val: result.sentence_mastery, color: "var(--indigo)" },
-                 { label: "Vocabulary", val: result.vocabulary, color: "var(--teal)" },
-                 { label: "Fluency", val: result.fluency, color: "var(--amber)" },
-                 { label: "Pronunciation", val: result.pronunciation, color: "var(--rose)" },
-               ].map(s => (
-                 <div key={s.label} className="v-score-card">
-                   <div className="v-sc-label">{s.label}</div>
-                   <div className="v-sc-val">{Math.round(s.val)}<span>/100</span></div>
-                   <div className="v-score-bar"><div className="v-score-fill" style={{ width: `${s.val}%`, background: s.color }} /></div>
-                 </div>
-               ))}
-            </div>
-
-            <div className="v-feedback-card">
-               <div style={{ fontWeight: "700", marginBottom: "8px", display: "flex", alignItems: "center", gap: "8px" }}>
-                 <span>💡</span> AI Insights & Feedback
-               </div>
-               <p style={{ margin: 0, lineHeight: "1.6" }}>{result.feedback}</p>
-            </div>
-          </div>
-
-          <div style={{ marginTop: "48px", textAlign: "center" }}>
-            <button className="v-btn-next" style={{ margin: "0 auto" }} onClick={() => setView("start")}>Back to Dashboard</button>
-          </div>
-        </div>
+            <button className="v-btn v-btn-primary" onClick={() => setView("start")}>Finish</button>
+         </div>
       </div>
     );
   }
 
   if (view === "history") {
     return (
-      <div className="versant-container">
-        <div className="versant-card" style={{ padding: "48px" }}>
-           <div style={{ marginBottom: "32px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <h1 style={{ margin: 0 }}>Versant History</h1>
-            <button className="v-btn-next" onClick={() => setView("start")}>New Test</button>
+      <div className="versant-wrapper">
+        <div className="v-card">
+          <div className="v-card-header">
+             <h2>Test History</h2>
+             <button className="v-btn v-btn-outline" onClick={() => setView("start")}>Back</button>
           </div>
-
-          <div className="v-history">
-            {history.map(h => (
-              <div key={h.id} className="v-history-item">
-                <div>
-                   <div style={{ fontWeight: "600", marginBottom: "4px" }}>English Proficiency Test</div>
-                   <div className="v-history-date">{new Date(h.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</div>
-                </div>
-                <div style={{ display: "flex", gap: "40px", alignItems: "center" }}>
-                   <div style={{ textAlign: "center" }}>
-                      <div className="v-history-score">{Math.round(h.overall_score)}</div>
-                      <div style={{ fontSize: "10px", color: "var(--text3)" }}>Overall</div>
+          <div className="v-history-list">
+             {history.length === 0 ? (
+                <p className="v-empty">No tests taken yet.</p>
+             ) : (
+                history.map(h => (
+                   <div key={h.id} className={`v-history-item ${h.status === "graded" ? "clickable" : ""}`} onClick={() => h.status === "graded" && setShowReport(h)}>
+                      <div className="v-h-main">
+                         <strong>Versant Assessment</strong>
+                         <span>{new Date(h.created_at).toLocaleDateString()}</span>
+                      </div>
+                      <div className="v-h-stats">
+                         {h.status === "pending_evaluation" ? (
+                            <span className="v-badge v-badge-pending">Pending Review</span>
+                         ) : (
+                            <div className="v-h-graded">
+                               <span className="v-score">{Math.round(h.overall_score)}/100</span>
+                               <span className="v-label-sml">Click to view report</span>
+                            </div>
+                         )}
+                      </div>
                    </div>
-                   <button className="btn-ghost" style={{ padding: "6px 12px", fontSize: "12px" }} onClick={() => { setResult(h); setView("results"); }}>View Full Report</button>
-                </div>
-              </div>
-            ))}
+                ))
+             )}
           </div>
-
-          <button className="btn-ghost" style={{ marginTop: "32px" }} onClick={() => setView("start")}>← Back</button>
         </div>
+
+        {/* DETAILED REPORT MODAL */}
+        {showReport && (
+           <div className="v-modal-overlay" onClick={() => setShowReport(null)}>
+              <div className="v-modal-card" onClick={e => e.stopPropagation()}>
+                 <div className="v-modal-head">
+                    <h3>Performance Report</h3>
+                    <button className="v-btn-close" onClick={() => setShowReport(null)}><IcoX /></button>
+                 </div>
+                 <div className="v-modal-body">
+                    <div className="v-overall-circle">
+                       <span className="v-oc-val">{Math.round(showReport.overall_score)}</span>
+                       <span className="v-oc-lbl">Overall Score</span>
+                    </div>
+                    
+                    <div className="v-metrics-grid">
+                       <div className="v-metric">
+                          <label>Sentence Mastery</label>
+                          <div className="v-m-bar"><div className="v-m-fill" style={{ width: `${showReport.sentence_mastery}%` }} /></div>
+                          <span>{showReport.sentence_mastery}</span>
+                       </div>
+                       <div className="v-metric">
+                          <label>Vocabulary</label>
+                          <div className="v-m-bar"><div className="v-m-fill" style={{ width: `${showReport.vocabulary}%` }} /></div>
+                          <span>{showReport.vocabulary}</span>
+                       </div>
+                       <div className="v-metric">
+                          <label>Fluency</label>
+                          <div className="v-m-bar"><div className="v-m-fill" style={{ width: `${showReport.fluency}%` }} /></div>
+                          <span>{showReport.fluency}</span>
+                       </div>
+                       <div className="v-metric">
+                          <label>Pronunciation</label>
+                          <div className="v-m-bar"><div className="v-m-fill" style={{ width: `${showReport.pronunciation}%` }} /></div>
+                          <span>{showReport.pronunciation}</span>
+                       </div>
+                    </div>
+
+                    <div className="v-feedback-box">
+                       <h4>TPO Feedback</h4>
+                       <p>{showReport.feedback || "No specific feedback provided."}</p>
+                    </div>
+                 </div>
+              </div>
+           </div>
+        )}
       </div>
     );
   }

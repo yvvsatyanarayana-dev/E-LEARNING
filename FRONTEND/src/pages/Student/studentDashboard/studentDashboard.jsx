@@ -8,6 +8,7 @@ import StudentDrives from "../studentDrives/studentDrives";
 import StudentProfile from "../studentProfile/studentProfile";
 import StudentResume from "../studentResume/studentResume";
 import StudentVersantAssessment from "../studentVersantAssessment/StudentVersantAssessment";
+import StudentPlacementQuizzes from "../studentPlacementQuizzes/StudentPlacementQuizzes";
 import NotificationPanel from "../studentNotificationPanel/NotificationPanel";
 import StudentMeetings from "../studentMeetings/studentMeetings";
 import StudentPlacementMeetings from "../studentPlacementMeetings/studentPlacementMeetings";
@@ -87,6 +88,7 @@ const ROUTES = {
   PLACEMENT_MEETINGS: "Placement Meetings",
   MAIL:            "Mail",
   VERSANT:         "Versant Assessment",
+  PLACEMENT_QUIZZES: "Placement Quizzes",
 };
 
 const PAGE_PARAM_MAP = {
@@ -109,6 +111,7 @@ const PAGE_PARAM_MAP = {
   "studentplacementmeetings": "Placement Meetings",
   "studentmail":          "Mail",
   "studentversant":       "Versant Assessment",
+  "placementQuizzes":     "Placement Quizzes",
 };
 
 const ROUTABLE = new Set(Object.values(ROUTES));
@@ -231,6 +234,7 @@ function buildNavItems(hasActivePlacementMeeting, mailUnread) {
       {label:ROUTES.MOCK_INTERVIEW,  icon:<IcoPen/>},
       {label:ROUTES.PLACEMENT_MEETINGS, icon:<IcoVideo/>, badge: hasActivePlacementMeeting ? "LIVE" : undefined, badgeClass: hasActivePlacementMeeting ? "rose" : undefined},
       {label:ROUTES.VERSANT,         icon:<IcoAward/>},
+      {label:ROUTES.PLACEMENT_QUIZZES, icon:<IcoClock/>, badge: "AI"},
     ]},
     { section:"Others", links:[
        {label:ROUTES.MAIL, icon:<IcoBell/>, badge: mailUnread > 0 ? mailUnread : null, badgeClass: "teal"},
@@ -374,7 +378,7 @@ function Topbar({activePage,onHamburger,onNavigateProfile,onNavigateResume,notif
 // ─── LUCYNA PANEL ────────────────────────────────────────────────
 function LucynaPanel({open,onClose}){
   const [messages,setMessages]=useState([
-    {role:"ai",html:"Hey Arjun! 👋 You have an <strong style='color:var(--indigo-ll)'>OS quiz</strong> today and <strong style='color:var(--rose)'>2 assignments</strong> due. Want a quick recap?"},
+    {role:"ai",html:"Hey there! 👋 You have an <strong style='color:var(--indigo-ll)'>OS quiz</strong> today and <strong style='color:var(--rose)'>2 assignments</strong> due. Want a quick recap?"},
     {role:"user",html:"Yes! Help me with OS scheduling first."},
     {role:"ai",html:"<strong style='color:var(--teal)'>Round Robin</strong> uses a fixed time quantum (10–20ms). Each process gets equal CPU time — no starvation, but higher avg turnaround for long jobs.<br/><br/>Your quiz has 3 questions on this. Want a practice set? 🎯"},
   ]);
@@ -555,7 +559,12 @@ function DashboardContent({ stats, courses, schedule, quizzes, skills, activeMee
         <div>
           <div className="greet-tag">
             <div className="greet-pip" />
-            <span className="greet-pip-txt">Semester 5 · Week 11 · Fri, 28 Feb</span>
+            <span className="greet-pip-txt">
+              Academic Year {stats.year || "2024–25"} · 
+              Semester {stats.semester || "5"} · 
+              Week {stats.week || "11"} · 
+              {stats.today || new Date().toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })}
+            </span>
           </div>
           <h1 className="greet-title">{greeting}, <em>{firstName}</em></h1>
           <p className="greet-sub">You have {stats.pending_assignments} pending assignments and {stats.upcoming_quizzes} quizzes scheduled this week.</p>
@@ -739,6 +748,7 @@ export default function StudentDashboard() {
   const [activeMeeting, setActiveMeeting]= useState(null);
   const [activePlacementMeeting, setActivePlacementMeeting]= useState(null);
   const [mailUnread, setMailUnread] = useState(0);
+  const [academicMeta, setAcademicMeta] = useState({ year: "", semester: "", week: "", today: "" });
 
   useEffect(() => {
     const pathParts = location.pathname.split("/").filter(Boolean);
@@ -777,6 +787,11 @@ export default function StudentDashboard() {
           setActiveMeeting(d.active_meeting || null);
           setActivePlacementMeeting(d.active_placement_meeting || null);
           if (d.full_name && !userName) setUserName(d.full_name);
+          if (d.academic_meta) setAcademicMeta(d.academic_meta);
+          // Merge academic_meta into stats for the greeting component
+          if (d.stats && d.academic_meta) {
+            setStats(prev => ({ ...prev, ...d.academic_meta }));
+          }
         }
         if (mailData.status === "fulfilled") {
           setMailUnread(mailData.value.count || 0);
@@ -829,6 +844,7 @@ export default function StudentDashboard() {
     [ROUTES.PLACEMENT_MEETINGS]: "/studentdashboard/studentPlacementMeetings",
     [ROUTES.MAIL]:            "/studentdashboard/studentMail",
     [ROUTES.VERSANT]:         "/studentdashboard/studentversant",
+    [ROUTES.PLACEMENT_QUIZZES]: "/studentdashboard/placementQuizzes",
   };
 
   const navigate = (targetPage) => {
@@ -908,6 +924,7 @@ export default function StudentDashboard() {
           {activePage === ROUTES.PLACEMENT_MEETINGS && <StudentPlacementMeetings onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
           {activePage === ROUTES.MAIL           && <MailSystem           onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
           {activePage === ROUTES.VERSANT        && <StudentVersantAssessment onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
+          {activePage === ROUTES.PLACEMENT_QUIZZES && <StudentPlacementQuizzes onBack={()=>navigate(ROUTES.DASHBOARD)}/>}
 
           {/* ── NEW PAGES ── */}
           {activePage === ROUTES.SETTINGS && (

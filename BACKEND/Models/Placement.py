@@ -252,6 +252,7 @@ class VersantAttempt(Base):
     pronunciation    = Column(Float, default=0.0)
     overall_score    = Column(Float, default=0.0)
     feedback         = Column(String(1000), nullable=True)
+    details          = Column(JSON, nullable=True)
     created_at       = Column(DateTime(timezone=True), default=datetime.utcnow)
 
     # Relationships
@@ -285,3 +286,62 @@ class VersantQuestion(Base):
 
     def __repr__(self):
         return f"<VersantQuestion id={self.id} part_id={self.part_id}>"
+
+
+# ─── AI Placement Quiz Models ─────────────────────────────────────────────────
+
+class PlacementQuiz(Base):
+    __tablename__ = "placement_quizzes"
+
+    id           = Column(Integer, primary_key=True, index=True)
+    officer_id   = Column(Integer, ForeignKey("users.id"), nullable=False)
+    title        = Column(String(300), nullable=False)
+    topic_prompt = Column(String(1000), nullable=False)   # original TPO prompt
+    difficulty   = Column(String(50), default="Medium")   # Easy / Medium / Hard
+    duration     = Column(Integer, default=15)             # minutes
+    is_active    = Column(Boolean, default=True)
+    target_group = Column(String(50), default="All")
+    created_at   = Column(DateTime(timezone=True), default=datetime.utcnow)
+
+    officer   = relationship("User", foreign_keys=[officer_id])
+    questions = relationship("PlacementQuizQuestion", back_populates="quiz", cascade="all, delete-orphan")
+    attempts  = relationship("PlacementQuizAttempt",  back_populates="quiz", cascade="all, delete-orphan")
+
+    def __repr__(self):
+        return f"<PlacementQuiz id={self.id} title={self.title}>"
+
+
+class PlacementQuizQuestion(Base):
+    __tablename__ = "placement_quiz_questions"
+
+    id             = Column(Integer, primary_key=True, index=True)
+    quiz_id        = Column(Integer, ForeignKey("placement_quizzes.id"), nullable=False)
+    question_text  = Column(String(1000), nullable=False)
+    options        = Column(JSON, nullable=True)   # ["Option A", "Option B", "Option C", "Option D"]
+    correct_answer = Column(String(500), nullable=False)
+    explanation    = Column(String(1000), nullable=True)
+
+    quiz = relationship("PlacementQuiz", back_populates="questions")
+
+    def __repr__(self):
+        return f"<PlacementQuizQuestion quiz={self.quiz_id}>"
+
+
+class PlacementQuizAttempt(Base):
+    __tablename__ = "placement_quiz_attempts"
+
+    id           = Column(Integer, primary_key=True, index=True)
+    quiz_id      = Column(Integer, ForeignKey("placement_quizzes.id"), nullable=False)
+    student_id   = Column(Integer, ForeignKey("users.id"), nullable=False)
+    score        = Column(Float, nullable=True)         # percentage 0-100
+    total_q      = Column(Integer, default=0)
+    correct_q    = Column(Integer, default=0)
+    answers      = Column(JSON, nullable=True)          # {"q_id": "selected_answer", ...}
+    time_taken   = Column(Integer, nullable=True)       # seconds
+    attempted_at = Column(DateTime(timezone=True), default=datetime.utcnow)
+
+    quiz    = relationship("PlacementQuiz", back_populates="attempts")
+    student = relationship("User", foreign_keys=[student_id])
+
+    def __repr__(self):
+        return f"<PlacementQuizAttempt quiz={self.quiz_id} student={self.student_id} score={self.score}>"

@@ -72,6 +72,41 @@ def _enrollment_courses(student: User, db: Session) -> List[EnrolledCourseRespon
             (Quiz.target_group == None) | (Quiz.target_group == "All") | (Quiz.target_group == group) | (Quiz.target_group == dept)
         ).scalar()
 
+        # Calculate real attendance
+        lessons_in_course = db.query(Lesson.id).filter(Lesson.course_id == course.id).all()
+        l_ids = [l.id for l in lessons_in_course]
+        w_count = db.query(func.count(WatchHistory.id)).filter(
+            WatchHistory.student_id == student.id,
+            WatchHistory.lesson_id.in_(l_ids)
+        ).scalar() or 0
+        c_att = (w_count / len(l_ids) * 100) if l_ids else 0.0
+
+        # Calculate average score for this course (Average of Assignment Average + Quiz Average)
+        subs = db.query(AssignmentSubmission.grade).join(Assignment).filter(
+            Assignment.course_id == course.id,
+            AssignmentSubmission.student_id == student.id,
+            AssignmentSubmission.grade != None
+        ).all()
+        q_atts = db.query(QuizAttempt).join(Quiz).filter(
+            Quiz.course_id == course.id,
+            QuizAttempt.student_id == student.id,
+            QuizAttempt.score != None
+        ).all()
+        
+        asgn_scores = [s.grade for s in subs]
+        asgn_avg = (sum(asgn_scores) / len(asgn_scores)) if asgn_scores else 0.0
+        
+        quiz_scores = []
+        for qa in q_atts:
+            q_count = len(qa.quiz.questions) or 1
+            quiz_scores.append((qa.score / q_count) * 100)
+        quiz_avg = (sum(quiz_scores) / len(quiz_scores)) if quiz_scores else 0.0
+        
+        if asgn_avg > 0 and quiz_avg > 0:
+            c_score = (asgn_avg + quiz_avg) / 2
+        else:
+            c_score = max(asgn_avg, quiz_avg)
+
         result.append(EnrolledCourseResponse(
             enrollment_id=en.id,
             course_id=course.id,
@@ -84,6 +119,8 @@ def _enrollment_courses(student: User, db: Session) -> List[EnrolledCourseRespon
             lesson_count=l_count,
             assignment_count=a_count,
             quiz_count=q_count,
+            attendance=round(float(c_att), 1),
+            avg_score=round(float(c_score), 1)
         ))
     return result
 
@@ -118,6 +155,41 @@ def _all_courses_for_student(student: User, db: Session):
             (Quiz.target_group == None) | (Quiz.target_group == "All") | (Quiz.target_group == group) | (Quiz.target_group == dept)
         ).scalar()
 
+        # Calculate real attendance
+        lessons_in_course = db.query(Lesson.id).filter(Lesson.course_id == course.id).all()
+        l_ids = [l.id for l in lessons_in_course]
+        w_count = db.query(func.count(WatchHistory.id)).filter(
+            WatchHistory.student_id == student.id,
+            WatchHistory.lesson_id.in_(l_ids)
+        ).scalar() or 0
+        c_att = (w_count / len(l_ids) * 100) if l_ids else 0.0
+
+        # Calculate average score (Average of Assignment Average + Quiz Average)
+        subs = db.query(AssignmentSubmission.grade).join(Assignment).filter(
+            Assignment.course_id == course.id,
+            AssignmentSubmission.student_id == student.id,
+            AssignmentSubmission.grade != None
+        ).all()
+        q_atts = db.query(QuizAttempt).join(Quiz).filter(
+            Quiz.course_id == course.id,
+            QuizAttempt.student_id == student.id,
+            QuizAttempt.score != None
+        ).all()
+        
+        asgn_scores = [s.grade for s in subs]
+        asgn_avg = (sum(asgn_scores) / len(asgn_scores)) if asgn_scores else 0.0
+        
+        quiz_scores = []
+        for qa in q_atts:
+            q_count = len(qa.quiz.questions) or 1
+            quiz_scores.append((qa.score / q_count) * 100)
+        quiz_avg = (sum(quiz_scores) / len(quiz_scores)) if quiz_scores else 0.0
+        
+        if asgn_avg > 0 and quiz_avg > 0:
+            c_score = (asgn_avg + quiz_avg) / 2
+        else:
+            c_score = max(asgn_avg, quiz_avg)
+
         result.append(EnrolledCourseResponse(
             enrollment_id=en.id if en else 0,
             course_id=course.id,
@@ -130,6 +202,8 @@ def _all_courses_for_student(student: User, db: Session):
             lesson_count=l_count,
             assignment_count=a_count,
             quiz_count=q_count,
+            attendance=round(float(c_att), 1),
+            avg_score=round(float(c_score), 1)
         ))
     return result
 
@@ -367,13 +441,19 @@ class StudentService:
             for i, env in enumerate(enrollments):
                 c_name = env.course.title[:10] if env.course else f"Course {i+1}"
                 course_names.append(c_name)
-                # Use progress as the base percentage for attendance
-                pct = int(env.progress) if env.progress else 0
-                classes = 40
-                attended = int(classes * (pct / 100))
+                
+                # Real attendance per course
+                lessons_in_course = db.query(Lesson).filter(Lesson.course_id == env.course_id).all()
+                total_l = len(lessons_in_course) or 1
+                watched = db.query(func.count(WatchHistory.id)).filter(
+                    WatchHistory.student_id == student.id,
+                    WatchHistory.lesson_id.in_([l.id for l in lessons_in_course])
+                ).scalar() or 0
+                pct = int((watched / total_l) * 100)
+                
                 color = f"var(--{'teal' if i%2==0 else 'indigo-l'})"
                 attendance_breakdown.append(
-                    CourseAttendance(course=c_name, pct=pct, classes=classes, attended=attended, color=color)
+                    CourseAttendance(course=c_name, pct=pct, classes=total_l, attended=watched, color=color)
                 )
         else:
             course_names = ["General"]
@@ -447,7 +527,8 @@ class StudentService:
         # 4. Placement Data
         pri_obj = db.query(PlacementReadiness).filter(PlacementReadiness.student_id == student.id).first()
         pri_score = pri_obj.pri_score if pri_obj else 0.0
-        cgpa = my_avg / 10 if my_avg else 0.0
+        # Derived CGPA logic: Standardized with Faculty Dashboard
+        cgpa = round(float(7.0 + (float(pri_score) / 40.0 * 2.5 if pri_score > 0 else 0)), 1)
         
         placement = PlacementData(
             pri=int(pri_score),

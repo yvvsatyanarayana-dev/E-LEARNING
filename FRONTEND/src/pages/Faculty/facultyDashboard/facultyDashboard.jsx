@@ -613,7 +613,12 @@ export default function FacultyDashboard() {
               <div className="greet-row">
                 <div className="greet-tag">
                   <div className="greet-pip" />
-                  <span className="greet-pip-txt">Academic Year {academicMeta.year} · Semester {academicMeta.semester} · Week {academicMeta.week}</span>
+                  <span className="greet-pip-txt">
+                    Academic Year {academicMeta.year} · 
+                    Semester {academicMeta.semester} · 
+                    Week {academicMeta.week} · 
+                    {academicMeta.today || new Date().toLocaleDateString("en-IN", { weekday: "short", day: "numeric", month: "short" })}
+                  </span>
                 </div>
                 <h1 className="greet-title">Good morning, <em>{userName ? userName.split(" ")[0] : "Faculty"}</em></h1>
                 <p className="greet-sub">You have {tasks.length} pending submissions to grade. Let's get ahead.</p>
@@ -627,10 +632,10 @@ export default function FacultyDashboard() {
               {/* STAT CARDS */}
               <div className="stat-grid">
                 {[
-                  { cls: "sc-teal", icon: <IcoUsers width={18} height={18} />, val: stats.total_students.toString(), lbl: "Total Students", delta: <><IcoChevUp />+12 this semester</>, dc: "delta-up" },
-                  { cls: "sc-indigo", icon: <IcoBook width={18} height={18} />, val: stats.active_courses.toString(), lbl: "Active Courses", delta: <><IcoMinus />Same as last sem</>, dc: "delta-neu" },
-                  { cls: "sc-amber", icon: <IcoCal width={18} height={18} />, val: `${Math.round(stats.avg_attendance)}%`, lbl: "Avg Attendance", delta: <><IcoChevDn />−3% vs last week</>, dc: "delta-dn" },
-                  { cls: "sc-violet", icon: <IcoTrend width={18} height={18} />, val: `${Math.round(stats.avg_class_score)}%`, lbl: "Avg Class Score", delta: <><IcoChevUp />+2% vs last quiz</>, dc: "delta-up" },
+                  { cls: "sc-teal", icon: <IcoUsers width={18} height={18} />, val: stats.total_students.toString(), lbl: "Total Students", delta: <><IcoCheck />Active students</>, dc: "delta-up" },
+                  { cls: "sc-indigo", icon: <IcoBook width={18} height={18} />, val: stats.active_courses.toString(), lbl: "Active Courses", delta: <><IcoMinus />This semester</>, dc: "delta-neu" },
+                  { cls: "sc-amber", icon: <IcoCal width={18} height={18} />, val: `${Math.round(stats.avg_attendance)}%`, lbl: "Avg Attendance", delta: <><IcoTrend />Course engagement</>, dc: "delta-up" },
+                  { cls: "sc-violet", icon: <IcoTrend width={18} height={18} />, val: `${Math.round(stats.avg_class_score)}%`, lbl: "Avg Class Score", delta: <><IcoPlus />Quiz performance</>, dc: "delta-up" },
                 ].map(({ cls, icon, val, lbl, delta, dc }, i) => (
                   <Hoverable key={lbl} className={`stat-card ${cls}`} style={{ animationDelay: `${(i + 1) * .07}s` }}>
                     <div className="stat-ic">{icon}</div>

@@ -53,6 +53,8 @@ class EnrolledCourseResponse(BaseModel):
     lesson_count: int
     assignment_count: int
     quiz_count: int
+    attendance: float = 0.0
+    avg_score: float = 0.0
 
     class Config:
         from_attributes = True

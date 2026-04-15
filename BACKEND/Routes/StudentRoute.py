@@ -387,3 +387,31 @@ def improve_resume_with_ai(
     db: Session = Depends(get_db),
 ):
     return student_service.improve_resume_with_ai(data.resumeData, current_user, db)
+
+
+# ─── Placement AI Quizzes (Student) ──────────────────────────────────────────
+
+@router.get("/placement/quizzes")
+def get_placement_quizzes(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Return all active AI placement quizzes with attempted flag for this student."""
+    import Service.PlacementService as placement_svc
+    return placement_svc.get_placement_quizzes_student(current_user.id, db)
+
+
+@router.post("/placement/quizzes/{quiz_id}/submit")
+def submit_placement_quiz(
+    quiz_id: int,
+    body: dict,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Grade student's quiz and update their aptitude/PRI score."""
+    import Service.PlacementService as placement_svc
+    try:
+        return placement_svc.submit_placement_quiz(quiz_id, current_user.id, body, db)
+    except ValueError as e:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=400, detail=str(e))

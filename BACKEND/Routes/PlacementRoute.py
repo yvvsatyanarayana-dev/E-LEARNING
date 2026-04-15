@@ -205,6 +205,26 @@ def student_versant_history(
         _403()
     return svc.get_student_versant_history(db, student_id)
 
+@router.get("/versant/pending", summary="Get pending Versant attempts")
+def get_pending_versant_evaluations(
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    return svc.get_pending_versant_evaluations(db)
+
+@router.post("/versant/grade/{attempt_id}", summary="Grade a pending Versant attempt")
+def grade_versant_attempt(
+    attempt_id: int,
+    payload: dict,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    return _safe(svc.grade_versant_attempt, db, attempt_id, payload)
+
 
 @router.patch("/readiness/me", response_model=PlacementReadinessResponse,
               summary="Update my readiness scores")
@@ -799,4 +819,113 @@ def get_meeting_history(
     """Return past placement session history."""
     if current_user.role not in ("placement_officer", "admin"):
         _403()
-    return svc.get_meeting_history(db)
+    return svc.get_meeting_history(db)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AI PLACEMENT QUIZ ROUTES
+# ─────────────────────────────────────────────────────────────────────────────
+
+@router.post("/ai/quiz/generate")
+def generate_placement_quiz(
+    body: dict,
+    current_user=Depends(get_current_user),
+):
+    """Officer: Ask AI to generate quiz questions (preview only, not saved yet)."""
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    try:
+        return svc.generate_ai_placement_quiz(body)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=502, detail=f"AI generation failed: {str(e)}")
+
+
+@router.post("/ai/quiz")
+def publish_placement_quiz(
+    body: dict,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Officer: Save generated quiz to DB and make it active for students."""
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    try:
+        return svc.publish_ai_placement_quiz(body, current_user.id, db)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/ai/quiz")
+def list_placement_quizzes_officer(
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Officer: List all placement quizzes with attempt counts."""
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    return svc.get_placement_quizzes_officer(db)
+
+
+@router.delete("/ai/quiz/{quiz_id}")
+def deactivate_placement_quiz(
+    quiz_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Officer: Deactivate (soft-delete) a quiz."""
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    try:
+        return svc.delete_placement_quiz(quiz_id, current_user.id, db)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@router.get("/ai/quiz/{quiz_id}/attempts")
+def get_quiz_attempts_officer(
+    quiz_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Officer: List all student attempts for a specific quiz."""
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    return svc.get_quiz_attempts_officer(db, quiz_id)
+
+
+@router.get("/students/{student_id}/quiz-attempts")
+def get_student_quiz_attempts(
+    student_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """Officer: List all quiz attempts for a specific student."""
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    return svc.get_student_quiz_attempts(db, student_id)
+
+
+@router.get("/ai/quiz/attempts/{attempt_id}")
+def get_quiz_attempt_details(
+    attempt_id: int,
+    db: Session = Depends(get_db),
+    current_user=Depends(get_current_user),
+):
+    """View question-by-question breakdown of an attempt."""
+    # This can be viewed by either the student who took it OR an officer
+    try:
+        details = svc.get_quiz_attempt_details(db, attempt_id)
+        # Auth check: only allow the owner or an officer
+        from Models.Placement import PlacementQuizAttempt
+        attempt = db.query(PlacementQuizAttempt).filter(PlacementQuizAttempt.id == attempt_id).first()
+        if not attempt:
+            raise HTTPException(404, detail="Attempt not found")
+
+        if current_user.role not in ("placement_officer", "admin") and attempt.student_id != current_user.id:
+            _403("You can only view your own results")
+
+        return details
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
