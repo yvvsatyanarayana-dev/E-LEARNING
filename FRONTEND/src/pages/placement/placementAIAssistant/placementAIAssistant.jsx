@@ -17,7 +17,7 @@ import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { clearAuth } from "../../../utils/auth.js";
 import api from "../../../utils/api.js";
-import "./PlacementAIAssistant.css";
+import "./placementAIAssistant.css";
 
 /* ════════════════════════════════════════════
    DATA MAPPERS — same as placementDashboard
