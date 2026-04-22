@@ -26,19 +26,19 @@ import ToastContainer from "../components/shared/Toast/ToastContainer";
 
 import FacultyQuickaction from "../pages/Faculty/facultyQuickaction/facultyQuickaction";
 import FacultyNotification from "../pages/Faculty/facultyNotification/facultyNotification";
-import AdminDashboard from "../pages/Admin/AdminDashboard/AdminDashboard";
-import AdminAnalytics from "../pages/Admin/AdminAnalyticsMonitoring/AdminAnalyticsMonitoring";
-import UserManagement from "../pages/Admin/AdminUserManagement/AdminUserManagement";
-import CourseManagement from "../pages/Admin/AdminCourseManagement/AdminCourseManagement";
-import Departments from "../pages/Admin/Department/Department";
-import Placements from "../pages/Admin/Placement/Placement";
-import Reports from "../pages/Admin/AdminReports/AdminReports";
-import Notifications from "../pages/Admin/adminNotifications/adminNotifications";
-import AuditLogs from "../pages/Admin/ActivityLog/ActivityLog";
+import AdminDashboard from "../pages/admin/AdminDashboard/AdminDashboard";
+import AdminAnalytics from "../pages/admin/AdminAnalyticsMonitoring/AdminAnalyticsMonitoring";
+import UserManagement from "../pages/admin/adminUserManagement/adminUserManagement";
+import CourseManagement from "../pages/admin/adminCourseManagement/adminCourseManagement";
+import Departments from "../pages/admin/Department/Department";
+import Placements from "../pages/admin/Placement/Placement";
+import Reports from "../pages/admin/adminReports/adminreports";
+import Notifications from "../pages/admin/adminNotifications/adminNotifications";
+import AuditLogs from "../pages/admin/ActivityLog/ActivityLog";
 import AdminSecurity from "../pages/admin/adminSecurity/adminSecurity";
-import AdminProfile from "../pages/Admin/adminProfile/AdminProfile";
+import AdminProfile from "../pages/admin/adminProfile/AdminProfile";
 import MailSystem from "../pages/shared/MailSystem/MailSystem";
-import AdminMail from "../pages/Admin/AdminMail/AdminMail";
+import AdminMail from "../pages/admin/AdminMail/AdminMail";
 import ErrorBoundary from "./ErrorBoundary";
 
 const SD = (
