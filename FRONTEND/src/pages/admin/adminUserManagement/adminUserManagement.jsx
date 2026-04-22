@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import api from "../../../utils/api";
 import { useNavigate, useLocation } from "react-router-dom";
-import "./AdminUserManagement.css";
+import "./adminUserManagement.css";
 import "../../../styles/modals.css";
 
 const Icon = ({ d, size = 16, stroke = "currentColor", fill = "none", strokeWidth = 1.6 }) => (

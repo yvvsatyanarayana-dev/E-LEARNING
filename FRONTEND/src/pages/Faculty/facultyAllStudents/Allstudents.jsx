@@ -1,7 +1,7 @@
 // allStudents.jsx  —  place at: src/pages/Faculty/allStudents/allStudents.jsx
 import { useState, useEffect } from "react";
 import api from "../../../utils/api";
-import "./allStudents.css";
+import "./Allstudents.css";
 
 const IcoChevL  = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>;
 const IcoSearch = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>;

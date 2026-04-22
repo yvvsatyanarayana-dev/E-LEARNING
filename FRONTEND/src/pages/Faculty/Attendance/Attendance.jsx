@@ -1,7 +1,7 @@
 // Attendance.jsx — Dynamic version fetching real data from /faculty/attendance
 import { useState, useEffect } from "react";
 import api from "../../../utils/api";
-import "./attendance.css";
+import "./Attendance.css";
 
 const IcoChevL  = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round"><polyline points="15 18 9 12 15 6"/></svg>;
 const IcoCheck  = (p) => <svg {...p} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>;

@@ -4,7 +4,7 @@ import cyberpunkImg from "./assets/Cyberpunk 2077.jpg";
 import "./App.css";
 import LoginModal from "./auth/login/login";
 import RegisterModal from "./auth/register/register";
-import ForgotModal from "./auth/forgot/Forgot";
+import ForgotModal from "./auth/forgot/forgot";
 
 /* ─── RIPPLE HOOK ─────────────────────────────────── */
 function useRipple() {

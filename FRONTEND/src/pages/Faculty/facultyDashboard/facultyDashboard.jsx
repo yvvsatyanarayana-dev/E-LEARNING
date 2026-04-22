@@ -1,14 +1,14 @@
 // FacultyDashboard.jsx  — updated with all new page routes
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import "./FacultyDashboard.css";
+import "./facultyDashboard.css";
 import FacultyAnalytics from "../facultyAnalytics/facultyAnalytics";
 import FacultyMyCourses from "../facultyMycourse/facultyMycourse";
 import FacultyVideoLectures from "../facultyVideoLectures/facultyVideoLectures";
 import FacultyAssignments from "../facultyAssignments/facultyAssignments";
 import FacultyQuizzes from "../facultyQuizzes/facultyQuizzes";
 import AllStudents from "../facultyAllStudents/Allstudents";
-import Attendance from "../attendance/attendance";
+import Attendance from "../Attendance/Attendance";
 import GradeBook from "../facultyGradeBook/facultyGradeBook";
 import QuestionBank from "../facultyQuetionBank/facultyQuestionBank";
 import AiAssistant from "../facultyAiAssistence/facultyAiAssistence";

@@ -2,7 +2,7 @@
 import StudentInternships from "../studentInternships/studentInternships";
 import StudentMockInterview from "../studentMockInterview/studentMockInterview";
 import StudentPlacementPrep from "../studentPlacementPrep/studentPlacementPrep";
-import StudentInnovationHub from "../studentInnovationHub/studentInnovationHub";
+import StudentInnovationHub from "../studentInnovationHub/studentinnovationhub";
 import StudentSettings from "../studentSettings/studentSettings";
 import StudentDrives from "../studentDrives/studentDrives";
 import StudentProfile from "../studentProfile/studentProfile";
@@ -18,7 +18,7 @@ import "../studentResume/studentResume.css";
 import "../studentNotificationPanel/NotificationPanel.css";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import "./StudentDashboard.css";
+import "./studentDashboard.css";
 import StudentAnalytics from "../studentAnalytics/studentAnalytics";
 import "../studentAnalytics/studentAnalytics.css";
 import StudentMyCourses from "../studentMycourse/studentMycourse";
