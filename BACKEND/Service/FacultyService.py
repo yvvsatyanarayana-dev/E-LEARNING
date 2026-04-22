@@ -1020,6 +1020,15 @@ class FacultyService:
                     )
         
         db.commit()
+
+        # Trigger real-time sync for affected students
+        from Service.StudentService import sync_student_readiness
+        affected_students = {c.roll for c in data.changes}
+        for roll in affected_students:
+            s_obj = db.query(User).filter(User.roll_number == roll, User.role == UserRole.student).first()
+            if s_obj:
+                sync_student_readiness(s_obj.id, db)
+
         return {"message": "Grades saved successfully"}
 
     def get_analytics(self, faculty: User, db: Session) -> FacultyAnalyticsData:

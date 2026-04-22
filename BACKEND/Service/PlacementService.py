@@ -842,8 +842,8 @@ def seed_versant_data(db: Session):
     
     parts = [
         {"id": "partA", "title": "Part A: Reading", "desc": "Read the sentences as they appear on the screen.", "type": "speak"},
-        {"id": "partB", "title": "Part B: Repeat", "desc": "Repeat the sentence you hear.", "type": "speak"},
-        {"id": "partC", "title": "Part C: Questions", "desc": "Give a short answer to the question using your voice.", "type": "speak"},
+        {"id": "partB", "title": "Part B: Repeat", "desc": "Repeat the sentence you hear exactly.", "type": "speak"},
+        {"id": "partC", "title": "Part C: Questions", "desc": "Give a short, one-word answer to the question using your voice.", "type": "speak"},
         {"id": "partD", "title": "Part D: Sentence Builds", "desc": "Rearrange the word groups into a correct sentence aloud.", "type": "speak"},
         {"id": "partE", "title": "Part E: Story Retelling", "desc": "Listen to a short story and summarize it in your own words.", "type": "speak"},
         {"id": "partF", "title": "Part F: Open Questions", "desc": "Speak for 45 seconds about the given topic.", "type": "speak"},
@@ -856,15 +856,41 @@ def seed_versant_data(db: Session):
     db.commit()
 
     questions = [
+        # Part A: Reading
         {"part_id": "partA", "content": "Traffic is heavy in the city during rush hour."},
-        {"part_id": "partA", "content": "Agricultural technology is essential for sustainable food production."},
+        {"part_id": "partA", "content": "The new software update will be released tomorrow morning."},
+        {"part_id": "partA", "content": "Innovative solutions are required for urban development."},
+        {"part_id": "partA", "content": "Global economies are becoming increasingly interconnected."},
+        
+        # Part B: Repeat
         {"part_id": "partB", "content": "Please leave your contact details at the reception desk."},
+        {"part_id": "partB", "content": "The report must be submitted by the end of the day."},
+        {"part_id": "partB", "content": "Can you help me find the nearest exit?"},
+        
+        # Part C: Questions
         {"part_id": "partC", "content": {"q": "Is a cow an animal or a machine?", "a": "animal"}},
+        {"part_id": "partC", "content": {"q": "Do you wear a hat on your head or your feet?", "a": "head"}},
+        {"part_id": "partC", "content": {"q": "Which is longer: a minute or an hour?", "a": "hour"}},
+        
+        # Part D: Sentence Builds
         {"part_id": "partD", "content": {"words": ["was", "the meeting", "very productive"], "correct": "the meeting was very productive"}},
-        {"part_id": "partE", "content": "John wanted to go hiking, but it started raining. He decided to read a book instead."},
+        {"part_id": "partD", "content": {"words": ["he", "to the office", "is going"], "correct": "he is going to the office"}},
+        {"part_id": "partD", "content": {"words": ["at the station", "the train", "arrived"], "correct": "the train arrived at the station"}},
+        
+        # Part E: Story Retelling
+        {"part_id": "partE", "content": "John wanted to go hiking, but it started raining. He decided to read a book instead. Later, the sun came out and he went for a short walk."},
+        {"part_id": "partE", "content": "Sarah bought a new car last week. She drove it to her parents' house. They were very happy for her and celebrated with a nice dinner."},
+        
+        # Part F: Open Questions
         {"part_id": "partF", "content": "Describe a challenging project you've worked on and how you handled it."},
+        {"part_id": "partF", "content": "Do you prefer working in a team or independently? Why?"},
+        
+        # Part G: Dictation (Typing)
         {"part_id": "partG", "content": "The financial report must be submitted by Friday afternoon."},
-        {"part_id": "partH", "content": "Modern cities face numerous challenges, from traffic congestion to environmental pollution."}
+        {"part_id": "partG", "content": "Innovation and technology drive the modern economic landscape."},
+        
+        # Part H: Passage Reconstruction (Typing from memory)
+        {"part_id": "partH", "content": "Modern cities face numerous challenges, from traffic congestion to environmental pollution. To build a sustainable future, governments must invest in green energy and efficient public transport systems."}
     ]
     
     for q in questions:
@@ -872,8 +898,23 @@ def seed_versant_data(db: Session):
     db.commit()
 
 def get_versant_questions(db: Session):
-    seed_versant_data(db)
-    return db.query(VersantTestPart).all()
+    try:
+        seed_versant_data(db)
+    except Exception as e:
+        print(f"Versant seeding skipped/failed: {e}")
+        
+    parts = db.query(VersantTestPart).all()
+    res = []
+    for p in parts:
+        qs = db.query(VersantQuestion).filter_by(part_id=p.id).all()
+        res.append({
+            "id": p.id,
+            "title": p.title,
+            "desc": p.desc,
+            "type": p.type,
+            "questions": [q.content for q in qs]
+        })
+    return res
 
 def submit_versant_test(db: Session, student_id: int, data: VersantAttemptCreate) -> VersantAttempt:
     ans = data.answers if hasattr(data, "answers") else getattr(data, "details", [])
@@ -938,6 +979,51 @@ def grade_versant_attempt(db: Session, attempt_id: int, payload: dict):
     # Update communication score for placement readiness based on evaluation
     update_readiness(db, attempt.student_id, communication_score=attempt.overall_score)
     return attempt
+
+
+def get_versant_ai_suggestion(db: Session, attempt_id: int):
+    """Call Groq to analyze transcriptions and suggest Versant scores."""
+    attempt = db.query(VersantAttempt).filter_by(id=attempt_id).first()
+    if not attempt:
+        raise ValueError("Attempt not found")
+        
+    from Service.GroqService import groq_service
+    import json
+    
+    # Context: Part responses
+    details = attempt.details or []
+    context = ""
+    for d in details:
+        part = d.get("part", "Unknown")
+        resp = d.get("text", d.get("resp", "")) # fallback to resp for legacy tests
+        context += f"Part: {part} | Student Transcription: {resp}\n"
+        
+    prompt = f"""You are an expert English language assessor evaluating a student's Versant test. 
+IMPORTANT: If the student transcriptions are completely empty, gibberish, or 'none', you MUST assign a score of 0 or close to 0 across all metrics. If they skipped a significant portion of the test, their score must plummet accordingly. Do not invent scores for empty submissions.
+
+Analyze these transcriptions and suggest scores (0-100) for these metrics:
+1. Sentence Mastery: How well they reproduced sentences.
+2. Vocabulary: Word usage and accuracy.
+3. Fluency: Flow and speed (infer from text coherence).
+4. Pronunciation: Phonetic accuracy in transcription.
+
+Responses:
+{context}
+
+Return ONLY a JSON object with keys: sentence_mastery, vocabulary, fluency, pronunciation, overall_score, and a short summary_feedback.
+Do not markdown backticks."""
+
+    try:
+        resp = groq_service.generate_chat_response([{"role": "user", "content": prompt}], max_tokens=1000)
+        clean_resp = resp.replace("```json", "").replace("```", "").strip()
+        data = json.loads(clean_resp)
+        return data
+    except Exception as e:
+        print(f"Versant AI Evaluation Error: {e}")
+        return {
+            "sentence_mastery": 70, "vocabulary": 70, "fluency": 70, "pronunciation": 70, 
+            "overall_score": 70, "summary_feedback": "AI evaluation failed. Please review manually."
+        }
 
 
 def toggle_resume_check(db: Session, student_id: int, check_id: int) -> ResumeCheck:

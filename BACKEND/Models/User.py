@@ -34,13 +34,13 @@ class User(Base):
     last_login = Column(DateTime(timezone=True), nullable=True)
 
     # Relationships
-    courses_created        = relationship("Course", back_populates="faculty", foreign_keys="Course.faculty_id")
+    courses_created        = relationship("Course", back_populates="faculty")
     enrollments            = relationship("Enrollment", back_populates="student")
     watch_history          = relationship("WatchHistory", back_populates="student")
     assignment_submissions = relationship("AssignmentSubmission", back_populates="student")
     quiz_attempts          = relationship("QuizAttempt", back_populates="student")
-    projects               = relationship("Project", back_populates="student")
-    project_reviews        = relationship("ProjectReview", back_populates="reviewed_by_user")
+    projects               = relationship("Project", back_populates="student", primaryjoin="User.id == Project.student_id")
+    project_reviews        = relationship("ProjectReview", back_populates="reviewed_by_user", primaryjoin="User.id == ProjectReview.reviewed_by")
     skill_scores           = relationship("SkillScore", back_populates="student")
     placement_readiness    = relationship("PlacementReadiness", back_populates="student", uselist=False)
     internships_added      = relationship("Internship", back_populates="added_by_user")

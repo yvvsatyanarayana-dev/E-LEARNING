@@ -226,6 +226,17 @@ def grade_versant_attempt(
     return _safe(svc.grade_versant_attempt, db, attempt_id, payload)
 
 
+@router.get("/versant/{attempt_id}/ai-suggestion", summary="Get AI score suggestion for a Versant attempt")
+def get_versant_ai_suggestion(
+    attempt_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user),
+):
+    if current_user.role not in ("placement_officer", "admin"):
+        _403()
+    return _safe(svc.get_versant_ai_suggestion, db, attempt_id)
+
+
 @router.patch("/readiness/me", response_model=PlacementReadinessResponse,
               summary="Update my readiness scores")
 def update_my_readiness(

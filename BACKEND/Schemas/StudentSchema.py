@@ -310,12 +310,14 @@ class VersantTestQuestionResponse(BaseModel):
     class Config:
         from_attributes = True
 
+from typing import Any
+
 class VersantTestPartResponse(BaseModel):
     id: str
     title: str
     desc: str
     type: str # 'speak' or 'type'
-    questions: List[VersantTestQuestionResponse] = []
+    questions: List[Any] = []
 
     class Config:
         from_attributes = True
