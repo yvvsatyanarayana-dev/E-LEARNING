@@ -130,7 +130,7 @@ function PlacementMeetingRoom({ meeting, onEnd }) {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       const officerName = user.name || user.email || 'Officer';
 
-      socketRef.current = io('http://localhost:8000', { transports: ['websocket'] });
+      socketRef.current = io((import.meta.env.DEV ? "http://localhost:8000" : "https://e-learning-backend-api.onrender.com"), { transports: ['websocket'] });
       const s = socketRef.current;
 
       s.on('connect', () => {

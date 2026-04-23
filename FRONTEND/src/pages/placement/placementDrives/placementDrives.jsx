@@ -159,7 +159,7 @@ function AddDriveModal({ onClose, onAdd }) {
   const [groups,  setGroups]  = useState(["All"]);
 
   useEffect(() => {
-    fetch("http://localhost:8000/api/v1/faculty/metadata")
+    fetch(`${import.meta.env.DEV ? "http://localhost:8000" : (import.meta.env.DEV ? "http://localhost:8000" : "https://e-learning-backend-api.onrender.com")}/api/v1/faculty/metadata`)
       .then(r => r.ok ? r.json() : null)
       .then(d => d?.groups && setGroups(["All", ...d.groups.filter(g => g !== "All")]))
       .catch(() => {});

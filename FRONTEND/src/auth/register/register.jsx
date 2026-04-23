@@ -36,7 +36,7 @@ export default function RegisterModal({ open, onClose, onGoLogin }) {
     if (open) {
       const fetchMeta = async () => {
         try {
-          const res = await fetch("http://localhost:8000/api/v1/auth/metadata");
+          const res = await fetch(`${import.meta.env.DEV ? "http://localhost:8000" : (import.meta.env.DEV ? "http://localhost:8000" : "https://e-learning-backend-api.onrender.com")}/api/v1/auth/metadata`);
           if (res.ok) {
             const data = await res.json();
             setMetadata(data);
@@ -93,7 +93,7 @@ export default function RegisterModal({ open, onClose, onGoLogin }) {
 
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:8000/api/v1/auth/register", {
+      const res = await fetch(`${import.meta.env.DEV ? "http://localhost:8000" : (import.meta.env.DEV ? "http://localhost:8000" : "https://e-learning-backend-api.onrender.com")}/api/v1/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -8,7 +8,7 @@ import {
 } from 'lucide-react';
 import '../../placement/placementMeeting/placementMeeting.css';
 
-const SOCKET_URL = 'http://localhost:8000';
+const SOCKET_URL = (import.meta.env.DEV ? "http://localhost:8000" : "https://e-learning-backend-api.onrender.com");
 
 // ─── REMOTE VIDEO PLAYER ─────────────────────────────────────────────
 const RemoteVideoPlayer = ({ stream, label }) => {

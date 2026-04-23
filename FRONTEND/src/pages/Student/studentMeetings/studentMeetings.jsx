@@ -136,7 +136,7 @@ function StudentMeetingRoom({ meeting, onLeave }) {
            console.error("Camera access denied:", e);
         }
 
-        const backendUrl = "http://localhost:8000";
+        const backendUrl = (import.meta.env.DEV ? "http://localhost:8000" : "https://e-learning-backend-api.onrender.com");
         socketRef.current = io(backendUrl, { transports: ["websocket"] });
         const s = socketRef.current;
 

@@ -46,7 +46,7 @@ export default function LoginModal({ open, onClose, onGoSignup, onGoForgot }) {
     if (!email || !password) { setError("Please fill in all fields."); return; }
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:8000/api/v1/auth/login", {
+      const res = await fetch(`${import.meta.env.DEV ? "http://localhost:8000" : (import.meta.env.DEV ? "http://localhost:8000" : "https://e-learning-backend-api.onrender.com")}/api/v1/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
